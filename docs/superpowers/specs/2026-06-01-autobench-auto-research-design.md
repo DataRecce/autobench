@@ -6,368 +6,364 @@
 
 ## 1. Purpose
 
-`autobench` is an **auto-research repository**. Its job is to drive a closed research
-loop that fine-tunes the README of a [spacedock](https://github.com/spacedock-dev/spacedock)
-workflow — the **independent variable** — to maximize the score of an AI-agent
-benchmark, run by [razorback](https://github.com/spacedock-dev/razorback).
+`autobench` is an **auto-research repository**. It drives a closed research loop that
+fine-tunes the README of a [spacedock](https://github.com/spacedock-dev/spacedock)
+solver workflow — the **independent variable** — to maximize the score of an AI-agent
+benchmark run by [razorback](https://github.com/spacedock-dev/razorback).
 
-The loop is: **goal/concept → ideate hypothesis → smoke test → full run → analyze
+The loop is: **goal/concept → ideate hypotheses → smoke test → full run → analyze
 outcome → propose the next hypothesis → (repeat) → complete.**
 
-- **razorback** executes the benchmark from a frozen spec (YAML). The research loop
-  only maintains the spec and the solver README; razorback owns execution, auditing,
-  and scoring.
-- **spacedock** orchestrates the research loop itself: each hypothesis is an entity
-  that flows through stages dispatched by the `first-officer`, with work done by
-  `ensign` agents.
-- **First target benchmark:** `ade-bench` (autonomous data-engineering / dbt repair).
+- **razorback** executes the benchmark from a frozen spec (YAML), audits the run for
+  leakage, and scores it. The research loop only maintains the spec and the solver
+  README; razorback owns execution, auditing, and scoring.
+- **spacedock** orchestrates the research loop: each hypothesis is an entity that flows
+  through stages dispatched by the `first-officer`, with work done by `ensign` agents.
+- **First target benchmark:** `ade-bench` (autonomous data-engineering / dbt repair),
+  pinned at `dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5`
+  — **48 tasks** across 6 groups (Airbnb, Analytics-Eng, Asana, F1, Intercom,
+  QuickBooks), each tagged easy/medium/hard (see `ade-bench-datasets.md`).
 - **Solver runtime (held constant):** `codex` (`gpt-5.5`).
 
-### Key insight that shaped this design
+### Design grounding: razorback's canonical autoresearch repo
 
-razorback already ships the exact loop. Its template
-`razorback/src/razorback/templates/experiment-workflow/README.md` says: *"Copy this
-template into a research repo to drive a single hypothesis from `pending` through
-`conclude`."* **autobench is that research repo.** (We adapt that single-hypothesis
-template into a continuous loop and rename its `pending` stage to `hypothesis`; see
-§4.) razorback also provides:
+razorback ships `rk research new <slug> --from <dataset>`, which scaffolds the exact
+autoresearch repo this design targets, and provides native primitives for the loop:
 
-- `agent.kind: spacedock_solver` with a `solver_workflow:` path field, and
-  `solver_workflow_content_hash` sealed by `rk freeze` — i.e. "tune a workflow README,
-  re-run the benchmark" is a first-class, reproducible operation.
-- ade-bench as a Harbor plugin (`dbt-labs/ade-bench@…`).
-- A codex ade/dbt-repair solver baseline at
-  `razorback/examples/solver_workflows/codex-ade-dbt-repair/README.md`.
+- `rk research new` → the canonical layout (`specs/`, `solver_workflows/`,
+  `hypotheses/`, `drivers/matrix.sh`, `razorback-research.toml`).
+- `rk baseline promote` + a `@baseline` entry in `razorback-research.toml` (via
+  `rk registry add`) → the **champion mechanism**.
+- `rk runs diff <baseline-run> <variant-run>` → **paired delta** with bootstrap CIs and
+  Holm-Bonferroni-adjusted p-values.
+- `drivers/matrix.sh` → per-cell `rk run → audit → score`, which **rejects cells whose
+  `subagent-trace-manifest.json` has `captured == 0`** (the spacedock crew failed to
+  load) and rejects tainted (leaked) cells.
 
-The design therefore **assembles the paved path**; it does not invent new mechanics.
+`rk-monitor` (a sibling repo) is the **manual precursor**: it runs ade-bench through
+razorback by hand and ran the first experiments. autobench automates that loop with a
+spacedock workflow and reuses rk-monitor's proven conventions.
+
+**The design therefore rebases onto razorback's canonical layout and layers our
+additions on top:** a `concept → ideate` *breadth* front-end and first-officer
+orchestration with two human gates. It assembles the paved path; it does not reinvent
+baseline/diff/scoring.
 
 ## 2. Decisions (this session)
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Organization approach | **A — razorback-native experiment repo** | Uses spacedock as the meta-orchestrator (as requested); each README variant is frozen + content-hashed = fully reproducible. (B confounds reproducibility; C abandons the spacedock loop.) |
-| Autonomy | **Semi-autonomous, two human gates** | Gate at `propose` (leak-guard review of the README) and at `smoke → full` (money go/no-go). Everything else auto. Matches razorback's intent while running unattended between gates. |
-| Solver runtime | **codex** (`gpt-5.5`) | Fork razorback's ade-specific `codex-ade-dbt-repair` baseline. One runtime held constant → the README is the only variable. |
-| Workflow location | **`docs/ade-bench/`** | spacedock's `commission` default. (Discovery is frontmatter-based, so any path works; chose the spacedock idiom.) |
+| Foundation | **Rebase onto `rk research new` canonical layout + spacedock layer** | Native `@baseline` registry, `rk runs diff`, `matrix.sh`, flat `solver_workflows/`+`specs/`. We upgrade `hypotheses/` into the spacedock workflow. Least custom code; most reproducible. (Option A.) |
+| Per-benchmark namespacing | **Each benchmark = a `rk research new` subdir** (`ade-bench/`) | autobench is a multi-benchmark umbrella; a 2nd benchmark is a sibling `rk research new` subdir. |
+| Autonomy | **Semi-autonomous, two human gates** | Gate at `propose` (leak-guard review of the README) and at `smoke → full` (money go/no-go). Everything else auto. |
+| Solver runtime | **codex** (`gpt-5.5`) | One runtime held constant → the README is the only variable. Baseline solver README forked from razorback's `codex-ade-dbt-repair`. |
 | Ideation / loop closure | **Two birth paths, prompt-driven** | A `concept` fans out via `ideate` into many `hypothesis` entities (breadth); each `conclude` files one failure-driven follow-up `hypothesis` (depth). Ensigns write the entity files — no spacedock mod. |
+| Champion | **Native `@baseline` registry + `rk baseline promote`** | Replaces a custom `CHAMPION.md`. `conclude` promotes a winner and re-binds `@baseline`. |
+| Comparison | **`rk runs diff @baseline <variant>` + `rk score`** | Paired delta (CIs, adjusted p) for the promotion verdict; `rk score` for the absolute `stratified_pass_at_1` vs `paper_baseline`. |
+| Hypothesis entity form | **Flat `h<NNNN>-<slug>.md`** (folder form optional) | Canonical naming. The heavy artifacts live in sibling `solver_workflows/` + `specs/`, keyed by the same slug. |
 
 ## 3. Repo structure
+
+`ade-bench/` is generated by `rk research new ade-bench --into ./ade-bench
+--solver-runtime codex --target-model gpt-5.5`; we then upgrade `hypotheses/` into a
+spacedock workflow and fork the codex solver baseline.
 
 ```
 autobench/
 ├── README.md                       # what autobench is + how to run the loop
 ├── CLAUDE.md                       # thin Claude-Code preface → defers to AGENTS.md
 ├── AGENTS.md                       # canonical operator guide (Codex + source of truth)
+├── ade-bench-datasets.md           # the 48 ade-bench task names + difficulties (reference)
 ├── recce.yml                       # pre-existing; unrelated, left as-is
 ├── .gitmodules
-├── razorback/                      # submodule — benchmark runner (rk)        [existing, read-only]
-├── spacedock/                      # submodule — workflow framework            [existing, read-only]
+├── razorback/                      # submodule — benchmark runner (rk)        [read-only]
+├── spacedock/                      # submodule — workflow framework            [read-only]
 │
-├── docs/
-│   ├── ade-bench/                  # ← the spacedock auto-research workflow
-│   │   ├── README.md               #   experiment-workflow def (commissioned-by: spacedock@…)
-│   │   ├── concept-<slug>.md        #   CONCEPT entity (flat .md): a research direction to ideate from
-│   │   ├── 0001-<slug>/            #   HYPOTHESIS entity (folder): one testable README variant
-│   │   │   ├── index.md            #     task definition: hypothesis, AC, smoke/full notes, analyze, conclude
-│   │   │   ├── solver_workflow/
-│   │   │   │   └── README.md        #     ← THE independent variable: this variant's solver README
-│   │   │   ├── spec.frozen.yaml     #     rk-frozen spec; seals solver_workflow_content_hash
-│   │   │   └── runs/                #     durable evidence: audit.json, score.json, events.jsonl
-│   │   ├── 0002-<slug>/ …
-│   │   ├── _archive/               #   concluded/expanded entities (status viewer moves them here)
-│   │   └── _debriefs/              #   session records (spacedock debrief)
-│   └── superpowers/specs/          #   design docs (this file)
+├── ade-bench/                      # = `rk research new ade-bench …` output
+│   ├── razorback-research.toml     #   named-ref registry: @baseline (← champion), @latest
+│   ├── README.md                   #   razorback's repo readme (first-run + lifecycle)
+│   ├── specs/
+│   │   ├── baseline.yaml            #     spacedock_solver/codex/gpt-5.5; solver_workflow: ./solver_workflows/baseline
+│   │   ├── baseline.frozen.yaml     #     after `rk freeze`
+│   │   └── h0001-<slug>.yaml         #     variant spec: repoints solver_workflow + experiment
+│   ├── solver_workflows/            #   ← THE independent variable (flat, one dir per variant)
+│   │   ├── baseline/README.md       #     forked from razorback codex-ade-dbt-repair (+ leak-guard prose)
+│   │   └── h0001-<slug>/README.md    #     the variant under test
+│   ├── hypotheses/                  #   ← UPGRADED into the spacedock experiment workflow
+│   │   ├── README.md                #     commissioned-by: spacedock@ + concept→ideate→…→conclude
+│   │   ├── concept-<slug>.md         #     CONCEPT entity (flat .md): a research direction to ideate from
+│   │   ├── h0001-<slug>.md           #     HYPOTHESIS entity (flat .md): notes + accumulated evidence
+│   │   ├── _archive/                #     concluded/expanded entities
+│   │   └── _debriefs/               #     session records
+│   ├── drivers/matrix.sh            #   per-cell run+audit+score; captured>0 + taint guards; ledger.tsv
+│   └── runs/                        #   razorback run outputs (gitignored)
 │
-├── solver_workflows/
-│   └── ade-bench/
-│       ├── baseline/README.md       # genesis: fork of razorback codex-ade-dbt-repair (immutable)
-│       └── CHAMPION.md              # pointer: current best hypothesis id + score + path
-│
-├── specs/
-│   └── ade-bench/
-│       ├── smoke.yaml               # unfrozen template: spacedock_solver + codex, n_tasks small
-│       └── full.yaml                # unfrozen template: full ade-bench dataset
-│
-├── runs/                            # rk run output root (gitignored — large)
-│
-└── scripts/
-    └── new-hypothesis.sh            # thin helper: scaffold a hypothesis folder by forking CHAMPION
+└── docs/superpowers/specs/          #   design docs (this file)
 ```
 
 ### Conventions
 
-- **`docs/ade-bench/` is a spacedock workflow directory.** Its `README.md` is the
-  workflow definition (carries `commissioned-by: spacedock@…`, which is how
-  `status --discover` recognizes it). It holds **two entity kinds**, both defined by a
-  markdown file: **concepts** are flat files `concept-<slug>.md`; **hypotheses** are
-  folders `NNNN-<slug>/` whose `index.md` is the task definition (spacedock folder
-  form). Adding a second benchmark later = a sibling `docs/<benchmark>/`.
-- **The independent variable is `docs/ade-bench/<hyp>/solver_workflow/README.md`** —
-  frozen and content-hashed per hypothesis, so every experiment is reproducible.
-- **`solver_workflows/ade-bench/baseline/`** is the immutable genesis README (the
-  razorback fork); **`CHAMPION.md`** records the reigning best. Hypothesis `0001`
-  forks from `baseline/`; later hypotheses fork from the champion.
-- **`specs/ade-bench/{smoke,full}.yaml`** are unfrozen templates. The `propose` stage
-  copies one, points `solver_workflow:` at the hypothesis's `solver_workflow/`, and
-  freezes it into `spec.frozen.yaml`.
-- **`runs/` is gitignored.** Durable evidence (`audit.json`, `score.json`,
-  `events.jsonl`) is copied into each hypothesis's `runs/` so the folder is
-  self-contained.
+- **`ade-bench/hypotheses/` is the spacedock workflow directory** — its `README.md`
+  carries `commissioned-by: spacedock@…` (how `status --discover` recognizes it) and
+  defines the stages. It holds two entity kinds, both defined by a markdown file:
+  **concepts** (`concept-<slug>.md`) and **hypotheses** (`h<NNNN>-<slug>.md`; folder
+  form `h<NNNN>-<slug>/index.md` is allowed when evidence accumulates).
+- **The independent variable is `ade-bench/solver_workflows/h<NNNN>-<slug>/README.md`**
+  — kept flat (canonical layout), forked from the current `@baseline`'s solver
+  workflow, frozen + content-hashed per hypothesis via `rk freeze`.
+- **The variant spec is `ade-bench/specs/h<NNNN>-<slug>.yaml`** — a copy of
+  `baseline.yaml` with `experiment:` renamed and `solver_workflow:` repointed at the
+  matching `solver_workflows/` dir.
+- **Champion = the `@baseline` registry entry** in `razorback-research.toml`, promoted
+  via `rk baseline promote` + `rk registry add run baseline <run-dir>`.
+- **`runs/` is gitignored.** Specs and solver READMEs are tracked; run outputs are not.
+- **Adding a second benchmark later** = `rk research new <other> --into ./<other>` and
+  the same `hypotheses/` upgrade.
 
 ## 4. The research loop
 
-The loop is a spacedock experiment workflow (`docs/ade-bench/README.md`), forked from
-`razorback/src/razorback/templates/experiment-workflow/README.md` and re-gated to the
-"auto except money + leak" autonomy choice. **First-officer** orchestrates; **ensigns**
-execute each stage; razorback's `rk` does the benchmark work.
+The loop is a spacedock experiment workflow at `ade-bench/hypotheses/README.md`, built
+by upgrading the `rk research new` `hypotheses/` notes README into a
+spacedock-commissioned workflow. It preserves razorback's canonical stage semantics
+(`propose` edits `solver_workflows/…`, writes `specs/…`, freezes; `analyze` runs
+`rk runs diff`; `conclude` promotes `@baseline`) and adds the `concept → ideate`
+breadth front-end and the two gates. **First-officer** orchestrates; **ensigns** run the
+`rk` commands; `drivers/matrix.sh` chains the per-cell pipeline.
 
-The workflow has **two entity kinds on two paths**, sharing one stage graph and one
-directory:
-
-- a **concept** (flat `concept-<slug>.md`) fans out into many hypotheses — *breadth*;
-- a **hypothesis** (folder `NNNN-<slug>/`) is tested end-to-end and, at `conclude`,
-  may spawn one failure-driven follow-up hypothesis — *depth*.
-
-Both birth mechanisms are **prompt-driven**: the acting ensign writes the new entity
-file(s). No spacedock mod is required, matching razorback's mod-free template.
+The workflow has **two entity kinds on two paths**, sharing one directory; both birth
+mechanisms are prompt-driven (the acting ensign writes the new entity file — no mod).
 
 ### Concept path (divergent — breadth)
 
 | Stage | Gate? | What happens |
 |-------|-------|--------------|
-| `concept` *(initial)* | — auto | A research direction is filed (by you or the first-officer): a plain-English theme + rationale (e.g. "give the solver a structured dbt-repair triage checklist"). This is the "provide goal or concept" entry point. Auto-advances. |
-| `ideate` | — auto | An ensign reads the concept + current `CHAMPION.md` + prior learnings, **generates multiple candidate hypotheses, and writes each as a new `hypothesis`-stage entity** (folder, forked from the champion README). Then the concept advances to `expanded`. |
+| `concept` *(initial)* | — auto | A research direction is filed (by you or the first-officer): a plain-English theme + rationale (e.g. "give the solver a structured dbt-repair triage checklist"). The "provide goal or concept" entry point. Auto-advances. |
+| `ideate` | — auto | An ensign reads the concept + the current `@baseline` solver README + prior learnings, **generates multiple candidate hypotheses, and writes each as a new `hypothesis` entity** (`h<NNNN>-<slug>.md`, each naming the solver-README change it will make). Then the concept advances to `expanded`. |
 | `expanded` *(terminal)* | — auto | The concept has been turned into hypotheses; archived. |
 
-There is **no gate on `ideate`** — every generated hypothesis is gated individually at
-its own `propose` step, so spend stays controlled without a breadth gate.
+No gate on `ideate` — every generated hypothesis is gated individually at its own
+`propose`, so spend stays controlled without a breadth gate.
 
 ### Hypothesis path (the test pipeline — depth)
 
 | Stage | Gate? | What happens |
 |-------|-------|--------------|
-| `hypothesis` *(initial)* | — auto | A fully-formed, queued hypothesis: title, plain-English claim, `## Acceptance criteria` naming the verdict (e.g. "beats CHAMPION's `stratified_pass_at_1` on full ade-bench"). Born from an `ideate` fan-out or a `conclude` follow-up. Auto-advances. |
-| `propose` | 🚦 **leak-guard** | Ensign writes/edits this variant's `solver_workflow/README.md` and the frozen spec. **Human reviews at the gate:** README leaks no ground truth; spec has `max_budget_usd` + `paper_baseline`; `agent.kind: spacedock_solver`, `runtime: codex`. |
-| `smoke` | 🚦 **money go/no-go** | `rk run --explain` (free) → budget check → per-cell `rk run` → `rk audit --policy strict` → `rk score` on `n_tasks` small. **Human reviews at the gate** before committing real spend to the full run. |
-| `full` | — auto | Same sandwich over the full ade-bench dataset, with `--max-budget-usd-running` as the hard backstop. Auto-advances on success. |
-| `analyze` | — auto | `rk score` rolls up `stratified_pass_at_1` vs `paper_baseline`; verdict (`above` / `inside_ci` / `below`) written into `index.md`. |
-| `conclude` *(terminal)* | — auto | Verdict recorded. If this variant beats CHAMPION (and audit passed) → promote (update `CHAMPION.md`). Then, **based on this run's failure pattern, file one follow-up `hypothesis` entity** (forking the possibly-new champion). Archived. |
+| `hypothesis` *(initial)* | — auto | A fully-formed, queued hypothesis: title, falsifiable claim, `## Acceptance criteria` (the verdict, e.g. "the paired `rk runs diff` delta vs `@baseline` clears the tripwire on `stratified_pass_at_1`"). Born from an `ideate` fan-out or a `conclude` follow-up. Auto-advances. |
+| `propose` | 🚦 **leak-guard** | Ensign forks `@baseline`'s solver dir to `solver_workflows/h<NNNN>-<slug>/`, edits its `README.md` (the one variable), copies `specs/baseline.yaml` → `specs/h<NNNN>-<slug>.yaml` (repointing `solver_workflow:` + `experiment:`), and `rk freeze`s it. **Human reviews:** README leaks no ground truth (the leak-guard prose is intact); spec is `spacedock_solver`/`codex`; budget + baseline present. |
+| `smoke` | 🚦 **money go/no-go** | `rk run --explain` (free) → `rk run <frozen> --runs-dir runs --n-tasks 5` → `captured > 0` check → `rk audit --policy strict` → `rk score`. **Tripwire:** does the smoke score sit in the baseline-smoke envelope? **Human reviews** before committing the full run. |
+| `full` | — auto | `drivers/matrix.sh` (or `rk run` with no `--n-tasks`) over all 48 tasks: per-cell run → `captured > 0` → `rk audit --policy strict` → `rk score`, with `--max-budget-usd-running` as the hard backstop. Auto-advances on a clean ledger. |
+| `analyze` | — auto | `rk runs diff "$(rk registry resolve run @baseline)" <variant-run-dir>` → paired delta (CIs, adjusted p) pasted into the entity body, plus the absolute `rk score` `stratified_pass_at_1` vs `paper_baseline`. Verdict line written. |
+| `conclude` *(terminal)* | — auto | Verdict recorded. **If the paired delta clears the tripwire (and audit was clean) → promote:** `rk baseline promote <variant-run-dir>` + `rk registry add run baseline <variant-run-dir>`. Then, **based on the failure pattern, file one follow-up `hypothesis` entity** (forking the new `@baseline`). Archived. |
 
-> **Gate mechanics note:** in spacedock, a stage's `gate: true` fires at the boundary
-> *leaving* that stage. So `gate: true` on `propose` is the `propose → smoke` review
-> (the README), and `gate: true` on `smoke` is the `smoke → full` review (the money
-> go/no-go). All other stages are `gate: false`. Net: exactly two human gate types,
-> both on the hypothesis path.
+> **Gate mechanics:** in spacedock a stage's `gate: true` fires at the boundary
+> *leaving* that stage. `gate: true` on `propose` = the `propose → smoke` review (the
+> README); `gate: true` on `smoke` = the `smoke → full` review (the money go/no-go).
+> All other stages are `gate: false`. Net: exactly two human gate types, both on the
+> hypothesis path.
 
 ### Entity lifecycle
 
-One hypothesis = one folder/entity. Its `index.md` accumulates evidence as it flows:
-claim → smoke result → full result → analyze verdict → conclude paragraph. The frozen
-spec + `solver_workflow/README.md` make it a permanent, reproducible record of that
-variant. A concept is a lightweight flat file that records the direction and links to
-the hypotheses it spawned.
+One hypothesis = one flat `h<NNNN>-<slug>.md` whose body accumulates evidence as it
+flows: claim → smoke result → full result → `rk runs diff` delta → verdict. Its frozen
+spec (`specs/`) + solver README (`solver_workflows/`) make it a reproducible record. A
+concept is a lightweight flat file recording the direction and the hypotheses it
+spawned.
 
 ### Loop closure (the two engines)
 
-- **Breadth:** a `concept` → `ideate` produces several hypotheses at once — exploring
-  distinct directions in parallel.
-- **Depth:** each `conclude` → files one follow-up `hypothesis`, taking the failure
-  modes surfaced in `analyze` and proposing the next README change.
+- **Breadth:** a `concept` → `ideate` produces several hypotheses at once.
+- **Depth:** each `conclude` → files one follow-up `hypothesis` from the failure modes.
 
-Together these keep the loop self-sustaining. First-officer keeps dispatching while
-dispatchable entities exist; when the backlog empties, you file a new `concept`.
+First-officer keeps dispatching while dispatchable entities exist; when the backlog
+empties, you file a new `concept`.
 
 ### Termination ("complete")
 
-A single hypothesis self-terminates at `conclude`; a concept self-terminates at
-`expanded`. The *campaign* is open-ended and **the human** ends it — when the score
-plateaus, hits a target, or the budget is spent. Because the auto stages move work
-forward but `propose`/`smoke` are gated, the human naturally stays in the loop (sees
-every new README, approves every full-run spend) without babysitting mechanical steps.
+A hypothesis self-terminates at `conclude`; a concept at `expanded`. The *campaign* is
+open-ended and **you** end it — when the score plateaus, hits a target, or the budget is
+spent. Auto stages move work forward; the two gates keep you in the loop (you see every
+new README and approve every full-run spend).
 
 ### Concurrency
 
-Kept low (1–2). Full runs cost money and serialize on the money gate. Note that an
-`ideate` fan-out can queue many hypotheses at once — they progress as gates clear, not
-all simultaneously.
+Kept low. Full runs cost money and serialize on the money gate. An `ideate` fan-out can
+queue many hypotheses; they progress as gates clear, not all at once.
 
 ## 5. The spec ↔ solver-workflow contract
 
-Three artifacts per hypothesis, bound together by `rk freeze`.
+### 5.1 The baseline spec (canonical shape, ade-bench/codex)
 
-### 5.1 Unfrozen spec templates
-
-`specs/ade-bench/{smoke,full}.yaml`, modeled on
-`razorback/examples/specs/codex-ade-bench-smoke.yaml`. The `propose` stage copies one,
-points it at the hypothesis's README, and freezes it:
+`ade-bench/specs/baseline.yaml`, derived from `rk research new` + rk-monitor's
+`spacedock-harness-gpt-5.5-xhigh-full48.yaml`:
 
 ```yaml
 version: 1
-experiment: ade-bench-<id>-smoke
+experiment: ade-bench-baseline          # variants: ade-bench-h0001-<slug>
 agent:
   kind: spacedock_solver
-  runtime: codex                       # runtime choice, held constant
+  runtime: codex
   model: gpt-5.5
-  sampling: { temperature: 0.0, top_p: null, seed: 1 }
-  reasoning_effort: high
-  solver_workflow: ./solver_workflow    # relative to the hypothesis folder = the variant
+  sampling: { temperature: 0.0, top_p: null, seed: null }
+  solver_workflow: ./solver_workflows/baseline   # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+  spacedock_skill_version: "1.0.0"
   max_turns: 200
+  override_timeout_sec: 2400
+  max_timeout_sec: 2400
+  reasoning_effort: xhigh                # held constant (rk-monitor used xhigh on full48)
   tools_allowed: []
-  tools_denied: []                      # leak-guard surface (block oracle tools here)
+  tools_denied: []
 benchmark:
   kind: harbor
-  dataset: dbt-labs/ade-bench@sha256:<pinned-digest>   # pin a digest for reproducibility
-  n_tasks: 1                            # SMOKE only; full.yaml omits this
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+  # smoke: pass `--n-tasks 5` on the CLI; full: omit it (all 48 tasks)
 trials: 1
 concurrency: { trials: 1 }
 observers:
   - { kind: jsonl, path: events.jsonl }
   - { kind: stdout }
 experiment_meta:
-  max_budget_usd: 5.00                  # hard cap; full.yaml sets a higher ceiling
-  paper_baseline: { name: stratified_pass_at_1, value: <ade-bench baseline> }
+  max_budget_usd: <full-run cap>
+  paper_baseline: { name: stratified_pass_at_1, value: <ade-bench baseline — TBD> }
+provenance: { pin_model_version: false, pin_image_digest: false }
 ```
 
-`full.yaml` is identical except it omits `n_tasks` (full dataset) and sets a higher
-`max_budget_usd`.
+A variant spec is a copy with `experiment:` renamed and `solver_workflow:` repointed —
+**nothing else changes** (the independent-variable rule, §6).
 
 ### 5.2 `rk freeze` seals the pair
 
-Freezing in the hypothesis folder computes `solver_workflow_content_hash` over the
-README and writes `spec.frozen.yaml`. From that point the README variant and spec are
-an immutable, reproducible unit — the heart of "the README is the independent
-variable."
+Freezing resolves the model alias and computes `solver_workflow_content_hash` over the
+variant README, writing `<spec>.frozen.yaml` + `provenance.yaml`. The README variant and
+spec are then an immutable, reproducible unit.
 
-### 5.3 The `rk` sandwich
+### 5.3 The per-cell sandwich (`drivers/matrix.sh`)
 
-Run by smoke and full ensigns, per cell:
+For each cell the matrix driver runs:
 
-```bash
-rk run --explain <frozen>                    # free pre-flight: catches spec/translator errors at $0
-rk runs cost <run-root>                       # budget pre-check vs max_budget_usd
-rk run <frozen> --task-id <t> --out <cell>    # the live burn (codex solver in Harbor/docker)
-rk audit --policy strict <cell>               # fail if forbidden oracle calls in the event log
-rk score <cell>                               # stratified_pass_at_1 vs paper_baseline
+```
+rk run <frozen> --runs-dir runs [--max-budget-usd-running <budget-file>]
+  → spacedock smoke gate: subagent-trace-manifest.json captured > 0   (REJECT cell if 0)
+  → rk audit --policy strict → audit.json                             (REJECT cell if tainted)
+  → rk score → score.json   (paper_baseline auto-pulled from experiment_meta)
+  → ledger.tsv row: spec, status, run_dir, cost_usd, taint_count
 ```
 
-`runs/audit.json` + `runs/score.json` are copied into the hypothesis folder as durable
-evidence. (Canonical sandwich reference:
-`razorback/examples/drivers/dab-paper-matrix.sh`.)
+Smoke is the same pipeline with `--n-tasks 5`. The `captured > 0` guard **resolves the
+earlier audit-coverage caveat**: a spacedock-solver cell that didn't capture its
+subagent trace is rejected, not silently scored.
 
 ### 5.4 Leak-guard (the `propose` gate's reason to exist)
 
-The README variant must state *"the workspace data is the only authoritative source"*
-and forbid external oracles:
+The solver README must keep the **External-oracle audit** section shipped in razorback's
+baseline solver README: the workspace data is the only authoritative source; forbidden —
+HuggingFace `datasets`/`hf://`, canonical-data downloads (`requests`/`curl`/`wget` to
+huggingface.co, raw.githubusercontent.com, kaggle.com), web search, LLM-as-oracle. (Not
+forbidden: `pip install` of generic compute libs that ship no canonical data.)
+razorback's runtime `DISALLOWED_TOOLS` and `rk audit --policy strict` are the backstops;
+the prose deters the rest. Tuning must never relax this; you enforce it at the gate.
 
-- HuggingFace `datasets` (`load_dataset`, `hf://…`)
-- public CSV/JSON downloads (kaggle, GitHub, vendor mirrors)
-- web-search engines / search APIs
-- LLM-as-oracle calls
-- cached prior answers from earlier runs or any artifact outside the workspace
+### 5.5 Response variable & promotion verdict
 
-The codex baseline already forbids network access and external datasets; tuning must
-never relax this. Canonical leak-guard prose source:
-`razorback/packages/razorback-plugin-dab/src/razorback_plugin_dab/generate/workspace_readme.py`.
-
-### 5.5 Response variable & scoring
-
-`score.json → stratified_pass_at_1`, compared to `paper_baseline`
-(`against_constant.stratified.verdict`: `above` / `inside_ci` / `below`). That single
-number is what each hypothesis moves. `rk score` auto-pulls `paper_baseline` from the
-frozen spec — do not pass `--against-constant` on the CLI.
-
-### 5.6 Known caveat (record in every analyze report)
-
-`rk audit --policy strict` on `spacedock_solver` runs does **not** yet walk the
-solver's subagent JSONL (`agent/sessions/projects/*/*.jsonl`), so the audit verdict is
-structurally incomplete for our runs. Surface this caveat in each analyze report rather
-than treat the audit as airtight.
+- **Paired (promotion):** `rk runs diff @baseline <variant>` — the delta on
+  `stratified_pass_at_1` with bootstrap CIs and Holm-Bonferroni-adjusted p-values. The
+  variant promotes to `@baseline` only if the delta clears the tripwire (CI excludes a
+  regression) on a clean audit.
+- **Absolute (context):** `rk score`'s `stratified_pass_at_1` vs
+  `experiment_meta.paper_baseline` (`against_constant.stratified.verdict`).
 
 ## 6. CLAUDE.md & AGENTS.md
 
-### Three agent layers (these files target only the first)
-
-| Layer | Who | Reads |
-|-------|-----|-------|
-| **Repo operator** | Claude Code *or* Codex CLI driving the loop | **CLAUDE.md / AGENTS.md** |
-| **Orchestrator** | spacedock first-officer + ensigns (spawned by the operator) | `docs/ade-bench/README.md` |
-| **Agent-under-test** | the codex solver (spawned by razorback/Harbor) | `…/<hyp>/solver_workflow/README.md` (the variable) |
+These files target the **repo operator** (Claude Code or Codex CLI driving the loop) —
+not the spacedock first-officer (reads `hypotheses/README.md`) nor the codex solver
+(reads `solver_workflows/<variant>/README.md`).
 
 ### File strategy: one canonical body, no drift
 
-- **`AGENTS.md`** = full operating guide (Codex reads it; also the source of truth,
-  consistent with razorback's and spacedock's own `AGENTS.md`).
+- **`AGENTS.md`** = full operating guide (Codex reads it; source of truth; consistent
+  with razorback's and spacedock's own `AGENTS.md`).
 - **`CLAUDE.md`** = short Claude-Code preface that defers to `AGENTS.md`.
 
-### `AGENTS.md` (canonical) — sections
+### `AGENTS.md` (canonical) — sections (modeled on rk-monitor's proven content)
 
-1. **What autobench is** — auto-research repo: tune a spacedock solver-workflow README
-   to push a benchmark score up; razorback runs the benchmark, spacedock orchestrates
-   the loop. First target: ade-bench, codex runtime.
-2. **Submodules** — `razorback/` (run benchmarks via `uv run rk …`; never edit),
-   `spacedock/` (workflow framework + first-officer/ensign skills; never edit). Both
-   read-only deps; update via `git submodule update`.
-3. **Repo map** — `docs/ade-bench/`, `solver_workflows/ade-bench/{baseline,CHAMPION.md}`,
-   `specs/ade-bench/`, `runs/` (gitignored).
-4. **Running the loop** — seed a `concept` (the goal), then start
-   `spacedock:first-officer` on `docs/ade-bench/`; the two paths (concept → `ideate`
-   fan-out; hypothesis → `propose` → `smoke` → `full` → `analyze` → `conclude`); the
-   two human gates (`propose` = leak-guard, `smoke → full` = money).
+1. **What autobench is** — auto-research repo tuning a codex spacedock solver README to
+   push ade-bench's `stratified_pass_at_1` up; razorback runs+scores, spacedock
+   orchestrates. Per-benchmark subdir `ade-bench/`.
+2. **Submodules** — `razorback/` (run `rk` from it via `uv`; an `rk` alias routing
+   through the submodule + `uv run` is expected), `spacedock/` (workflow framework +
+   first-officer/ensign skills). Both read-only.
+3. **🔒 Run prerequisites (load-bearing)** — before any `rk run`:
+   - `export RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(pwd)/spacedock"` (specs with
+     `agent.kind: spacedock_solver` fail at agent setup without it).
+   - `ANTHROPIC_API_KEY` *or* `CLAUDE_CODE_OAUTH_TOKEN` in the env.
+   - Docker / Colima running (Harbor's docker environment).
+   - dataset ref resolves anonymously (ade-bench is public).
+4. **Running the loop** — seed a `concept`, then start `spacedock:first-officer` on
+   `ade-bench/hypotheses/`; two paths (concept→`ideate` fan-out; hypothesis→`propose`→
+   `smoke`→`full`→`analyze`→`conclude`); two human gates (`propose`=leak-guard,
+   `smoke→full`=money). Always pass `--runs-dir runs`; prefer `rk run --explain` first.
 5. **🔒 The independent-variable rule** — *only* the solver README changes between
-   hypotheses. Runtime (codex), model (gpt-5.5), sampling, spec shape, and `n_tasks`
-   policy are held constant. Touching anything else confounds the result and must be
-   declared as a separate hypothesis.
-6. **🔒 Leak-guard discipline** — workspace data is the only authoritative source;
-   forbidden-oracle list (§5.4); never relax the baseline's network/external-data ban;
-   use `tools_denied`.
-7. **🔒 Budget discipline** — `rk run --explain` ($0) first; smoke before full, always;
-   `rk runs cost` pre-check; `--max-budget-usd-running` backstop; never exceed
-   `max_budget_usd` — stop and report near the cap.
-8. **🔒 Reproducibility discipline** — always `rk freeze`; pin the ade-bench dataset
-   digest; frozen spec + README hash are immutable once smoke starts; copy
-   `audit.json`/`score.json` into the hypothesis folder.
-9. **The sandwich** — `rk run → rk audit --policy strict → rk score` per cell; record
-   the spacedock_solver audit-coverage caveat (§5.6) in every analyze report.
-10. **Champion promotion** — at `conclude`, a variant that beats `CHAMPION.md` (and
-    passes audit) becomes the new champion; the next hypothesis forks from it.
-11. **Conventions** — folder-form entities, ID style, commit discipline.
+   hypotheses. Runtime (codex), model (gpt-5.5), sampling, `reasoning_effort`, spec
+   shape are held constant. A variant spec differs from `baseline.yaml` only in
+   `experiment:` + `solver_workflow:`. Anything else is a separate, declared hypothesis.
+6. **🔒 Leak-guard discipline** — §5.4: workspace data only; forbidden-oracle list;
+   never relax the baseline solver README's External-oracle audit section.
+7. **🔒 Budget discipline** — `rk run --explain` ($0) first; smoke (`--n-tasks 5`)
+   before full; `--max-budget-usd-running` backstop; never exceed `max_budget_usd`.
+8. **🔒 Reproducibility discipline** — always `rk freeze`; the dataset digest is pinned;
+   frozen spec + README hash are immutable once smoke starts.
+9. **Native primitives** — champion = `@baseline` (`rk baseline promote` +
+   `rk registry add run baseline <dir>`); compare with `rk runs diff @baseline <dir>`;
+   per-cell pipeline = `drivers/matrix.sh` (chains audit + `captured>0` + taint guards).
+10. **Monitoring** — live: `<run-dir>/job.log`, `<trial>/trial.log`,
+    `<trial>/agent/codex.txt`; failures: `<trial>/exception.txt`; results:
+    `summary.json`, `per_trial_outcomes.json`, `result.json`. `events.jsonl` is often
+    **empty** for these Harbor runs — do not rely on it.
+11. **Safety** — never delete/rewrite existing run directories unless asked; keep
+    outputs under `runs/` (gitignored); don't move run outputs into tracked files.
 
 ### `CLAUDE.md` (thin preface)
 
 - **"Read `AGENTS.md` first — it is the operating guide; everything in it applies."**
-- Claude-Code specifics: use the `spacedock:first-officer` skill to run/resume the
-  loop; use superpowers `brainstorming` when standing up a *new* benchmark campaign;
-  you are the **operator**, not the solver (the codex solver is spawned by razorback).
+- Claude-Code specifics: use `spacedock:first-officer` to run/resume the loop; use
+  superpowers `brainstorming` when standing up a new benchmark or concept; you are the
+  **operator**, not the solver (the codex solver is spawned by razorback).
 
-The four 🔒 sections are the load-bearing guardrails — what keep the auto-loop from
-producing junk science or burning the budget.
+The four 🔒 sections plus run prerequisites are the load-bearing guardrails.
 
 ## 7. Out of scope / future
 
-- **Multi-benchmark.** Structure is namespaced (`docs/<benchmark>/`,
-  `solver_workflows/<benchmark>/`, `specs/<benchmark>/`) so a second benchmark is a
-  copy of the ade-bench setup. Not built now.
-- **A/B-ing the runtime** (codex vs claude). Deliberately excluded — would confound the
-  README as the sole independent variable.
-- **Campaign-level auto-stop** (e.g. plateau detection that ends the campaign without a
-  human). The human ends the campaign; per-hypothesis termination is automatic.
+- **Multi-benchmark.** A second benchmark = `rk research new <slug> --into ./<slug>` +
+  the `hypotheses/` upgrade. Not built now.
+- **A/B-ing the runtime** (codex vs claude). Excluded — would confound the README as the
+  sole independent variable.
+- **Holdout tier.** rk-monitor's workflow includes an out-of-sample `holdout` stage
+  before accept. Deferred for v1 (kept simple at `conclude`); revisit if README
+  overfitting to the 48 tasks becomes a concern.
+- **Campaign-level auto-stop.** You end the campaign; per-entity termination is
+  automatic.
 
-## 8. Values to fill in at implementation
+## 8. Concrete config to fill in at implementation
 
-- **ade-bench dataset digest** to pin in the spec templates. Reference example:
-  `razorback/examples/specs/ade-bench-harbor-dataset-codex.yaml` (carries a
-  `dbt-labs/ade-bench@sha256:…` ref).
-- **`paper_baseline.value`** for ade-bench's `stratified_pass_at_1`.
+- **`paper_baseline.value`** for ade-bench's `stratified_pass_at_1` (source from
+  rk-monitor's baseline runs or the ade-bench paper).
 - **`max_budget_usd`** caps for smoke and full.
+- **Smoke subset policy** — `--n-tasks 5` (first 5) vs a curated easy-across-groups set
+  (e.g. `ade-bench-airbnb001`, `ade-bench-ana-eng001`, `ade-bench-quickbooks001`).
+- **`rk` invocation** — confirm the alias/wrapper that routes `rk` through the
+  `razorback/` submodule via `uv` in this repo.
+- **Dataset digest** — already pinned:
+  `dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5`.
 
-## 9. Reusable assets (from the submodules)
+## 9. Reusable assets
 
 | Asset | Path |
 |-------|------|
-| Experiment-workflow template (fork for `docs/ade-bench/README.md`) | `razorback/src/razorback/templates/experiment-workflow/README.md` |
-| Codex ade/dbt-repair solver baseline (fork for `solver_workflows/ade-bench/baseline/`) | `razorback/examples/solver_workflows/codex-ade-dbt-repair/README.md` |
-| Codex ade-bench smoke spec (model for `specs/ade-bench/smoke.yaml`) | `razorback/examples/specs/codex-ade-bench-smoke.yaml` |
-| ade-bench Harbor dataset ref (digest to pin) | `razorback/examples/specs/ade-bench-harbor-dataset-codex.yaml` |
-| Canonical sandwich driver | `razorback/examples/drivers/dab-paper-matrix.sh` |
-| Leak-guard prose source | `razorback/packages/razorback-plugin-dab/src/razorback_plugin_dab/generate/workspace_readme.py` |
+| Research-repo scaffolder | `rk research new ade-bench --from <dataset> --solver-runtime codex --target-model gpt-5.5 --into ./ade-bench` |
+| Canonical template tree | `razorback/docs/templates/research-project/` (README, razorback-research.toml, hypotheses/README.md, specs/baseline.yaml, solver_workflows/baseline/README.md, drivers/matrix.sh) |
+| Codex ade/dbt-repair solver baseline (fork into `solver_workflows/baseline/`) | `razorback/examples/solver_workflows/codex-ade-dbt-repair/README.md` |
+| Native champion / compare | `rk baseline promote`, `rk registry add\|resolve`, `rk runs diff` |
+| Per-cell driver | `ade-bench/drivers/matrix.sh` (modeled on `razorback/examples/drivers/dab-paper-matrix.sh`) |
+| Layout/contents spec | `razorback/docs/superpowers/specs/2026-05-23-generic-harbor-benchmark-surface.md` §2.3 |
+| Manual precursor (conventions, monitor TUI) | `rk-monitor/` — `CLAUDE.md`, `AGENTS.md`, `docs/ade-bench-experiment-workflow/`, `scripts/monitor.py` |
+| ade-bench task catalog | `ade-bench-datasets.md` (48 tasks, 6 groups, difficulties) |
 | Workflow orchestration | `spacedock/skills/first-officer/`, `spacedock/skills/commission/bin/status` |
