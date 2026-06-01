@@ -28,7 +28,9 @@ outcome → propose the next hypothesis → (repeat) → complete.**
 razorback already ships the exact loop. Its template
 `razorback/src/razorback/templates/experiment-workflow/README.md` says: *"Copy this
 template into a research repo to drive a single hypothesis from `pending` through
-`conclude`."* **autobench is that research repo.** razorback also provides:
+`conclude`."* **autobench is that research repo.** (We adapt that single-hypothesis
+template into a continuous loop and rename its `pending` stage to `hypothesis`; see
+§4.) razorback also provides:
 
 - `agent.kind: spacedock_solver` with a `solver_workflow:` path field, and
   `solver_workflow_content_hash` sealed by `rk freeze` — i.e. "tune a workflow README,
@@ -47,6 +49,7 @@ The design therefore **assembles the paved path**; it does not invent new mechan
 | Autonomy | **Semi-autonomous, two human gates** | Gate at `propose` (leak-guard review of the README) and at `smoke → full` (money go/no-go). Everything else auto. Matches razorback's intent while running unattended between gates. |
 | Solver runtime | **codex** (`gpt-5.5`) | Fork razorback's ade-specific `codex-ade-dbt-repair` baseline. One runtime held constant → the README is the only variable. |
 | Workflow location | **`docs/ade-bench/`** | spacedock's `commission` default. (Discovery is frontmatter-based, so any path works; chose the spacedock idiom.) |
+| Ideation / loop closure | **Two birth paths, prompt-driven** | A `concept` fans out via `ideate` into many `hypothesis` entities (breadth); each `conclude` files one failure-driven follow-up `hypothesis` (depth). Ensigns write the entity files — no spacedock mod. |
 
 ## 3. Repo structure
 
@@ -63,14 +66,15 @@ autobench/
 ├── docs/
 │   ├── ade-bench/                  # ← the spacedock auto-research workflow
 │   │   ├── README.md               #   experiment-workflow def (commissioned-by: spacedock@…)
-│   │   ├── 0001-<slug>/            #   one hypothesis = one folder (spacedock folder-form entity)
-│   │   │   ├── index.md            #     entity: hypothesis, AC, smoke/full notes, analyze, conclude
+│   │   ├── concept-<slug>.md        #   CONCEPT entity (flat .md): a research direction to ideate from
+│   │   ├── 0001-<slug>/            #   HYPOTHESIS entity (folder): one testable README variant
+│   │   │   ├── index.md            #     task definition: hypothesis, AC, smoke/full notes, analyze, conclude
 │   │   │   ├── solver_workflow/
 │   │   │   │   └── README.md        #     ← THE independent variable: this variant's solver README
 │   │   │   ├── spec.frozen.yaml     #     rk-frozen spec; seals solver_workflow_content_hash
 │   │   │   └── runs/                #     durable evidence: audit.json, score.json, events.jsonl
 │   │   ├── 0002-<slug>/ …
-│   │   ├── _archive/               #   concluded entities (spacedock status viewer moves them here)
+│   │   ├── _archive/               #   concluded/expanded entities (status viewer moves them here)
 │   │   └── _debriefs/              #   session records (spacedock debrief)
 │   └── superpowers/specs/          #   design docs (this file)
 │
@@ -94,9 +98,10 @@ autobench/
 
 - **`docs/ade-bench/` is a spacedock workflow directory.** Its `README.md` is the
   workflow definition (carries `commissioned-by: spacedock@…`, which is how
-  `status --discover` recognizes it). Each `NNNN-<slug>/` folder is one hypothesis
-  entity in spacedock's folder form. Adding a second benchmark later = a sibling
-  `docs/<benchmark>/`.
+  `status --discover` recognizes it). It holds **two entity kinds**, both defined by a
+  markdown file: **concepts** are flat files `concept-<slug>.md`; **hypotheses** are
+  folders `NNNN-<slug>/` whose `index.md` is the task definition (spacedock folder
+  form). Adding a second benchmark later = a sibling `docs/<benchmark>/`.
 - **The independent variable is `docs/ade-bench/<hyp>/solver_workflow/README.md`** —
   frozen and content-hashed per hypothesis, so every experiment is reproducible.
 - **`solver_workflows/ade-bench/baseline/`** is the immutable genesis README (the
@@ -116,50 +121,75 @@ The loop is a spacedock experiment workflow (`docs/ade-bench/README.md`), forked
 "auto except money + leak" autonomy choice. **First-officer** orchestrates; **ensigns**
 execute each stage; razorback's `rk` does the benchmark work.
 
-### Stages & gates
+The workflow has **two entity kinds on two paths**, sharing one stage graph and one
+directory:
 
-Each hypothesis entity flows through:
+- a **concept** (flat `concept-<slug>.md`) fans out into many hypotheses — *breadth*;
+- a **hypothesis** (folder `NNNN-<slug>/`) is tested end-to-end and, at `conclude`,
+  may spawn one failure-driven follow-up hypothesis — *depth*.
+
+Both birth mechanisms are **prompt-driven**: the acting ensign writes the new entity
+file(s). No spacedock mod is required, matching razorback's mod-free template.
+
+### Concept path (divergent — breadth)
 
 | Stage | Gate? | What happens |
 |-------|-------|--------------|
-| `pending` *(initial)* | — auto | New hypothesis filed: title, plain-English claim, `## Acceptance criteria` naming the verdict (e.g. "beats CHAMPION's `stratified_pass_at_1` on full ade-bench"). Auto-advances. |
+| `concept` *(initial)* | — auto | A research direction is filed (by you or the first-officer): a plain-English theme + rationale (e.g. "give the solver a structured dbt-repair triage checklist"). This is the "provide goal or concept" entry point. Auto-advances. |
+| `ideate` | — auto | An ensign reads the concept + current `CHAMPION.md` + prior learnings, **generates multiple candidate hypotheses, and writes each as a new `hypothesis`-stage entity** (folder, forked from the champion README). Then the concept advances to `expanded`. |
+| `expanded` *(terminal)* | — auto | The concept has been turned into hypotheses; archived. |
+
+There is **no gate on `ideate`** — every generated hypothesis is gated individually at
+its own `propose` step, so spend stays controlled without a breadth gate.
+
+### Hypothesis path (the test pipeline — depth)
+
+| Stage | Gate? | What happens |
+|-------|-------|--------------|
+| `hypothesis` *(initial)* | — auto | A fully-formed, queued hypothesis: title, plain-English claim, `## Acceptance criteria` naming the verdict (e.g. "beats CHAMPION's `stratified_pass_at_1` on full ade-bench"). Born from an `ideate` fan-out or a `conclude` follow-up. Auto-advances. |
 | `propose` | 🚦 **leak-guard** | Ensign writes/edits this variant's `solver_workflow/README.md` and the frozen spec. **Human reviews at the gate:** README leaks no ground truth; spec has `max_budget_usd` + `paper_baseline`; `agent.kind: spacedock_solver`, `runtime: codex`. |
 | `smoke` | 🚦 **money go/no-go** | `rk run --explain` (free) → budget check → per-cell `rk run` → `rk audit --policy strict` → `rk score` on `n_tasks` small. **Human reviews at the gate** before committing real spend to the full run. |
 | `full` | — auto | Same sandwich over the full ade-bench dataset, with `--max-budget-usd-running` as the hard backstop. Auto-advances on success. |
 | `analyze` | — auto | `rk score` rolls up `stratified_pass_at_1` vs `paper_baseline`; verdict (`above` / `inside_ci` / `below`) written into `index.md`. |
-| `conclude` *(terminal)* | — auto | Verdict recorded. If this variant beats CHAMPION (and audit passed) → promote (update `CHAMPION.md`). Then file the next hypothesis into `pending`, forking the (possibly new) champion with the next proposed change. |
+| `conclude` *(terminal)* | — auto | Verdict recorded. If this variant beats CHAMPION (and audit passed) → promote (update `CHAMPION.md`). Then, **based on this run's failure pattern, file one follow-up `hypothesis` entity** (forking the possibly-new champion). Archived. |
 
 > **Gate mechanics note:** in spacedock, a stage's `gate: true` fires at the boundary
 > *leaving* that stage. So `gate: true` on `propose` is the `propose → smoke` review
 > (the README), and `gate: true` on `smoke` is the `smoke → full` review (the money
-> go/no-go). `pending`, `full`, `analyze`, `conclude` are `gate: false`. Net: exactly
-> two human gates.
+> go/no-go). All other stages are `gate: false`. Net: exactly two human gate types,
+> both on the hypothesis path.
 
 ### Entity lifecycle
 
 One hypothesis = one folder/entity. Its `index.md` accumulates evidence as it flows:
-hypothesis → smoke result → full result → analyze verdict → conclude paragraph. The
-frozen spec + `solver_workflow/README.md` make it a permanent, reproducible record of
-that variant.
+claim → smoke result → full result → analyze verdict → conclude paragraph. The frozen
+spec + `solver_workflow/README.md` make it a permanent, reproducible record of that
+variant. A concept is a lightweight flat file that records the direction and links to
+the hypotheses it spawned.
 
-### Loop closure
+### Loop closure (the two engines)
 
-The `conclude` stage seeds the *next* `pending` entity — taking the failure modes
-surfaced in `analyze` and proposing the next README change. That is what makes it a
-loop rather than a one-shot. First-officer keeps dispatching while dispatchable
-entities exist.
+- **Breadth:** a `concept` → `ideate` produces several hypotheses at once — exploring
+  distinct directions in parallel.
+- **Depth:** each `conclude` → files one follow-up `hypothesis`, taking the failure
+  modes surfaced in `analyze` and proposing the next README change.
+
+Together these keep the loop self-sustaining. First-officer keeps dispatching while
+dispatchable entities exist; when the backlog empties, you file a new `concept`.
 
 ### Termination ("complete")
 
-A single hypothesis self-terminates at `conclude`. The *campaign* is open-ended and
-**the human** ends it — when the score plateaus, hits a target, or the budget is
-spent. Because `conclude` is auto but `propose`/`smoke` are gated, the human naturally
-stays in the loop (sees every new README, approves every full-run spend) without
-babysitting the mechanical steps.
+A single hypothesis self-terminates at `conclude`; a concept self-terminates at
+`expanded`. The *campaign* is open-ended and **the human** ends it — when the score
+plateaus, hits a target, or the budget is spent. Because the auto stages move work
+forward but `propose`/`smoke` are gated, the human naturally stays in the loop (sees
+every new README, approves every full-run spend) without babysitting mechanical steps.
 
 ### Concurrency
 
-Kept low (1–2). Full runs cost money and serialize on the money gate.
+Kept low (1–2). Full runs cost money and serialize on the money gate. Note that an
+`ideate` fan-out can queue many hypotheses at once — they progress as gates clear, not
+all simultaneously.
 
 ## 5. The spec ↔ solver-workflow contract
 
@@ -279,8 +309,10 @@ than treat the audit as airtight.
    read-only deps; update via `git submodule update`.
 3. **Repo map** — `docs/ade-bench/`, `solver_workflows/ade-bench/{baseline,CHAMPION.md}`,
    `specs/ade-bench/`, `runs/` (gitignored).
-4. **Running the loop** — start `spacedock:first-officer` on `docs/ade-bench/`; the
-   stage flow; the two human gates (`propose` = leak-guard, `smoke → full` = money).
+4. **Running the loop** — seed a `concept` (the goal), then start
+   `spacedock:first-officer` on `docs/ade-bench/`; the two paths (concept → `ideate`
+   fan-out; hypothesis → `propose` → `smoke` → `full` → `analyze` → `conclude`); the
+   two human gates (`propose` = leak-guard, `smoke → full` = money).
 5. **🔒 The independent-variable rule** — *only* the solver README changes between
    hypotheses. Runtime (codex), model (gpt-5.5), sampling, spec shape, and `n_tasks`
    policy are held constant. Touching anything else confounds the result and must be
