@@ -21,11 +21,14 @@
   uv run --project ../razorback rk <args>
   ```
   (`uv` uses the razorback submodule's environment; cwd stays `ade-bench/` so relative paths like `specs/…` and `--runs-dir runs` resolve.)
-- **Before any `rk run`** (live execution only — Tasks require it explicitly), from the repo root:
+- **Before ANY `rk` command** that touches a `spacedock_solver` spec (`rk freeze`,
+  `rk run`, `rk run --explain`), export the spacedock plugin dir — the spacedock
+  submodule — first:
   ```bash
-  export RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(pwd)/spacedock"
+  export RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(git rev-parse --show-toplevel)/spacedock"
   ```
-  Specs with `agent.kind: spacedock_solver` fail at agent setup without it.
+  Specs with `agent.kind: spacedock_solver` fail at agent setup without it. (Harmless to
+  export for every `rk` command — set it once per shell.)
 - **spacedock status CLI:** `spacedock/skills/commission/bin/status` (run from repo root).
 - **Never edit the `razorback/` or `spacedock/` submodules** — they are read-only dependencies.
 - Commit after each task. Work stays on branch `setup-autobench-auto-research`.
@@ -252,6 +255,7 @@ Freeze seals the solver-workflow content hash and resolves dynamic inputs; `--ex
 - [ ] **Step 1: Freeze the spec** (from `ade-bench/`)
 
 ```bash
+export RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(git rev-parse --show-toplevel)/spacedock"
 cd ade-bench
 uv run --project ../razorback rk freeze specs/baseline.yaml
 ```
