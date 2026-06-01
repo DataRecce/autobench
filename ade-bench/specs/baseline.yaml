@@ -1,0 +1,24 @@
+version: 1
+experiment: ade-bench-baseline
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+  solver_workflow: ./solver_workflows/baseline
+  max_turns: 20
+  max_budget_usd: 5.0
+  reasoning_effort: default
+benchmark:
+  kind: harbor
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+trials: 1
+concurrency:
+  trials: 4
+experiment_meta:
+  max_budget_usd: 500.0
+  paper_baseline:
+    name: paper
+    value: 0.0
+# TODO: tune for this benchmark (max_turns / max_budget_usd / reasoning_effort / paper_baseline). See docs/templates/benchmark-defaults.toml for the per-benchmark default table — add an entry there once you have ground truth.
