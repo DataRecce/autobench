@@ -1,10 +1,10 @@
 ---
 id: h0000
 title: Baseline — codex ade-dbt-repair solver, full 48 tasks
-status: full
+status: analyze
 kind: hypothesis
 source: setup
-started:
+started: 2026-06-01T16:34:03Z
 completed:
 verdict:
 score:
