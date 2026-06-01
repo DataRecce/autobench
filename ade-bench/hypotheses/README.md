@@ -149,27 +149,33 @@ The ensign authors the variant. **You review at the gate.**
      current `@baseline` solver dir), then edit its `README.md` — the one variable.
   2. `cp ../specs/baseline.yaml ../specs/h<NNNN>-<slug>.yaml`, set `experiment:` to
      `ade-bench-h<NNNN>-<slug>` and `solver_workflow:` to
-     `./solver_workflows/h<NNNN>-<slug>`.
-  3. `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.yaml`.
+     `./solver_workflows/h<NNNN>-<slug>`. This is the FULL spec — no task selector.
+  3. Make the smoke spec: `cp ../specs/h<NNNN>-<slug>.yaml ../specs/h<NNNN>-<slug>.smoke.yaml`
+     and add `benchmark.tasks: [<target dataset IDs>]` (a general change with no targets
+     uses `benchmark.n_tasks: 5` instead). `rk run` has NO task-selector flag — subsetting
+     is spec-side only.
+  4. Freeze both:
+     `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.yaml` and
+     `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.smoke.yaml`.
 - **Gate — you reject if:** the README leaks ground truth (the External-oracle audit
-  section is removed/weakened); the spec differs from baseline in anything other than
-  `experiment:` + `solver_workflow:`; `agent.kind` ≠ `spacedock_solver` or
-  `runtime` ≠ `codex`.
+  section is removed/weakened); the FULL spec differs from baseline in anything other than
+  `experiment:` + `solver_workflow:` (the smoke spec additionally adds `benchmark.tasks`);
+  `agent.kind` ≠ `spacedock_solver` or `runtime` ≠ `codex`.
 - **Good:** exactly one README idea changed; leak-guard intact; `diff` of the two specs
   shows only the two allowed fields.
 - **Bad:** multiple knobs changed; leak-guard relaxed.
 
 ### `smoke`  *(🚦 go/no-go gate)*
 
-A focused pre-flight on the hypothesis's **target datasets** (run-time subset of the same
-frozen spec). **You review before committing the full run.** *(Budget caps deferred —
-this is a worthiness gate.)*
+A focused pre-flight on the hypothesis's **target datasets** via the smoke spec
+(its `benchmark.tasks`). **You review before committing the full run.** *(Budget caps
+deferred — this is a worthiness gate.)*
 
-- **Inputs:** the frozen variant spec; the hypothesis's target dataset IDs.
-- **Outputs (per target dataset, from `ade-bench/`):**
+- **Inputs:** the frozen smoke spec `specs/h<NNNN>-<slug>.smoke.frozen.yaml`.
+- **Outputs (from `ade-bench/`):**
   ```bash
-  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.frozen.yaml --explain   # $0 first
-  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.frozen.yaml --runs-dir runs --task-id <dataset>
+  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --explain   # $0 first
+  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --runs-dir runs
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir>
   ```
@@ -186,7 +192,7 @@ this is a worthiness gate.)*
 
 ### `full`
 
-The full 48-task run on the same frozen spec.
+The full 48-task run on the FULL frozen spec (`h<NNNN>-<slug>.frozen.yaml`, no task selector).
 
 - **Outputs (from `ade-bench/`):**
   ```bash
@@ -197,7 +203,8 @@ The full 48-task run on the same frozen spec.
   (Or `bash drivers/matrix.sh --specs 'specs/h<NNNN>-<slug>.frozen.yaml'` to chain
   run + `captured>0` + audit + score + ledger.) Record the run-dir path + headline in
   `## Run result`.
-- **Good:** same frozen spec smoke validated; audit clean before the score is recorded.
+- **Good:** the full spec uses the SAME solver README as the smoke spec (only the task
+  set differs); audit clean before the score is recorded.
 - **Bad:** methodology drift between smoke and full.
 
 ### `analyze`
