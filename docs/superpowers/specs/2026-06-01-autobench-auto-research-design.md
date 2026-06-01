@@ -67,6 +67,7 @@ baseline/diff/scoring.
 | Ideation / loop closure | **Two birth paths, prompt-driven** | A `concept` fans out via `ideate` into many `hypothesis` entities (breadth); each `conclude` files one failure-driven follow-up `hypothesis` (depth). Ensigns write the entity files — no spacedock mod. |
 | Champion | **Native `@baseline` registry + `rk baseline promote`** | Replaces a custom `CHAMPION.md`. `conclude` promotes a winner and re-binds `@baseline`. |
 | Comparison | **`rk runs diff @baseline <variant>` + `rk score`** | Paired delta (CIs, adjusted p) for the promotion verdict; `rk score` for the absolute `stratified_pass_at_1` vs `paper_baseline`. |
+| Analyze depth | **Score diff + behavioral log read** | `analyze` pairs the quantitative diff with a read of the per-task main + sub-agent logs (method-adherence, why-it-works / why-it-fails). The behavioral findings — not just the delta — seed the next hypothesis. |
 | Hypothesis entity form | **Flat `h<NNNN>-<slug>.md`** (folder form optional) | Canonical naming. The heavy artifacts live in sibling `solver_workflows/` + `specs/`, keyed by the same slug. |
 
 ## 3. Repo structure
@@ -159,8 +160,8 @@ No gate on `ideate` — every generated hypothesis is gated individually at its 
 | `propose` | 🚦 **leak-guard** | Ensign forks `@baseline`'s solver dir to `solver_workflows/h<NNNN>-<slug>/`, edits its `README.md` (the one variable), copies `specs/baseline.yaml` → `specs/h<NNNN>-<slug>.yaml` (repointing `solver_workflow:` + `experiment:`), and `rk freeze`s it. **Human reviews:** README leaks no ground truth (the leak-guard prose is intact); spec is `spacedock_solver`/`codex`; budget + baseline present. |
 | `smoke` | 🚦 **go/no-go** | `rk run --explain` (free) → `rk run <frozen> --runs-dir runs` over the hypothesis's **target datasets** (run-time subset of the same frozen spec) → `captured > 0` → `rk audit --policy strict` → `rk score`. **Human reviews** the focused result before committing the full run. *(Budget caps deferred — this is a worthiness gate.)* |
 | `full` | — auto | `drivers/matrix.sh` (or `rk run` with no `tasks` selector) over all 48 tasks: per-cell run → `captured > 0` → `rk audit --policy strict` → `rk score`. Auto-advances on a clean ledger. |
-| `analyze` | — auto | `rk runs diff "$(rk registry resolve run @baseline)" <variant-run-dir>` → paired delta (CIs, adjusted p) pasted into the entity body, plus the absolute `rk score` `stratified_pass_at_1` vs `paper_baseline`. Verdict line written. |
-| `conclude` *(terminal)* | — auto | Verdict recorded. **If the paired delta clears the tripwire (and audit was clean) → promote:** `rk baseline promote <variant-run-dir>` + `rk registry add run baseline <variant-run-dir>`. Then, **based on the failure pattern, file one follow-up `hypothesis` entity** (forking the new `@baseline`). Archived. |
+| `analyze` | — auto | **Quantitative:** `rk runs diff "$(rk registry resolve run @baseline)" <variant-run-dir>` (paired delta, CIs, adjusted p) + absolute `rk score` vs `paper_baseline`. **Behavioral (§5.6):** read the per-task agent logs — main `agent/codex.txt`, sub-agent `agent/sessions/…`, `subagent-trace-manifest.json`, `verifier/` — for verdict-changed and failing tasks, judging method-adherence and the why-it-works / why-it-fails mechanisms. Both written into the entity body; verdict line written. |
+| `conclude` *(terminal)* | — auto | Verdict recorded. **If the paired delta clears the tripwire (and audit was clean) → promote:** `rk baseline promote <variant-run-dir>` + `rk registry add run baseline <variant-run-dir>`. Then, **using analyze's behavioral findings (method-adherence + failure mechanisms), file one follow-up `hypothesis` entity** (forking the new `@baseline`). Archived. |
 
 > **Gate mechanics:** in spacedock a stage's `gate: true` fires at the boundary
 > *leaving* that stage. `gate: true` on `propose` = the `propose → smoke` review (the
@@ -288,6 +289,35 @@ the prose deters the rest. Tuning must never relax this; you enforce it at the g
 - **Absolute (context):** `rk score`'s `stratified_pass_at_1` vs
   `experiment_meta.paper_baseline` (`against_constant.stratified.verdict`).
 
+### 5.6 Behavioral analysis (the log read)
+
+The score diff says *whether* a variant helped; the agent logs say *why*, and whether
+the agent actually executed the hypothesis's method. In `analyze`, for every task whose
+verdict changed vs `@baseline` (newly-passing and newly-failing) plus a sample of
+persistent failures, read the per-task cell
+`runs/<experiment>/<hash>/<task-id>__<short>/`:
+
+| Artifact | What it tells you |
+|----------|-------------------|
+| `result.json` + `verifier/reward.txt` + `verifier/test-stdout.txt` | the verdict (reward 0/1) and the grader's exact reason |
+| `agent/codex.txt` | the **main agent** (codex first-officer) transcript — plan, tool calls, ensign dispatches, validation evidence, tokens |
+| `subagent-trace-manifest.json` | dispatch summary — `prompt_mode`, `captured`, each `dispatches[]` (`subagent_type: spacedock:ensign`, `spawn_index`) |
+| `agent/sessions/<year>/…` | the **sub-agent (ensign)** transcripts — what each dispatched worker actually did |
+| `trial.log` | harness-level per-task log |
+
+Three questions, written into a `## Behavioral analysis` block in the entity body:
+
+1. **Method adherence** — did the main agent *and its ensigns* actually execute the
+   hypothesis's prescribed method (the README change), or ignore / misapply it? Compare
+   the README's prescribed steps against the observed plan + tool calls + dispatches.
+2. **Why it works** — on wins, the mechanism that produced the pass.
+3. **Why it fails** — on losses, the failure mechanism: wrong diagnosis, method not
+   followed, method followed but insufficient, or a harness/validation issue.
+
+These behavioral findings — not just the score delta — are what `conclude` distills into
+the next hypothesis, so the loop iterates on *understood* failure modes rather than
+blind score-chasing.
+
 ## 6. CLAUDE.md & AGENTS.md
 
 These files target the **repo operator** (Claude Code or Codex CLI driving the loop) —
@@ -334,10 +364,13 @@ not the spacedock first-officer (reads `hypotheses/README.md`) nor the codex sol
 9. **Native primitives** — champion = `@baseline` (`rk baseline promote` +
    `rk registry add run baseline <dir>`); compare with `rk runs diff @baseline <dir>`;
    per-cell pipeline = `drivers/matrix.sh` (chains audit + `captured>0` + taint guards).
-10. **Monitoring** — live: `<run-dir>/job.log`, `<trial>/trial.log`,
-    `<trial>/agent/codex.txt`; failures: `<trial>/exception.txt`; results:
-    `summary.json`, `per_trial_outcomes.json`, `result.json`. `events.jsonl` is often
-    **empty** for these Harbor runs — do not rely on it.
+10. **Monitoring & log analysis** — live: `<run-dir>/job.log`, `<cell>/trial.log`,
+    main agent `<cell>/agent/codex.txt`; sub-agent (ensign) transcripts under
+    `<cell>/agent/sessions/<year>/…` (dispatch summary in
+    `<cell>/subagent-trace-manifest.json`); grader output in `<cell>/verifier/`;
+    failures in `<cell>/exception.txt`; results in `summary.json` /
+    `per_trial_outcomes.json` / `result.json`. `events.jsonl` is often **empty** — do
+    not rely on it. `analyze` reads these per-task logs for the behavioral read (§5.6).
 11. **Safety** — never delete/rewrite existing run directories unless asked; keep
     outputs under `runs/` (gitignored); don't move run outputs into tracked files.
 
