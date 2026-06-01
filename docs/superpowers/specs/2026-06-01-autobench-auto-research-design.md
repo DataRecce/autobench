@@ -67,7 +67,7 @@ baseline/diff/scoring.
 | Ideation / loop closure | **Two birth paths, prompt-driven** | A `concept` fans out via `ideate` into many `hypothesis` entities (breadth); each `conclude` files one failure-driven follow-up `hypothesis` (depth). Ensigns write the entity files — no spacedock mod. |
 | Champion | **Native `@baseline` registry + `rk baseline promote`** | Replaces a custom `CHAMPION.md`. `conclude` promotes a winner and re-binds `@baseline`. |
 | Comparison | **`rk runs diff @baseline <variant>` + `rk score`** | Paired delta (CIs, adjusted p) for the promotion verdict; `rk score` for the absolute `stratified_pass_at_1` vs `paper_baseline`. |
-| Analyze depth | **Score diff + behavioral log read** | `analyze` pairs the quantitative diff with a read of the per-task main + sub-agent logs (method-adherence, why-it-works / why-it-fails). The behavioral findings — not just the delta — seed the next hypothesis. |
+| Analyze depth | **Score diff + per-task distance-to-pass + behavioral log read** | `analyze` pairs the quantitative diff with per-task distance-to-pass (`checks_passed / expected_test_count` from `verifier/test-stdout.txt`) and a read of the main + sub-agent logs (method-adherence, why-it-works / why-it-fails). These findings — not just the binary delta — seed the next hypothesis. |
 | Hypothesis entity form | **Flat `h<NNNN>-<slug>.md`** (folder form optional) | Canonical naming. The heavy artifacts live in sibling `solver_workflows/` + `specs/`, keyed by the same slug. |
 
 ## 3. Repo structure
@@ -160,7 +160,7 @@ No gate on `ideate` — every generated hypothesis is gated individually at its 
 | `propose` | 🚦 **leak-guard** | Ensign forks `@baseline`'s solver dir to `solver_workflows/h<NNNN>-<slug>/`, edits its `README.md` (the one variable), copies `specs/baseline.yaml` → `specs/h<NNNN>-<slug>.yaml` (repointing `solver_workflow:` + `experiment:`), and `rk freeze`s it. **Human reviews:** README leaks no ground truth (the leak-guard prose is intact); spec is `spacedock_solver`/`codex`; budget + baseline present. |
 | `smoke` | 🚦 **go/no-go** | `rk run --explain` (free) → `rk run <frozen> --runs-dir runs` over the hypothesis's **target datasets** (run-time subset of the same frozen spec) → `captured > 0` → `rk audit --policy strict` → `rk score`. **Human reviews** the focused result before committing the full run. *(Budget caps deferred — this is a worthiness gate.)* |
 | `full` | — auto | `drivers/matrix.sh` (or `rk run` with no `tasks` selector) over all 48 tasks: per-cell run → `captured > 0` → `rk audit --policy strict` → `rk score`. Auto-advances on a clean ledger. |
-| `analyze` | — auto | **Quantitative:** `rk runs diff "$(rk registry resolve run @baseline)" <variant-run-dir>` (paired delta, CIs, adjusted p) + absolute `rk score` vs `paper_baseline`. **Behavioral (§5.6):** read the per-task agent logs — main `agent/codex.txt`, sub-agent `agent/sessions/…`, `subagent-trace-manifest.json`, `verifier/` — for verdict-changed and failing tasks, judging method-adherence and the why-it-works / why-it-fails mechanisms. Both written into the entity body; verdict line written. |
+| `analyze` | — auto | **Quantitative:** `rk runs diff "$(rk registry resolve run @baseline)" <variant-run-dir>` (paired delta, CIs, adjusted p) + absolute `rk score` vs `paper_baseline`. **Behavioral (§5.6):** read the per-task agent logs — main `agent/codex.txt`, sub-agent `agent/sessions/…`, `subagent-trace-manifest.json`, `verifier/` — for verdict-changed and failing tasks, capturing per-task **distance to pass** (`checks_passed / expected_test_count`) and judging method-adherence and the why-it-works / why-it-fails mechanisms. Both written into the entity body; verdict line written. |
 | `conclude` *(terminal)* | — auto | Verdict recorded. **If the paired delta clears the tripwire (and audit was clean) → promote:** `rk baseline promote <variant-run-dir>` + `rk registry add run baseline <variant-run-dir>`. Then, **using analyze's behavioral findings (method-adherence + failure mechanisms), file one follow-up `hypothesis` entity** (forking the new `@baseline`). Archived. |
 
 > **Gate mechanics:** in spacedock a stage's `gate: true` fires at the boundary
@@ -299,11 +299,21 @@ persistent failures, read the per-task cell
 
 | Artifact | What it tells you |
 |----------|-------------------|
-| `result.json` + `verifier/reward.txt` + `verifier/test-stdout.txt` | the verdict (reward 0/1) and the grader's exact reason |
+| `result.json` + `verifier/reward.txt` | the **binary verdict** (reward 0/1) |
+| `verifier/test-stdout.txt` | **distance to pass** — `[ade-bench] expected_test_count=N` (denominator), the dbt `Done. PASS=… ERROR=… SKIP=… TOTAL=…` line, which target checks ran (`Including: <check>.sql`), which failed, and the concrete failure (e.g. `Catalog Error: … src_results does not exist`) |
 | `agent/codex.txt` | the **main agent** (codex first-officer) transcript — plan, tool calls, ensign dispatches, validation evidence, tokens |
 | `subagent-trace-manifest.json` | dispatch summary — `prompt_mode`, `captured`, each `dispatches[]` (`subagent_type: spacedock:ensign`, `spawn_index`) |
 | `agent/sessions/<year>/…` | the **sub-agent (ensign)** transcripts — what each dispatched worker actually did |
 | `trial.log` | harness-level per-task log |
+
+**Distance to pass (partial progress).** The `reward` is binary, but
+`test-stdout.txt` exposes how *close* a task got: `checks_passed / expected_test_count`
+(and whether the dbt build itself errored before tests could even run). Record this
+per task in the entity body. A hypothesis that moves a task from, say, 0/6 (build
+errors) to 4/6 (builds, two checks fail) is **directional progress** even though the
+verdict stayed `0` — a positive signal worth iterating on, and one the binary
+`stratified_pass_at_1` hides. Note *which* checks fail and what each targets, so the
+next hypothesis can aim at the specific gap.
 
 Three questions, written into a `## Behavioral analysis` block in the entity body:
 
