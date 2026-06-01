@@ -1,0 +1,6 @@
+[submodule "spacedock"]
+	path = spacedock
+	url = https://github.com/spacedock-dev/spacedock.git
+[submodule "razorback"]
+	path = razorback
+	url = https://github.com/spacedock-dev/razorback.git
