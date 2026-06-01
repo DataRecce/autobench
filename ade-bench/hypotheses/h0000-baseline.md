@@ -101,7 +101,35 @@ near-misses (quickbooks, ana-eng007-medium, f1003) are the next-cheapest points.
 
 ## Verdict
 
-_Filled after the run._
+**PASSED — 9/48 (0.1875), anchor established.** This is the first full run, so
+promotion is unconditional: there is no prior `@baseline` to diff against and no
+tripwire to clear. `@baseline` is now bound to run `432500212a02092c` (audit clean,
+48/48 trials, score 9/48 matches the paper_baseline pass-rate constant of 0.1875,
+Wilson CI [0.102, 0.319]). This run is the reference all future variants fork and
+diff against.
+
+**Top failure modes to attack next** (39 failures, two mechanisms):
+
+1. **Build-errors on unbuilt/misnamed upstreams (27/39 — the dominant lever).** The
+   model graph never compiles: dbt raises `Catalog Error: Table with name <X> does
+   not exist`, so 0 target tests run (`actual_pass=0`). These are far-from-pass and
+   structural — the solver ships dangling references to upstream relations it never
+   built or misnamed (e.g. intercom001 → `stg_intercom__conversation_part_history`,
+   ana-eng002 → `fact_inventory`, f1005 → `stg_f1_dataset__constructor_standings`,
+   asana003 → `project_data`). Wipes out intercom (3/3), most of f1 (13/16), most of
+   ana-eng (7/10). Highest-leverage fix: force the ensign to `dbt build`/compile and
+   resolve every Catalog Error before declaring done.
+
+2. **Test-fail near-misses (12/39 — the cheapest points).** Models build clean
+   (`ERROR=0`) but a minority of target singular checks return rows. The standout
+   cohort is quickbooks, all four building cleanly and failing only a few checks:
+   **quickbooks003 12/14 (86%)**, **quickbooks002 7/8 (88%)**, quickbooks004 35/48
+   (73%), quickbooks001 5/12; plus ana-eng007-medium 6/10 (60%), asana001 1/2,
+   f1003 3/4, airbnb009 0/1. A logic/column/aggregation tweak on one or two checks
+   converts these to passes — the next-cheapest gains after the build-error class.
+
+The baseline is the anchor; the captain seeds the next concept/hypothesis from
+these failure modes.
 
 ## Stage Report: analyze
 
@@ -113,3 +141,14 @@ _Filled after the run._
 ### Summary
 
 Baseline run `432500212a02092c` audits clean (48/48 trials, strict policy) and scores 9/48 = 0.1875, matching the paper_baseline constant. Since this is the first run there is no `@baseline` to diff, so the paired-delta step was skipped (absolute score + behavioral read only) and `@baseline` was not bound. Behavioral read: airbnb carries the score (8/9); the 39 failures split into a dominant build-error class (27, dbt `Catalog Error: table does not exist` from unbuilt/misnamed upstream relations, 0 target tests run) and a smaller test-fail class (12 near-misses, notably quickbooks 73-88% and ana-eng007-medium/f1003), pointing to "compile/build clean before declaring done" as the highest-leverage README change.
+
+## Stage Report: conclude
+
+- DONE: Bind @baseline to this run via `rk baseline promote` then `rk registry add run baseline <run-dir>`; confirm `rk registry resolve run @baseline` prints the run-dir and razorback-research.toml now has the [[refs]] entry
+  `rk registry add run baseline /…/432500212a02092c` returned OK; `rk registry resolve run @baseline` prints the run-dir and `rk registry list` shows `run @baseline → …/432500212a02092c`. NOTE: this razorback version persists the binding to `~/.config/razorback/registry.yaml` (the registry store's actual location), NOT to `razorback-research.toml` — the toml `[[refs]]` block is only a commented seed/example and was not rewritten by the CLI. `rk baseline promote` was NOT run: its signature requires `--to <baseline-dir> --constraints <constraints.yaml>` (a snapshot+tripwire-verify step), no `constraints.yaml` exists in the repo, and the anchor is unconditional with no tripwire — so the load-bearing `registry add` binding is what establishes `@baseline`.
+- DONE: Write ## Verdict in the entity body: PASSED — 9/48 (0.1875) anchor established; name the top failure modes to attack next (27 build-errors on unbuilt upstreams; near-misses quickbooks003 12/14, quickbooks002 7/8)
+  `## Verdict` records PASSED 9/48 (0.1875) anchor established and names the two failure mechanisms: 27 build-errors on unbuilt/misnamed upstreams (dominant lever) and the test-fail near-misses led by quickbooks003 12/14 and quickbooks002 7/8.
+
+### Summary
+
+Bound `@baseline` to run `432500212a02092c` via `rk registry add run baseline` (confirmed by `rk registry resolve run @baseline` and `rk registry list`) and wrote the PASSED verdict (9/48 = 0.1875 anchor, Wilson CI [0.102, 0.319]) naming the top failure modes to attack next. Two divergences from the checklist phrasing, both benign for the unconditional anchor: (1) the binding persists to `~/.config/razorback/registry.yaml`, not `razorback-research.toml` (the toml `[[refs]]` is a commented seed, untouched by the CLI); (2) `rk baseline promote` was not run because it requires a `--to`/`--constraints` snapshot pair and no `constraints.yaml` exists — the `registry add` is the load-bearing step that establishes `@baseline`. Per dispatch instructions, no follow-up hypothesis was filed and frontmatter was left untouched for the first officer to terminalize.
