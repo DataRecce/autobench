@@ -61,7 +61,8 @@ baseline/diff/scoring.
 | Autonomy | **Semi-autonomous, two human gates** | Gate at `propose` (leak-guard review of the README) and at `smoke → full` (go/no-go before the full run). Everything else auto. |
 | Baseline / target | **Initial spacedock run = 9/48 (0.1875)** | No published paper baseline. The first full baseline run scores 9/48; it seeds `@baseline` and `experiment_meta.paper_baseline.value: 0.1875`. Hypotheses aim to beat it. |
 | Budget caps | **Deferred — flat OpenAI subscription** | First loops run on an OpenAI personal subscription, not metered API. Omit `max_budget_usd` / `--max-budget-usd-running` for now; reinstate when moving to metered spend. The `smoke → full` gate remains as a worthiness go/no-go. |
-| Smoke subset | **Hypothesis's target datasets; first run skips smoke** | Smoke runs `benchmark.tasks` = the datasets the hypothesis targets (focused pre-flight). A general change with no target datasets uses a small default subset. The baseline/first run skips smoke and runs full directly. |
+| Smoke subset | **Hypothesis's target datasets; first run skips smoke** | Smoke runs the same frozen spec over the datasets the hypothesis targets (run-time task subset). A general change with no target datasets uses a small default subset. The baseline/first run skips smoke and runs full directly. |
+| Trials per run | **Always `trials: 1`** | Both smoke and full use `trials: 1` / `concurrency.trials: 1` — one trial per task, every run. Held constant. |
 | Solver runtime | **codex** (`gpt-5.5`) | One runtime held constant → the README is the only variable. Baseline solver README forked from razorback's `codex-ade-dbt-repair`. |
 | Ideation / loop closure | **Two birth paths, prompt-driven** | A `concept` fans out via `ideate` into many `hypothesis` entities (breadth); each `conclude` files one failure-driven follow-up `hypothesis` (depth). Ensigns write the entity files — no spacedock mod. |
 | Champion | **Native `@baseline` registry + `rk baseline promote`** | Replaces a custom `CHAMPION.md`. `conclude` promotes a winner and re-binds `@baseline`. |
@@ -156,7 +157,7 @@ No gate on `ideate` — every generated hypothesis is gated individually at its 
 |-------|-------|--------------|
 | `hypothesis` *(initial)* | — auto | A fully-formed, queued hypothesis: title, falsifiable claim, `## Acceptance criteria` (the verdict, e.g. "the paired `rk runs diff` delta vs `@baseline` clears the tripwire on `stratified_pass_at_1`"). Born from an `ideate` fan-out or a `conclude` follow-up. Auto-advances. |
 | `propose` | 🚦 **leak-guard** | Ensign forks `@baseline`'s solver dir to `solver_workflows/h<NNNN>-<slug>/`, edits its `README.md` (the one variable), copies `specs/baseline.yaml` → `specs/h<NNNN>-<slug>.yaml` (repointing `solver_workflow:` + `experiment:`), and `rk freeze`s it. **Human reviews:** README leaks no ground truth (the leak-guard prose is intact); spec is `spacedock_solver`/`codex`; budget + baseline present. |
-| `smoke` | 🚦 **go/no-go** | `rk run --explain` (free) → `rk run <frozen> --runs-dir runs` over the hypothesis's **target datasets** (`benchmark.tasks`) → `captured > 0` → `rk audit --policy strict` → `rk score`. **Human reviews** the focused result before committing the full run. *(Budget caps deferred — this is a worthiness gate.)* |
+| `smoke` | 🚦 **go/no-go** | `rk run --explain` (free) → `rk run <frozen> --runs-dir runs` over the hypothesis's **target datasets** (run-time subset of the same frozen spec) → `captured > 0` → `rk audit --policy strict` → `rk score`. **Human reviews** the focused result before committing the full run. *(Budget caps deferred — this is a worthiness gate.)* |
 | `full` | — auto | `drivers/matrix.sh` (or `rk run` with no `tasks` selector) over all 48 tasks: per-cell run → `captured > 0` → `rk audit --policy strict` → `rk score`. Auto-advances on a clean ledger. |
 | `analyze` | — auto | `rk runs diff "$(rk registry resolve run @baseline)" <variant-run-dir>` → paired delta (CIs, adjusted p) pasted into the entity body, plus the absolute `rk score` `stratified_pass_at_1` vs `paper_baseline`. Verdict line written. |
 | `conclude` *(terminal)* | — auto | Verdict recorded. **If the paired delta clears the tripwire (and audit was clean) → promote:** `rk baseline promote <variant-run-dir>` + `rk registry add run baseline <variant-run-dir>`. Then, **based on the failure pattern, file one follow-up `hypothesis` entity** (forking the new `@baseline`). Archived. |
@@ -226,9 +227,9 @@ agent:
 benchmark:
   kind: harbor
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
-  # full: no `tasks` selector (all 48). smoke: set `tasks:` to the hypothesis's target datasets.
-  # baseline / first run: skip smoke, run full directly.
-trials: 1
+  # full: whole dataset (all 48). smoke: SAME frozen spec, run-time task subset =
+  #   the hypothesis's target datasets. baseline / first run: skip smoke, run full directly.
+trials: 1                               # one trial per task — applies to BOTH smoke and full
 concurrency: { trials: 1 }
 observers:
   - { kind: jsonl, path: events.jsonl }
@@ -240,7 +241,9 @@ provenance: { pin_model_version: false, pin_image_digest: false }
 ```
 
 A variant spec is a copy with `experiment:` renamed and `solver_workflow:` repointed —
-**nothing else changes** (the independent-variable rule, §6).
+**nothing else changes** (the independent-variable rule, §6). Smoke and full share this
+one frozen spec — smoke just selects the target-dataset subset at run time — so model,
+sampling, README, and `trials: 1` are identical across both.
 
 ### 5.2 `rk freeze` seals the pair
 
@@ -260,8 +263,9 @@ rk run <frozen> --runs-dir runs [--max-budget-usd-running <budget-file>]
   → ledger.tsv row: spec, status, run_dir, cost_usd, taint_count
 ```
 
-Smoke is the same pipeline restricted to the hypothesis's target datasets
-(`benchmark.tasks`); the baseline/first run skips smoke and runs full directly. The
+Smoke is the same pipeline restricted to the hypothesis's target datasets (a run-time
+subset of the same frozen spec); the baseline/first run skips smoke and runs full
+directly. The
 `captured > 0` guard **resolves the earlier audit-coverage caveat**: a spacedock-solver
 cell that didn't capture its subagent trace is rejected, not silently scored.
 
@@ -315,9 +319,10 @@ not the spacedock first-officer (reads `hypotheses/README.md`) nor the codex sol
    `smoke`→`full`→`analyze`→`conclude`); two human gates (`propose`=leak-guard,
    `smoke→full`=money). Always pass `--runs-dir runs`; prefer `rk run --explain` first.
 5. **🔒 The independent-variable rule** — *only* the solver README changes between
-   hypotheses. Runtime (codex), model (gpt-5.5), sampling, `reasoning_effort`, spec
-   shape are held constant. A variant spec differs from `baseline.yaml` only in
-   `experiment:` + `solver_workflow:`. Anything else is a separate, declared hypothesis.
+   hypotheses. Runtime (codex), model (gpt-5.5), sampling, `reasoning_effort`,
+   `trials: 1` (one trial per task on every run, smoke and full), and spec shape are
+   held constant. A variant spec differs from `baseline.yaml` only in `experiment:` +
+   `solver_workflow:`. Anything else is a separate, declared hypothesis.
 6. **🔒 Leak-guard discipline** — §5.4: workspace data only; forbidden-oracle list;
    never relax the baseline solver README's External-oracle audit section.
 7. **Budget discipline** — `rk run --explain` ($0) first; smoke (the hypothesis's
@@ -364,9 +369,11 @@ The four 🔒 sections plus run prerequisites are the load-bearing guardrails.
 - **Budget caps — deferred.** First loops run on a flat OpenAI personal subscription
   (not metered API); omit `max_budget_usd` / `--max-budget-usd-running`. Reinstate when
   moving to metered spend.
-- **Smoke subset = the hypothesis's target datasets** (`benchmark.tasks`). A general
-  change with no target datasets uses a small default subset. **The baseline / first
-  run skips smoke and runs full directly.**
+- **Smoke subset = the hypothesis's target datasets** (a run-time subset of the same
+  frozen spec). A general change with no target datasets uses a small default subset.
+  **The baseline / first run skips smoke and runs full directly.**
+- **`trials: 1` for every run** (smoke and full). `concurrency.trials: 1`. Held
+  constant — one trial per task, always.
 - **Dataset digest — pinned:**
   `dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5`.
 
