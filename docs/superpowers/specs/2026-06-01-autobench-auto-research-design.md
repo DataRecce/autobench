@@ -399,9 +399,9 @@ The four 🔒 sections plus run prerequisites are the load-bearing guardrails.
   the `hypotheses/` upgrade. Not built now.
 - **A/B-ing the runtime** (codex vs claude). Excluded — would confound the README as the
   sole independent variable.
-- **Holdout tier.** rk-monitor's workflow includes an out-of-sample `holdout` stage
-  before accept. Deferred for v1 (kept simple at `conclude`); revisit if README
-  overfitting to the 48 tasks becomes a concern.
+- **Holdout tier — excluded for now (confirmed).** rk-monitor's workflow includes an
+  out-of-sample `holdout` stage before accept; autobench's `conclude` is the single
+  terminal. Revisit only if README overfitting to the 48 tasks becomes a concern.
 - **Campaign-level auto-stop.** You end the campaign; per-entity termination is
   automatic.
 
