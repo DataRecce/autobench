@@ -1,0 +1,62 @@
+version: 1
+experiment: ade-bench-baseline
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: solver_workflows/baseline
+  solver_workflow_content_hash: sha256:dc65d9061ef6c4e2be3d817a3f69e248077279b49185209fa9b8add7e5b6ca29
+  max_turns: 200
+  max_budget_usd: null
+  override_timeout_sec: 2400.0
+  override_setup_timeout_sec: null
+  max_timeout_sec: 2400.0
+  tools_allowed: []
+  tools_denied: []
+  append_system_prompt: null
+  reasoning_effort: xhigh
+  reasoning_summary: null
+  resume_from_freeze: null
+  sealed_hash: dd08620207579fe90f8e410d86e2f95b
+  spacedock_skill_version: 1.0.0
+  prompt_content_hashes: {}
+benchmark:
+  kind: harbor
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+  tasks: null
+  exclude_tasks: null
+  n_tasks: null
+  plugin: null
+  plugin_args: null
+trials: 1
+concurrency:
+  trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
+provenance:
+  pin_model_version: false
+  pin_image_digest: false
+  pin_agent_cli_hash: true
+  pin_git_sha: true
+  model_resolved_version: null
+  model_resolved_at: null
+  image_digest: null
+  agent_cli_hash: sha256:3c621aadd6aea8a6c0148634a09cdb3e42b6a985881cc759c90f0ec1495efbc0
+  harness_git_sha: ada31ef8303d22252da43b7c4ab189ce0f11511b
+  harbor_version: 0.6.6
+  prompt_file_hashes: {}
+  plugins: []
+  solver_workflow_hash: sha256:dc65d9061ef6c4e2be3d817a3f69e248077279b49185209fa9b8add7e5b6ca29
+experiment_meta:
+  max_budget_usd: null
+  estimated_cost_usd: null
+  paper_baseline:
+    name: stratified_pass_at_1
+    value: 0.1875
