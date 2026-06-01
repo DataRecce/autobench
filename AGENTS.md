@@ -43,9 +43,10 @@ hypothesis.
 ## 🔒 Leak-guard discipline
 
 The workspace data is the only authoritative source. The solver README's
-**External-oracle audit** section must stay intact (no HuggingFace `datasets`/`hf://`,
-no canonical-data downloads, no web search, no LLM-as-oracle). `rk audit --policy strict`
-is the backstop. Enforce at the `propose` gate.
+**no-external-reference / leak-guard prose** must stay intact (no public fetches —
+`curl`/`wget`/`git clone`, HuggingFace `datasets`/`hf://`, package-source or canonical-data
+downloads, web search, LLM-as-oracle). `rk audit --policy strict` is the backstop. Enforce
+at the `propose` gate.
 
 ## Budget discipline
 

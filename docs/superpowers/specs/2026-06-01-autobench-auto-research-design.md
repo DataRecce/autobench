@@ -63,7 +63,7 @@ baseline/diff/scoring.
 | Budget caps | **Deferred — flat OpenAI subscription** | First loops run on an OpenAI personal subscription, not metered API. Omit `max_budget_usd` / `--max-budget-usd-running` for now; reinstate when moving to metered spend. The `smoke → full` gate remains as a worthiness go/no-go. |
 | Smoke subset | **Hypothesis's target datasets; first run skips smoke** | `rk run` has no task-selector flag — subsetting is spec-side. Smoke runs a sibling smoke spec (the full hypothesis spec + `benchmark.tasks` = the target datasets); a general change with no targets uses `benchmark.n_tasks`. The baseline/first run skips smoke and runs full directly. |
 | Trials per run | **Always `trials: 1`** | Both smoke and full use `trials: 1` / `concurrency.trials: 1` — one trial per task, every run. Held constant. |
-| Solver runtime | **codex** (`gpt-5.5`) | One runtime held constant → the README is the only variable. Baseline solver README forked from razorback's `codex-ade-dbt-repair`. |
+| Solver runtime | **codex** (`gpt-5.5`) | One runtime held constant → the README is the only variable. Baseline solver is razorback's `codex-ade-dbt-minimal` (the solver behind the 9/48 anchor). |
 | Ideation / loop closure | **Two birth paths, prompt-driven** | A `concept` fans out via `ideate` into many `hypothesis` entities (breadth); each `conclude` files one failure-driven follow-up `hypothesis` (depth). Ensigns write the entity files — no spacedock mod. |
 | Champion | **Native `@baseline` registry + `rk baseline promote`** | Replaces a custom `CHAMPION.md`. `conclude` promotes a winner and re-binds `@baseline`. |
 | Comparison | **`rk runs diff @baseline <variant>` + `rk score`** | Paired delta (CIs, adjusted p) for the promotion verdict; `rk score` for the absolute `stratified_pass_at_1` vs `paper_baseline`. |
@@ -91,11 +91,11 @@ autobench/
 │   ├── razorback-research.toml     #   named-ref registry: @baseline (← champion), @latest
 │   ├── README.md                   #   razorback's repo readme (first-run + lifecycle)
 │   ├── specs/
-│   │   ├── baseline.yaml            #     spacedock_solver/codex/gpt-5.5; solver_workflow: ./solver_workflows/baseline
+│   │   ├── baseline.yaml            #     spacedock_solver/codex/gpt-5.5; solver_workflow: ./solver_workflows/codex-ade-dbt-minimal
 │   │   ├── baseline.frozen.yaml     #     after `rk freeze`
 │   │   └── h0001-<slug>.yaml         #     variant spec: repoints solver_workflow + experiment
 │   ├── solver_workflows/            #   ← THE independent variable (flat, one dir per variant)
-│   │   ├── baseline/README.md       #     forked from razorback codex-ade-dbt-repair (+ leak-guard prose)
+│   │   ├── codex-ade-dbt-minimal/README.md  # razorback's codex-ade-dbt-minimal — the 9/48 baseline solver
 │   │   └── h0001-<slug>/README.md    #     the variant under test
 │   ├── hypotheses/                  #   ← UPGRADED into the spacedock experiment workflow
 │   │   ├── README.md                #     commissioned-by: spacedock@ + concept→ideate→…→conclude
@@ -217,7 +217,7 @@ agent:
   runtime: codex
   model: gpt-5.5
   sampling: { temperature: 0.0, top_p: null, seed: null }
-  solver_workflow: ./solver_workflows/baseline   # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+  solver_workflow: ./solver_workflows/codex-ade-dbt-minimal   # variants fork to ./solver_workflows/h<NNNN>-<slug>
   spacedock_skill_version: "1.0.0"
   max_turns: 200
   override_timeout_sec: 2400
@@ -237,7 +237,9 @@ observers:
   - { kind: stdout }
 experiment_meta:
   # max_budget_usd deferred — first loops run on a flat OpenAI subscription, not metered API.
-  paper_baseline: { name: stratified_pass_at_1, value: 0.1875 }   # 9/48 — initial spacedock baseline (no paper)
+  paper_baseline: { name: pass_rate, value: 0.1875 }   # 9/48 — simple pass rate #pass/#total. rk score
+                                                        # compares its stratified_pass_at_1 field, which
+                                                        # for ade-bench's single dataset == #pass/#total.
 provenance: { pin_model_version: false, pin_image_digest: false }
 ```
 
@@ -272,11 +274,11 @@ cell that didn't capture its subagent trace is rejected, not silently scored.
 
 ### 5.4 Leak-guard (the `propose` gate's reason to exist)
 
-The solver README must keep the **External-oracle audit** section shipped in razorback's
-baseline solver README: the workspace data is the only authoritative source; forbidden —
-HuggingFace `datasets`/`hf://`, canonical-data downloads (`requests`/`curl`/`wget` to
-huggingface.co, raw.githubusercontent.com, kaggle.com), web search, LLM-as-oracle. (Not
-forbidden: `pip install` of generic compute libs that ship no canonical data.)
+The solver README must keep its **no-external-reference / leak-guard prose** (the
+`codex-ade-dbt-minimal` baseline states it inline): the workspace data is the only
+authoritative source; forbidden — public fetches (`curl`/`wget`/`git clone`,
+package-source downloads), HuggingFace `datasets`/`hf://`, web search, LLM-as-oracle.
+(Not forbidden: `pip install` of generic compute libs that ship no canonical data.)
 razorback's runtime `DISALLOWED_TOOLS` and `rk audit --policy strict` are the backstops;
 the prose deters the rest. Tuning must never relax this; you enforce it at the gate.
 
@@ -364,7 +366,7 @@ not the spacedock first-officer (reads `hypotheses/README.md`) nor the codex sol
    held constant. A variant spec differs from `baseline.yaml` only in `experiment:` +
    `solver_workflow:`. Anything else is a separate, declared hypothesis.
 6. **🔒 Leak-guard discipline** — §5.4: workspace data only; forbidden-oracle list;
-   never relax the baseline solver README's External-oracle audit section.
+   never relax the baseline solver README's no-external-reference / leak-guard prose.
 7. **Budget discipline** — `rk run --explain` ($0) first; smoke (the hypothesis's
    target datasets) before full. Budget caps **deferred** while running on a flat
    OpenAI subscription; reinstate `--max-budget-usd-running` / `max_budget_usd` when
@@ -432,7 +434,7 @@ Still to confirm at implementation:
 |-------|------|
 | Research-repo scaffolder | `rk research new ade-bench --from <dataset> --solver-runtime codex --target-model gpt-5.5 --into ./ade-bench` |
 | Canonical template tree | `razorback/docs/templates/research-project/` (README, razorback-research.toml, hypotheses/README.md, specs/baseline.yaml, solver_workflows/baseline/README.md, drivers/matrix.sh) |
-| Codex ade/dbt-repair solver baseline (fork into `solver_workflows/baseline/`) | `razorback/examples/solver_workflows/codex-ade-dbt-repair/README.md` |
+| Codex ade-dbt-minimal solver baseline (copied to `solver_workflows/codex-ade-dbt-minimal/`) | `razorback/examples/solver_workflows/codex-ade-dbt-minimal/README.md` |
 | Native champion / compare | `rk baseline promote`, `rk registry add\|resolve`, `rk runs diff` |
 | Per-cell driver | `ade-bench/drivers/matrix.sh` (modeled on `razorback/examples/drivers/dab-paper-matrix.sh`) |
 | Layout/contents spec | `razorback/docs/superpowers/specs/2026-05-23-generic-harbor-benchmark-surface.md` §2.3 |

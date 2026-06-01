@@ -1,2 +1,17 @@
+# Razorback run outputs — large, reproducible from frozen specs.
+runs/
+bad_runs/
+
+# Local / editor / build noise.
+.DS_Store
+*.swp
+*.swo
+.envrc
+.coverage
+.venv/
+__pycache__/
+*.py[cod]
+.worktrees/
+
+# Project-local.
 recce.yml
-ade-bench/runs/

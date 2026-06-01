@@ -44,7 +44,7 @@ smokes; drop it for the full benchmark.
    full benchmark. Capture the headline + `audit.json` clean
    attestation in `hypotheses/0001-baseline-headline.md`.
 
-2. **Hypothesis.** Copy `solver_workflows/baseline/` to
+2. **Hypothesis.** Copy `solver_workflows/codex-ade-dbt-minimal/` (the baseline solver) to
    `solver_workflows/h0001-<slug>/`. Edit the README. Copy
    `specs/baseline.yaml` to `specs/h0001.yaml` and point the new
    `solver_workflow:` at the copied directory.

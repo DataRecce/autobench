@@ -115,7 +115,7 @@ and **writes several `h<NNNN>-<slug>.md` hypothesis entities** (status `hypothes
 each naming the specific solver-README change it will make. Then the concept advances to
 `expanded`.
 
-- **Inputs:** the concept body; `../solver_workflows/baseline/README.md` (or the current
+- **Inputs:** the concept body; `../solver_workflows/codex-ade-dbt-minimal/README.md` (or the current
   `@baseline` solver); the latest analyze findings.
 - **Outputs:** 2–5 new hypothesis entities, each with a falsifiable claim + acceptance
   criteria; the concept marked `expanded`.
@@ -145,8 +145,9 @@ The ensign authors the variant. **You review at the gate.**
 
 - **Inputs:** the hypothesis claim.
 - **Outputs:**
-  1. `cp -r ../solver_workflows/baseline ../solver_workflows/h<NNNN>-<slug>` (fork the
-     current `@baseline` solver dir), then edit its `README.md` — the one variable.
+  1. `cp -r ../solver_workflows/codex-ade-dbt-minimal ../solver_workflows/h<NNNN>-<slug>` (fork
+     the current `@baseline` solver dir — `codex-ade-dbt-minimal` is the seed baseline), then
+     edit its `README.md` — the one variable.
   2. `cp ../specs/baseline.yaml ../specs/h<NNNN>-<slug>.yaml`, set `experiment:` to
      `ade-bench-h<NNNN>-<slug>` and `solver_workflow:` to
      `./solver_workflows/h<NNNN>-<slug>`. This is the FULL spec — no task selector.
@@ -157,8 +158,8 @@ The ensign authors the variant. **You review at the gate.**
   4. Freeze both:
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.yaml` and
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.smoke.yaml`.
-- **Gate — you reject if:** the README leaks ground truth (the External-oracle audit
-  section is removed/weakened); the FULL spec differs from baseline in anything other than
+- **Gate — you reject if:** the README leaks ground truth (its no-external-reference /
+  leak-guard prose is removed or weakened); the FULL spec differs from baseline in anything other than
   `experiment:` + `solver_workflow:` (the smoke spec additionally adds `benchmark.tasks`);
   `agent.kind` ≠ `spacedock_solver` or `runtime` ≠ `codex`.
 - **Good:** exactly one README idea changed; leak-guard intact; `diff` of the two specs
