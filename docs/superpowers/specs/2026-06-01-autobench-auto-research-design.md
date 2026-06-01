@@ -24,6 +24,9 @@ outcome → propose the next hypothesis → (repeat) → complete.**
   — **48 tasks** across 6 groups (Airbnb, Analytics-Eng, Asana, F1, Intercom,
   QuickBooks), each tagged easy/medium/hard (see `ade-bench-datasets.md`).
 - **Solver runtime (held constant):** `codex` (`gpt-5.5`).
+- **Baseline to beat:** there is no published paper baseline. The current
+  spacedock-solver run scores **9/48 = 0.1875** on `stratified_pass_at_1`; that number
+  is the anchor every hypothesis tries to beat.
 
 ### Design grounding: razorback's canonical autoresearch repo
 
@@ -55,7 +58,10 @@ baseline/diff/scoring.
 |----------|--------|-----------|
 | Foundation | **Rebase onto `rk research new` canonical layout + spacedock layer** | Native `@baseline` registry, `rk runs diff`, `matrix.sh`, flat `solver_workflows/`+`specs/`. We upgrade `hypotheses/` into the spacedock workflow. Least custom code; most reproducible. (Option A.) |
 | Per-benchmark namespacing | **Each benchmark = a `rk research new` subdir** (`ade-bench/`) | autobench is a multi-benchmark umbrella; a 2nd benchmark is a sibling `rk research new` subdir. |
-| Autonomy | **Semi-autonomous, two human gates** | Gate at `propose` (leak-guard review of the README) and at `smoke → full` (money go/no-go). Everything else auto. |
+| Autonomy | **Semi-autonomous, two human gates** | Gate at `propose` (leak-guard review of the README) and at `smoke → full` (go/no-go before the full run). Everything else auto. |
+| Baseline / target | **Initial spacedock run = 9/48 (0.1875)** | No published paper baseline. The first full baseline run scores 9/48; it seeds `@baseline` and `experiment_meta.paper_baseline.value: 0.1875`. Hypotheses aim to beat it. |
+| Budget caps | **Deferred — flat OpenAI subscription** | First loops run on an OpenAI personal subscription, not metered API. Omit `max_budget_usd` / `--max-budget-usd-running` for now; reinstate when moving to metered spend. The `smoke → full` gate remains as a worthiness go/no-go. |
+| Smoke subset | **Hypothesis's target datasets; first run skips smoke** | Smoke runs `benchmark.tasks` = the datasets the hypothesis targets (focused pre-flight). A general change with no target datasets uses a small default subset. The baseline/first run skips smoke and runs full directly. |
 | Solver runtime | **codex** (`gpt-5.5`) | One runtime held constant → the README is the only variable. Baseline solver README forked from razorback's `codex-ade-dbt-repair`. |
 | Ideation / loop closure | **Two birth paths, prompt-driven** | A `concept` fans out via `ideate` into many `hypothesis` entities (breadth); each `conclude` files one failure-driven follow-up `hypothesis` (depth). Ensigns write the entity files — no spacedock mod. |
 | Champion | **Native `@baseline` registry + `rk baseline promote`** | Replaces a custom `CHAMPION.md`. `conclude` promotes a winner and re-binds `@baseline`. |
@@ -150,16 +156,21 @@ No gate on `ideate` — every generated hypothesis is gated individually at its 
 |-------|-------|--------------|
 | `hypothesis` *(initial)* | — auto | A fully-formed, queued hypothesis: title, falsifiable claim, `## Acceptance criteria` (the verdict, e.g. "the paired `rk runs diff` delta vs `@baseline` clears the tripwire on `stratified_pass_at_1`"). Born from an `ideate` fan-out or a `conclude` follow-up. Auto-advances. |
 | `propose` | 🚦 **leak-guard** | Ensign forks `@baseline`'s solver dir to `solver_workflows/h<NNNN>-<slug>/`, edits its `README.md` (the one variable), copies `specs/baseline.yaml` → `specs/h<NNNN>-<slug>.yaml` (repointing `solver_workflow:` + `experiment:`), and `rk freeze`s it. **Human reviews:** README leaks no ground truth (the leak-guard prose is intact); spec is `spacedock_solver`/`codex`; budget + baseline present. |
-| `smoke` | 🚦 **money go/no-go** | `rk run --explain` (free) → `rk run <frozen> --runs-dir runs --n-tasks 5` → `captured > 0` check → `rk audit --policy strict` → `rk score`. **Tripwire:** does the smoke score sit in the baseline-smoke envelope? **Human reviews** before committing the full run. |
-| `full` | — auto | `drivers/matrix.sh` (or `rk run` with no `--n-tasks`) over all 48 tasks: per-cell run → `captured > 0` → `rk audit --policy strict` → `rk score`, with `--max-budget-usd-running` as the hard backstop. Auto-advances on a clean ledger. |
+| `smoke` | 🚦 **go/no-go** | `rk run --explain` (free) → `rk run <frozen> --runs-dir runs` over the hypothesis's **target datasets** (`benchmark.tasks`) → `captured > 0` → `rk audit --policy strict` → `rk score`. **Human reviews** the focused result before committing the full run. *(Budget caps deferred — this is a worthiness gate.)* |
+| `full` | — auto | `drivers/matrix.sh` (or `rk run` with no `tasks` selector) over all 48 tasks: per-cell run → `captured > 0` → `rk audit --policy strict` → `rk score`. Auto-advances on a clean ledger. |
 | `analyze` | — auto | `rk runs diff "$(rk registry resolve run @baseline)" <variant-run-dir>` → paired delta (CIs, adjusted p) pasted into the entity body, plus the absolute `rk score` `stratified_pass_at_1` vs `paper_baseline`. Verdict line written. |
 | `conclude` *(terminal)* | — auto | Verdict recorded. **If the paired delta clears the tripwire (and audit was clean) → promote:** `rk baseline promote <variant-run-dir>` + `rk registry add run baseline <variant-run-dir>`. Then, **based on the failure pattern, file one follow-up `hypothesis` entity** (forking the new `@baseline`). Archived. |
 
 > **Gate mechanics:** in spacedock a stage's `gate: true` fires at the boundary
 > *leaving* that stage. `gate: true` on `propose` = the `propose → smoke` review (the
-> README); `gate: true` on `smoke` = the `smoke → full` review (the money go/no-go).
+> README); `gate: true` on `smoke` = the `smoke → full` review (go/no-go before full).
 > All other stages are `gate: false`. Net: exactly two human gate types, both on the
 > hypothesis path.
+
+> **Baseline / first run:** establishing the 9/48 anchor is a direct full run — the
+> baseline entity **skips `smoke`** (`propose → full`) and, at `conclude`, binds
+> `@baseline` to its run-dir. Every later hypothesis forks from `@baseline` and does
+> run `smoke` on its target datasets.
 
 ### Entity lifecycle
 
@@ -215,15 +226,16 @@ agent:
 benchmark:
   kind: harbor
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
-  # smoke: pass `--n-tasks 5` on the CLI; full: omit it (all 48 tasks)
+  # full: no `tasks` selector (all 48). smoke: set `tasks:` to the hypothesis's target datasets.
+  # baseline / first run: skip smoke, run full directly.
 trials: 1
 concurrency: { trials: 1 }
 observers:
   - { kind: jsonl, path: events.jsonl }
   - { kind: stdout }
 experiment_meta:
-  max_budget_usd: <full-run cap>
-  paper_baseline: { name: stratified_pass_at_1, value: <ade-bench baseline — TBD> }
+  # max_budget_usd deferred — first loops run on a flat OpenAI subscription, not metered API.
+  paper_baseline: { name: stratified_pass_at_1, value: 0.1875 }   # 9/48 — initial spacedock baseline (no paper)
 provenance: { pin_model_version: false, pin_image_digest: false }
 ```
 
@@ -248,9 +260,10 @@ rk run <frozen> --runs-dir runs [--max-budget-usd-running <budget-file>]
   → ledger.tsv row: spec, status, run_dir, cost_usd, taint_count
 ```
 
-Smoke is the same pipeline with `--n-tasks 5`. The `captured > 0` guard **resolves the
-earlier audit-coverage caveat**: a spacedock-solver cell that didn't capture its
-subagent trace is rejected, not silently scored.
+Smoke is the same pipeline restricted to the hypothesis's target datasets
+(`benchmark.tasks`); the baseline/first run skips smoke and runs full directly. The
+`captured > 0` guard **resolves the earlier audit-coverage caveat**: a spacedock-solver
+cell that didn't capture its subagent trace is rejected, not silently scored.
 
 ### 5.4 Leak-guard (the `propose` gate's reason to exist)
 
@@ -307,8 +320,10 @@ not the spacedock first-officer (reads `hypotheses/README.md`) nor the codex sol
    `experiment:` + `solver_workflow:`. Anything else is a separate, declared hypothesis.
 6. **🔒 Leak-guard discipline** — §5.4: workspace data only; forbidden-oracle list;
    never relax the baseline solver README's External-oracle audit section.
-7. **🔒 Budget discipline** — `rk run --explain` ($0) first; smoke (`--n-tasks 5`)
-   before full; `--max-budget-usd-running` backstop; never exceed `max_budget_usd`.
+7. **Budget discipline** — `rk run --explain` ($0) first; smoke (the hypothesis's
+   target datasets) before full. Budget caps **deferred** while running on a flat
+   OpenAI subscription; reinstate `--max-budget-usd-running` / `max_budget_usd` when
+   moving to metered API spend.
 8. **🔒 Reproducibility discipline** — always `rk freeze`; the dataset digest is pinned;
    frozen spec + README hash are immutable once smoke starts.
 9. **Native primitives** — champion = `@baseline` (`rk baseline promote` +
@@ -342,17 +357,23 @@ The four 🔒 sections plus run prerequisites are the load-bearing guardrails.
 - **Campaign-level auto-stop.** You end the campaign; per-entity termination is
   automatic.
 
-## 8. Concrete config to fill in at implementation
+## 8. Concrete config (resolved this session)
 
-- **`paper_baseline.value`** for ade-bench's `stratified_pass_at_1` (source from
-  rk-monitor's baseline runs or the ade-bench paper).
-- **`max_budget_usd`** caps for smoke and full.
-- **Smoke subset policy** — `--n-tasks 5` (first 5) vs a curated easy-across-groups set
-  (e.g. `ade-bench-airbnb001`, `ade-bench-ana-eng001`, `ade-bench-quickbooks001`).
-- **`rk` invocation** — confirm the alias/wrapper that routes `rk` through the
-  `razorback/` submodule via `uv` in this repo.
-- **Dataset digest** — already pinned:
+- **`paper_baseline.value` = `0.1875`** (9/48 — the initial spacedock-solver baseline;
+  no published paper). Also the `@baseline` anchor.
+- **Budget caps — deferred.** First loops run on a flat OpenAI personal subscription
+  (not metered API); omit `max_budget_usd` / `--max-budget-usd-running`. Reinstate when
+  moving to metered spend.
+- **Smoke subset = the hypothesis's target datasets** (`benchmark.tasks`). A general
+  change with no target datasets uses a small default subset. **The baseline / first
+  run skips smoke and runs full directly.**
+- **Dataset digest — pinned:**
   `dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5`.
+
+Still to confirm at implementation:
+
+- **`rk` invocation** — the alias/wrapper that routes `rk` through the `razorback/`
+  submodule via `uv` in this repo.
 
 ## 9. Reusable assets
 
