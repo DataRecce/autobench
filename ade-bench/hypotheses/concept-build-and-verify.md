@@ -1,9 +1,9 @@
 ---
 title: Build-and-verify discipline — eliminate the dominant build-error failure class
-status: concept
+status: ideate
 kind: concept
 source: captain hunch from h0000-baseline analyze (build-error = 27/39 failures, 69%)
-started:
+started: 2026-06-01T17:06:27Z
 completed:
 verdict:
 ---
