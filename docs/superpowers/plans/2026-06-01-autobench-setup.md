@@ -29,6 +29,11 @@
   ```
   Specs with `agent.kind: spacedock_solver` fail at agent setup without it. (Harmless to
   export for every `rk` command — set it once per shell.)
+- **`rk freeze` uses `--allow-missing`.** The spec sets `pin_model_version: false` /
+  `pin_image_digest: false` (model/image deliberately unpinned — first loops on a flat
+  subscription), so plain `rk freeze` errors with `ProvenanceError: unresolved provenance
+  fields`. `--allow-missing` writes the frozen spec anyway; the solver-workflow content
+  hash (the reproducibility we care about) is still sealed.
 - **spacedock status CLI:** `spacedock/skills/commission/bin/status` (run from repo root).
 - **Never edit the `razorback/` or `spacedock/` submodules** — they are read-only dependencies.
 - Commit after each task. Work stays on branch `setup-autobench-auto-research`.
@@ -257,9 +262,10 @@ Freeze seals the solver-workflow content hash and resolves dynamic inputs; `--ex
 ```bash
 export RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(git rev-parse --show-toplevel)/spacedock"
 cd ade-bench
-uv run --project ../razorback rk freeze specs/baseline.yaml
+uv run --project ../razorback rk freeze --allow-missing specs/baseline.yaml
 ```
-Expected: writes `specs/baseline.frozen.yaml` (and `provenance.yaml`); no error.
+Expected: writes `specs/baseline.frozen.yaml` + `provenance.yaml`. (`--allow-missing` is
+required because the spec leaves model/image unpinned — see Conventions.)
 
 - [ ] **Step 2: Verify the frozen spec sealed the solver-workflow hash**
 
@@ -451,7 +457,7 @@ The ensign authors the variant. **You review at the gate.**
   2. `cp ../specs/baseline.yaml ../specs/h<NNNN>-<slug>.yaml`, set `experiment:` to
      `ade-bench-h<NNNN>-<slug>` and `solver_workflow:` to
      `./solver_workflows/h<NNNN>-<slug>`.
-  3. `uv run --project ../razorback rk freeze specs/h<NNNN>-<slug>.yaml`.
+  3. `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.yaml`.
 - **Gate — you reject if:** the README leaks ground truth (the External-oracle audit
   section is removed/weakened); the spec differs from baseline in anything other than
   `experiment:` + `solver_workflow:`; `agent.kind` ≠ `spacedock_solver` or
@@ -705,7 +711,8 @@ Budget caps are **deferred** while on a flat OpenAI subscription; reinstate
 
 ## 🔒 Reproducibility discipline
 
-Always `rk freeze` (seals the solver-README content hash). The dataset digest is pinned.
+Always `rk freeze --allow-missing` (seals the solver-README content hash; `--allow-missing`
+because model/image are deliberately unpinned). The dataset digest is pinned.
 A frozen spec + README hash are immutable once smoke starts.
 
 ## Native primitives
