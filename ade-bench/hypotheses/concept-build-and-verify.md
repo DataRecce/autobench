@@ -54,3 +54,16 @@ already-building tasks.
 **Guardrails.** Each derived hypothesis keeps the solver README's no-external-reference /
 leak-guard prose intact and changes exactly one idea; its variant spec differs from
 `specs/baseline.yaml` only in `experiment:` + `solver_workflow:`.
+
+## Stage Report: ideate
+
+- DONE: Each hypothesis is ONE concrete, falsifiable solver-README change naming the specific Stage it edits and its target datasets — not a restatement of the concept.
+  Four entities, each a single named-stage README edit with a falsifiable reject condition: h0001 (Stage: Validation — mandatory zero-error full build), h0002 (new Stage: Build Gate between Implementation and Validation, bounded build-fail→Implementation loop), h0003 (Stage: Implementation — ref()/source() resolution checklist), h0004 (Stage: Finalization — pre-finalize full-build assertion).
+- DONE: The fan-out spans distinct mechanisms — the captain's two plus at least one alternative framing — not three variants of one idea.
+  h0001 = captain mechanism 1 (strengthen Validation); h0002 = captain mechanism 2 (dedicated Build Gate stage with reject-back-to-Implementation); h0003 + h0004 are two distinct alternative framings (static ref/source resolution in Implementation; single terminal pre-finalize assertion in Finalization) that attack the same class without a mid-pipeline run-gate.
+- DONE: Each hypothesis names concrete smoke target datasets from the baseline build-error set plus a near-miss control to watch for regression.
+  All four name intercom001, f1005, ana-eng002, asana003 as smoke targets and quickbooks003 (baseline 12/14) as the non-regression control; reject conditions explicitly include quickbooks003 regression.
+
+### Summary
+
+Filed four hypothesis entities (h0001–h0004), each `status: hypothesis`, `kind: hypothesis`, `source: concept-build-and-verify fan-out`, following the README Hypothesis template (## Hypothesis = single named-stage README change + targets; ## Acceptance criteria AC-1/2/3). The independent variable in every entity is ONLY the solver README — no variant README or spec was authored here (that is propose). The fan-out covers both captain-mandated mechanisms (h0001 strengthen Validation; h0002 dedicated Build Gate stage with bounded build-fail→Implementation routing) plus two discovered alternative framings (h0003 static ref()/source() resolution checklist in Implementation, which uniquely catches naming mismatches like asana003's `project_data` without a build run; h0004 pre-finalize full-build assertion in Finalization, testing whether one terminal gate suffices). Each keeps the leak-guard / no-external-reference prose intact, changes exactly one idea, and is falsifiable against the build-error count on the four smoke targets with quickbooks003 as the regression control. Concept frontmatter status left unchanged for the first officer to advance concept → expanded.
