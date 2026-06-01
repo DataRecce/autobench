@@ -6,6 +6,7 @@ source: captain hunch from h0000-baseline analyze (build-error = 27/39 failures,
 started: 2026-06-01T17:06:27Z
 completed:
 verdict:
+id: concept-build-and-verify
 ---
 
 ## Direction
