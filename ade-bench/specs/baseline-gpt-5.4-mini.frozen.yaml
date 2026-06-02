@@ -1,9 +1,9 @@
 version: 1
-experiment: ade-bench-baseline
+experiment: ade-bench-baseline-gpt-5.4-mini
 agent:
   kind: spacedock_solver
   runtime: codex
-  model: gpt-5.5
+  model: gpt-5.4-mini
   sampling:
     temperature: 0.0
     top_p: null
@@ -21,7 +21,7 @@ agent:
   reasoning_effort: xhigh
   reasoning_summary: null
   resume_from_freeze: null
-  sealed_hash: 9e56a4dcb2e1670e76c003cb4388e266
+  sealed_hash: 4a116aae0edec9f8b9d6695729d52cfe
   spacedock_skill_version: 1.0.0
   prompt_content_hashes: {}
 benchmark:
@@ -34,7 +34,7 @@ benchmark:
   plugin_args: null
 trials: 1
 concurrency:
-  trials: 1
+  trials: 4
 observers:
 - kind: jsonl
   path: events.jsonl

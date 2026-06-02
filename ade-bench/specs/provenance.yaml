@@ -1,5 +1,5 @@
-agent_cli_hash: sha256:3c621aadd6aea8a6c0148634a09cdb3e42b6a985881cc759c90f0ec1495efbc0
-harness_git_sha: 41f5f24ca2de33250bad52e73421f7f35981fa68
+agent_cli_hash: sha256:aa3c64b122c9d06bf48eaf988f5970aa69556d69506c3118cf07d10b2401b48a
+harness_git_sha: 78993e71c9aca47a675f32dcb5ef37b0a85acdf7
 harbor_version: 0.6.6
 prompt_file_hashes: {}
 plugins: []

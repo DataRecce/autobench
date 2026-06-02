@@ -1,9 +1,9 @@
 version: 1
-experiment: ade-bench-baseline # variants: ade-bench-h0001-<slug>
+experiment: ade-bench-baseline-gpt-5.4-mini # variants: ade-bench-h0001-<slug>
 agent:
   kind: spacedock_solver
   runtime: codex
-  model: gpt-5.5
+  model: gpt-5.4-mini
   sampling:
     temperature: 0.0
     top_p: null
@@ -23,9 +23,8 @@ benchmark:
   # baseline / first run: skip smoke, run full directly.
 trials: 1 # one trial per task — applies to BOTH smoke and full
 concurrency:
-  trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
-            # task identity on the harbor path), so concurrent stage commits race on
-            # `git HEAD` ("cannot lock ref 'HEAD'"). 1 = no concurrent commits.
+  trials: 1 # serialized: trials share ONE freeze git repo (sealed_hash omits task
+            # identity on the harbor path) → concurrent stage commits race on `git HEAD`.
 observers:
   - kind: jsonl
     path: events.jsonl
