@@ -136,6 +136,42 @@ Finalization stage did not change any targeted outcome.
 
 ## Verdict
 
+**REJECTED at smoke (pre-full, NO-GO).** The single Finalization source-derived-invariant
+prose lever is behaviorally INERT at gpt-5.5/xhigh and does not warrant the full 48-task run.
+
+Evidence (smoke run `runs/ade-bench-h0008-finalization-source-derived-invariants/809de1a923b89ff6`):
+
+- **8/8 completed, 0 errored.** Every cell ran to completion.
+- **Strict audit CLEAN** — `summary: {clean: 8, tainted: 0, coverage_missing: 0}`, `captured > 0`
+  on every cell. The score is trustworthy (AC-2 satisfied).
+- **Score `stratified_pass_at_1 = 0.125`** (1/8), below the spec `pass_rate` constant 0.1875.
+- **`airbnb001` regression sentinel HELD** PASS→PASS — no regression.
+- **ALL 7 targeted `@baseline` failures stayed FAIL (zero flips):** asana004, asana005,
+  asana005-hard, intercom001, ana-eng006, f1002, quickbooks001 — every one still reward=0.
+
+**Mechanism — why it failed:** the lever was engaged but inert. The solver transcripts show it
+*did* read and act on the invariant prose (count(distinct) grain checks, source-to-output
+reconciliation, schema.yml column enumeration, every-column/every-model existence checks), yet it
+still declared done against its own (mistaken) understanding of the task. The invariant checks are
+only as good as the solver's model of what the source/contract requires, and that model is exactly
+where the `@baseline` misses originate — so the checks pass against the wrong premise. Concretely:
+`f1002` still omits the `rank` column (the solver's contract model never included it, so the
+"every declared column emitted" check had nothing to flag); `quickbooks001` still never builds the
+3 required `stg_quickbooks__{estimate,refund_receipt,sales_receipt}` models (the solver's project
+graph never implied them, so the "every implied model exists" check found nothing missing). The
+invariants are source-derived but still routed through the solver's own task comprehension, so a
+systematic comprehension error is not caught — the same failure class h0007 was rejected for, just
+relocated from re-derivation to invariant-assertion.
+
+**`@baseline` (622bdedac572b479) is UNTOUCHED.** This is a rejection: nothing was promoted — no
+`rk baseline promote`, no `rk registry add`. `@baseline` stays at 622bdedac572b479 (31/48 = 0.6458).
+
+**Pivot:** do NOT file a new follow-up. `h0009-exploration-package-fidelity` already exists as the
+queued sibling and is the chosen next direction. The pivot moves the lever upstream — from the
+Finalization stage (where the solver's comprehension is already fixed) to the Exploration stage
+(package/source fidelity), attacking the comprehension error at its origin rather than checking
+against it after the fact.
+
 ## Stage Report: propose
 
 - DONE: The forked solver README's ONLY change vs codex-ade-dbt-minimal/README.md is the single Finalization source-derived-invariants instruction; leak-guard / no-external-reference prose intact; NO reference to hidden AUTO_*/verifier tests and NO instruction to re-derive the expected answer.
@@ -215,3 +251,28 @@ source-derived-invariant Finalization instruction flipped **zero** of the 7 targ
 failures (asana004/005/005-hard, intercom001, ana-eng006, f1002, quickbooks001 all still
 reward=0). The change is behaviorally inert on the targeted misses at xhigh/gpt-5.5 — not worth
 the full 48-task run. Recommend returning to `hypothesis`.
+
+## Stage Report: conclude
+
+- DONE: Write the ## Verdict in the h0008 body: REJECTED at smoke (pre-full, NO-GO).
+  `## Verdict` appended: 8/8 completed / 0 errored, strict audit CLEAN (clean:8, tainted:0),
+  stratified_pass_at_1=0.125, airbnb001 sentinel held, ALL 7 targeted failures stayed FAIL (zero
+  flips); mechanism documented — the prose was engaged (count(distinct)/reconcile/schema.yml/
+  every-column-and-model checks) yet routed through the solver's own mistaken task model, so f1002
+  still drops `rank` and quickbooks001 still never builds the 3 stg models.
+- DONE: State that @baseline (622bdedac572b479) is UNTOUCHED — nothing promoted; reference h0009 as the pivot.
+  Verdict states no `rk baseline promote` / `rk registry add` was run; @baseline stays
+  622bdedac572b479 (31/48=0.6458). Pivot names `h0009-exploration-package-fidelity` (already queued)
+  as the chosen next direction — no new follow-up filed.
+- DONE: Leave frontmatter (status/verdict/completed) for the first officer to terminalize.
+  Frontmatter untouched (lines 1-12 unchanged); body-only edits.
+
+### Summary
+
+Concluded h0008 as REJECTED at smoke (pre-full, NO-GO). The source-derived-invariant Finalization
+lever ran cleanly (8/8 completed, strict audit clean) but flipped zero of the 7 targeted `@baseline`
+failures — behaviorally inert at gpt-5.5/xhigh because the invariant checks are routed through the
+solver's own (mistaken) task comprehension, the same failure class that rejected h0007. `@baseline`
+left untouched (no promote/registry add). No new follow-up filed; `h0009-exploration-package-fidelity`
+is the chosen pivot, moving the lever upstream to Exploration to attack comprehension at its origin.
+Frontmatter left for the first officer.
