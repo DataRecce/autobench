@@ -191,6 +191,23 @@ a correct anchor — flagged to the captain/FO as a follow-up, since registry re
 a `conclude`-stage action outside this analyze dispatch. The paired-diff requirement
 (AC-2) is recorded as blocked-by-missing-baseline rather than satisfied.
 
+**Conclude (terminal): PASSED — ran cleanly to analyze.** 31/48 = 0.6458 on a clean
+strict audit (`{clean:48, tainted:0, coverage_missing:0}`), verdict `above`
+paper_baseline 0.1875. The anchor is **re-established unconditionally** (no prior
+`@baseline` to tripwire-gate against — the old binding and run dir were gone), exactly
+like the original h0000 baseline. `@baseline` is now bound to run `622bdedac572b479` via
+`rk registry add run baseline runs/ade-bench-baseline/622bdedac572b479` (`OK`; confirmed
+`rk registry resolve run @baseline` → `runs/ade-bench-baseline/622bdedac572b479`,
+`rk registry list` shows `run @baseline → …/622bdedac572b479`). As in h0000, this
+razorback version persists the binding to `~/.config/razorback/registry.yaml` (the
+registry store), NOT to `razorback-research.toml` (the toml `[[refs]]` block remains a
+commented seed). `rk baseline promote` was NOT run — it requires `--to <dir> --constraints
+<constraints.yaml>` and no `constraints.yaml` exists in the repo; per the h0000 precedent
+the load-bearing binding step is `rk registry add`, and no constraints file was fabricated.
+Follow-up **h0006** (`validation-run-target-equality-checks`) is filed off the new
+`@baseline`, targeting the new dominant failure class (target equality-test misses,
+13/17 off-by-one) surfaced by this analyze.
+
 ## Stage Report: analyze
 
 - DONE: Quantitative read pastes the paired `rk runs diff @baseline <run-dir>` delta (CIs, adjusted p) AND the absolute `stratified_pass_at_1` vs paper_baseline 0.1875 into `## Run result`, with the recorded score paired to a clean `rk audit --policy strict` on the SAME run-dir.
@@ -205,3 +222,16 @@ a `conclude`-stage action outside this analyze dispatch. The paired-diff require
 ### Summary
 
 Post-DuckDB-fix seed-solver run `622bdedac572b479` scores 31/48 = 0.6458 (Wilson [0.504, 0.766]), `above` paper_baseline 0.1875, paired with a fully clean strict audit. The prior `@baseline` (9/48) is unrecoverable for a paired `rk runs diff` — the registry binding is gone and run dir `432500212a02092c` is absent from disk — so I substituted an unpaired comparison against the archived `h0000` record: +22 passes, non-overlapping CIs. Behaviorally the dataset fix eliminated the prior dominant build-error class (27/39 Catalog-Error 0/N) entirely; all 48 cells now build clean and the 17 remaining failures are target equality-test misses (13 off-by-one). Verdict: the 0.1875 anchor was a wrong-dataset artifact and shifted to ~0.65; recommend re-binding `@baseline` to this run (a conclude-stage action, flagged to FO).
+
+## Stage Report: conclude
+
+- DONE: Re-bind @baseline to run `622bdedac572b479` via `rk registry add run baseline runs/ade-bench-baseline/622bdedac572b479`; confirm `rk registry resolve run @baseline` prints the new run-dir.
+  `rk registry add run baseline …/622bdedac572b479` → `OK`; `rk registry resolve run @baseline` → `runs/ade-bench-baseline/622bdedac572b479`; `rk registry list` shows `run @baseline → …/622bdedac572b479`. Binding persisted to `~/.config/razorback/registry.yaml` (NOT razorback-research.toml, whose `[[refs]]` is a commented seed), same as h0000. `rk baseline promote` skipped — needs a non-existent `--constraints constraints.yaml`; no file fabricated.
+- DONE: File ONE follow-up `h0006-<slug>.md` targeting the NEW dominant failure mode (17 equality-test misses, 13 off-by-one), forking the new @baseline solver; falsifiable `## Hypothesis`, `## Acceptance criteria`, named target datasets.
+  `h0006-validation-run-target-equality-checks.md` (status/kind `hypothesis`): single Validation-stage README change (run target `AUTO_*` singular checks, drive to zero rows before finalizing); AC-1 localized-diff, AC-2 smoke gate, AC-3 paired-diff promotion gate; target table names the ana-eng `AUTO_dim_products_equality`, asana `AUTO_int_asana__project_user_agg_equality`, and intercom clusters.
+- DONE: Write `## Verdict` in the h0005 body: PASSED — ran cleanly to analyze, anchor re-established at run `622bdedac572b479`. Leave frontmatter for the first officer.
+  Conclude paragraph appended to `## Verdict`: PASSED, 31/48 = 0.6458 on clean strict audit, anchor re-established unconditionally and bound to `622bdedac572b479`, h0006 filed. Frontmatter (status/verdict/completed) left untouched.
+
+### Summary
+
+Re-established the ade-bench anchor unconditionally (no prior @baseline to tripwire-gate — old binding + run dir were gone), exactly per the h0000 precedent: `rk registry add run baseline …/622bdedac572b479` (`OK`, confirmed by resolve + list), binding persisted to `~/.config/razorback/registry.yaml`; `rk baseline promote` skipped because no `constraints.yaml` exists and none was fabricated. Filed follow-up `h0006` attacking the new dominant failure class (target equality-test misses, 13/17 off-by-one) with a single Validation-stage README change forking the new @baseline, falsifiable hypothesis, three ACs, and a named target-dataset table. Wrote the PASSED conclude verdict into h0005; left frontmatter for the FO to terminalize.
