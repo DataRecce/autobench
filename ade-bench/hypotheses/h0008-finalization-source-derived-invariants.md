@@ -101,3 +101,64 @@ targeted failures to a pass before promotion to full.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: The forked solver README's ONLY change vs codex-ade-dbt-minimal/README.md is the single Finalization source-derived-invariants instruction; leak-guard / no-external-reference prose intact; NO reference to hidden AUTO_*/verifier tests and NO instruction to re-derive the expected answer.
+  README diff is a single added paragraph in `## Stage: Finalization` (lines 78a79-90); parenthetical states "NOT against any verifier/AUTO_* test and NOT by re-deriving the expected answer"; Exploration/Implementation/Validation and dependency guardrails untouched.
+- DONE: FULL spec diffs baseline.yaml in ONLY experiment: + solver_workflow:; smoke spec adds ONLY benchmark.tasks: [8 targets]; agent.kind=spacedock_solver and runtime=codex preserved.
+  `diff specs/baseline.yaml specs/h0008-...yaml` = exactly 2 changed lines (2c2, 11c11); `diff` full vs smoke = only `tasks:` block (23a24-32); kind/runtime unchanged from baseline.
+- DONE: Both specs frozen with rk freeze --allow-missing (full + smoke); two-field FULL spec diff and README diff pasted into ### Gate evidence below.
+  `rk freeze` wrote h0008-...frozen.yaml and h0008-...smoke.frozen.yaml; evidence block below.
+
+### Gate evidence
+
+FULL spec vs baseline (exactly two fields):
+
+```
+2c2
+< experiment: ade-bench-baseline # variants: ade-bench-h0001-<slug>
+---
+> experiment: ade-bench-h0008-finalization-source-derived-invariants # variants: ade-bench-h0001-<slug>
+11c11
+<   solver_workflow: ./solver_workflows/codex-ade-dbt-minimal # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+---
+>   solver_workflow: ./solver_workflows/h0008-finalization-source-derived-invariants # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+```
+
+SMOKE vs FULL (only the tasks block added):
+
+```
+23a24,32
+>   tasks: # invariant sub-classes + airbnb001 regression sentinel; ade-bench- prefixed (bare slugs rejected by rk run)
+>     - ade-bench-asana004
+>     - ade-bench-asana005
+>     - ade-bench-asana005-hard
+>     - ade-bench-intercom001
+>     - ade-bench-ana-eng006
+>     - ade-bench-f1002
+>     - ade-bench-quickbooks001
+>     - ade-bench-airbnb001
+```
+
+README diff vs codex-ade-dbt-minimal (single Finalization instruction):
+
+```
+78a79,90
+> For each model the task creates or changes, before finalizing verify against the
+> local source data and the project's declared schema (NOT against any
+> verifier/AUTO_* test and NOT by re-deriving the expected answer): (1) no source
+> rows are silently dropped — every key present in the upstream source(s) at the
+> model's declared grain appears in the output unless the task explicitly filters
+> it, reconciling row/key counts to the source; (2) the model is unique at its
+> stated grain — `count(*) = count(distinct <grain key>)`, no unexpected join
+> fan-out; (3) the output contract is complete — every column declared in the
+> model's `schema.yml` is emitted and every model the instruction or project graph
+> implies exists, builds, and is populated. Treat any invariant violation as a
+> defect in the model logic to fix before finalizing.
+>
+```
+
+### Summary
+
+Forked `codex-ade-dbt-minimal` to `h0008-finalization-source-derived-invariants` and added the single source-derived-invariants instruction to the `## Stage: Finalization` section only — the one independent variable. Full and smoke specs created from baseline with only the allowed field changes (full: experiment + solver_workflow; smoke additionally adds the 8-task benchmark.tasks block covering the three invariant sub-classes plus the airbnb001 regression sentinel). Both specs frozen with `rk freeze --allow-missing`; leak-guard prose intact, no reference to hidden AUTO_*/verifier tests, no re-derive-expected instruction.
