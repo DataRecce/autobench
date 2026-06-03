@@ -133,7 +133,63 @@ Finalization stage did not change any targeted outcome.
 
 ## Run result
 
+No full 48-task run. Smoke was NO-GO (0/7 targets flipped); not worth the full run.
+
 ## Behavioral analysis
+
+Post-conclude trace deep-dive (read all 8 `<run-dir>/<task>/agent/codex.txt` ensign completion
+reports). Two findings; the second **corrects** the original `## Verdict` below.
+
+**Finding 1 — the Finalization check fired on every task but detected ZERO real data drops; in
+every true-drop case it returned a FALSE green.** The check is correlated with the bug: the agent
+reconciles its output against *its own computation*, not the independent source grain, so a wrong
+first answer produces a wrong all-clear. This sharpens the original verdict's "routed through the
+solver's own task model" with the per-task evidence:
+
+- `asana004` (int model 13 rows, expected 16): *"new model rows 13, expected 13 … rows different
+  from legacy logic 0"* — anchored on the old CTE (also 13). Verifier FAIL "Got 3".
+- `asana005` (same drop) — **smoking gun:** report shows `source_project_ids=13, agg_rows=13,
+  missing_from_agg=0` while the SAME report states `expected_project_rows=16`. It had 16 in hand
+  and still measured the drop against 13. Not "couldn't find the number" — "pointed the check at
+  the wrong baseline."
+- `asana005-hard`: *"intermediate 13 rows, 13 distinct project IDs"*, never reconciled to 16.
+- `intercom001` (model 5 rows, expected 2): *"source 9 parts / 5 conversation IDs; model 5 rows …
+  0 missing, 0 extra"* — treated all 5 conversation IDs as the correct grain; spec wanted 2 after
+  a filter. Verifier FAIL "Got 7".
+- `quickbooks001`: checked the one model it built (`general_ledger`, 76=76); never built the 3
+  required `stg_quickbooks__*` models, so the "every implied model exists" invariant never ran on
+  them. (This one the original verdict got right.)
+
+Drops detected by Finalization across the 4 true-drop tasks: **0.** The check can only ask "did I
+drop rows vs my own computation?" (always no), never "vs the true source grain?" (the only
+question that catches the bug).
+
+**Finding 2 (CORRECTION to original verdict) — 2 of the 7 targets are VALUE errors, not shape
+errors; no source-derived *shape* invariant can catch them, and the original verdict
+mischaracterized them.**
+
+- `f1002`: the original verdict says *"f1002 still omits the `rank` column."* **This is wrong.**
+  The trace shows the agent created all 4 models with all declared columns, 20 rows each, validated
+  green. `AUTO_most_podiums_equality` FAILs on **wrong ranking/values**, not a missing column.
+- `ana-eng006`: we predicted a grain fan-out (204 vs 102). The agent produced the correct shape —
+  102 rows, 0 duplicates, unique grain, all columns, 0 missing — its check honestly reported green.
+  3 equality tests still FAIL: **values inside the rows are wrong**. Prediction missed twice (not a
+  drop, not even the fan-out).
+
+Target tally: 5/7 are shape problems (3 asana drops + intercom + quickbooks) where the diagnosis
+is right but the self-anchored check can't catch them; 2/7 (ana-eng006, f1002) are value problems
+the hypothesis never could have addressed, and were mis-selected as shape targets.
+
+**Two durable lessons for successors:**
+1. **Self-verification is a dead direction here** (joins h0006/h0007). A post-answer check by the
+   same agent against its own output is inert by construction. Only checks independent of the
+   solver's reasoning can move these — reconcile to the *raw source grain* (count distinct keys in
+   the source table), or have a *separate* agent re-derive expected shape and diff. We asked for
+   source-reconciliation in prose; the agent collapsed it to self-reference (asana005: 13 not 16).
+2. **Shape invariants can't catch value errors.** ~2/7 targeted failures are wrong-value,
+   right-shape. Any future shape-invariant hypothesis must first confirm the miss is actually a
+   shape miss (dropped/extra rows, missing column/model), not a bad computation in a correctly
+   shaped table. [[ade-bench-solver-blind-to-oracle]]
 
 ## Verdict
 
