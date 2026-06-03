@@ -217,3 +217,21 @@ Forked the @baseline solver (`codex-ade-dbt-minimal`) to `h0006-validation-run-t
 ### Summary
 
 Smoke is a NO-GO: 0/8 flips and 1 regression, against a clean strict audit. The README change was exercised (captured=1 on all 8) and the solver followed it — but the instruction is unactionable: the target `tests/AUTO_*_equality.sql` checks are hidden verifier tests injected only at grading time and are absent from the solver's `/app/tests`, so `dbt test --select test_type:singular` returns zero matches (confirmed verbatim in the asana004/intercom001/ana-eng007 ensign sub-transcripts). The hypothesis premise — that these are visible checks the solver can run and drive to zero rows — is false for this benchmark. Recommend back to `hypothesis`; a viable redesign must reconstruct expected output from visible source data rather than running the hidden checks.
+
+## Stage Report: conclude
+
+- DONE: Write `## Verdict` in h0006: REJECTED — premise falsified
+  `## Verdict` states the negative result: hidden `AUTO_*` verifier tests absent from `/app/tests`, 0/8 flips on a clean audit with `captured=1`, +1 regression (ana-eng007-medium 9/10→7/10); a valuable falsification, not an execution failure. No promotion; `@baseline` untouched.
+- DONE: File ONE fresh follow-up h0007 (status hypothesis), forking the current @baseline solver
+  `hypotheses/h0007-validation-reconstruct-expected-from-source.md` — corrected premise: reconstruct expected output from VISIBLE source + task spec and self-validate against it (not the hidden checks). One idea; full `## Hypothesis` / `## Acceptance criteria` / `## Target datasets` (asana project_user_agg + intercom threads clusters). Forks unchanged `solver_workflows/codex-ade-dbt-minimal`.
+- DONE: h0007 `source:` cites the h0006 falsification + post-DuckDB-fix @baseline
+  `source:` names "h0006's falsification (hidden AUTO_* checks)" and `@baseline` 622bdedac572b479; both committed in 8cbd89c.
+
+### Summary
+
+Concluded h0006 as REJECTED on the captain's smoke NO-GO: the hypothesis is a clean
+falsification — the target equality checks are hidden from the solver, so the method had
+nothing to act on. No promotion, `@baseline` left at 622bdedac572b479. Filed h0007 to
+carry the corrected premise forward (reconstruct-and-compare against visible source data),
+forking the unchanged @baseline solver and targeting the highest-leverage shared-logic
+clusters. Frontmatter terminalization (verdict/completed) left to the FO.
