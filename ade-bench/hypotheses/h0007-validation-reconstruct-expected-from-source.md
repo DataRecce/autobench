@@ -98,6 +98,35 @@ the bare slug is rejected by `rk run`.
 
 ## Verdict
 
+**REJECTED (rejected at propose, pre-run — unsound by design).**
+
+No run was performed. The captain discarded h0007 at the propose leak-guard gate
+on a reasoned basis, before any smoke or full execution.
+
+The method is to have the solver answer the same question a second time —
+reconstruct the expected output from the **same** visible source data and the
+**same** task spec — and diff the two artifacts. The fatal flaw is that this only
+catches careless, mechanical slips. It cannot catch a **systematic** error: if the
+solver misreads the task's grain/columns or carries a consistent blind spot, it
+makes the same mistake in both the model and the reconstruction, the diff comes
+back clean, and the wrong answer passes its own check. Repeating a flawed method
+any number of times yields the same wrong result — this is correlated error;
+redundancy is not independent verification. This is a reasoned discard, not a
+failed experiment. `@baseline` is untouched (nothing promoted).
+
+For the record, two more promising directions were identified during the gate
+review (NOT filed as entities — left for the captain to choose the next
+direction):
+
+1. **Check invariants the output must satisfy regardless of how it was computed**
+   — e.g. no source rows silently dropped (the asana 0-user-projects bug), totals
+   reconcile to the source, keys unique at the task's stated grain. These catch
+   errors even when the task itself was misunderstood, because they do not depend
+   on re-deriving the answer the same (possibly wrong) way.
+2. **Improve the solver's up-front understanding (Exploration stage)** so it does
+   not form the wrong mental model in the first place — fix the root cause rather
+   than bolt on a post-hoc self-check that shares the original error.
+
 ## Stage Report: propose
 
 - DONE: Fork the @baseline solver and edit ONLY its README Validation stage
