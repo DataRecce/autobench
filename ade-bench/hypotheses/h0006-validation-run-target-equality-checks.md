@@ -144,6 +144,28 @@ relying on running the hidden `AUTO_*` checks — that is a materially different
 
 ## Verdict
 
+**REJECTED — premise falsified (a clean negative result, not an execution failure).**
+
+The hypothesis assumed the target `tests/AUTO_*_equality.sql` singular checks are *visible*
+to the solver, so a Validation-stage instruction to "run the visible target singular tests
+and drive them to zero rows" would convert off-by-one equality misses into passes. That
+premise is false: the `AUTO_*_equality.sql` checks are **hidden verifier tests injected only
+at grading time** and are absent from the solver's `/app/tests` (often no `tests/` dir
+exists at all). `dbt test --select test_type:singular` therefore matched nothing, so the
+instruction had nothing to enumerate, inspect, or iterate against.
+
+Smoke evidence (run-dir `70ec8a5c452e73d5`, 8 off-by-one targets, **clean strict audit**,
+all cells `captured=1` so the README change WAS exercised and the solver DID follow it):
+**0/8 flips FAIL→PASS**, `stratified_pass_at_1 = 0.0`, plus **1 regression**
+(ana-eng007-medium 9/10 → 7/10). The "no singular tests / `/app/tests` does not exist"
+conclusion is verbatim in the asana004, intercom001, and ana-eng007 ensign sub-transcripts.
+
+This is a valuable falsification: it rules out any method that relies on the solver running
+the hidden `AUTO_*` checks, and redirects the next hypothesis toward self-validation against
+a reconstruction of expected output from the *visible* source data. Followed up by **h0007**
+(forked from the same post-DuckDB-fix `@baseline` 622bdedac572b479). No promotion;
+`@baseline` untouched.
+
 ## Stage Report: propose
 
 - DONE: Fork the @baseline solver and edit ONLY its README `## Stage: Validation` to add the target-equality-check instruction
