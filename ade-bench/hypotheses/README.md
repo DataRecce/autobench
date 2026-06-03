@@ -72,6 +72,13 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
 - Run `rk` from `ade-bench/`: `uv run --project ../razorback rk <args>`.
 - Always pass `--runs-dir runs`; prefer `rk run --explain` before a full run.
 - Before any `rk run`, export `RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(git rev-parse --show-toplevel)/spacedock"`.
+- **`rk run … --runs-dir` is long-running (30 min–5 hr) and exceeds the Bash-tool timeout —
+  never run it in the foreground.** Launch it detached with `nohup`, redirect stdout+stderr
+  to a tmp log file, and record the PID to a tmp file, so the FO or ensign can trace liveness
+  (`kill -0 $(cat <pidfile>)`) and progress (`tail -f <log>`) across turns without blocking.
+  The fast `--explain` / `rk audit` / `rk score` calls stay in the foreground. `drivers/matrix.sh`
+  invokes `rk run` internally — background it the same way. See the `smoke`/`full` stages for
+  the exact pattern.
 - The independent variable is ONLY the solver README. A variant spec differs from
   `specs/baseline.yaml` only in `experiment:` + `solver_workflow:`. `trials: 1` always.
 
@@ -175,8 +182,12 @@ deferred — this is a worthiness gate.)*
 - **Inputs:** the frozen smoke spec `specs/h<NNNN>-<slug>.smoke.frozen.yaml`.
 - **Outputs (from `ade-bench/`):**
   ```bash
-  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --explain   # $0 first
-  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --runs-dir runs
+  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --explain   # $0, fast, foreground
+  # rk run is long (30 min–5 hr) > Bash-tool timeout — launch detached, log to tmp, record PID:
+  LOG=/tmp/rk-h<NNNN>-smoke.log
+  nohup uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --runs-dir runs > "$LOG" 2>&1 &
+  echo $! > "$LOG.pid"   # trace: kill -0 $(cat "$LOG.pid") => alive ; tail -f "$LOG" => progress
+  # Poll until the PID exits (across turns — do NOT block a single Bash call on it), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir>
   ```
@@ -197,11 +208,16 @@ The full 48-task run on the FULL frozen spec (`h<NNNN>-<slug>.frozen.yaml`, no t
 
 - **Outputs (from `ade-bench/`):**
   ```bash
-  uv run --project ../razorback rk run specs/h<NNNN>-<slug>.frozen.yaml --runs-dir runs   # all 48
+  # rk run is long (30 min–5 hr) > Bash-tool timeout — launch detached, log to tmp, record PID:
+  LOG=/tmp/rk-h<NNNN>-full.log
+  nohup uv run --project ../razorback rk run specs/h<NNNN>-<slug>.frozen.yaml --runs-dir runs > "$LOG" 2>&1 &   # all 48
+  echo $! > "$LOG.pid"   # trace: kill -0 $(cat "$LOG.pid") => alive ; tail -f "$LOG" => progress
+  # Poll until the PID exits (across turns — do NOT block a single Bash call on it), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir> --format json
   ```
-  (Or `bash drivers/matrix.sh --specs 'specs/h<NNNN>-<slug>.frozen.yaml'` to chain
+  (Or background `bash drivers/matrix.sh --specs 'specs/h<NNNN>-<slug>.frozen.yaml'` the same
+  nohup+PID way — it invokes `rk run` internally and is equally long — to chain
   run + `captured>0` + audit + score + ledger.) Record the run-dir path + headline in
   `## Run result`.
 - **Good:** the full spec uses the SAME solver README as the smoke spec (only the task
