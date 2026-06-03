@@ -82,6 +82,64 @@ logic for each cluster could flip several tasks at once.
 
 ## Run result
 
+## Smoke result
+
+**Run-dir:** `runs/ade-bench-h0006-validation-run-target-equality-checks/70ec8a5c452e73d5`
+(smoke spec `specs/h0006-...smoke.frozen.yaml`, 8 off-by-one targets, trials:1).
+
+### Audit + score (clean-audit attestation)
+
+- **`rk audit --policy strict`: CLEAN** — 8 clean / 0 tainted, exit 0. No leak findings.
+- **`rk score`: `stratified_pass_at_1 = 0.0`** — 8 completed, 0 errored, **0/8 PASS**.
+  Verdict vs paper_baseline 0.1875: `below`.
+- All 8 cells `subagent-trace-manifest.json` → `captured = 1` (the README change WAS
+  exercised; the new Validation instruction reached the solver — confirmed in transcripts).
+
+### Per-target read vs @baseline (all 8 — none flipped)
+
+| task | baseline | smoke (pass/total) | failing target check | move |
+|---|---|---|---|---|
+| ana-eng007 | 9/10 | 9/10 | `AUTO_dim_products_equality` (5 rows) | SAME |
+| ana-eng007-medium | 9/10 | **7/10** | `AUTO_obt_product_inventory` + `AUTO_obt_sales_overview` (3 errors) | **REGRESS** |
+| f1002 | 9/10 | 9/10 | `AUTO_most_podiums_equality` | SAME |
+| asana004 | 5/6 | 5/6 | `AUTO_int_asana__project_user_agg_equality` (3 rows) | SAME |
+| asana005 | 7/8 | 7/8 | `AUTO_int_asana__project_user_agg_equality` (3 rows) | SAME |
+| asana002 | 2/3 | 2/3 | `AUTO_asana__task_equality` (2 rows) | SAME |
+| f1006 | 3/4 | 3/4 | `AUTO_constructor_points_equality` (2 rows) | SAME |
+| intercom001 | 1/2 | 1/2 | `AUTO_intercom__threads_equality` (7 rows) | SAME |
+
+**0 flips FAIL→PASS; 1 regression (ana-eng007-medium 9/10 → 7/10).**
+
+### Method-adherence behavioral check (the key question — why 0/8?)
+
+The solver **followed** the new instruction but it was **unactionable**. Read the ensign
+sub-transcripts (`<cell>/agent/sessions/.../rollout-*.jsonl`; the `agent/codex.txt`
+parent only spawns/waits/closes the worker):
+
+- **asana004 ensign:** ran `dbt test --profiles-dir . --select test_type:singular` →
+  *"no singular tests matched. No local `tests/` directory was present."*
+- **intercom001 ensign:** *"no singular tests were present because `/app/tests` does not exist."*
+- **ana-eng007 ensign:** enumerated and ran the singular-test selector exactly as
+  instructed; found none to execute.
+
+**Root cause:** the target `tests/AUTO_*_equality.sql` checks are **hidden verifier tests
+injected only at grading time** — they are NOT present in the solver's `/app` workspace.
+`dbt test --select test_type:singular` returns zero matches, so there is nothing for the
+solver to inspect or iterate against. The hypothesis's premise that these are *visible*
+target checks the solver can run and drive to zero rows is **false** for this benchmark;
+the existing README already warned of exactly this ("Hidden verifier tests may depend on
+the existing project structure"). 0/8 is therefore a **method-premise failure**, not a
+solver non-compliance failure.
+
+### Go / no-go
+
+Gate bar = ≥1 flip FAIL→PASS AND no regression. Result: **0 flips and 1 regression** →
+**NO-GO. Recommend back to `hypothesis`, not `full`.** The instruction cannot work as
+written because the target equality tests are hidden from the solver. A viable redesign
+would have the Validation stage reason about expected output from the *visible* source
+data / task spec (i.e. independently reconstruct the expected aggregation), rather than
+relying on running the hidden `AUTO_*` checks — that is a materially different hypothesis.
+
 ## Behavioral analysis
 
 ## Verdict
@@ -124,3 +182,16 @@ Added to `## Stage: Validation`, immediately after "Run broader dbt validation w
 ### Summary
 
 Forked the @baseline solver (`codex-ade-dbt-minimal`) to `h0006-validation-run-target-equality-checks` and made one surgical README change: a single instruction in the Validation stage to enumerate and run the visible target singular tests (`tests/AUTO_*`, `tests/*.sql`) and drive every `_equality` check to zero rows before finalizing. The full spec differs from baseline only in `experiment:` and `solver_workflow:`; the smoke spec adds the 8 off-by-one `benchmark.tasks`. Both specs froze cleanly with `--allow-missing`. Note: dispatch paths used `../specs`/`../solver_workflows`, but from `ade-bench/` the correct paths are `specs/`/`solver_workflows/` (used here); `rk freeze` also regenerated the shared `specs/provenance.yaml` (expected freeze side effect — new solver_workflow_hash + current harness_git_sha).
+
+## Stage Report: smoke
+
+- DONE: Run the frozen smoke spec; confirm `captured > 0`
+  Run-dir `runs/ade-bench-h0006-validation-run-target-equality-checks/70ec8a5c452e73d5`; all 8 cells `captured=1`. (First launch crashed on cell 1 / orphaned container — cleaned up; re-run completed manually outside the team to dodge the process-reaper. Smoke task slugs also had to be fixed to `ade-bench-` prefixed ids — `rk run --explain` rejected the bare slugs; fixed + re-frozen, committed 294c380.)
+- DONE: Clean strict audit BEFORE scoring; record focused score + clean-audit attestation
+  `rk audit --policy strict` → 8 clean / 0 tainted, exit 0. `rk score` → `stratified_pass_at_1 = 0.0` (8 completed, 0 errored). Both recorded in `## Smoke result`.
+- DONE: Per-target FAIL→PASS comparison vs @baseline for the 8; name flips; go/no-go read
+  0/8 flips; ana-eng007-medium REGRESSED 9/10→7/10; other 7 unchanged. Full table + behavioral root-cause in `## Smoke result`.
+
+### Summary
+
+Smoke is a NO-GO: 0/8 flips and 1 regression, against a clean strict audit. The README change was exercised (captured=1 on all 8) and the solver followed it — but the instruction is unactionable: the target `tests/AUTO_*_equality.sql` checks are hidden verifier tests injected only at grading time and are absent from the solver's `/app/tests`, so `dbt test --select test_type:singular` returns zero matches (confirmed verbatim in the asana004/intercom001/ana-eng007 ensign sub-transcripts). The hypothesis premise — that these are visible checks the solver can run and drive to zero rows — is false for this benchmark. Recommend back to `hypothesis`; a viable redesign must reconstruct expected output from visible source data rather than running the hidden checks.
