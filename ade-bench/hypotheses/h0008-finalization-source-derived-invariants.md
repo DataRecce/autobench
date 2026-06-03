@@ -1,7 +1,7 @@
 ---
 id: h0008
 title: Finalization — assert source-derived output invariants (no dropped rows, grain uniqueness, contract completeness) before finalizing
-status: smoke
+status: conclude
 kind: hypothesis
 source: forked from the h0005 @baseline (622bdedac572b479, 31/48 = 0.6458) 17-failure raw-log analysis + h0007's rejection note (surviving direction #1 — "check invariants the output must satisfy regardless of how it was computed"). The solver is blind to the grading oracle (no tests/, no solution seeds in /app), so verify-the-target methods (h0006/h0007) are dead; this attacks the failures with INDEPENDENT, source-derived invariants instead of a correlated self-re-derivation. solver_workflows/codex-ade-dbt-minimal unchanged at fork.
 started: 2026-06-03T10:11:25Z
