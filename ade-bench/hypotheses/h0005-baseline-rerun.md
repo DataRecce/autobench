@@ -1,7 +1,7 @@
 ---
 id: h0005
 title: Baseline rerun — codex ade-dbt-minimal solver, full 48 tasks (post wrong-DuckDB-dataset fix)
-status: analyze
+status: conclude
 kind: hypothesis
 source: captain directive — new full baseline run after the wrong-DuckDB-in-images mtime-collision fix; re-analyze to confirm the anchor still holds
 started: 2026-06-03T00:06:32Z
