@@ -96,6 +96,40 @@ targeted failures to a pass before promotion to full.
 
 ## Smoke result
 
+**Run dir:** `runs/ade-bench-h0008-finalization-source-derived-invariants/809de1a923b89ff6`
+(experiment `ade-bench-h0008-finalization-source-derived-invariants`, job `809de1a923b89ff6`).
+
+**Audit (strict, paired to the scored run-dir):** CLEAN — `summary: {clean: 8, tainted: 0,
+coverage_missing: 0}`; every cell has `captured = 1 (> 0)` in
+`subagent-trace-manifest.json`. AC-2 satisfied.
+
+**Score (same run-dir):** `stratified_pass_at_1 = 0.125` (1/8 pass, 8 completed, 0 errored;
+Wilson CI [0.022, 0.471]). Against the spec `pass_rate` constant 0.1875: verdict `below`.
+
+**Per-task smoke verdicts vs `@baseline` (622bdedac572b479):**
+
+| task | class | @baseline | h0008 variant | delta |
+|---|---|---|---|---|
+| ade-bench-airbnb001 | regression sentinel | PASS | **PASS** | held — no regression |
+| ade-bench-asana004 | dropped-rows | FAIL | FAIL | no change |
+| ade-bench-asana005 | dropped-rows | FAIL | FAIL | no change |
+| ade-bench-asana005-hard | dropped-rows | FAIL | FAIL | no change |
+| ade-bench-intercom001 | dropped-rows | FAIL | FAIL | no change |
+| ade-bench-ana-eng006 | grain-uniqueness | FAIL | FAIL | no change |
+| ade-bench-f1002 | contract-completeness | FAIL | FAIL | no change |
+| ade-bench-quickbooks001 | contract-completeness | FAIL | FAIL | no change |
+
+(Per-cell `verifier/reward.txt`: airbnb001=1, all 7 targets=0. `@baseline` rewards for the
+same 8 tasks confirm airbnb001=PASS and all 7 targets are among the 17 `@baseline` failures.)
+
+**Smoke gate: NO-GO → back to `hypothesis`.** The `airbnb001` sentinel did NOT regress
+(gate's regression condition satisfied), but the gate also requires flipping **at least one**
+targeted failure to a pass before promotion to full. The Finalization source-derived-invariant
+instruction flipped **zero** of the 7 targeted failures (all still reward=0). No worthwhile
+movement on the targeted behavior → not worth committing the full 48-task run. The variant is
+behaviorally inert on these failures at xhigh/gpt-5.5: adding the invariant-check prose to the
+Finalization stage did not change any targeted outcome.
+
 ## Run result
 
 ## Behavioral analysis
@@ -162,3 +196,22 @@ README diff vs codex-ade-dbt-minimal (single Finalization instruction):
 ### Summary
 
 Forked `codex-ade-dbt-minimal` to `h0008-finalization-source-derived-invariants` and added the single source-derived-invariants instruction to the `## Stage: Finalization` section only — the one independent variable. Full and smoke specs created from baseline with only the allowed field changes (full: experiment + solver_workflow; smoke additionally adds the 8-task benchmark.tasks block covering the three invariant sub-classes plus the airbnb001 regression sentinel). Both specs frozen with `rk freeze --allow-missing`; leak-guard prose intact, no reference to hidden AUTO_*/verifier tests, no re-derive-expected instruction.
+
+## Stage Report: smoke
+
+- DONE: Smoke run launched DETACHED, polled across turns; all 8 cells completed with 0 errored and `captured > 0` on the cells.
+  Run dir `runs/.../809de1a923b89ff6`; result.json `completed=8, errored=0`; every cell `subagent-trace-manifest.json` has `captured = 1`.
+- DONE: `rk audit <run-dir> --policy strict` is CLEAN and the `rk score` is paired to that same run-dir; both recorded in `## Smoke result`.
+  Audit `summary: {clean: 8, tainted: 0, coverage_missing: 0}`; score `stratified_pass_at_1 = 0.125` on the SAME run-dir.
+- DONE: Per-task smoke verdicts vs `@baseline` recorded; named flips and confirmed the sentinel.
+  Table in `## Smoke result`: airbnb001 sentinel held PASS→PASS; ALL 7 targeted failures stayed FAIL (zero flips).
+
+### Summary
+
+Smoke executed and exercised the changed Finalization behavior cleanly (8/8 completed, 0 errored,
+strict audit clean, captured>0 on every cell), so the score is trustworthy. Result is a go/no-go
+NO-GO: `stratified_pass_at_1 = 0.125` (1/8), the `airbnb001` sentinel did not regress, but the
+source-derived-invariant Finalization instruction flipped **zero** of the 7 targeted `@baseline`
+failures (asana004/005/005-hard, intercom001, ana-eng006, f1002, quickbooks001 all still
+reward=0). The change is behaviorally inert on the targeted misses at xhigh/gpt-5.5 — not worth
+the full 48-task run. Recommend returning to `hypothesis`.
