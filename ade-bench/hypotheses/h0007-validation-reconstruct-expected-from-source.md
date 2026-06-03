@@ -97,3 +97,46 @@ the bare slug is rejected by `rk run`.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Fork the @baseline solver and edit ONLY its README Validation stage
+  Forked `codex-ade-dbt-minimal` -> `h0007-validation-reconstruct-expected-from-source`; single 11-line addition to `## Stage: Validation` driving self-reconstruction from visible sources + diff + reconcile. No AUTO_*/verifier reference; leak-guard ("no public fetch, no oracle, no external reference") intact; Exploration/Implementation/Finalization + dependency guardrails untouched. Commit 0201070.
+- DONE: FULL spec differs from baseline ONLY in experiment + solver_workflow
+  `diff specs/baseline.yaml specs/h0007-...yaml` shows exactly two lines (experiment => ade-bench-h0007-validation-reconstruct-expected-from-source; solver_workflow => ./solver_workflows/h0007-...). agent.kind=spacedock_solver, runtime=codex preserved (verified in frozen full spec).
+- DONE: Smoke spec = full spec PLUS ade-bench-prefixed shared-logic cluster tasks
+  Smoke-vs-full diff is only the `benchmark.tasks:` block: ade-bench-asana004, ade-bench-asana005, ade-bench-asana005-hard, ade-bench-intercom001, ade-bench-intercom003, ade-bench-asana002, ade-bench-f1006.
+- DONE: Freeze BOTH specs
+  `rk freeze --allow-missing` wrote `...frozen.yaml` and `...smoke.frozen.yaml`; provenance.yaml refreshed by freeze and committed alongside.
+
+### Gate evidence
+
+FULL spec two-field diff (`diff specs/baseline.yaml specs/h0007-...yaml`):
+
+```
+2c2
+< experiment: ade-bench-baseline ...
+> experiment: ade-bench-h0007-validation-reconstruct-expected-from-source ...
+11c11
+<   solver_workflow: ./solver_workflows/codex-ade-dbt-minimal ...
+>   solver_workflow: ./solver_workflows/h0007-validation-reconstruct-expected-from-source ...
+```
+
+README Validation diff (vs `codex-ade-dbt-minimal/README.md`, appended after "Run broader dbt validation ..."):
+
+```
+> For each model the task requires you to create or change, do not stop at generic
+> data-quality properties: independently RECONSTRUCT the expected output from the
+> visible source tables plus the task's stated grain, columns, and aggregation —
+> build an ad-hoc `SELECT`/CTE straight from the local sources, or hand-compute the
+> expectation on a sampled key — using only the local task workspace (no public
+> fetch, no oracle, no external reference). Then DIFF your model's output against
+> that reconstruction and reconcile every discrepancy — row count, key set, and
+> per-column values on shared keys — before finalizing. Treat any unreconciled
+> difference between your output and the reconstruction as a defect to fix in the
+> model logic, not in the reconstruction.
+```
+
+### Summary
+
+Forked the baseline solver and made a single localized Validation-stage change that drives the solver to independently reconstruct each changed model's expected output from visible local sources + the task's stated grain/columns/aggregation, then diff and reconcile — explicitly avoiding the h0006 trap of referencing the hidden AUTO_*/verifier tests (which are absent from /app/tests). Full + smoke specs differ from baseline only in the two allowed fields (smoke adds the ade-bench-prefixed cluster tasks); both frozen. All artifacts committed at 0201070. Ready for the captain's leak-guard gate review before smoke.
