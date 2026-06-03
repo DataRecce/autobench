@@ -5,10 +5,10 @@ status: conclude
 kind: hypothesis
 source: forked from h0005 analyze — post-DuckDB-fix @baseline (622bdedac572b479, 31/48 = 0.6458); attacks the new dominant failure class (equality-test misses) now that the build-error class is gone
 started: 2026-06-03T00:50:13Z
-completed:
-verdict:
+completed: 2026-06-03T09:13:27Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
 ---
 
 ## Hypothesis
