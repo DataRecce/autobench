@@ -1,7 +1,7 @@
 ---
 id: h0007
 title: Validation — reconstruct expected output from visible source data and self-validate before finalizing
-status: propose
+status: conclude
 kind: hypothesis
 source: forked from h0006's falsification — the target tests/AUTO_*_equality.sql checks are HIDDEN verifier tests injected only at grading time (absent from the solver's /app/tests), so h0006's "run the visible target singular tests and drive them to zero rows" had nothing to run (0/8 flips, clean audit, +1 regression). Forks the post-DuckDB-fix @baseline (622bdedac572b479, 31/48 = 0.6458); solver_workflows/codex-ade-dbt-minimal unchanged (h0006 did not promote).
 started: 2026-06-03T09:13:27Z
