@@ -5,8 +5,8 @@ status: hypothesis
 kind: hypothesis
 source: concept-build-and-verify fan-out
 started: 2026-06-02T01:08:04Z
-completed:
-verdict:
+completed: 2026-06-03T00:52:28Z
+verdict: REJECTED
 score:
 worktree:
 ---
