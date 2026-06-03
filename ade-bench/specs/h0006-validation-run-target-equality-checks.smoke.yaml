@@ -22,14 +22,14 @@ benchmark:
   # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
   # baseline / first run: skip smoke, run full directly.
   tasks: # h0006 off-by-one (single failing equality check) smoke targets
-    - ana-eng007
-    - ana-eng007-medium
-    - f1002
-    - asana004
-    - asana005
-    - asana002
-    - f1006
-    - intercom001
+    - ade-bench-ana-eng007
+    - ade-bench-ana-eng007-medium
+    - ade-bench-f1002
+    - ade-bench-asana004
+    - ade-bench-asana005
+    - ade-bench-asana002
+    - ade-bench-f1006
+    - ade-bench-intercom001
 trials: 1 # one trial per task — applies to BOTH smoke and full
 concurrency:
   trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits

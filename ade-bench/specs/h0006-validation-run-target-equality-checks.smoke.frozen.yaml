@@ -28,14 +28,14 @@ benchmark:
   kind: harbor
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
   tasks:
-  - ana-eng007
-  - ana-eng007-medium
-  - f1002
-  - asana004
-  - asana005
-  - asana002
-  - f1006
-  - intercom001
+  - ade-bench-ana-eng007
+  - ade-bench-ana-eng007-medium
+  - ade-bench-f1002
+  - ade-bench-asana004
+  - ade-bench-asana005
+  - ade-bench-asana002
+  - ade-bench-f1006
+  - ade-bench-intercom001
   exclude_tasks: null
   n_tasks: null
   plugin: null
@@ -57,7 +57,7 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:aa3c64b122c9d06bf48eaf988f5970aa69556d69506c3118cf07d10b2401b48a
-  harness_git_sha: b1b116cb300b7e68dea93d8b33d1585a4e8c3ad4
+  harness_git_sha: 46fcaedc408c14850d66b36f50cfad2b1dadc4d7
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
