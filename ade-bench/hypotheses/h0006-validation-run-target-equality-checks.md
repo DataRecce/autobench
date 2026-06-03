@@ -85,3 +85,42 @@ logic for each cluster could flip several tasks at once.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Fork the @baseline solver and edit ONLY its README `## Stage: Validation` to add the target-equality-check instruction
+  `solver_workflows/h0006-validation-run-target-equality-checks/` forked from `codex-ade-dbt-minimal`; single new paragraph appended to the Validation stage (after "Run broader dbt validation…"); Finalization unchanged; leak-guard/no-external-reference prose and dependency guardrails intact; Exploration/Implementation untouched.
+- DONE: FULL spec differs from baseline ONLY in `experiment:` and `solver_workflow:`
+  `diff specs/baseline.yaml specs/h0006-...yaml` shows exactly two lines changed (see diff below); agent.kind=spacedock_solver, runtime=codex preserved.
+- DONE: Smoke spec is the full spec PLUS `benchmark.tasks` listing the off-by-one targets
+  `benchmark.tasks: [ana-eng007, ana-eng007-medium, f1002, asana004, asana005, asana002, f1006, intercom001]`.
+- DONE: Freeze BOTH specs producing the two `.frozen.yaml` files
+  `rk freeze --allow-missing` wrote `...frozen.yaml` and `...smoke.frozen.yaml`; both share `sealed_hash e11eb650...` and `solver_workflow_hash sha256:d2d1df3e...`; smoke task slugs resolved against the dataset (freeze would error on a missing slug).
+
+### Two-field full-spec diff (evidence for the leak-guard gate)
+
+```
+2c2
+< experiment: ade-bench-baseline # variants: ade-bench-h0001-<slug>
+---
+> experiment: ade-bench-h0006-validation-run-target-equality-checks # variants: ade-bench-h0001-<slug>
+11c11
+<   solver_workflow: ./solver_workflows/codex-ade-dbt-minimal # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+---
+>   solver_workflow: ./solver_workflows/h0006-validation-run-target-equality-checks # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+```
+
+### README Validation-stage diff (the single independent variable)
+
+Added to `## Stage: Validation`, immediately after "Run broader dbt validation when practical for the task scope.":
+
+> Before finalizing, enumerate the visible target singular tests in the project
+> (`tests/AUTO_*` and any `tests/*.sql`) and run them — `dbt test --select
+> test_type:singular`, or by path. For each `_equality` check that fails, inspect
+> the mismatching rows it returns and iterate the model logic until every visible
+> target singular check returns zero rows. Do not finalize while a visible target
+> check is still failing.
+
+### Summary
+
+Forked the @baseline solver (`codex-ade-dbt-minimal`) to `h0006-validation-run-target-equality-checks` and made one surgical README change: a single instruction in the Validation stage to enumerate and run the visible target singular tests (`tests/AUTO_*`, `tests/*.sql`) and drive every `_equality` check to zero rows before finalizing. The full spec differs from baseline only in `experiment:` and `solver_workflow:`; the smoke spec adds the 8 off-by-one `benchmark.tasks`. Both specs froze cleanly with `--allow-missing`. Note: dispatch paths used `../specs`/`../solver_workflows`, but from `ade-bench/` the correct paths are `specs/`/`solver_workflows/` (used here); `rk freeze` also regenerated the shared `specs/provenance.yaml` (expected freeze side effect — new solver_workflow_hash + current harness_git_sha).
