@@ -43,6 +43,9 @@ stages:
     - from: smoke
       to: hypothesis
       label: smoke surfaces a flawed change; revise
+    - from: smoke
+      to: conclude
+      label: smoke cleanly falsifies the hypothesis; reject without a full run
     - from: full
       to: analyze
       label: full run complete; interpret evidence
@@ -193,11 +196,34 @@ deferred — this is a worthiness gate.)*
   ```
   Confirm `<run-dir>/<cell>/subagent-trace-manifest.json` has `captured > 0`. Capture the
   focused score + clean-audit attestation in `## Smoke result`.
+- **Post-run deep-dive (REQUIRED every smoke — whether GO or NO-GO).** Do not stop at the
+  score. For each target task, compare the smoke cell against the same task in `@baseline`
+  (`rk registry resolve run @baseline`):
+  1. **Verdict delta** — did it flip FAIL→PASS, or not? Did the sentinel hold?
+  2. **Distance-to-pass** — the dbt `Got N` mismatch count in `verifier/test-stdout.txt`,
+     smoke vs `@baseline`. **Unchanged `Got N` ⇒ the lever was inert on that cell** — a cheap
+     check to run before reading any transcript.
+  3. **Behavioral why** — for at least one flipped (if any) and one still-failing target,
+     read the cell transcripts (`agent/codex.txt` + the ensign `agent/sessions/<…>.jsonl`)
+     and extract the **final committed artifact** (the model SQL the solver actually wrote).
+     Classify each result: *flipped because the change reached the committed SQL* /
+     *inert — change only discussed, not implemented* / *closer but still failing* /
+     *instruction inapplicable (no analog / never triggered)*. Acknowledging an instruction
+     in reasoning is NOT evidence — verify the artifact.
+  Write the full per-task detail (a flip/distance/why table + the behavioral read) into
+  `## Smoke result` and `## Behavioral analysis`.
+- **Report to the captain in plain language.** The entity gets the full detail; the captain
+  gets a SIMPLE-WORDS on-screen summary at the gate — what flipped, did we get closer, and
+  (if NO-GO) why the hypothesis didn't work — not the raw tables. Lead with the go/no-go and
+  the one-line reason.
 - **Gate:** worthwhile (the change moved the targeted tasks, or at least did not regress
-  them) → `full`; flawed → back to `hypothesis`.
-- **Good:** smoke exercises the changed behavior; audit clean before the score is trusted.
+  them) → `full`; flawed but revisable → back to `hypothesis`; cleanly falsified (e.g. 0
+  flips, lever inert) → `conclude` (REJECTED), recording the deep-dive as the evidence.
+- **Good:** smoke exercises the changed behavior; audit clean before the score is trusted;
+  every NO-GO carries a behavioral *why* backed by the committed artifact.
 - **Bad:** advancing on a smoke that never exercised the change; scoring without a clean
-  audit.
+  audit; reporting a NO-GO as just a number with no artifact-level reason; burying the
+  captain in raw detail instead of a plain-language read.
 
 > **Baseline / first run skips `smoke`** (`propose → full`): the 9/48 anchor is a direct
 > full run, then `conclude` binds `@baseline`.
@@ -263,10 +289,25 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
   uv run --project ../razorback rk registry add run baseline <variant-run-dir>
   ```
   (updates `@baseline` in `razorback-research.toml`).
-- **Then** file ONE follow-up `h<NNNN>-<slug>.md` (status `hypothesis`) using analyze's
-  behavioral findings (method-adherence + failure mechanisms), forking the new
-  `@baseline`. Set `verdict: PASSED` (ran cleanly) or `REJECTED` (failed to reach analyze
-  cleanly); archive.
+- **Record the learnings in the entity file — not only in operator memory.** The entity is
+  the portable, cross-machine experiment record. Write the distilled lessons into
+  `## Behavioral analysis` and `## Verdict`: the failure mechanism, whether the change
+  reached the committed artifact, the distance-to-pass deltas, and any transferable rule
+  (what kind of lever lands vs is inert). Memory is a convenience mirror; the entity body is
+  the source of truth a teammate on another machine will read.
+- **Derive new hypotheses from the deep-dive findings.** Turn the smoke/analyze behavioral
+  read into concrete next bets (each ONE README change, falsifiable, with named target
+  datasets). **But do not reflexively file when the evidence says the lever family is
+  exhausted** — if a meta-pattern has emerged (e.g. several hypotheses of the same kind all
+  inert), surface the candidate directions to the captain as a strategy decision instead of
+  auto-filing another doomed variant. When you do file, it is ONE follow-up
+  `h<NNNN>-<slug>.md` (status `hypothesis`) forking the current `@baseline`.
+- **Verdict + archive.** Set `verdict: PASSED` (promoted / ran cleanly to a real result) or
+  `REJECTED` (cleanly falsified, e.g. NO-GO at smoke); archive.
+
+> **Reached `conclude` from `smoke`?** A cleanly-falsified hypothesis routes
+> `smoke → conclude` (REJECTED) without a `full` run — the smoke deep-dive is the evidence
+> of record. `full`/`analyze` only run when smoke is a GO.
 
 ## Champion (`@baseline`)
 
