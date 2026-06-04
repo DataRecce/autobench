@@ -86,6 +86,50 @@ promotion to full.
 
 ## Smoke result
 
+**Recommendation: NO-GO** (do not promote to full). The grain-spine Implementation
+rule did not change the final committed SQL on the targets — instruction inert.
+
+Run dir: `runs/ade-bench-h0010-implementation-grain-spine-from-entity/37f787e351594ca6`
+(smoke spec `specs/h0010-implementation-grain-spine-from-entity.smoke.frozen.yaml`,
+5 tasks, trials=1).
+
+**Audit + score attestation.** 5/5 cells completed, 0 errored. `rk audit --policy
+strict` on this run-dir: CLEAN — `{clean: 5, tainted: 0, coverage_missing: 0}`,
+`captured > 0` all cells. `rk score` paired to the same run-dir:
+`stratified_pass_at_1 = 0.2` (1/5). (Audit + score executed by team-lead on this
+exact run-dir.)
+
+**Per-task vs `@baseline` (622bdedac572b479):**
+
+| Task | @baseline | h0010 | Flip? | Distance-to-pass |
+|------|-----------|-------|-------|------------------|
+| ade-bench-asana004   | FAIL | FAIL (0) | no | unchanged — `Got 3` |
+| ade-bench-asana005   | FAIL | FAIL (0) | no | unchanged — `Got 3` |
+| ade-bench-intercom001| FAIL | FAIL (0) | no | unchanged — `Got 7` |
+| ade-bench-intercom003| FAIL | FAIL (0) | no | unchanged — `Got 7` |
+| ade-bench-asana001 (sentinel) | PASS | PASS (1) | n/a | sentinel held, no regression |
+
+ZERO of the 4 grain-spine targets flipped; the sentinel did not regress.
+
+**Behavioral verdict (did the FINAL COMMITTED SQL apply the entity-spine LEFT JOIN?).**
+No — on both inspected targets the solver kept the **child table as the spine**, the
+exact error the rule names. asana004 `int_asana__project_user_agg.sql` is structurally
+identical to @baseline: it spines off `count_project_users`/`agg_project_users` built
+`from {{ ref('int_asana__project_user') }}` (the child) and `GROUP BY`-s upward, then
+`select * from project_user_agg` (renamed `final`) — the `project` table is never the
+FROM spine, so the 3 zero-user projects stay dropped. intercom001 `intercom__threads.sql`
+does `from conversation_part_aggregates left join conversations` — the parts aggregate
+(child) is still the spine and `conversation_history` (the entity) is the LEFT-JOINed
+side, i.e. the join is anchored backwards from the rule; the solver did add
+`where _fivetran_active` to both CTEs (a surface nod to the rule's filter clause) but
+left the grain direction inverted, so the 2 zero-part active conversations stay dropped.
+The rule was discussed/partially gestured at (filter applied) but the load-bearing
+"FROM the entity as the spine" structure was NOT implemented — the instruction is inert
+on the committed model, just as h0008's Finalization check was inert. NO-GO: this is not
+a "grain wasn't the whole bug" result (the SQL never changed grain direction); it is
+"rule not implemented," so the hypothesis as worded (a prose Implementation rule will
+flip these) is falsified at smoke.
+
 ## Run result
 
 ## Behavioral analysis
@@ -142,3 +186,26 @@ README diff vs codex-ade-dbt-minimal/README.md (inserted into ## Stage: Implemen
 > entity spine and the child before joining.
 >
 ```
+
+## Stage Report: smoke
+
+- DONE: Smoke run launched DETACHED (nohup + /tmp/rk-h0010-smoke.log + .pid), polled across turns; all 5 cells completed with 0 errored and captured > 0.
+  Run dir runs/ade-bench-h0010-implementation-grain-spine-from-entity/37f787e351594ca6; 5/5 completed, 0 errored, strict audit captured > 0 all cells.
+- DONE: rk audit <run-dir> --policy strict is CLEAN and the rk score is paired to that same run-dir; both recorded in ## Smoke result.
+  Strict audit {clean: 5, tainted: 0, coverage_missing: 0}; score stratified_pass_at_1 = 0.2 (1/5) on the same run-dir (run by team-lead).
+- DONE: Per-task smoke verdicts vs @baseline in ## Smoke result: which targets flipped, asana001 sentinel held, and the behavioral check (did the solver apply the entity-spine LEFT JOIN?).
+  Per-task table recorded; 0/4 targets flipped, sentinel held; behavioral check confirms child stayed the spine on asana004 (identical to @baseline) and intercom001 (parts-aggregate LEFT JOIN conversations, join anchored backwards).
+
+### Summary
+
+Smoke ran the 4 grain-spine targets + asana001 sentinel; clean strict audit,
+stratified_pass_at_1 = 0.2 (only the sentinel passed). Zero targets flipped and
+distance-to-pass is unchanged vs @baseline (asana004/005 `Got 3`, intercom001/003
+`Got 7`). Behavioral extraction of the final committed SQL shows the rule was NOT
+implemented: asana004's `int_asana__project_user_agg` is structurally identical to
+@baseline (child `int_asana__project_user` is the FROM spine, GROUP BY upward), and
+intercom001's `intercom__threads` spines off the parts aggregate and LEFT JOINs
+conversations (join anchored backwards), so zero-child entities stay dropped. The
+solver added `_fivetran_active` to both sides on intercom (a surface nod) but never
+moved the entity table to the FROM spine. Recommend NO-GO — a prose Implementation
+rule is inert on the committed model, mirroring h0008's inert Finalization check.
