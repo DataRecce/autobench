@@ -151,7 +151,9 @@ A fully-formed, queued hypothesis. Auto-advances to `propose`.
 
 ### `propose`  *(🚦 leak-guard gate)*
 
-The ensign authors the variant. **You review at the gate.**
+The ensign authors the variant, then a gatekeeper subagent pre-reviews it and records an
+advisory recommendation in the hypothesis file. **You make the final gate decision, informed
+by that recommendation.**
 
 - **Inputs:** the hypothesis claim.
 - **Outputs:**
@@ -168,13 +170,23 @@ The ensign authors the variant. **You review at the gate.**
   4. Freeze both:
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.yaml` and
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.smoke.yaml`.
+  5. **Run the gatekeeper.** Dispatch a review subagent that applies
+     `_gatekeeper/propose-review-guideline.md` to the variant artifacts (the forked solver
+     README diff vs its parent, the two spec diffs, the frozen files, and the hypothesis body)
+     and writes a `## Gatekeeper review` block into the hypothesis file: a per-rule
+     PASS/WARN/FAIL table plus an overall **APPROVE / REVISE / REJECT** recommendation with a
+     one-line rationale. The gatekeeper is advisory — it does not pass or block the gate.
+- **Gatekeeper (advisory pre-review):** its recommendation is input to your decision, not a
+  substitute for it. A rule the gatekeeper marks FAIL is a likely reject; tune the bar by
+  editing `_gatekeeper/propose-review-guideline.md` (the gatekeeper re-reads it fresh each run).
 - **Gate — you reject if:** the README leaks ground truth (its no-external-reference /
   leak-guard prose is removed or weakened); the FULL spec differs from baseline in anything other than
   `experiment:` + `solver_workflow:` (the smoke spec additionally adds `benchmark.tasks`);
   `agent.kind` ≠ `spacedock_solver` or `runtime` ≠ `codex`.
 - **Good:** exactly one README idea changed; leak-guard intact; `diff` of the two specs
-  shows only the two allowed fields.
-- **Bad:** multiple knobs changed; leak-guard relaxed.
+  shows only the two allowed fields; gatekeeper recommendation recorded.
+- **Bad:** multiple knobs changed; leak-guard relaxed; advancing past a gatekeeper REJECT
+  without recording why.
 
 ### `smoke`  *(🚦 go/no-go gate)*
 
@@ -361,6 +373,8 @@ Verified by: `diff ../specs/baseline.yaml ../specs/h<NNNN>-<slug>.yaml`.
 Verified by: each `rk score` cites a `rk audit --policy strict` on the same run-dir.
 
 **AC-3 — Verdict justified by the paired `rk runs diff` delta vs `@baseline`.**
+
+## Gatekeeper review
 
 ## Smoke result
 
