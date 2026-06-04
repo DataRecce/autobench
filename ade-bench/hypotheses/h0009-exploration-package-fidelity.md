@@ -103,6 +103,61 @@ Run dir: `runs/ade-bench-h0009-exploration-package-fidelity/13ecf093adb674c2`.
 
 ## Behavioral analysis
 
+Captain-requested deep-dive on the smoke run (`13ecf093adb674c2`), comparing each cell's
+agent/ensign transcript + distance-to-pass against the same task in `@baseline`
+(`622bdedac572b479`). Distance-to-pass (`Got N` mismatch count) is **identical** in both
+runs for all 5 non-flips; only `asana002` moved.
+
+**The flip (`asana002`) is causal, high confidence.** Both runs peeked at `dbt_packages/`,
+but only h0009 acted on the package's full contract. Baseline added the 3 missing columns
+(`_fivetran_synced`, `liked`, `num_likes`) but left existing column **types** unfixed →
+2-row equality miss. h0009, following "reproduce the package's conventions exactly,
+including the output column set," went deeper and corrected source column **types** to
+match the installed `asana_source` macros (the ground-truth fix is `due_at::timestamp`) →
+3/3 PASS. Baseline omitted exactly what the package defines and what the solution requires;
+h0009 copied it. Not run-to-run noise. *(Caveat: the specific `due_at` column is inferred
+from h0009's "matched the column contract, remaining_mismatches=0" note + the solution; the
+mechanism is solid.)*
+
+**Zero narrowing on the 5 non-flips — three distinct reasons:**
+
+1. **No package model to copy (`asana004`, `asana005` — `Got 3`, unchanged).** The target
+   `int_asana__project_user_agg` is a NEW bespoke model with no analog in `asana_source`,
+   so "copy the package" had nothing to point at. Both runs hand-rolled the identical bug:
+   aggregate off `project_user` (13 projects with users) instead of the `project` table
+   (16), dropping the 3 zero-user projects.
+2. **Copied the filter, not the grain (`intercom001`, `intercom003` — `Got 7`, unchanged).**
+   The instruction *did* fire — h0009 applied `where coalesce(_fivetran_active, true)` from
+   the package's staging convention. But the real bug is the **spine/join direction**: the
+   canonical `intercom__threads` builds `from latest_conversation (conversation_history,
+   active) LEFT JOIN latest_conversation_part` — one row per active conversation, incl. the
+   2 with zero parts. h0009 (like baseline) built FROM the parts table and grouped upward →
+   the 5 conversations that have parts, missing the 2 zero-part rows. It copied the easy
+   surface convention and skipped the hard structural one. NB: the intercom **transform**
+   package (which encodes this spine) is NOT installed — only `intercom_source` (staging) —
+   so "copy the package model" cannot supply the fix here; a generative grain rule must.
+3. **Never triggered (`quickbooks001` — 6 fails, unchanged).** The `quickbooks_source`
+   package literally contains the 3 missing staging models, but the task is framed
+   "the project is erroring — fix it." h0009 fixed the one visible compile error, the
+   project built green, and it stopped — it noted the package exists but never opened
+   `dbt_packages/quickbooks_source/models/`. The instruction is scoped to "models you build
+   or change," so a passive fix-it task never activated it.
+
+**Cross-cutting discovery (drives h0010):** 4 of the 5 non-flips (`asana004`, `asana005`,
+`intercom001`, `intercom003`) are the **same root cause** — *built from the child/event
+table and grouped upward, silently dropping parent entities with no children* (the wrong
+grain spine). A single generative Implementation rule ("build one-row-per-entity models
+FROM the entity table as the spine, LEFT JOIN aggregated children") targets all four. This
+is the h0008 grain idea moved from an inert *Finalization check* to a generative
+*construction rule* — filed as **h0010**. `quickbooks001` is a separate coverage/discovery
+gap (a fix-it-task completeness lever), noted for a later hypothesis.
+
+**Verdict on h0009 as written:** the package-fidelity lever is **real but narrow** — it
+flips a failure only when the failing model has a direct package analog AND the solver is
+actively authoring it (`asana002` hit both; the others each missed one). Net effect on the
+full 48 is expected to be small. The higher-leverage finding is h0010 (grain spine, 4
+candidate flips from one rule).
+
 ## Verdict
 
 ## Stage Report: propose
