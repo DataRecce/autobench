@@ -5,7 +5,8 @@ kind: concept
 source: evidence re-audit of the @baseline run (622bdedac572b479, 31/48) following docs/baseline-validation-self-anchored-false-green.md — h0009/h0010 only target ~6 of the 17 failures; 12 are uncovered.
 started: 2026-06-04T13:40:51Z
 completed: 2026-06-04T13:40:51Z
-verdict:
+verdict: PASSED
+id: concept-resolve-uncovered-false-greens
 ---
 
 ## Direction
