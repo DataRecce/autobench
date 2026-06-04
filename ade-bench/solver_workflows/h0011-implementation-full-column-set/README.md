@@ -68,6 +68,24 @@ column that contract implies; never drop columns the upstream model or schema
 already declares. For "one big table"/wide models, carry through all columns from
 each joined source rather than a hand-picked subset.
 
+Worked example — emit the full contract, do not hand-pick:
+```sql
+-- WRONG: a hand-picked subset → "has less columns than solution__<model>"
+select id, name, status
+from {{ ref('upstream_or_source') }}
+
+-- RIGHT: every column the contract declares
+--   (source/upstream columns + schema.yml entries + any sibling model of the same family)
+select id, name, status, created_at, updated_at /*, …all remaining contract columns… */
+from {{ ref('upstream_or_source') }}
+
+-- Wide / one-big-table model: carry through ALL columns from each joined source,
+-- not a chosen few:
+select s.*, d.region, d.segment
+from {{ ref('fct_source') }} s
+left join {{ ref('dim_source') }} d using (key)
+```
+
 ## Stage: Validation
 
 Do additional correctness checks beyond "it builds".

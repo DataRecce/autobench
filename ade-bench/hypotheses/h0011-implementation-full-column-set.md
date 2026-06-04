@@ -37,9 +37,11 @@ set from the local contract (the columns of the upstream/source tables it select
 model's `schema.yml` entries, and any sibling model of the same family) and emit every column
 that contract implies; never drop columns the upstream model or schema already declares; for
 "one big table"/wide models, carry through all columns from each joined source rather than a
-hand-picked subset* — will flip the missing-column failures (ana-eng004, f1002,
-ana-eng007-medium) to passes by producing the full expected schema width, raising
-`stratified_pass_at_1` above the `@baseline` 0.6458.
+hand-picked subset* — delivered with a concrete before→after wide-SELECT worked-example
+skeleton (a WRONG hand-picked subset vs a RIGHT full-contract / `select s.*, …` join, in
+pattern-match form) rather than abstract prose alone — will flip the missing-column failures
+(ana-eng004, f1002, ana-eng007-medium) to passes by producing the full expected schema width,
+raising `stratified_pass_at_1` above the `@baseline` 0.6458.
 
 Generative (how to write the model), uses only local signals (sources, schema YAML, sibling
 models). Distinct from h0009 (copy installed package conventions) and h0010 (grain spine):
@@ -126,6 +128,41 @@ promotion to full.
 ### Summary
 
 Forked the @baseline solver and added exactly one `## Stage: Implementation` rule (derive the full output column set from the local contract; carry through all joined-source columns for wide/OBT models). The full spec differs from baseline only in `experiment:` + `solver_workflow:`; the smoke spec adds only `benchmark.tasks` for the 3 missing-column targets plus the ana-eng008 sentinel. Both specs frozen cleanly with `kind: spacedock_solver` and `runtime: codex` preserved. Gatekeeper not run (dispatched separately); no `rk run` invoked.
+
+### REVISE 1 — clear G7 actionability/inert-risk WARN
+
+The gatekeeper marked G7 WARN: the column-set rule was abstract-structural prose with no worked-example skeleton — the inert family at gpt-5.5/xhigh ("talks but doesn't do"). Fix: kept the existing column-set paragraph and appended, in the SAME `## Stage: Implementation` stage and SAME single idea, a concrete before→after SQL worked-example skeleton (WRONG hand-picked subset vs RIGHT full-contract SELECT, plus a wide/OBT `select s.*, …` join) so the solver pattern-matches mechanically. Synced the `## Hypothesis` Falsifiable claim to note the rule ships as a pattern-match skeleton, not abstract prose alone (keeps G6 resolver fidelity clean). No other stage or guardrail/leak-guard prose touched; no hidden-test reference. Re-froze both specs (solver README changed → `solver_workflow_hash` + `sealed_hash` updated); both `.frozen.yaml` still carry `kind: spacedock_solver` + `runtime: codex`.
+
+New README diff vs parent `solver_workflows/codex-ade-dbt-minimal/README.md` (still ONE contiguous Implementation-stage block):
+
+```diff
+63a64,88
+> When building or extending a model, derive its output column set from the local
+> contract — the columns of the upstream/source tables it selects from, the model's
+> `schema.yml` entries, and any sibling model of the same family — and emit every
+> column that contract implies; never drop columns the upstream model or schema
+> already declares. For "one big table"/wide models, carry through all columns from
+> each joined source rather than a hand-picked subset.
+>
+> Worked example — emit the full contract, do not hand-pick:
+> ```sql
+> -- WRONG: a hand-picked subset → "has less columns than solution__<model>"
+> select id, name, status
+> from {{ ref('upstream_or_source') }}
+>
+> -- RIGHT: every column the contract declares
+> --   (source/upstream columns + schema.yml entries + any sibling model of the same family)
+> select id, name, status, created_at, updated_at /*, …all remaining contract columns… */
+> from {{ ref('upstream_or_source') }}
+>
+> -- Wide / one-big-table model: carry through ALL columns from each joined source,
+> -- not a chosen few:
+> select s.*, d.region, d.segment
+> from {{ ref('fct_source') }} s
+> left join {{ ref('dim_source') }} d using (key)
+> ```
+>
+```
 
 ## Gatekeeper review
 
