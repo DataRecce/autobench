@@ -178,7 +178,8 @@ by that recommendation.**
      one-line rationale. The gatekeeper is advisory — it does not pass or block the gate.
 - **Gatekeeper (advisory pre-review):** its recommendation is input to your decision, not a
   substitute for it. A rule the gatekeeper marks FAIL is a likely reject; tune the bar by
-  editing `_gatekeeper/propose-review-guideline.md` (the gatekeeper re-reads it fresh each run).
+  asking an agent to update `_gatekeeper/propose-review-guideline.md` on demand (it is not
+  auto-updated; the gatekeeper re-reads it fresh each run).
 - **Gate — you reject if:** the README leaks ground truth (its no-external-reference /
   leak-guard prose is removed or weakened); the FULL spec differs from baseline in anything other than
   `experiment:` + `solver_workflow:` (the smoke spec additionally adds `benchmark.tasks`);

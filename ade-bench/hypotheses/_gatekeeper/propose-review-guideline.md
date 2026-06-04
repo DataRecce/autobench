@@ -1,7 +1,7 @@
 ---
 title: Propose-stage gatekeeper review guideline
 applies-to-stage: propose
-maintained-by: human (edit freely; the gatekeeper reads this file fresh on every run)
+maintained-by: the captain, on demand, by asking an agent to update it (NOT auto-updated by the workflow; the gatekeeper reads this file fresh on every run)
 last-updated: 2026-06-04
 ---
 
@@ -10,8 +10,10 @@ last-updated: 2026-06-04
 This file is the **rule set** a gatekeeper subagent applies during the `propose` stage. It
 encodes the checks a human performs at the leak-guard gate, so the gatekeeper can produce an
 **advisory recommendation** for the captain. The gatekeeper does **not** pass or block the
-gate — the captain always makes the final decision. Edit this file by hand to tune the bar;
-the gatekeeper has no memory of past versions and re-reads it each run.
+gate — the captain always makes the final decision. To tune the bar, the captain asks an
+agent to update this file on demand; it is not changed automatically during a run, and the
+captain need not hand-edit it. The gatekeeper has no memory of past versions and re-reads it
+fresh each run, so any agent-applied update takes effect on the next review.
 
 ## What the gatekeeper reviews
 
