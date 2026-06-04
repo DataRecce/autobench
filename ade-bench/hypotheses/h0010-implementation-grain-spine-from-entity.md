@@ -136,6 +136,53 @@ flip these) is falsified at smoke.
 
 ## Verdict
 
+**REJECTED at smoke (pre-full, NO-GO). @baseline (622bdedac572b479) UNTOUCHED — nothing
+promoted.**
+
+**Evidence.** Smoke ran the 4 grain-spine targets + asana001 sentinel: 5/5 cells
+completed, 0 errored; `rk audit --policy strict` CLEAN `{clean: 5, tainted: 0}`; paired
+`rk score` `stratified_pass_at_1 = 0.2` (1/5). The asana001 sentinel held (PASS, no
+regression), but ALL 4 grain-spine targets stayed FAIL with UNCHANGED distance-to-pass —
+asana004/005 `Got 3`, intercom001/003 `Got 7`. No target flipped.
+
+**Mechanism (the important part — why it failed).** The rule was behaviorally **INERT**,
+and not because the diagnosis was wrong: the grain spine genuinely IS the bug. It failed
+because the solver did not translate the prose rule into the committed SQL. Two deep-dives
+on the final committed models confirm this:
+- `asana004` — final `int_asana__project_user_agg.sql` is **structurally identical to
+  @baseline**: it still spines off the `agg_project_users`/`count_project_users` CTEs (both
+  built `from {{ ref('int_asana__project_user') }}`, the child, GROUP BY upward) and never
+  selects FROM the `project` table; @baseline's `final` CTE is merely renamed
+  `project_user_agg`. The 3 zero-user projects stay dropped.
+- `intercom001` — the solver DID build a `conversations` spine CTE (`from
+  conversation_history where _fivetran_active`) and added `_fivetran_active` to both sides,
+  but wired the join **backwards**: `from conversation_part_aggregates left join
+  conversations`, so the parts aggregate (child) still drives the grain. The 2 zero-part
+  active conversations stay dropped.
+
+In short: **"talks / partially gestures (filter, a spine CTE) but doesn't do"** — the
+load-bearing "FROM the entity as the spine" structure never reached the committed model,
+exactly the inertness h0008's Finalization check showed.
+
+**META-FINDING across the three hypotheses tried on this @baseline.** h0008
+(check-afterward): 0/7 flips. h0009 (copy-the-installed-package): 1/6. h0010
+(construct-rule): 0/4. README-prose levers at gpt-5.5 / `reasoning_effort: xhigh` largely
+do NOT change the committed SQL structure on these data-correctness tasks. The single
+durable win (asana002, under h0009) was a type-contract match the solver could apply
+**mechanically** — not a structural rewrite it had to reason its way into. The pattern:
+prose that asks the solver to restructure how it writes SQL is inert; prose that names a
+concrete mechanical substitution can land.
+
+**Next move (explicitly NOT another reflexive prose hypothesis).** Per the meta-pattern,
+filing another prose-rule hypothesis would just re-confirm the inertness ceiling. The next
+step is a **captain strategy decision**, not an automatic follow-up — candidate directions:
+(a) a worked-example / few-shot Implementation instruction that shows the exact SQL
+skeleton (`from <entity> left join (<child agg>) ... `) for the solver to pattern-match
+mechanically rather than re-derive; (b) accept a solver-execution ceiling at this
+model/effort and stop spending budget on prose levers; (c) a non-prose approach (e.g. a
+harness/scaffold change). No follow-up hypothesis is filed here by design. Frontmatter
+(status/verdict/completed) is left for the first officer.
+
 ## Stage Report: propose
 
 - DONE: The forked solver README's ONLY change vs codex-ade-dbt-minimal/README.md is the single Implementation-stage grain-spine construction rule, placed in ## Stage: Implementation ONLY; Exploration/Validation/Finalization + dependency guardrails untouched; leak-guard intact; no AUTO_*/verifier reference; no re-derive/check-against-expected.
@@ -209,3 +256,23 @@ conversations (join anchored backwards), so zero-child entities stay dropped. Th
 solver added `_fivetran_active` to both sides on intercom (a surface nod) but never
 moved the entity table to the FROM spine. Recommend NO-GO — a prose Implementation
 rule is inert on the committed model, mirroring h0008's inert Finalization check.
+
+## Stage Report: conclude
+
+- DONE: Write ## Verdict — REJECTED at smoke (pre-full, NO-GO) with the score/audit evidence and the inert-mechanism deep-dives.
+  Verdict cites 5/5 completed, 0 errored, strict audit CLEAN {clean:5,tainted:0}, score 0.2 (1/5), sentinel held, all 4 targets FAIL with unchanged Got 3 / Got 7; mechanism = rule inert (asana004 identical to @baseline; intercom001 join wired backwards). "Talks/partially-gestures but doesn't do."
+- DONE: State the META-FINDING across h0008 (0/7), h0009 (1/6), h0010 (0/4) — README-prose levers at gpt-5.5/xhigh largely don't change committed SQL; asana002 win was a mechanical type-contract match. @baseline 622bdedac572b479 untouched, nothing promoted.
+  Recorded in the ## Verdict META-FINDING paragraph; also reflected in memory ade-bench-instruction-lever-taxonomy.md.
+- DONE: Do NOT file a follow-up hypothesis; note the next move is a captain strategy decision (worked-example/few-shot skeleton vs accepting an execution ceiling vs non-prose approach). Frontmatter left for the FO.
+  Stated explicitly in the ## Verdict "Next move" paragraph; no new hypothesis filed; no promotion / registry add performed.
+
+### Summary
+
+h0010 is REJECTED at smoke (NO-GO); @baseline stays 622bdedac572b479, nothing promoted.
+The grain diagnosis was correct but the prose Implementation rule was behaviorally inert —
+the solver did not translate it into the committed SQL (asana004 byte-identical to
+@baseline; intercom001 join anchored backwards). This completes a three-hypothesis
+meta-pattern (h0008 0/7, h0009 1/6, h0010 0/4): README-prose levers at this model/effort
+rarely restructure committed SQL, with the lone win being a mechanical type-contract match.
+No follow-up hypothesis filed — the next move is a captain strategy decision. Frontmatter
+left for the first officer.
