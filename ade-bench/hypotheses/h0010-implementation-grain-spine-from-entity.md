@@ -1,10 +1,10 @@
 ---
 id: h0010
 title: Implementation — build one-row-per-entity models FROM the entity table as the spine, LEFT JOIN aggregated children (don't group the child table upward)
-status: hypothesis
+status: propose
 kind: hypothesis
 source: forked from the h0009 smoke deep-dive (run 13ecf093adb674c2). 4 of the 5 non-flips (asana004, asana005, intercom001, intercom003) share ONE root cause — the solver builds an aggregate FROM the child/event table and GROUPs upward, silently dropping parent entities that have no children (wrong grain spine). h0009 showed copying a package's surface conventions (a filter) doesn't fix this; and h0008 showed checking grain at Finalization is inert. This moves the grain idea to a generative Implementation construction rule. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal; @baseline 622bdedac572b479, 31/48 = 0.6458 — h0008/h0009 promoted nothing).
-started:
+started: 2026-06-04T12:14:43Z
 completed:
 verdict:
 score:
