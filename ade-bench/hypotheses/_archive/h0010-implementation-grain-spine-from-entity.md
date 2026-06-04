@@ -135,6 +135,39 @@ flip these) is falsified at smoke.
 
 ## Behavioral analysis
 
+**Portable lessons from h0010 (recorded in the entity for cross-machine analysis; also
+mirrored in operator memory). Complements the evidence/mechanism in `## Verdict`.**
+
+1. **Acknowledging an instruction ≠ executing it.** The solver's reasoning engaged the rule
+   every cell (transcripts mention "spine", "grain", "left join", and it even built a
+   correct `conversation_history` spine CTE for intercom001) — yet the *committed* SQL did
+   not implement it. h0010 is the cleanest proof in the loop: right ingredients, wrong
+   assembly (intercom001 join wired backwards), or no change at all (asana004 byte-identical
+   to @baseline). **Always verify the produced artifact, not the chatter.**
+
+2. **Cheap inert-detector (use before reading transcripts):** if a failing target's
+   distance-to-pass — the dbt `Got N` mismatch count in `verifier/test-stdout.txt` — is
+   UNCHANGED vs `@baseline`, the lever did nothing to that cell. All 4 h0010 targets showed
+   identical `Got 3` / `Got 7`; that alone flagged inertness, and the SQL deep-dive only
+   confirmed it. Saves expensive transcript reads.
+
+3. **Mechanical, local fixes land; structural rewrites don't.** The only durable win across
+   h0008/h0009/h0010 (asana002, a `due_at::timestamp` type-contract match) was a small
+   in-place substitution. Prose that asks the solver to *restructure* a query (which table
+   to build FROM, join direction, grain) is acknowledged and skipped. Prefer levers
+   expressible as a concrete local edit.
+
+4. **Diagnosis-correct, execution-failed is a distinct failure class.** h0010 was NOT
+   falsified as a theory (grain-spine genuinely is the bug for asana004/005 + intercom001/003);
+   it was falsified as a *prose intervention*. Keep these separate when reading results — a
+   "rule not implemented" NO-GO does not invalidate the underlying diagnosis.
+
+5. **Meta-pattern → next move.** Three prose levers (check 0/7, copy 1/6, construct 0/4)
+   establish that README prose at gpt-5.5/`xhigh` rarely restructures committed SQL. The
+   sharpest remaining test (see `## Verdict` → Next move) is a worked-example / few-shot
+   lever: show the literal before/after SQL skeleton to pattern-match, not a description. If
+   even a concrete example fails to land, README tuning has a hard ceiling at this model/effort.
+
 ## Verdict
 
 **REJECTED at smoke (pre-full, NO-GO). @baseline (622bdedac572b479) UNTOUCHED — nothing
