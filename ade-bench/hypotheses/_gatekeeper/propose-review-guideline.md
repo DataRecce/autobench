@@ -116,11 +116,34 @@ the baseline finding proved inert.
   claim (the captain may want to confirm the intent survived).
 - **Evidence to cite:** the inserted sentence(s) quoted against the claim.
 
+### G7 — Actionability / inert-risk (advisory, WARN-only)
+The change must be expressible as something the solver implements **mechanically**, not
+abstract prose it can acknowledge and skip. Empirically on this `@baseline` (h0008
+check-afterward 0/7, h0009 copy-the-package 1/6, h0010 construct-rule 0/4), README prose that
+asks the solver to **restructure SQL** — which table to build FROM, join direction, grain,
+spine — is behaviorally **inert** at gpt-5.5/`xhigh`: the solver discusses it but the
+committed SQL is unchanged ("talks but doesn't do"). The one durable win (asana002) was a
+concrete mechanical substitution (`due_at::timestamp`), not a rewrite it had to reason into.
+This rule is **predictive, not an integrity check** — it never FAILs, only WARNs, so it never
+blocks the gate; it flags inert-risk in the captain note (it would have flagged h0010 here,
+before its smoke run).
+- **WARN if:** the inserted instruction asks for a structural rewrite (FROM/spine/
+  join-direction/grain restructuring; phrasings like "build one-row-per-entity", "select FROM
+  X instead of Y", "make the entity the spine") stated as **abstract prose**, *without* a
+  worked-example SQL skeleton or a named mechanical edit. Note the inert-risk and suggest the
+  worked-example / few-shot form (show the literal before→after SQL skeleton to pattern-match,
+  e.g. `from <entity> left join (<child agg>) …`).
+- **PASS if:** the change is a concrete mechanical substitution (a cast, column add/rename,
+  literal/default value, or filter token) **or** it carries a worked-example skeleton the
+  solver can copy rather than re-derive.
+- **Evidence to cite:** quote the instruction and classify it —
+  mechanical-substitution / worked-example / abstract-structural.
+
 ## Recommendation rubric
 
-After scoring all six rules, the gatekeeper emits one overall recommendation. **WARNs never
-drive the recommendation by themselves** — surface them in the "For the captain" note. Only
-FAILs move it off APPROVE:
+After scoring all seven rules, the gatekeeper emits one overall recommendation. **WARNs never
+drive the recommendation by themselves** — surface them in the "For the captain" note (G7 is
+WARN-only by design and always lands there). Only FAILs move it off APPROVE:
 
 - **APPROVE** — no FAILs (any number of WARNs allowed). Nothing blocks the gate; the captain
   can advance to `smoke`. Carry every WARN into the captain note.
@@ -151,6 +174,22 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated <date>). Revi
 | G4 smoke tasks-only | PASS/WARN/FAIL | <diff cite> |
 | G5 both frozen | PASS/WARN/FAIL | <ls/head cite> |
 | G6 resolver fidelity | PASS/WARN/FAIL | <claim vs inserted text> |
+| G7 actionability/inert-risk | PASS/WARN | <instruction class + inert-risk note> |
 
 **For the captain:** <what to look at / what to decide, 1–3 lines.>
 ```
+
+## Future scope (not yet built)
+
+The h0010 rejection also produced two lessons that belong to the **smoke go/no-go gate**, not
+this propose gate, so they are deliberately NOT encoded here:
+
+- **Inert-detector:** if a failing target's distance-to-pass (the dbt `Got N` mismatch count
+  in `verifier/test-stdout.txt`) is UNCHANGED vs `@baseline`, the lever did nothing to that
+  cell — a cheap inertness flag before reading transcripts.
+- **Verify the artifact, not the chatter:** acknowledging an instruction ≠ executing it; check
+  the final committed SQL, not the solver's reasoning, before crediting a flip.
+
+If the gatekeeper is later extended to the smoke gate, capture these in a sibling
+`_gatekeeper/smoke-review-guideline.md`. They are recorded for now in the h0010 archive entry
+and operator memory (`ade-bench-instruction-lever-taxonomy`).
