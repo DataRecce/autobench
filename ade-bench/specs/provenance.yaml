@@ -1,9 +1,9 @@
 agent_cli_hash: sha256:aa3c64b122c9d06bf48eaf988f5970aa69556d69506c3118cf07d10b2401b48a
-harness_git_sha: 45fa580d2727de94cf15204d10c2738ec854453c
+harness_git_sha: c1ad1037759af567aa89aa01c9143ab4f4f8e4e7
 harbor_version: 0.6.6
 prompt_file_hashes: {}
 plugins: []
-solver_workflow_hash: sha256:96155e95a64d8e0f8d59a621461771704ba4190e6e5e828dbd171ad00570a7f6
+solver_workflow_hash: sha256:85b0bf3ab4556a955528f13f17ab76a38da7bf8483e6a37ea79a42061e1b62df
 unresolved:
 - image_digest
 - model_resolved_version

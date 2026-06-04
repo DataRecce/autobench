@@ -91,3 +91,54 @@ promotion to full.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: The forked solver README's ONLY change vs codex-ade-dbt-minimal/README.md is the single Implementation-stage grain-spine construction rule, placed in ## Stage: Implementation ONLY; Exploration/Validation/Finalization + dependency guardrails untouched; leak-guard intact; no AUTO_*/verifier reference; no re-derive/check-against-expected.
+  `diff` shows a single 8-line paragraph inserted after the Implementation prose (README diff in gate evidence below); generative rule phrased "select FROM … LEFT JOIN", not a verification step.
+- DONE: FULL spec specs/h0010-implementation-grain-spine-from-entity.yaml diffs specs/baseline.yaml in ONLY experiment: + solver_workflow:; smoke spec adds ONLY benchmark.tasks: [asana004, asana005, intercom001, intercom003, asana001]; agent.kind=spacedock_solver and runtime=codex preserved.
+  FULL diff = 2 fields (gate evidence); smoke diff = benchmark.tasks only; frozen full spec lines 4-5 show kind: spacedock_solver / runtime: codex.
+- DONE: Both specs frozen with rk freeze --allow-missing (full + smoke); two-field FULL spec diff and README diff pasted in gate evidence.
+  Wrote specs/h0010-implementation-grain-spine-from-entity.frozen.yaml and .smoke.frozen.yaml.
+
+### Summary
+
+Forked the current @baseline solver (codex-ade-dbt-minimal, 622bdedac572b479) to
+solver_workflows/h0010-implementation-grain-spine-from-entity and added exactly one
+Implementation-stage rule: build "one row per `<entity>`" models FROM the entity table as
+the spine and LEFT JOIN aggregated children, never grouping the child/event table upward
+(apply any `_fivetran_active` filter to both sides). The rule is generative (how to write
+the SQL), references no hidden AUTO_*/verifier tests, and does not instruct re-deriving or
+checking against expected output. Full spec differs from baseline only in `experiment:` +
+`solver_workflow:`; smoke spec adds only the 4 grain-spine targets + asana001 sentinel.
+Both specs frozen. Did NOT run `rk run` (that is the smoke stage).
+
+### Gate evidence
+
+FULL spec diff vs baseline (specs/baseline.yaml -> specs/h0010-implementation-grain-spine-from-entity.yaml):
+
+```diff
+2c2
+< experiment: ade-bench-baseline # variants: ade-bench-h0001-<slug>
+---
+> experiment: ade-bench-h0010-implementation-grain-spine-from-entity # variants: ade-bench-h0001-<slug>
+11c11
+<   solver_workflow: ./solver_workflows/codex-ade-dbt-minimal # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+---
+>   solver_workflow: ./solver_workflows/h0010-implementation-grain-spine-from-entity # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+```
+
+README diff vs codex-ade-dbt-minimal/README.md (inserted into ## Stage: Implementation):
+
+```diff
+55a56,64
+> When building or changing a model whose grain is "one row per `<entity>`"
+> (including tasks phrased "aggregate `<child>` by `<entity>`"), select FROM the
+> `<entity>`'s own table as the spine and LEFT JOIN the aggregated `<child>` rows
+> onto it, so every entity appears (with `0`/`NULL` aggregates where it has no
+> children); do NOT make the child/event table the spine and `GROUP BY` upward,
+> which drops entities with no child rows and changes the grain. If the source
+> applies an active-record filter (`_fivetran_active`), apply it to BOTH the
+> entity spine and the child before joining.
+>
+```
