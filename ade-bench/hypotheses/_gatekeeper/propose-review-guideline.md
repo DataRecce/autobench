@@ -18,13 +18,22 @@ fresh each run, so any agent-applied update takes effect on the next review.
 ## What the gatekeeper reviews
 
 The "resolver" of a hypothesis = the forked solver workflow (`solver_workflows/h<NNNN>-<slug>/`),
-its `README.md` change, and the paired specs. The gatekeeper inspects, for the hypothesis
-under review:
+its `README.md` change, and the paired specs.
+
+**First, resolve the fork parent** (G1/G6 depend on diffing against the right one): read the
+hypothesis's `source:` field, which states the solver it forked from, and cross-check the
+reigning champion via `uv run --project ../razorback rk registry resolve run @baseline` plus
+that `@baseline` run's `solver_workflow`. Use the resulting directory as `<parent-solver>`
+(the seed is `solver_workflows/codex-ade-dbt-minimal`, but a promoted hypothesis may have
+moved `@baseline`). If `source:` and the registry disagree, or neither resolves, do NOT guess
+— mark the parent-dependent rules (G1, G6) FAIL "could not resolve fork parent" and flag it
+for the captain.
+
+The gatekeeper then inspects, for the hypothesis under review:
 
 1. The hypothesis body — its `## Hypothesis` "Falsifiable claim" (the single change it
    promised) and its named target datasets.
-2. The forked solver README vs the parent `@baseline` solver it forked from
-   (`solver_workflows/codex-ade-dbt-minimal` unless a newer `@baseline` is in force):
+2. The forked solver README vs `<parent-solver>`:
    `diff <parent-solver>/README.md solver_workflows/h<NNNN>-<slug>/README.md`.
 3. The FULL spec vs baseline: `diff specs/baseline.yaml specs/h<NNNN>-<slug>.yaml`.
 4. The smoke spec vs the full spec: `diff specs/h<NNNN>-<slug>.yaml specs/h<NNNN>-<slug>.smoke.yaml`.
@@ -38,13 +47,18 @@ the hypothesis file, or fetch anything external.
 Each rule has a verdict: **PASS** (clean), **WARN** (passes but worth a human glance), or
 **FAIL** (a human would reject as written).
 
+**Unevaluable = FAIL.** If an artifact a rule needs is missing or unreadable (the forked
+solver dir, a spec, a frozen file, or the resolved parent), that rule is **FAIL** with
+evidence naming what was missing — never a silent PASS, and never "skip." A WARN never, on its
+own, moves the recommendation off APPROVE.
+
 ### G1 — Single idea, single stage
 The README diff vs the parent solver touches **exactly one** `## Stage:` section and adds
 **exactly the one idea** the hypothesis's Falsifiable claim names. No other stage, and no
 unrelated guardrail prose, is modified.
-- **FAIL if:** more than one `## Stage:` section changed; more than one distinct idea added;
-  the change edits dependency/package/leak-guard prose instead of (or in addition to) the
-  intended stage.
+- **FAIL if:** the README diff is **empty** (no change was actually made to the resolver);
+  more than one `## Stage:` section changed; more than one distinct idea added; the change
+  edits dependency/package/leak-guard prose instead of (or in addition to) the intended stage.
 - **Evidence to cite:** the diff hunks and which stage header they fall under.
 
 ### G2 — Leak-guard intact
@@ -70,7 +84,9 @@ hidden checks.
 `benchmark.tasks:` block (the target dataset IDs, `ade-bench-` prefixed) — or, for a general
 change with no targets, only `benchmark.n_tasks: 5`. Nothing else differs.
 - **FAIL if:** the smoke spec changes any field other than `benchmark.tasks`/`n_tasks`; task
-  slugs are bare (missing the `ade-bench-` prefix).
+  slugs are bare (missing the `ade-bench-` prefix); the `benchmark.tasks` do **not** include
+  every target dataset the hypothesis's `## Hypothesis` names (the smoke must exercise the
+  change, not a different dataset set).
 - **WARN if:** the target tasks do not include at least one stable-`@baseline`-pass
   regression sentinel.
 - **Evidence to cite:** the smoke diff and the resolved task list.
@@ -87,6 +103,12 @@ same stage, same idea, no scope creep, and it stays **generative or independent*
 the solver how to build/derive, or to reconcile against an independent local signal) rather
 than a self-anchored "check your own work / re-run your own model" instruction — the family
 the baseline finding proved inert.
+- **Dead-family phrasings to flag** (self-anchored verification — the inert h0006/h0007/h0008
+  family): "re-run your own model", "compare to the previous/old output", "compare against the
+  existing code", "drive … to zero rows", "verify your answer matches", "confirm the result
+  equals", "check that the output is correct" with no independent source named. Their presence
+  in the inserted text is a strong FAIL signal **unless** the check reconciles against a
+  genuinely independent local signal (a different source table / grain / join path).
 - **FAIL if:** the inserted text diverges from the claim; it adds scope the hypothesis did
   not promise; it is a self-verification instruction that re-runs the solver's own derivation
   or compares to the pre-existing code (the dead h0006/h0007/h0008 family).
@@ -96,15 +118,17 @@ the baseline finding proved inert.
 
 ## Recommendation rubric
 
-After scoring all six rules, the gatekeeper emits one overall recommendation:
+After scoring all six rules, the gatekeeper emits one overall recommendation. **WARNs never
+drive the recommendation by themselves** — surface them in the "For the captain" note. Only
+FAILs move it off APPROVE:
 
-- **APPROVE** — all rules PASS (WARNs allowed). Nothing blocks the gate; the captain can
-  advance to `smoke`.
-- **REVISE** — no FAILs on G2/G3/G6 (the integrity rules), but one or more FAIL/WARN on the
-  mechanical rules (G1/G4/G5) that the ensign can fix in place without changing the idea.
-  Recommend the specific fix, then re-review.
-- **REJECT** — any FAIL on **G2 (leak-guard)**, **G3 (spec scope)**, or **G6 (fidelity)**.
-  These are integrity violations; the variant should go back to `hypothesis`.
+- **APPROVE** — no FAILs (any number of WARNs allowed). Nothing blocks the gate; the captain
+  can advance to `smoke`. Carry every WARN into the captain note.
+- **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules (G1/G4/G5)
+  the ensign can fix in place without changing the idea; no FAIL on G2/G3/G6. Recommend the
+  specific fix, then re-review.
+- **REJECT** — any FAIL on **G2 (leak-guard)**, **G3 (spec scope)**, or **G6 (fidelity)** —
+  the integrity rules. The variant should go back to `hypothesis`.
 
 The recommendation is advisory. The captain may override it in either direction and should
 record the reason when doing so.
