@@ -1,7 +1,7 @@
 ---
 id: h0011
 title: Implementation — emit the full expected output column set (from the local contract), don't drop columns the upstream/schema declares
-status: hypothesis
+status: propose
 kind: hypothesis
 source: concept-resolve-uncovered-false-greens fan-out; evidence re-audit of @baseline (622bdedac572b479, 31/48). Cluster "missing output columns" — 3 failures (ana-eng004, f1002, ana-eng007-medium) where AUTO_*_equality ERRORs "has less columns than solution__<model>". Distinct from the report's named modes (not value-divergence, not grain). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-04T13:40:51Z
@@ -84,3 +84,45 @@ promotion to full.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- [x] DONE: Forked the `@baseline` solver dir.
+  `cp -r solver_workflows/codex-ade-dbt-minimal solver_workflows/h0011-implementation-full-column-set`.
+- [x] DONE: Edited ONLY the `## Stage: Implementation` section of the forked README — appended the single full-column-set paragraph at the end of the stage prose (after "Do not remove `dbt_packages/` …", before `## Stage: Validation`). No other stage or guardrail touched; no hidden-test reference.
+- [x] DONE: Created the FULL spec `specs/h0011-implementation-full-column-set.yaml` from `baseline.yaml`, changing only `experiment:` and `solver_workflow:`.
+- [x] DONE: Created the smoke spec `specs/h0011-implementation-full-column-set.smoke.yaml` from the full spec, adding only `benchmark.tasks` (ana-eng004, f1002, ana-eng007-medium + ana-eng008 sentinel, ade-bench- prefixed).
+- [x] DONE: Froze both via `rk freeze --allow-missing`. `specs/h0011-implementation-full-column-set.frozen.yaml` and `...smoke.frozen.yaml` written; both retain `kind: spacedock_solver` + `runtime: codex`. Smoke frozen carries the 4 tasks; full frozen has `tasks: null`.
+- [x] DONE: Set frontmatter `status: hypothesis -> propose`.
+
+### Evidence diffs
+
+`diff specs/baseline.yaml specs/h0011-implementation-full-column-set.yaml`:
+
+```diff
+2c2
+< experiment: ade-bench-baseline # variants: ade-bench-h0001-<slug>
+---
+> experiment: ade-bench-h0011-implementation-full-column-set # variants: ade-bench-h0001-<slug>
+11c11
+<   solver_workflow: ./solver_workflows/codex-ade-dbt-minimal # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+---
+>   solver_workflow: ./solver_workflows/h0011-implementation-full-column-set # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+```
+
+`diff solver_workflows/codex-ade-dbt-minimal/README.md solver_workflows/h0011-implementation-full-column-set/README.md`:
+
+```diff
+63a64,70
+> When building or extending a model, derive its output column set from the local
+> contract — the columns of the upstream/source tables it selects from, the model's
+> `schema.yml` entries, and any sibling model of the same family — and emit every
+> column that contract implies; never drop columns the upstream model or schema
+> already declares. For "one big table"/wide models, carry through all columns from
+> each joined source rather than a hand-picked subset.
+>
+```
+
+### Summary
+
+Forked the @baseline solver and added exactly one `## Stage: Implementation` rule (derive the full output column set from the local contract; carry through all joined-source columns for wide/OBT models). The full spec differs from baseline only in `experiment:` + `solver_workflow:`; the smoke spec adds only `benchmark.tasks` for the 3 missing-column targets plus the ana-eng008 sentinel. Both specs frozen cleanly with `kind: spacedock_solver` and `runtime: codex` preserved. Gatekeeper not run (dispatched separately); no `rk run` invoked.
