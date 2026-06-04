@@ -1,7 +1,7 @@
 ---
 id: h0011
 title: Implementation — emit the full expected output column set (from the local contract), don't drop columns the upstream/schema declares
-status: propose
+status: smoke
 kind: hypothesis
 source: concept-resolve-uncovered-false-greens fan-out; evidence re-audit of @baseline (622bdedac572b479, 31/48). Cluster "missing output columns" — 3 failures (ana-eng004, f1002, ana-eng007-medium) where AUTO_*_equality ERRORs "has less columns than solution__<model>". Distinct from the report's named modes (not value-divergence, not grain). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-04T13:40:51Z
