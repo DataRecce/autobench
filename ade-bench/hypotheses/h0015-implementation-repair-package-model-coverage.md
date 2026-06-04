@@ -1,5 +1,5 @@
 ---
-id: h0011
+id: h0015
 title: Implementation — on repair/fix-it tasks, create the package-implied models that are missing by copying the installed package's definition
 status: hypothesis
 kind: hypothesis
@@ -54,7 +54,7 @@ it" task) + a stable-`@baseline`-pass regression sentinel `ade-bench-quickbooks0
 ## Acceptance criteria
 
 **AC-1 — Exactly the README changes; spec differs only in `experiment:` + `solver_workflow:`.**
-Verified by: `diff specs/baseline.yaml specs/h0011-implementation-repair-package-model-coverage.yaml`
+Verified by: `diff specs/baseline.yaml specs/h0015-implementation-repair-package-model-coverage.yaml`
 shows only `experiment:` + `solver_workflow:`; the README diff vs the `@baseline` solver
 touches only `## Stage: Implementation` (the single repair-coverage instruction), leaves the
 other stages + dependency/package guardrails untouched, and does not reference hidden

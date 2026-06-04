@@ -1,5 +1,5 @@
 ---
-id: h0012
+id: h0016
 title: Implementation — grain-spine fix as a CONCRETE worked-example SQL skeleton (not a prose rule), to test whether copyable beats described
 status: hypothesis
 kind: hypothesis
@@ -55,7 +55,7 @@ could not move — `ade-bench-asana004`, `ade-bench-asana005`, `ade-bench-interc
 ## Acceptance criteria
 
 **AC-1 — Exactly the README changes; spec differs only in `experiment:` + `solver_workflow:`.**
-Verified by: `diff specs/baseline.yaml specs/h0012-implementation-grain-spine-worked-example.yaml`
+Verified by: `diff specs/baseline.yaml specs/h0016-implementation-grain-spine-worked-example.yaml`
 shows only `experiment:` + `solver_workflow:`; the README diff vs the `@baseline` solver
 touches only `## Stage: Implementation` (the worked-example skeleton), leaves the other
 stages + dependency/package guardrails untouched, and the skeleton is GENERIC (placeholder
