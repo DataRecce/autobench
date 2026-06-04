@@ -71,6 +71,34 @@ targeted Fivetran failure to a pass before promotion to full.
 
 ## Smoke result
 
+Smoke spec: `specs/h0009-exploration-package-fidelity.smoke.frozen.yaml` (7 tasks).
+Run dir: `runs/ade-bench-h0009-exploration-package-fidelity/13ecf093adb674c2`.
+
+**Audit + score attestation (same run-dir):**
+- `rk audit … --policy strict`: CLEAN — `{clean: 7, tainted: 0, coverage_missing: 0}`; `captured = 1` on all 7 cells (subagent-trace-manifest.json confirms the `spacedock:ensign` dispatch was captured per cell).
+- `rk run`: 7/7 completed, 0 errored.
+- `rk score`: `stratified_pass_at_1 = 0.2857` (2/7).
+
+**Per-task verdict vs `@baseline` (622bdedac572b479):**
+
+| task | @baseline | h0009 smoke | delta |
+|------|-----------|-------------|-------|
+| ade-bench-asana001 (sentinel) | PASS (1) | PASS (1) | held — no regression |
+| ade-bench-asana002 | FAIL (0) | **PASS (1)** | **FAIL→PASS flip** |
+| ade-bench-asana004 | FAIL (0) | FAIL (0) | — |
+| ade-bench-asana005 | FAIL (0) | FAIL (0) | — |
+| ade-bench-intercom001 | FAIL (0) | FAIL (0) | — |
+| ade-bench-intercom003 | FAIL (0) | FAIL (0) | — |
+| ade-bench-quickbooks001 | FAIL (0) | FAIL (0) | — |
+
+1 of 6 Fivetran targets flipped FAIL→PASS (asana002); the `asana001` sentinel held PASS (no regression). Smoke `stratified_pass_at_1` 0.2857 is a 7-task subset metric, NOT comparable to the 48-task @baseline 0.6458 — the go/no-go signal here is the per-task flip + sentinel, not the aggregate.
+
+**Behavioral read (was the Exploration change exercised?):** Yes — the package-fidelity instruction is verbatim in the resolved solver prompt (job.log lines 380-385), so it reached every cell.
+- **asana002 (the FLIP) — instruction exercised AND load-bearing.** The ensign's own stage report says it "corrected source column types to match installed `asana_source` macros" and ran a "Package column-contract check: `remaining_mismatches = 0`" — i.e. it read the installed Fivetran `asana_source` package and reproduced its column contract/types rather than hand-rolling. Verifier passed all 3 hidden tests including `AUTO_asana002…_equality`.
+- **intercom001 (still FAIL) — instruction engaged but the divergence persists.** The solver DID apply active-record reasoning (its report: `thread_rows=5, matching active_part_conversations=5`), but the hidden `AUTO_intercom__threads_equality` test still returns 7 row-level mismatches. So it picked an active-record grain of 5 conversations, which diverges from the canonical answer the verifier expects — the package-read nudge moved it toward active-record thinking but not to the exact package grain/aggregation. Residual failure mode = grain/value divergence, not a "never looked at the package" gap.
+
+**Gate recommendation: GO → full.** Clean strict audit, ≥1 targeted flip (asana002), sentinel held, and the flip is causally attributable to the Exploration change (package-contract match drove the asana002 fix). The residual intercom/quickbooks failures are value-level grain divergences that a full 48-task run is worth measuring against @baseline to see net effect.
+
 ## Run result
 
 ## Behavioral analysis
@@ -133,3 +161,16 @@ Frozen artifacts: `specs/h0009-exploration-package-fidelity.frozen.yaml` (full),
 ### Summary
 
 Forked the current @baseline solver (codex-ade-dbt-minimal, 622bdedac572b479) into solver_workflows/h0009-exploration-package-fidelity and added exactly one Exploration-stage instruction: when a known dbt package is present in dbt_packages/, read its staging/intermediate models and reproduce their conventions (active-record/_fivetran_active filtering, dedup keys, output column set, grain) rather than hand-rolling a divergent aggregation. Leak-guard prose (no public fetch/clone) is intact and the change references only the local package source — no hidden-test/verifier mention. FULL spec differs from baseline in only experiment: + solver_workflow:; the smoke spec adds only the 7-task Fivetran cluster + asana001 sentinel; both specs frozen.
+
+## Stage Report: smoke
+
+- DONE: Smoke run launched DETACHED (nohup + /tmp/rk-h0009-smoke.log + .pid), polled across turns; all 7 cells completed with 0 errored and `captured > 0` on the cells.
+  PID 849145 → log /tmp/rk-h0009-smoke.log; run dir runs/ade-bench-h0009-exploration-package-fidelity/13ecf093adb674c2; 7/7 completed, 0 errored; captured=1 on all 7 cells (subagent-trace-manifest.json).
+- DONE: `rk audit <run-dir> --policy strict` is CLEAN and the `rk score` is paired to that same run-dir; both recorded in `## Smoke result`.
+  Strict audit CLEAN {clean: 7, tainted: 0, coverage_missing: 0}; score stratified_pass_at_1 = 0.2857 (2/7) on the same run-dir 13ecf093adb674c2.
+- DONE: Per-task smoke verdicts vs `@baseline`: name which of the 6 Fivetran targets flipped FAIL→PASS, confirm the `asana001` sentinel did not regress (go/no-go signal), and note whether the transcript shows the solver actually used dbt_packages/ conventions.
+  asana002 flipped FAIL→PASS (only Fivetran flip); asana001 sentinel held PASS (no regression); asana002 transcript shows the ensign matched the installed `asana_source` package column contract (remaining_mismatches=0) — the Exploration change was exercised and load-bearing. intercom001 still FAIL: engaged active-record grain (5) but hidden equality test found 7 mismatches → residual value-level divergence.
+
+### Summary
+
+Smoke ran cleanly on all 7 targets (strict audit clean, 0 errored). One Fivetran target (asana002) flipped FAIL→PASS and the sentinel (asana001) held, giving a GO signal. The flip is causally tied to the Exploration change: the asana002 worker read the installed Fivetran `asana_source` package and reproduced its column contract rather than hand-rolling. Still-failing cells (intercom001, quickbooks001) show the instruction was reached but residual grain/value divergence remains — worth a full run to measure net effect vs @baseline. Gate recommendation: GO → full.
