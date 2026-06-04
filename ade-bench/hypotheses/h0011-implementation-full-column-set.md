@@ -164,6 +164,16 @@ New README diff vs parent `solver_workflows/codex-ade-dbt-minimal/README.md` (st
 >
 ```
 
+### REVISE 2 — clear G2 leak-guard FAIL introduced by REVISE 1
+
+The REVISE 1 re-review flipped G7 WARN→PASS (worked example is the right shape) but raised a
+new **G2 FAIL**: the worked-example `-- WRONG:` comment referenced the hidden grading artifact
+`solution__<model>` and paraphrased the hidden equality test's error string. Fix (idea-
+preserving, worked example otherwise unchanged): the WRONG comment now reads
+`-- WRONG: a hand-picked subset drops contract columns and is too narrow` — a generic failure
+description with no `solution__`/`AUTO_`/error-string reference. Re-froze both specs; both
+`.frozen.yaml` still carry `kind: spacedock_solver` + `runtime: codex`. No other change.
+
 ## Gatekeeper review
 
 **Recommendation: REJECT** — REVISE 1 cleared the G7 inert-risk WARN (worked example now present, PASS) but **introduced a new G2 leak-guard FAIL**: the worked-example WRONG comment now references the hidden grading artifact `solution__<model>` and paraphrases the hidden equality test's error string ("has less columns than `solution__<model>`"). G2 is an integrity rule → REJECT; back to `hypothesis` to remove the hidden-test reference.

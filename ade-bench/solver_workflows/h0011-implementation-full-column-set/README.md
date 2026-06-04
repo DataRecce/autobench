@@ -70,7 +70,7 @@ each joined source rather than a hand-picked subset.
 
 Worked example — emit the full contract, do not hand-pick:
 ```sql
--- WRONG: a hand-picked subset → "has less columns than solution__<model>"
+-- WRONG: a hand-picked subset drops contract columns and is too narrow
 select id, name, status
 from {{ ref('upstream_or_source') }}
 
