@@ -1,14 +1,15 @@
 ---
 id: h0011
 title: Implementation — emit the full expected output column set (from the local contract), don't drop columns the upstream/schema declares
-status: smoke
+status: conclude
 kind: hypothesis
 source: concept-resolve-uncovered-false-greens fan-out; evidence re-audit of @baseline (622bdedac572b479, 31/48). Cluster "missing output columns" — 3 failures (ana-eng004, f1002, ana-eng007-medium) where AUTO_*_equality ERRORs "has less columns than solution__<model>". Distinct from the report's named modes (not value-divergence, not grain). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-04T13:40:51Z
-completed:
-verdict:
+completed: 2026-06-04T17:49:58Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-04T17:49:58Z
 ---
 
 ## Hypothesis
@@ -81,11 +82,89 @@ promotion to full.
 
 ## Smoke result
 
+**Recommendation: NO-GO** (do not promote to full). 0 of 3 targets flipped FAIL→PASS; the
+sentinel held. The full-column-set lever does not close the gap.
+
+Run dir: `runs/ade-bench-h0011-implementation-full-column-set/439f9828571bb3e2` (smoke spec
+`…smoke.frozen.yaml`, 4 cells, trials=1).
+
+**Audit + score (same run-dir).** 4/4 completed, 0 errored. `rk audit --policy strict`: CLEAN
+— `{clean: 4, tainted: 0}`, `captured > 0` all cells. `rk score`: `stratified_pass_at_1 =
+0.25` (1/4) — the one pass is the sentinel.
+
+**Per-task vs `@baseline` (622bdedac572b479):**
+
+| Task | @baseline | h0011 | Flip? | Distance-to-pass |
+|------|-----------|-------|-------|------------------|
+| ade-bench-ana-eng004 | FAIL | FAIL (0) | no | UNCHANGED — still "has less columns than `solution__obt_product_inventory`" |
+| ade-bench-f1002 | FAIL | FAIL (0) | no | UNCHANGED — still "has less columns than `solution__most_podiums`" |
+| ade-bench-ana-eng007-medium | FAIL | FAIL (0) | no | MOVED — "less columns" ERRORs cleared; now value mismatches (`Got 10/32/18`) |
+| ade-bench-ana-eng008 (sentinel) | PASS | PASS (1) | n/a | held — no regression |
+
 ## Run result
+
+Not run — rejected at the smoke go/no-go gate (pre-full). `@baseline` (622bdedac572b479)
+untouched; nothing promoted.
 
 ## Behavioral analysis
 
+**The hypothesis premise is falsified: the expected column set is NOT derivable from the local
+contract.** The lever did not fail by inertness (the G7 risk the gatekeeper flagged) — the
+solver *followed the rule faithfully* and still came up short, because the columns the oracle
+grades against do not all exist in the sources/`schema.yml`/sibling models the solver can see.
+
+Artifact-level evidence (the gatekeeper's "verify the artifact, not the chatter" check):
+- **ana-eng004 — followed-but-short, NOT inert.** The ensign's implementation report:
+  *"The model includes every inventory item with product details and preserves the implied
+  column contract… Column check: 22 columns present, including all inventory fields plus
+  product detail fields from `dim_products`."* The model built clean (`PASS=1`) — yet
+  `AUTO_obt_product_inventory_equality` still ERRORs *"has less columns than
+  `solution__obt_product_inventory`"*. The solver emitted every locally-derivable column (22)
+  and the hidden solution still expects more.
+- **f1002 — same pattern.** The worker worked from the full schema contract (it reported using
+  *"all 33 YAML columns"* on the sibling model), and `most_podiums` still ERRORs "has less
+  columns than `solution__most_podiums`."
+- **ana-eng007-medium — the contrast that proves the mechanism.** Here the "less columns"
+  ERRORs *cleared* (the local contract happened to cover the expected columns), but the cell
+  then fails on **values** (`AUTO_dim_products_equality` Got 10, `…obt_product_inventory` Got
+  32, `…obt_sales_overview` Got 18) — a value-divergence bug that is h0012's territory, not
+  h0011's.
+
+So the rule works exactly when the expected columns are locally derivable, and cannot work
+when they are not. For ana-eng004/f1002 the missing columns are defined only by the hidden
+`solution__*` seed — the *solver-is-blind-to-oracle* constraint — so no wording of an
+Implementation rule can recover them. This is a premise falsification (cf. h0006, which
+assumed the hidden tests were visible), not an execution/behavior gap.
+
+**Open question deferred to the captain (case a vs b), not auto-followed:** the missing columns
+are either (a) oracle-only / nowhere local — these tasks are then unsolvable while blind to the
+oracle; or (b) present in a local table the solver did not join — then the fixable lever is a
+*sourcing* rule ("join every relevant dimension"), a different hypothesis from h0011's "emit
+all columns." Settle by diffing the `solution__obt_product_inventory` seed's column list
+against the available local tables before filing any successor.
+
 ## Verdict
+
+**REJECTED at smoke (pre-full, NO-GO). `@baseline` (622bdedac572b479) UNTOUCHED — nothing
+promoted.**
+
+**Evidence.** Smoke on the 3 missing-column targets + ana-eng008 sentinel: 4/4 completed, 0
+errored; `rk audit --policy strict` CLEAN `{clean: 4, tainted: 0}`; paired `rk score`
+`stratified_pass_at_1 = 0.25` (1/4, the sentinel). 0 of 3 targets flipped; sentinel held.
+
+**Mechanism (why it failed).** The hypothesis assumed the full expected column set is derivable
+from the local contract (sources + `schema.yml` + siblings). It is not. The solver *followed*
+the rule — ana-eng004 emitted all 22 locally-available columns and logged a "column contract"
+check; f1002 used "all 33 YAML columns" — and both still ERROR "has less columns than
+`solution__<model>`", because the oracle's expected columns exceed what is locally visible.
+ana-eng007-medium is the control: where the local contract did cover the columns, the width
+error cleared (then it failed on values — h0012's domain). Premise falsified, not inert; the
+gatekeeper's G7 inert-risk WARN did not turn out to be the operative cause.
+
+**Meta-note.** Adds to the @baseline lever ledger (h0008 check 0/7, h0009 copy 1/6, h0010
+construct 0/4, h0011 column-set 0/3). h0011's distinct contribution: confirms a *blind-to-oracle*
+ceiling for the missing-columns cluster — the target signal (expected columns) is not local.
+No follow-up filed by default; the case-a-vs-b column diff is a captain decision.
 
 ## Stage Report: propose
 
@@ -192,3 +271,18 @@ Fork parent resolved: hypothesis `source:` names `solver_workflows/codex-ade-dbt
 | G7 actionability/inert-risk | PASS (changed: was WARN at propose; held since REVISE 1) | Instruction is **worked-example**: a concrete before→after SQL skeleton (WRONG hand-picked subset vs RIGHT full-contract SELECT, plus a wide/OBT `select s.*, d.region, d.segment from … left join …`) the solver can pattern-match and copy rather than re-derive. The form G7 calls for; inert-risk addressed. |
 
 **For the captain:** Clean across all seven rules after two REVISE cycles — G7 WARN cleared at REVISE 1 (worked example), G2 FAIL cleared at REVISE 2 (generic WRONG comment, no hidden-test token). Nothing blocks advancing to `smoke`. At the smoke gate, verify the artifact not the chatter: confirm the committed SQL on the 3 targets actually widens the projection to the full contract — the worked example reduces but does not eliminate the inert-risk that structural prose gets discussed-but-not-done at gpt-5.5/xhigh.
+
+## Stage Report: smoke
+
+- DONE: Launched the smoke run DETACHED (nohup + /tmp/rk-h0011-smoke.log + .pid), polled across turns; 4/4 cells completed, 0 errored.
+  Run dir runs/ade-bench-h0011-implementation-full-column-set/439f9828571bb3e2 (PID 1123013, finished 16:58).
+- DONE: `rk audit --policy strict` CLEAN and `rk score` paired to the same run-dir; recorded in `## Smoke result`.
+  Strict audit {clean: 4, tainted: 0}; score stratified_pass_at_1 = 0.25 (1/4); captured>0 all cells.
+- DONE: Per-task smoke verdicts vs @baseline + the behavioral artifact check (did the committed SQL widen the projection?).
+  0/3 targets flipped; sentinel ana-eng008 held PASS. Artifact check: ana-eng004 emitted 22 cols ("column contract preserved") and f1002 used "all 33 YAML columns" yet both still ERROR "has less columns than solution__<model>" — the solver FOLLOWED the rule and was still short. ana-eng007-medium's width errors cleared (now value mismatches). Recommend NO-GO.
+
+## Stage Report: conclude
+
+- DONE: Wrote `## Verdict` — REJECTED at smoke (pre-full, NO-GO) with score/audit evidence and the premise-falsification mechanism (expected column set not derivable from the local contract; solver-blind-to-oracle).
+- DONE: Distinguished this from inertness — the gatekeeper's G7 WARN was not the operative cause; the artifact shows the rule was executed. Logged the case-a-vs-b open question (oracle-only columns vs under-scoped sourcing) as a captain decision; no follow-up auto-filed.
+- DONE: @baseline 622bdedac572b479 untouched, nothing promoted; frontmatter set status: conclude, verdict: REJECTED, completed + archived stamped.
