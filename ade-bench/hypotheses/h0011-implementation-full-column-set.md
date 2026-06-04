@@ -126,3 +126,22 @@ promotion to full.
 ### Summary
 
 Forked the @baseline solver and added exactly one `## Stage: Implementation` rule (derive the full output column set from the local contract; carry through all joined-source columns for wide/OBT models). The full spec differs from baseline only in `experiment:` + `solver_workflow:`; the smoke spec adds only `benchmark.tasks` for the 3 missing-column targets plus the ana-eng008 sentinel. Both specs frozen cleanly with `kind: spacedock_solver` and `runtime: codex` preserved. Gatekeeper not run (dispatched separately); no `rk run` invoked.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — no FAILs; the single Implementation-stage column-set rule is generative/local-signal-only with the spec scope, leak-guard, and frozen artifacts all clean; the one open concern is inert-risk (G7), advisory only.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). Reviewed 2026-06-04T15:50:07Z.
+
+Fork parent resolved: hypothesis `source:` names `solver_workflows/codex-ade-dbt-minimal`; `rk registry resolve run @baseline` → `runs/ade-bench-baseline/622bdedac572b479`, whose `spec.frozen.yaml` carries `solver_workflow: solver_workflows/codex-ade-dbt-minimal`. Source and registry agree → parent = `solver_workflows/codex-ade-dbt-minimal`.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff is a single hunk `63a64,70` (6 prose lines + 1 blank). Line 63 sits inside `## Stage: Implementation` (header @50, `## Stage: Validation` @71); no other stage header in the diff. One idea added (derive full output column set from local contract). |
+| G2 leak-guard intact | PASS | `diff` of README lines 1–32 (leak-guard + dependency/package guardrails) byte-identical (`LEAKGUARD-IDENTICAL`). Grep of added `>` lines for `AUTO_/solution__/check_option_/verifier/equality test/expected output seed/curl/wget/git clone/git ls-remote/download/fetch/web/oracle/drive…zero/re-run/compare` returned no matches. |
+| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0011-...yaml` shows only `experiment:` (line 2) and `solver_workflow:` (line 11). `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved in the full spec. |
+| G4 smoke tasks-only | PASS | `diff full smoke` adds only `benchmark.tasks` (`23a24,28`): `ade-bench-ana-eng004`, `-f1002`, `-ana-eng007-medium`, `-ana-eng008` — all `ade-bench-` prefixed, covering all 3 hypothesis targets + sentinel. No WARN: sentinel `ana-eng008` passes `@baseline` (reward 1.0); the 3 targets are baseline failures (reward 0.0). |
+| G5 both frozen | PASS | `ls` confirms both `…frozen.yaml` (1711B) and `…smoke.frozen.yaml` (1808B) exist. Both carry `kind: spacedock_solver` (@4) and `runtime: codex` (@5). Full frozen `tasks: null`; smoke frozen carries the 4 tasks. |
+| G6 resolver fidelity | PASS | Inserted text ("derive its output column set from the local contract — upstream/source columns, `schema.yml`, sibling models — and emit every column that contract implies; never drop columns…; for wide/OBT models carry through all columns from each joined source") matches the Falsifiable claim verbatim in stage and idea. Generative + independent local signals; no self-anchored "re-run/compare to existing/drive to zero" dead-family phrasing. |
+| G7 actionability/inert-risk | WARN | Instruction classified **abstract-structural**: it directs *which* columns to emit and to widen the SELECT/projection from the contract, stated as prose with no worked-example SQL skeleton and no named mechanical edit (cast/literal/filter). On this `@baseline`, projection/structure prose has been behaviorally inert ("talks but doesn't do"). Suggest a few-shot before→after skeleton showing the full-width SELECT to pattern-match. |
+
+**For the captain:** No integrity FAILs — leak-guard, spec scope (two fields), and fidelity are all clean, so nothing blocks advancing to `smoke`. The one flag is G7 inert-risk: the column-set rule is abstract-structural prose without a worked example, the inert family on this baseline; consider asking the ensign to add a literal before→after SELECT skeleton before/after the smoke run, and watch whether the committed SQL actually widens the projection (not just the transcript).
