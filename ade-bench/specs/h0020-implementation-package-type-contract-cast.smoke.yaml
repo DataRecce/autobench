@@ -21,15 +21,10 @@ benchmark:
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
   # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
   # baseline / first run: skip smoke, run full directly.
-  tasks: # target type-mismatch + G8 regression panel (generative gated lever; ade-bench- prefixed). asana002 target; f1001/quickbooks003 = h0009 load-bearing bleed canaries; passers per family. No intercom passer exists (intercom001/002/003 all fail @baseline).
+  tasks: # captain trimmed at propose gate to target + the 2 LOAD-BEARING h0009-bleed canaries (f1001 applicability-gate, quickbooks003 same-layer); other passers (asana001/quickbooks002/ana-eng001/airbnb001/f1007) dropped per captain. ade-bench- prefixed. No intercom passer exists (intercom001/002/003 all fail @baseline) so intercom is uncoverable.
     - ade-bench-asana002      # 🎯 target — due_at type/contract mismatch the cast should flip
-    - ade-bench-asana001      # ✅ asana passer / same-family sentinel
     - ade-bench-f1001         # ✅ non-Fivetran f1 (NO package) — h0009 convention-bleed victim; applicability-gate canary
     - ade-bench-quickbooks003 # ✅ quickbooks intermediate — h0009 trimmed to staging contract; same-layer canary
-    - ade-bench-quickbooks002 # ✅ quickbooks passer
-    - ade-bench-ana-eng001    # ✅ ana-eng passer
-    - ade-bench-airbnb001     # ✅ airbnb passer
-    - ade-bench-f1007         # ✅ f1 passer
 trials: 1 # one trial per task — applies to BOTH smoke and full
 concurrency:
   trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
