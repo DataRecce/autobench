@@ -21,20 +21,23 @@ benchmark:
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
   # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
   # baseline / first run: skip smoke, run full directly.
-  tasks: # 2 incomplete-deliverable targets (quickbooks001, ana-eng007-medium) + 2 quickbooks
-         # stable-pass sentinels (quickbooks002/003) + G8 regression-canary panel. The
-         # complete-deliverable rule fires during Exploration on EVERY task = generative, so G8
-         # requires ≥1 @baseline passer per NON-target family. Canaries: airbnb001 / asana001 /
-         # f1001. NOTE: the intercom family has NO @baseline passer (intercom001/002/003 all FAIL),
-         # so no passing intercom canary is structurally possible; documented gap, not an omission.
+  tasks: # CAPTAIN-REVISED panel (propose gate, 2026-06-05). 2 incomplete-deliverable targets
+         # (quickbooks001, ana-eng007-medium) + 1 quickbooks stable-pass sentinel (quickbooks002)
+         # + 2 representative @baseline-passer canaries (asana003, f1007-hard). The
+         # complete-deliverable rule fires during Exploration on EVERY task = generative, so the
+         # canaries guard against off-target regressions.
+         # CAPTAIN DECISIONS at this gate: (a) trimmed to ONE quickbooks sentinel (dropped
+         # quickbooks003); (b) swapped the 001 canaries for more representative passers
+         # (asana003 / f1007-hard); (c) DROPPED the airbnb family entirely — explicit G8 override:
+         # smoke is accepted as BLIND to airbnb-family regressions, observable only at full scale.
+         # NOTE: the intercom family has NO @baseline passer (intercom001/002/003 all FAIL), so no
+         # passing intercom canary is structurally possible; documented gap, not an omission.
          # ade-bench- prefixed (bare slugs rejected by rk run).
     - ade-bench-quickbooks001
     - ade-bench-ana-eng007-medium
     - ade-bench-quickbooks002
-    - ade-bench-quickbooks003
-    - ade-bench-airbnb001
-    - ade-bench-asana001
-    - ade-bench-f1001
+    - ade-bench-asana003
+    - ade-bench-f1007-hard
 trials: 1 # one trial per task — applies to BOTH smoke and full
 concurrency:
   trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits

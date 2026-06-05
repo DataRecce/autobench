@@ -31,10 +31,8 @@ benchmark:
   - ade-bench-quickbooks001
   - ade-bench-ana-eng007-medium
   - ade-bench-quickbooks002
-  - ade-bench-quickbooks003
-  - ade-bench-airbnb001
-  - ade-bench-asana001
-  - ade-bench-f1001
+  - ade-bench-asana003
+  - ade-bench-f1007-hard
   exclude_tasks: null
   n_tasks: null
   plugin: null
@@ -56,7 +54,7 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:aa3c64b122c9d06bf48eaf988f5970aa69556d69506c3118cf07d10b2401b48a
-  harness_git_sha: d9e49cfbbef5556cb20f1471af12c02b3e522067
+  harness_git_sha: 28b2c73d606791fa316c4947b1a8c61896c5b25a
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
