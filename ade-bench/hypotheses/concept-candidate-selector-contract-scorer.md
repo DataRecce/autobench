@@ -1,11 +1,11 @@
 ---
 title: Candidate Selector / Contract Scorer -- run multiple candidate solves, then choose the committed answer by leak-safe local contract satisfaction rather than hidden oracle access
-status: ideate
+status: expanded
 kind: concept
 source: captain strategy after Pass@k headroom evidence; Output Contract stage exists but still needs a way to choose among multiple plausible committed artifacts.
 started: 2026-06-05T09:34:45Z
-completed:
-verdict:
+completed: 2026-06-05T09:42:10Z
+verdict: PASSED
 score:
 worktree:
 id: concept-candidate-selector-contract-scorer
@@ -114,3 +114,36 @@ failure-pattern fix:
    completeness and answer-string transcription.
 4. **Do-No-Harm Selector:** select among candidates by rejecting any that rewrite unrelated
    files, dependencies, packages, profiles, or namespaces.
+
+## Fan-out
+
+This concept was ideated into four protocol-family hypotheses:
+
+- `h0024-static-contract-scorer-selector` -- run multiple baseline candidates and choose by
+  static local build/artifact contract score.
+- `h0025-output-contract-satisfaction-selector` -- require each candidate to write a local
+  Output Contract, then select the artifact that best satisfies that contract.
+- `h0026-answer-decision-table-selector` -- for answer-style tasks, choose by per-option
+  local-check table completeness and mechanical answer transcription.
+- `h0027-do-no-harm-selector` -- reject candidates with unrelated rewrites before applying
+  the positive local contract score.
+
+All four are explicitly labeled protocol-family changes because they change candidate
+generation and final selection outside the current README-only independent-variable rule.
+They should be proposed, audited, scored, and compared separately from standard solver README
+experiments.
+
+## Stage Report: ideate
+
+- DONE: Create 2-5 concrete hypothesis entities that each test one selector design, not another failure-pattern README fix.
+  Created four flat hypothesis entities under `ade-bench/hypotheses/`: `h0024-static-contract-scorer-selector.md`, `h0025-output-contract-satisfaction-selector.md`, `h0026-answer-decision-table-selector.md`, and `h0027-do-no-harm-selector.md`.
+- DONE: Each new hypothesis must explicitly declare this as a protocol-family change if it changes candidate generation/selection outside the current README-only independent-variable rule.
+  Each new entity includes a `## Protocol-family declaration` section stating that it changes multi-candidate generation and/or selection and must not be reported as a README-only independent-variable run.
+- DONE: Advance the concept to `expanded` only after the fan-out exists and append a `## Stage Report: ideate` accounting for this checklist with DONE / SKIPPED / FAILED entries.
+  Fan-out list was appended after creating the four hypotheses; concept frontmatter now records `status: expanded`, `completed: 2026-06-05T09:42:10Z`, and `verdict: PASSED`.
+
+### Summary
+
+Ideated the Candidate Selector / Contract Scorer concept into four testable selector designs:
+static scoring, candidate-written contract satisfaction, answer-task decision-table selection,
+and do-no-harm selection. No solver README, spec, or run artifact was edited in this stage.
