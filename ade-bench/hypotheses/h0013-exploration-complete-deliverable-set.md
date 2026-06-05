@@ -157,6 +157,52 @@ solver-observable enumeration target does not move the committed SQL.
 
 ## Verdict
 
+**REJECTED — cleanly falsified at smoke (no full run; the smoke deep-dive is the evidence
+of record).**
+
+**Failure mechanism.** The abstract Exploration rule — *enumerate the COMPLETE set of
+required deliverable models; a green compile is not evidence they exist* — was behaviorally
+INERT on the primary target and actively HARMFUL on the secondary target:
+
+- `quickbooks001` (target): INERT. The 3 graded `stg_quickbooks__{estimate,refund_receipt,sales_receipt}`
+  staging models were **never built** — the `_existence` probes still return `Got 1 result`
+  (a row appears precisely when the model is absent), byte-identical to `@baseline`; committed
+  SQL unchanged; 6 fails → 6 fails. The transcript proves the mechanism: the solver **recited
+  the rule verbatim** (5 mentions of "complete set / deliverable") but surfaced the 3 graded
+  model names **0 times** across both sessions while discussing `general_ledger` 56×. The rule
+  fired in the planning recital and did not change the built scope.
+- `ana-eng007-medium` (target): REGRESSED. Here the rule *did* change behavior, in the wrong
+  direction — it licensed broad, unanchored rework that **broke two previously-passing `obt`
+  models** (`obt_product_inventory` Got 32, `obt_sales_overview` Got 18) and worsened
+  `dim_products` (Got 5→10). Distance-to-pass moved **1 → 3** failing tests. "Complete set" is
+  unanchored: the actually-graded deliverables live only in the hidden `AUTO_*` tests (correctly
+  withheld by the leak-guard), so the directive has no concrete, solver-observable target to
+  point at, and degraded already-correct models.
+
+**Evidence (AC-2 clean-audit attestation).** Run-dir
+`runs/ade-bench-h0013-exploration-complete-deliverable-set/81b53d6e31c406dd`;
+`rk audit --policy strict` → `clean: 5, tainted: 0` (all 5 trials clean, all manifests
+`captured: 1`); `stratified_pass_at_1 = 0.6` (3/5 — exactly the 3 guards quickbooks002 /
+asana003 / f1007-hard held; the 2 targets both FAIL). Score trusted. 0/2 targets flipped → NO-GO,
+no promotion to full; verdict binds `@baseline` (622bdedac572b479, 31/48 = 0.6458) unchanged.
+
+**Transferable rule.** Abstract coverage/enumeration prose is behaviorally inert at
+gpt-5.5/xhigh and is now **0-for-3** across this family: h0008 (0/7), h0010 (0/4), h0013
+(0/2 — plus a fresh distance-to-pass regression 1→3 on ana-eng007-medium). When such prose
+*does* fire, it can DEGRADE already-correct models (the ana-eng007 anti-flip), because a
+"build the complete set / ensure every one is built" goal with no concrete enumeration target
+licenses unanchored rework. A landing lever must be **concrete/structural** — a mechanical
+substitution or a worked-example skeleton the solver can mechanically follow — NOT a coverage
+goal stated as prose. The smoke confirmed the G7 inert-risk WARN exactly as the gatekeeper
+predicted: acknowledging the rule in reasoning is NOT evidence the committed artifact changed.
+
+**No follow-up filed (deliberate).** Per the conclude-stage guidance, do not reflexively file
+when the evidence says the lever family is exhausted. The abstract-prose / enumeration family
+is exhausted (0-for-3, meta-pattern across h0008/h0010/h0013). Next directions — a concrete
+mechanical-substitution or worked-example-skeleton lever vs abandoning the
+incomplete-deliverable cluster — are **deferred to the captain as a strategy decision**, not
+auto-filed as another doomed abstract-prose variant.
+
 ## Stage Report: propose
 
 - DONE: README diff touches ONLY `## Stage: Exploration` (adds the single complete-deliverable rule); leak-guard intact; other stages + guardrails untouched; no hidden-test references
