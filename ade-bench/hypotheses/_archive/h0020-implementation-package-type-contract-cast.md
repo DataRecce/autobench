@@ -5,8 +5,8 @@ status: conclude
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type Type / contract mismatch (values right, column type/representation differs) — oracle 'Got N that disappears with a ::type cast'; target ade-bench-asana002 (asana__task due_at)); in-stage lever (Implementation). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-05T13:28:58Z
+verdict: REJECTED
 score:
 worktree:
 ---
