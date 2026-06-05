@@ -131,6 +131,24 @@ failing state to passing — not merely that the transcript discussed package ty
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — single Implementation-stage package-type-cast rule; leak-guard byte-identical; spec differs only in the two allowed fields; smoke carries the full G8 canary panel including h0009's load-bearing bleed canaries.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). Reviewed 2026-06-05T11:40:00Z.
+
+Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; `rk registry resolve run @baseline` → `runs/ade-bench-baseline/622bdedac572b479` whose `solver_workflow` is `./solver_workflows/codex-ade-dbt-minimal`. Agree → parent = `codex-ade-dbt-minimal`.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff = one hunk, lines 64-73, falls entirely under `## Stage: Implementation` (inserted after the `dbt_packages/` preservation line, before `## Stage: Validation`); one idea (adopt package staging model's type via in-place `::<type>` cast). No other `## Stage:` touched. |
+| G2 leak-guard intact | PASS | Lines 1-49 byte-identical to parent (no-external-reference + dependency/package guardrails unchanged). Grep of added lines for `AUTO_*`/`solution__*`/`check_option`/`verifier`/`equality test`/`expected output`/`drive-to-zero`/`curl`/`wget`/`git clone`/`ls-remote` → NONE. Cast leaves values unchanged → cannot leak an expected answer. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0020...yaml` = only `experiment:` (→ ade-bench-h0020-...) and `solver_workflow:` (→ ./solver_workflows/h0020-...). `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0020...yaml h0020...smoke.yaml` = only an added `benchmark.tasks:` block. All 8 slugs `ade-bench-` prefixed; includes the hypothesis's named target `ade-bench-asana002`. |
+| G5 both frozen | PASS | `h0020...frozen.yaml` (1733B) and `h0020...smoke.frozen.yaml` (1919B) both exist; both carry `kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text = the Falsifiable claim verbatim in spirit: same stage (Implementation), same idea (same-named, same-layer, package-staging-sourced column → in-place `::<type>` cast, values unchanged, no add/drop/rename, no imposing where no package feed / on non-sourced intermediate/final). Generative-derive (tells solver how to build), reconciles against an independent local signal (the installed `dbt_packages/` staging model's declared type) — NOT self-anchored re-run/compare-to-own-output. No dead-family phrasing present. No scope creep beyond the claim. |
+| G7 actionability/inert-risk | PASS | Mechanical substitution — a single-column in-place `::<type>` cast / `+column_types`, the exact edit shape of the loop's only durable win (asana002 `due_at::timestamp`). Not a structural FROM/spine/join/grain rewrite, so not in the inert "talks-but-doesn't-do" family. No worked-example skeleton needed for a cast. |
+| G8 regression-canary coverage | PASS | Instruction is GENERATIVE but precondition-gated (fires only when a same-named column is sourced from an installed `dbt_packages/` staging model in the same layer). Per G8 a generative lever still needs a regression panel, and the smoke set carries one (all `@baseline` passers, resolved from `622bdedac572b479/per_trial_outcomes.json`): asana001 (asana ✅), f1001 (f1, NO package — h0009 convention-bleed victim, ✅), quickbooks003 (quickbooks intermediate — h0009 same-layer trim victim, ✅), quickbooks002 (quickbooks ✅), ana-eng001 (✅), airbnb001 (✅), f1007 (f1 ✅). Families covered: airbnb, ana-eng, asana, f1, quickbooks. **Intercom is the only uncovered family and has NO `@baseline` passer (intercom001/002/003 all FAIL)** — per the hypothesis body G8 should not expect an intercom canary. Target asana002 baseline = FAIL (0.0), all 7 canaries = PASS (1.0). |
+
+**For the captain:** No FAILs, no WARNs. The two load-bearing canaries that broke h0009 at full scale (f1001 = applicability-gate test, quickbooks003 = same-layer test) are both present in the smoke panel, so the bleed-suppression claim is directly testable at smoke. The only family without a canary is intercom, which structurally cannot supply one (no baseline passer). Clear to advance to `smoke`.
+
 ## Smoke result
 
 ## Run result
@@ -138,3 +156,16 @@ failing state to passing — not merely that the transcript discussed package ty
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: README diff touches ONLY `## Stage: Implementation` (adds the single precondition-gated in-place package-type-cast rule; no add/drop/rename; gated to same-named, same-layer, package-staging-sourced columns)
+  `diff codex-ade-dbt-minimal/README.md h0020.../README.md` = one hunk (lines 64-73) under Implementation; lines 1-49 byte-identical; no `AUTO_*`/`solution__*`/verifier tokens in added text.
+- DONE: Both specs frozen; FULL spec differs from baseline ONLY in experiment: + solver_workflow:; smoke adds ONLY benchmark.tasks; G8 panel + judgment recorded in gatekeeper block
+  Full diff = 2 fields; smoke diff = only `benchmark.tasks:` (8 `ade-bench-` slugs: asana002 target + asana001/f1001/quickbooks003/quickbooks002/ana-eng001/airbnb001/f1007 canaries, all `@baseline` passers); intercom has no passer so no canary (recorded). Both `.frozen.yaml` exist with kind/runtime preserved.
+- DONE: Gatekeeper review block written: per-rule PASS/WARN/FAIL table + overall APPROVE/REVISE/REJECT + one-line rationale
+  Recommendation APPROVE (G1-G8 all PASS, no WARN); fork parent resolved to codex-ade-dbt-minimal via source: + @baseline registry.
+
+### Summary
+
+Forked the current `@baseline` solver into `solver_workflows/h0020-implementation-package-type-contract-cast`, adding one Implementation-stage rule: adopt an installed `dbt_packages/` staging model's column TYPE for a same-named, same-layer output column via an in-place `::<type>` cast (values unchanged; no add/drop/rename; gated so it never fires where no package feeds the column or on a non-sourced intermediate/final model). This is the scoped refinement of h0009's asana002 win, gated to kill the f1001/quickbooks003 convention bleed. Full spec differs from baseline only in `experiment:`+`solver_workflow:`; smoke adds only the `benchmark.tasks` panel (target asana002 + the two load-bearing h0009 bleed canaries f1001/quickbooks003 + passers; all canaries are confirmed `@baseline` passers). Both specs frozen with kind/runtime preserved. Gatekeeper recommendation: APPROVE (all eight rules PASS, no WARN). Smoke not run, per instruction.
