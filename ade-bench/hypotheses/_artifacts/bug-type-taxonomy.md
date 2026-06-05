@@ -9,6 +9,10 @@ updated** as hypotheses conclude and new failure clusters are found.
 oracle re-runs the `AUTO_*` / `check_*` tests against `solution__*` seeds and finds the answer
 wrong. Glossary: `term-table.md`.
 
+A **second oracle** — gpt-5.4-mini at 28/48 (`c5acd9b29faeb087`) — flips **3 of the 17**
+(asana002, f1006, f1011), proving they're solvable; the per-task table's **Mini 28/48** column
+records this. See the cross-model note under the table.
+
 > **Provenance:** the per-task rows below are read directly from each failing cell's hidden-oracle
 > output (`runs/ade-bench-baseline/622bdedac572b479/ade-bench-<task>__*/verifier/test-stdout.txt`,
 > the section after the solver's false-green self-check). These signatures are ground truth and
@@ -16,25 +20,49 @@ wrong. Glossary: `term-table.md`.
 
 ## Authoritative per-task ground truth (all 17 failures)
 
-| Task | Failing oracle test | Signature | Bug type |
-|---|---|---|---|
-| asana004 | `AUTO_int_asana__project_user_agg_equality` | `Got 3` | grain (entity spine) |
-| asana005 | `AUTO_int_asana__project_user_agg_equality` | `Got 3` | grain (entity spine) |
-| asana005-hard | `AUTO_int_asana__project_user_agg_equality` | `Got 3` | grain (entity spine) |
-| intercom001 | `AUTO_intercom__threads_equality` | `Got 7` | grain (entity spine) |
-| intercom002 | `AUTO_intercom__threads_equality` + `…conversation_metrics_equality` | `Got 7` ×2 | grain (entity spine) |
-| intercom003 | `AUTO_intercom__conversation_metrics_equality` | `Got 7` | grain (entity spine) |
-| airbnb009 | `mom_agg_review_date_range` | `Got 1` — "a row for every day; some days missing" | grain (date/calendar spine) |
-| ana-eng004 | `AUTO_obt_product_inventory_equality` | "has less columns" | width |
-| f1002 | `AUTO_most_podiums_equality` | "has less columns" | width |
-| ana-eng006 | `AUTO_dim_products` + `AUTO_obt_product_inventory` (width) **and** `AUTO_fact_inventory_equality` `Got 204` | mixed | width ×2 **+** value divergence |
-| ana-eng007 | `AUTO_dim_products_equality` | `Got 5` | value divergence |
-| ana-eng007-medium | `AUTO_dim_products_equality` | `Got 5` | value divergence |
-| f1006 | `AUTO_constructor_points_equality` | `Got 2` | value divergence |
-| airbnb007 | `daily_agg_nps_reviews_equality_with_tolerance` | `Got 4` | tolerance-band divergence |
-| asana002 | `AUTO_asana__task_equality` | `Got 2` (fixed by `::timestamp` cast) | type/contract mismatch |
-| quickbooks001 | 3× `stg_quickbooks__*` **existence + equality** | `Got 1` ×6 (models absent) | incomplete deliverable / missing models |
-| f1011 | `check_option_b` | `Got 1` | analytical-answer guess |
+**Mini 28/48** column = does the gpt-5.4-mini second oracle (run `c5acd9b29faeb087`, 28/48) *pass*
+this @baseline-failing task? ✅ = mini flips it (demonstrated solvable by a weaker model — the
+highest-yield flip targets); ❌ = mini also fails (no model in either run has cracked it). See the
+cross-model note below the table.
+
+| Task | Failing oracle test | Signature | Bug type | Mini 28/48 |
+|---|---|---|---|---|
+| asana004 | `AUTO_int_asana__project_user_agg_equality` | `Got 3` | grain (entity spine) | ❌ also fails |
+| asana005 | `AUTO_int_asana__project_user_agg_equality` | `Got 3` | grain (entity spine) | ❌ also fails |
+| asana005-hard | `AUTO_int_asana__project_user_agg_equality` | `Got 3` | grain (entity spine) | ❌ also fails |
+| intercom001 | `AUTO_intercom__threads_equality` | `Got 7` | grain (entity spine) | ❌ also fails |
+| intercom002 | `AUTO_intercom__threads_equality` + `…conversation_metrics_equality` | `Got 7` ×2 | grain (entity spine) | ❌ also fails |
+| intercom003 | `AUTO_intercom__conversation_metrics_equality` | `Got 7` | grain (entity spine) | ❌ also fails |
+| airbnb009 | `mom_agg_review_date_range` | `Got 1` — "a row for every day; some days missing" | grain (date/calendar spine) | ❌ also fails |
+| ana-eng004 | `AUTO_obt_product_inventory_equality` | "has less columns" | width | ❌ also fails |
+| f1002 | `AUTO_most_podiums_equality` | "has less columns" | width | ❌ also fails |
+| ana-eng006 | `AUTO_dim_products` + `AUTO_obt_product_inventory` (width) **and** `AUTO_fact_inventory_equality` `Got 204` | mixed | width ×2 **+** value divergence | ❌ also fails |
+| ana-eng007 | `AUTO_dim_products_equality` | `Got 5` | value divergence | ❌ also fails |
+| ana-eng007-medium | `AUTO_dim_products_equality` | `Got 5` | value divergence | ❌ also fails |
+| f1006 | `AUTO_constructor_points_equality` | `Got 2` | value divergence | ✅ **flips** |
+| airbnb007 | `daily_agg_nps_reviews_equality_with_tolerance` | `Got 4` | tolerance-band divergence | ❌ also fails |
+| asana002 | `AUTO_asana__task_equality` | `Got 2` (fixed by `::timestamp` cast) | type/contract mismatch | ✅ **flips** |
+| quickbooks001 | 3× `stg_quickbooks__*` **existence + equality** | `Got 1` ×6 (models absent) | incomplete deliverable / missing models | ❌ also fails |
+| f1011 | `check_option_b` | `Got 1` | analytical-answer guess | ✅ **flips** |
+
+### Cross-model corroboration (second oracle: gpt-5.4-mini, 28/48)
+
+A second baseline run — **gpt-5.4-mini** via spacedock/codex at `reasoning_effort: xhigh`
+(`runs/ade-bench-full-spacedock-codex-gpt54mini-xhigh/c5acd9b29faeb087`, 28/48) — paired
+task-by-task against `@baseline` (Opus, 31/48) sorts the 17 @baseline failures into:
+
+- **Mini flips (3): asana002, f1006, f1011.** Tasks Opus *fails* but a weaker model *passes* → hard
+  proof they're solvable and that Opus's miss is a workflow/correctness gap, not benchmark
+  impossibility. Each is a thin margin (1–2 mismatched rows / one wrong option) and each already has
+  a hypothesis aimed at it (asana002→h0009, f1006→h0012, f1011→h0014). These are the **highest-yield
+  flip targets**; recovering them takes Opus to 34/48.
+- **Both fail (14):** the rest of the table — neither oracle has cracked them; they need a genuinely
+  new lever, not a flip.
+
+Caveats: single trial each, and the two runs use different solver stacks (Opus solver vs
+codex/gpt-5.4-mini), so a ✅ reflects model **and** harness differences together, not the model
+alone. (A separate, weaker `ade-bench-baseline-gpt-5.4-mini` run exists at 5/48 — **not** the
+oracle used here; always cite `c5acd9b29faeb087`.)
 
 ## The board (bug types → hypotheses)
 
@@ -123,6 +151,9 @@ Update this file whenever:
 - **A task is re-classified** (as happened in Corrections) → fix the per-task table + the board +
   note it under Corrections.
 - **The scoreboard / meta-pattern shifts** → update the Meta-pattern paragraph.
+- **A new second-oracle / cross-model run lands** → recompute the **Mini 28/48** column (and add
+  another model column if useful) by pairing `per_trial_outcomes.json` slug-by-slug against
+  `@baseline`; a ✅ that appears means a previously-stuck task is now demonstrated solvable.
 
 Ground every row in the actual oracle output
 (`…/ade-bench-<task>__*/verifier/test-stdout.txt`, the post-self-check section) — never invent
