@@ -1,7 +1,7 @@
 ---
 id: h0020
 title: Implementation — adopt the installed package staging model's column TYPE for a same-named, same-layer output column by a mechanical in-place cast (precondition-gated, no add/drop/rename)
-status: propose
+status: smoke
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type Type / contract mismatch (values right, column type/representation differs) — oracle 'Got N that disappears with a ::type cast'; target ade-bench-asana002 (asana__task due_at)); in-stage lever (Implementation). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
