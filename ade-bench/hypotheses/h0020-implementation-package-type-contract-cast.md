@@ -151,11 +151,74 @@ Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; 
 
 ## Smoke result
 
+**Verdict: NO-GO.** Target did not flip AND a load-bearing canary regressed.
+
+- Run-dir (real): `/home/kent/.local/share/razorback/runs/ade-bench-h0020-implementation-package-type-contract-cast/1ec768e85f5d4579`
+  Methodology aside: the `--runs-dir runs` flag did not take; results landed under the default
+  `~/.local/share/razorback/runs/...`, not `ade-bench/runs/`. Data is valid; audit/score were run against the real dir.
+- Strict audit: **clean** — `tainted: 0, clean: 3, coverage_missing: 0`; subagent-trace-manifest `captured: 1` on all 3 trials (>0). Score trusted.
+- Score: `stratified_pass_at_1 = 0.3333` (1/3), Wilson CI [0.061, 0.792], verdict "above" the 0.1875 paper constant — but that constant is irrelevant; the gate is vs @baseline per-task.
+
+| Task | Role | @baseline | smoke | Distance | Flip? |
+|------|------|-----------|-------|----------|-------|
+| asana002 | 🎯 target | FAIL (Got 2) | FAIL (Got 2) | **unchanged 2→2** | ❌ NO FLIP |
+| f1001 | applicability-gate canary | PASS 6/6 | PASS 6/6 | held | ✅ HELD |
+| quickbooks003 | same-layer-guard canary | PASS 14/14 | **FAIL 11/14** | 3 models "less columns than solution" | ❌ **REGRESSION** |
+
+Artifact checks (verify the artifact, not the chatter):
+- **asana002 cast did NOT land on the model.** The only `apply_patch Update File` was `dbt_project.yml`
+  (seed `+column_types` id string→bigint). The `due_at`/`due_on`/`start_on` casts the solver applied were
+  inside an `exec_command` python that `ALTER`ed the raw `asana.duckdb` seed tables — the SAME wrong layer the
+  @baseline hit. `models/asana__task.sql` was read (5×) but never patched. No `due_at::timestamp` / `+column_types`
+  edit on `due_at` in `asana__task`. Outcome (a): the lever was inert for the target; `AUTO_asana__task_equality` still `Got 2`.
+- **quickbooks003 regression is NOT the h0020 cast lever firing.** The 24 `::timestamp` tokens are pre-existing
+  model code read during exploration, not edits. The regression is a task-level under-edit: the `using_department`-removal
+  task was done by unwrapping the `{% if var('using_department', True) %}` guards (keeping `departments` CTE +
+  `department_name` + joins) and dropping `using_department: true` from `dbt_project.yml`. @baseline (PASS) did a
+  SECOND patch that fully DELETED the departments CTE / `department_name` / joins; the variant stopped after the unwrap,
+  so the three models' column set diverged from `solution__*` → `default__test_equality` raised "X has less columns than
+  solution__X" compile errors on `int_quickbooks__expenses_union`, `int_quickbooks__sales_union`, `quickbooks__ap_ar_enhanced`.
+- **f1001 held.** 6/6 PASS. It created the project's OWN local `models/staging/f1_dataset/src_*.sql` + `stg_f1_dataset__*`
+  models; no `fivetran` token, no `src_<dataset>__<entity>` double-underscore Fivetran rename. The applicability gate
+  effectively held (no installed `dbt_packages/` staging model feeds f1001, so the lever did not fire / cause harm).
+
 ## Run result
+
+Not run. Smoke gate is NO-GO; per assignment this stage ends at the go/no-go gate (no promote, no full).
 
 ## Behavioral analysis
 
+The smoke falsifies the hypothesis on both arms.
+
+1. **The cast lever is inert on the target (the same way the prior dead-prose family was inert).** The hypothesis
+   bet that anchoring to a concrete local artifact (the installed `asana_source` staging model) + prescribing a
+   mechanical in-place `::timestamp` cast would escape the dead-prose ceiling. It did not. The solver never edited
+   `models/asana__task.sql`; it re-attacked the raw `asana.duckdb` / seed `+column_types` layer — exactly the
+   @baseline behavior. So h0009's asana002 flip did NOT come from a `due_at::timestamp` cast on the model (the AC-2
+   "verify the artifact" check the conclude block demanded): the @baseline-style raw-data path leaves `Got 2`, and the
+   h0009 flip mechanism was something else (a raw-data shape change that happened to clear the mismatch), not the cast
+   this README rule prescribes. The lever's premise — "tell the solver to cast the same-named package-sourced column
+   in the model" — is mis-targeted: the solver does not author the cast at the model layer for this task.
+
+2. **The same-layer guard never got a chance to work, and a sibling failure mode bit instead.** quickbooks003 did not
+   regress because the lever imposed a package staging contract (the h0009 mechanism the guard was written to stop) —
+   the lever did not fire on quickbooks003 at all. It regressed because the variant under-performed the *unrelated*
+   `using_department`-removal task relative to @baseline (unwrap-only vs full-delete). This is run-to-run solver
+   variance on a hard multi-model edit, not a lever bleed. But the smoke gate is outcome-based: a load-bearing canary
+   dropped FAIL, which is a NO-GO regardless of attribution. The bleed-suppression claim is therefore *untested* (the
+   lever was inert everywhere), and the canary that was supposed to prove the guard instead regressed for an orthogonal
+   reason — leaving zero evidence the guard adds value and direct evidence the variant does not reliably hold the line.
+
+Net: 0/1 target flip + 1/2 load-bearing canaries regressed. The lever did not reach the model layer on the target
+(inert, dead-prose-family behavior) and bought no demonstrable bleed protection. This is the README-prose ceiling
+reasserting itself on a cast just as it did on the restructure family (h0010/h0011/h0013/h0016).
+
 ## Verdict
+
+**NO-GO at smoke → conclude REJECTED.** Reason: target asana002 did not flip (the prescribed `due_at::timestamp`
+cast never landed on `asana__task.sql`; the solver re-edited the raw `asana.duckdb`/seed layer and stayed at `Got 2`),
+and the load-bearing quickbooks003 canary regressed (14→11). The cast instruction is inert prose at the model layer,
+and the artifact check disproves the premise that h0009's flip came from this cast. Recommended routing: **conclude (REJECTED)**.
 
 ## Stage Report: propose
 
@@ -182,3 +245,16 @@ Forked the current `@baseline` solver into `solver_workflows/h0020-implementatio
 ### Summary
 
 Per the captain's revision at the propose gate, the smoke panel was trimmed from 8 tasks to 3: target `asana002` plus only the two load-bearing h0009-bleed canaries (`f1001` = applicability-gate test, `quickbooks003` = same-layer-guard test). The smoke spec was re-frozen; the FULL spec and its frozen file were left untouched. The Gatekeeper G8/G4 rows now reflect the trimmed panel. Smoke still not run.
+
+## Stage Report: smoke
+
+- DONE: Smoke run completed on the 3-task frozen panel; `rk audit --policy strict` clean (tainted:0) + captured>0 BEFORE trusting score; focused `rk score` recorded with clean-audit attestation + run-dir
+  Real run-dir `.../runs/ade-bench-h0020-...cast/1ec768e85f5d4579` (default dir; --runs-dir flag did not take — noted). Audit: clean=3/tainted=0/coverage_missing=0; subagent-trace-manifest captured=1 all 3. Score: stratified_pass_at_1=0.3333 (1/3). Per-task asana002 0, f1001 1, quickbooks003 0.
+- DONE: Deep-dive vs @baseline (622bdedac572b479) — target flip check + load-bearing canary-hold check, artifact-level
+  asana002: NO FLIP, Got 2→2; `due_at::timestamp` cast did NOT land on `asana__task.sql` (only `dbt_project.yml` +column_types patched; raw `asana.duckdb` altered instead) — outcome (a), lever inert at model layer. f1001: HELD 6/6 (own local src_*/stg_ naming, no Fivetran rename — gate effectively held). quickbooks003: REGRESSED 14→11 ("less columns than solution__" on 2 intermediate + 1 final) — caused by an under-edit on the unrelated using_department-removal task (unwrap-only vs @baseline full-delete), NOT the h0020 cast lever firing. Written into ## Smoke result + ## Behavioral analysis.
+- DONE: Plain-language go/no-go + one-line reason + routing recommendation, led by the verdict
+  NO-GO → conclude REJECTED; reason: target inert (cast never landed on model; still Got 2) + load-bearing canary regressed. In ## Verdict.
+
+### Summary
+
+Smoke is a clean-audited NO-GO: 0/1 target flip and 1/2 load-bearing canaries regressed. The artifact check is the load-bearing finding — the prescribed `due_at::timestamp` cast never landed on `models/asana__task.sql`; the solver re-edited the raw `asana.duckdb`/seed `+column_types` layer (the @baseline path) and stayed at `Got 2`. This both shows the cast lever is inert prose at the model layer and disproves the premise that h0009's asana002 flip came from this cast. quickbooks003 regressed for an orthogonal reason (an under-edit on the using_department task, not a lever bleed), so the bleed-suppression claim is left untested while the canary still dropped. Methodology aside: the `--runs-dir runs` flag did not take, so results landed in the default razorback runs dir; data valid, audit+score run there. Recommend conclude (REJECTED).
