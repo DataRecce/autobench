@@ -1,7 +1,7 @@
 ---
 id: h0017
 title: Output Contract — a NEW stage that, before any SQL is written, records each model's grain key-set from the NAMED local relation the existing code/instruction treats as the FROM driver, and copies THAT spine (entity FROM, children LEFT JOINed) — leaving any downstream coalesce/default where it already lives
-status: hypothesis
+status: propose
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type 1a - Grain - entity spine (missing parent rows)); realizes the new Output Contract stage. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
