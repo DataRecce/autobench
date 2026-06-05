@@ -194,6 +194,69 @@ skeleton can name without leaking the answer.
 
 ## Verdict
 
+**REJECTED** — cleanly falsified at smoke (NO-GO; no full run). Smoke run-dir
+`runs/ade-bench-h0016-implementation-grain-spine-worked-example/404f632989ecc074`
+(9/9, strict-audit clean, `captured=1` all cells) is the evidence of record.
+
+**Distilled lesson (the source-of-truth record for a teammate on another machine):**
+
+- **"Copyable beats described" is confirmed — for EXECUTION, not for passing.** On
+  **intercom001** the CONCRETE worked-example skeleton *reached the committed SQL*: the
+  solver built a `conversation_ids` entity-spine, LEFT-JOINed the aggregates, and wrapped
+  the no-child columns in `coalesce(..., 0)` — exactly the skeleton's shape. Distance moved
+  `Got 7 → 5`. h0010's PROSE version of the identical rule produced *byte-identical-to-baseline
+  or backwards* SQL (0 movement). So a concrete copyable example **does** change the committed
+  artifact where prose does not. **But "reaches" never became "passes":** 0/4 targets flipped.
+  A skeleton can install the right *shape* but not the task-specific *correct spine source*
+  (intercom001's UNION-of-ids spine is closer but still not the true conversation grain) —
+  and naming the correct spine per task would be leaking the answer.
+- **The skeleton only fires when the task matches its "one row per entity" premise.**
+  asana004/005 are **refactor** tasks ("move these two CTEs into a new model") — there is no
+  entity table to spine from, so the solver faithfully lifted the CTEs verbatim
+  (`from count_project_users left join agg_project_users`) and the latent grain bug rode
+  along unchanged (`Got 3 → 3`, inert). intercom003 is a build but the solver still chose the
+  child (`conversation_part_metrics`) as the FROM driver (`Got 7 → 7`, inert). 3 of 4 targets
+  were structurally outside the skeleton's reach.
+- **The f1001 PASS→FAIL is NOT convention-bleed from the lever.** f1001 is a create-`src_`-models
+  task; the lever never fired (0 grain/spine/one-row-per references in its transcript). Baseline
+  wrote `src_*` views `from {{ source('f1_dataset', 'x') }}`; this run wrote `from main.x` (raw,
+  no `source()` macro) — `src_models_are_correct` flagged all 14 (`Got 14`). That is codex
+  run-to-run variance (not bit-reproducible even at `temperature 0`), the noisy canary firing
+  on its own, independent of the README change.
+
+**Meta-pattern — README-prose ceiling (STRATEGY DECISION for the captain, NOT auto-filed).**
+Five consecutive README-tuning rejections, h0016 the sharpest:
+
+| Hyp | Lever family | Result |
+|-----|--------------|--------|
+| h0008 | check-afterward (self-anchored validation) | 0/7 |
+| h0009 | copy-the-package (concrete local artifact) | +1 smoke / **−1 full** (asana002 flip, lost f1/quickbooks) |
+| h0010 | grain-spine, PROSE rule | 0/4 (wholly inert — never reached SQL) |
+| h0011 | column-set, worked-example | 0/3 |
+| **h0016** | **grain-spine, CONCRETE worked-example** | **0/4** (reached SQL on intercom001, Got 7→5, still failed) |
+
+The progression PROSE-inert (h0010) → CONCRETE-reaches-but-fails (h0016) is the cleanest
+possible demonstration that **README guidance has hit a ceiling at gpt-5.5 / `reasoning_effort:
+xhigh`**: the best-case lever (a verbatim copyable skeleton) successfully changes the committed
+SQL and *still* flips zero targets, because the residual gap is task-specific correctness the
+README cannot supply without leaking. Filing a sixth prose/example variant is predicted-doomed.
+**Candidate NON-prose directions to choose among (do not auto-file — captain picks):**
+
+1. **Capability lever, not instruction lever** — raise `reasoning_effort` past `xhigh` if a
+   higher tier exists, or move to a stronger model. The independent-variable rule currently
+   pins model+effort; lifting that pin is a declared methodology change, not a README tweak.
+2. **Multi-sample-and-select** — run N trials per task and keep the best (or self-consistency /
+   majority vote on the committed SQL). The f1001 result shows real run-to-run variance exists
+   to exploit; trials are currently pinned at 1. This attacks the *variance* the prose levers
+   cannot.
+3. **A different lever family entirely** — e.g. a verification harness the solver runs against
+   *independent invariants* it derives from the source data (row-count / grain self-checks),
+   rather than more construction guidance. Note h0008's self-anchored validation already failed
+   0/7, so this only differs if the invariants are genuinely independent of the solver's own output.
+
+Recommendation: stop the README-prose line; bring directions (1)–(3) to the captain as a
+strategy fork before committing the next loop's budget.
+
 ## Stage Report: propose
 
 - DONE: Fork the @baseline solver (codex-ade-dbt-minimal) and edit ONLY ## Stage: Implementation: add the grain-spine fix as a CONCRETE worked-example SQL skeleton
@@ -219,3 +282,14 @@ Forked the @baseline solver and replaced h0010's behaviorally-inert PROSE grain-
 ### Summary
 
 Clean smoke run (9/9, strict-audit clean, captured=1 everywhere). NO-GO: zero target flips and an f1001 PASS→FAIL canary drop. The decisive copyable-vs-described finding is positive but partial — on intercom001 the concrete worked-example skeleton REACHED the committed SQL (entity-spine + LEFT JOIN agg + coalesce, Got 7→5) where h0010's PROSE rule was wholly inert; but "lands" did not become "passes" anywhere. The other 3 targets were inert because their task shape (2 refactors, 1 child-driver build) didn't match the skeleton's "one row per entity" premise. f1001's regression is independent run-to-run codex variance, not convention-bleed. Recommend `smoke → conclude` REJECTED; the per-task artifact reads above are the evidence of record.
+
+## Stage Report: conclude
+
+- DONE: Write `## Verdict` (REJECTED) and `## Behavioral analysis` into the entity body capturing the distilled lesson.
+  Verdict = REJECTED (cleanly falsified at smoke, no full run). Distilled lesson recorded: CONCRETE skeleton reached the committed SQL on intercom001 (Got 7→5) where h0010 PROSE was wholly inert — "copyable beats described" confirmed for EXECUTION — but "reaches" never became "passes" (0/4 flips); skeleton only fires on the "one row per entity" shape (asana004/005 refactors + intercom003 child-build inert, Got unchanged); f1001 PASS→FAIL is codex run-to-run variance, lever never fired (0 spine refs).
+- DONE: Surface the META-PATTERN as a strategy decision — do NOT auto-file a follow-up.
+  Scoreboard table (h0008 0/7, h0009 +1/−1, h0010 0/4, h0011 0/3, h0016 0/4) recorded in `## Verdict`; concluded a README-prose ceiling at gpt-5.5/xhigh; listed 3 NON-prose candidate directions (capability lever / multi-sample-and-select / independent-invariant verification) for the captain to choose among. No follow-up hypothesis filed.
+
+### Summary
+
+Concluded h0016 REJECTED — the sharpest test in the README-prose line and a clean negative. The CONCRETE worked-example skeleton did what h0010's prose could not: it reached the committed SQL (intercom001 Got 7→5, entity-spine + LEFT JOIN agg + coalesce). But reaching is not passing — 0/4 targets flipped, the other 3 were structurally outside the skeleton's "one row per entity" premise, and the f1001 canary regression was independent codex variance, not lever bleed. The five-rejection scoreboard establishes a README-prose ceiling; rather than auto-filing a sixth doomed prose variant, surfaced 3 non-prose directions (raise capability/model, multi-sample-and-select, independent-invariant verification) as a strategy decision for the captain.
