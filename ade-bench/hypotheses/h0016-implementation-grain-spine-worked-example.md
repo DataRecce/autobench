@@ -51,6 +51,12 @@ Target datasets (smoke, all `ade-bench-` prefixed): the same 4 grain-spine failu
 could not move — `ade-bench-asana004`, `ade-bench-asana005`, `ade-bench-intercom001`,
 `ade-bench-intercom003` — plus a stable-`@baseline`-pass regression sentinel
 `ade-bench-asana001`. (Direct head-to-head vs h0010's null result on the same targets.)
+Because the worked-example fires on **any** "one row per `<entity>`" model (it is a
+**generative** instruction, not gated to the targets), the smoke set also carries a G8
+regression-canary panel — one currently-passing `@baseline` task from each NON-target family:
+`ade-bench-airbnb001`, `ade-bench-ana-eng008`, `ade-bench-f1001`, `ade-bench-quickbooks004`
+(`f1001` + `quickbooks004` specifically guard against the convention-bleed that lost h0009
+−3 at full scale). A canary dropping FAIL is a NO-GO regardless of how many targets flip.
 
 ## Acceptance criteria
 
