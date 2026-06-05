@@ -1,7 +1,7 @@
 ---
 id: h0014
 title: Implementation — for analysis/answer deliverables, back each component of the answer with its own direct query (include/exclude only on confirmation)
-status: hypothesis
+status: propose
 kind: hypothesis
 source: concept-resolve-uncovered-false-greens fan-out; evidence re-audit of @baseline (622bdedac572b479, 31/48). Lone tail — f1011: the analysis answer model emitted "ABDE" but the correct answer was "ABE"; option D was included on plausibility, never verified, and check_option_b failed (1/6). Isolated task type (answer-style deliverable). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-04T13:40:51Z
