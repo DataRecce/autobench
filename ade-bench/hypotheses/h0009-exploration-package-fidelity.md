@@ -284,6 +284,28 @@ non-conflated direction surfaced here is **h0010** (grain-spine construction rul
 one-row-per-entity models FROM the entity table, LEFT JOIN children), which targets the
 shared root cause of the still-failing Fivetran cluster without the package-convention bleed.
 
+**Findings for the captain to decide (NOT auto-filed):**
+
+1. **Candidate REFINEMENT of this lever.** The asana002-type win and the f1001/quickbooks003
+   regressions come from the *same* instruction firing too broadly. A scoped version —
+   "reproduce the package's conventions ONLY when a real package analog exists in
+   `dbt_packages/` for the specific model you are authoring; otherwise leave naming/grain/
+   columns as the project already defines them" — could in principle keep the local
+   type-contract win while suppressing the convention bleed onto non-package projects (f1) and
+   onto models with no package analog. Unverified; would need its own hypothesis + a
+   broad-regression smoke set. Note the prior on README-prose levers is weak (see the
+   instruction-lever taxonomy: most do not change committed SQL), so a scoped re-try should be
+   weighed against the captain's standing "stop reflexive prose hypotheses" guidance.
+2. **WORKFLOW lesson — smoke design for GENERATIVE instructions.** This smoke set (6 targets +
+   1 sentinel, all Fivetran) was *structurally* incapable of catching the dominant failure
+   mode, because a generative Exploration/Implementation instruction fires on every task and
+   can regress tasks far from the targeted cluster. The f1/quickbooks regressions were invisible
+   to it by construction. Lesson: for any lever that changes how the solver *builds* models
+   (not just a detect-and-fix check on a known target), the smoke set must include a **broad
+   regression sample across task families**, not just the targeted failures plus one
+   stable-pass sentinel. The single-sentinel design is adequate only for narrowly-scoped
+   checks whose blast radius is provably the target set.
+
 ## Stage Report: propose
 
 - DONE: The forked solver README's ONLY change vs codex-ade-dbt-minimal/README.md is the single Exploration-stage package-fidelity instruction; leak-guard / no-external-reference prose intact; NO reference to hidden AUTO_*/verifier tests.
@@ -366,3 +388,16 @@ Smoke ran cleanly on all 7 targets (strict audit clean, 0 errored). One Fivetran
 ### Summary
 
 h0009 full run (1026ae344528e6eb, clean strict audit) scores 0.625 (30/48) vs @baseline 0.6458 (31/48): NET -1, paired delta -0.0208, CI [-0.1042, +0.0625] straddling zero, McNemar p=1.0 — does NOT clear the promotion tripwire. The decisive finding is the 3 regressions, all on tasks the targeted smoke set could not see: the generative package-fidelity instruction caused convention bleed (f1001 Fivetran-style source renaming on a non-Fivetran project; quickbooks003 column-trimming to the package staging contract) while delivering only one causal gain (asana002). Verdict: REJECTED, do NOT promote; @baseline stays 622bdedac572b479. h0010 (grain-spine construction rule) is the non-conflated successor.
+
+## Stage Report: conclude
+
+- DONE: Confirm NO promotion was performed (no rk baseline promote / rk registry add); @baseline stays 622bdedac572b479.
+  `rk registry resolve run @baseline` → `runs/ade-bench-baseline/622bdedac572b479` (unchanged); only read-only `rk score`/`rk audit`/`resolve` were ever run on h0009.
+- DONE: Record (for the captain, not auto-filed) the two findings worth acting on — (a) candidate REFINEMENT: scope package-fidelity to fire only when a real package analog exists for the model being authored; (b) WORKFLOW lesson: generative-instruction smoke sets must include a broad regression sample, not just targets + 1 sentinel.
+  Both written into ## Verdict under "Findings for the captain to decide (NOT auto-filed)" (the portable record). No follow-up hypothesis file created.
+- DONE: Append ## Stage Report: conclude; leave frontmatter (status/verdict/completed) for the first officer; commit before sending Done.
+  This report; frontmatter untouched; commit below.
+
+### Summary
+
+h0009 concluded REJECTED — package-fidelity as a single generative Exploration instruction is NET-NEGATIVE at full scale (30/48 vs @baseline 31/48; delta -0.0208, CI [-0.1042,+0.0625], McNemar p=1.0). No promotion performed; @baseline stays 622bdedac572b479. The one causal gain (asana002 type-contract match) is outweighed by convention-bleed regressions on non-package tasks (f1001, quickbooks003) that the targets-only smoke set was structurally blind to. Two captain-decision findings recorded in ## Verdict: a scoped-lever refinement candidate and a smoke-design lesson for generative instructions. Frontmatter left for the first officer.
