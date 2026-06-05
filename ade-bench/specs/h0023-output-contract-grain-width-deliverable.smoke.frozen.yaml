@@ -28,7 +28,6 @@ benchmark:
   kind: harbor
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
   tasks:
-  - ade-bench-asana004
   - ade-bench-quickbooks001
   - ade-bench-ana-eng004
   - ade-bench-ana-eng006
@@ -59,7 +58,7 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:aa3c64b122c9d06bf48eaf988f5970aa69556d69506c3118cf07d10b2401b48a
-  harness_git_sha: ac00efeca58574b9840ce23910ded30652a6ecbc
+  harness_git_sha: abb4176b50523485ea3dad1fe3c6052ac4922fc7
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []

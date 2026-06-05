@@ -21,9 +21,9 @@ benchmark:
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
   # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
   # baseline / first run: skip smoke, run full directly.
-  tasks: # GENERATIVE lever (fires on every author/restructure task) => 10-task set: 4 targets + G8 cross-family regression-canary panel; ade-bench- prefixed (bare slugs rejected by rk run)
-    # --- 4 targets (all FAIL @baseline 622bdedac572b479; want to flip ≥1 of the locally-derivable legs) ---
-    - ade-bench-asana004         # TARGET — grain (load-bearing copy-and-repoint flip; int_asana__project_user_agg reproduces un-narrowed CTE key set, asana__project repoints ref)
+  tasks: # GENERATIVE lever (fires on every author/restructure task) => 9-task captain-trimmed set: 3 targets + G8 cross-family regression-canary panel; ade-bench- prefixed (bare slugs rejected by rk run)
+    # asana004 dropped per captain: redundant — h0017 already smoked it, and it is grain, not h0023's columns/types/deliverable focus.
+    # --- 3 targets (all FAIL @baseline 622bdedac572b479; want to flip ≥1 of the locally-derivable legs) ---
     - ade-bench-quickbooks001    # TARGET — deliverable set (derivable:yes; three missing stg_quickbooks__* models templated by installed dbt_packages/quickbooks_source)
     - ade-bench-ana-eng004       # TARGET — width/type-2 representative (contract locally derivable to 22 cols; two oracle-only deltas cap a full flip — do-no-harm/derive-not-pad case)
     - ade-bench-ana-eng006       # TARGET — re-classified TYPES + COLUMN-SET (in-place DATE cast on transaction_created_date is the live lever; dim_products/obt_product_inventory width gaps not locally derivable)
