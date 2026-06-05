@@ -1,12 +1,12 @@
 ---
 id: h0023
 title: Output Contract (new stage) — write each model's grain key-source, ordered column set, per-column types, and complete deliverable set from named local files BEFORE writing SQL (folds in the re-classified ana-eng006 — type-cast, not fan-out)
-status: smoke
+status: conclude
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug types 2 width + 3star re-classified-as-type/width + 6 deliverable-set); realizes the new Output Contract stage; merged carrier of two convergent finalize candidates (width + 3star). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-05T15:32:38Z
+verdict: REJECTED
 score:
 worktree:
 ---
@@ -233,6 +233,33 @@ watch f1001 for convention bleed (an f1001 regression is a NO-GO regardless of t
 ## Behavioral analysis
 
 ## Verdict
+
+**REJECTED** — smoke NO-GO; automatic (f1001 canary REGRESSED). No full run (per `smoke → conclude`).
+Run `e018ce3babecc3dc`; clean strict audit (`tainted:0`, `captured>0`/cell). Captain confirmed
+REJECT 2026-06-05.
+
+**f1001 REGRESSED** (was PASS@baseline 6/6; smoke 2/6 — `stg_models_use_src_models Got 11`,
+`stg_races_uses_correct_sources Got 1`, `stg_results_uses_correct_sources Got 1`): the Output
+Contract stage's **deliverable-set clause** caused the f1 solver to create/rewrite staging models
+on a task whose project does not use them — **convention-bleed**, the exact h0009 −3 failure mode.
+The *same-thing-same-shape* guard was insufficient: the clause fired on f1001's f1 project and the
+solver treated missing package-style staging models as deliverables to create, breaking existing
+source conventions.
+
+**0/3 targets flipped** (`Got N` byte-for-byte unchanged — `quickbooks001 Got 1`, `ana-eng006 Got 204`,
+`ana-eng004` still FAIL): the Output Contract stage was inert on all three targets in addition to
+being harmful on the canary. The copy-shaped legs (quickbooks001 deliverable-copy, ana-eng006 type-cast)
+did not execute as expected — the deliverable-set clause misfired on f1001 instead.
+
+**Transferable learning:** the deliverable-set clause of the Output Contract stage is the dangerous
+one — it applies a "find missing models and create them" pattern too broadly. It must be **scoped to
+the specific failing task's declared ref() graph and package**, gated to tasks where the task
+instruction explicitly names a missing model or an existence test fails, NOT applied generically to
+every project with installed packages. h0017's grain clause was *reached-but-wrong*; h0023's
+deliverable-set clause was *reached-and-harmful*. Until the clause is scoped, the stage is not safe
+to carry forward with the deliverable-set clause in place. The columns/types clauses remain
+untested (the regression killed the run before those targets could be distinguished). Recorded in
+`_artifacts/WORKFLOW-REFINE.md`.
 
 ## Stage Report: propose
 
