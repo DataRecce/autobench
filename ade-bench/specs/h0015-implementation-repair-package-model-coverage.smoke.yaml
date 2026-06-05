@@ -1,0 +1,49 @@
+version: 1
+experiment: ade-bench-h0015-implementation-repair-package-model-coverage # variants: ade-bench-h0001-<slug>
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/h0015-implementation-repair-package-model-coverage # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+  override_timeout_sec: 2400
+  max_timeout_sec: 2400
+  reasoning_effort: xhigh # held constant across all hypotheses
+  tools_allowed: []
+  tools_denied: []
+benchmark:
+  kind: harbor
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+  # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
+  # baseline / first run: skip smoke, run full directly.
+  tasks: # repair-task package-model-coverage targets + sentinel + G8 cross-family regression panel; ade-bench- prefixed (bare slugs rejected by rk run)
+    - ade-bench-quickbooks001      # target — 3 missing stg_quickbooks__* models the package supplies; want flip
+    - ade-bench-ana-eng007-medium  # target — second "broken project, fix it" task; want flip
+    - ade-bench-quickbooks004      # sentinel — @baseline PASS in same package family; must stay PASS
+    - ade-bench-quickbooks003      # canary (quickbooks family) — h0009 convention-bleed victim; same-package bleed tripwire
+    - ade-bench-airbnb001          # canary (airbnb family) — @baseline PASS; cross-family regression tripwire
+    - ade-bench-asana001           # canary (asana family) — @baseline PASS; cross-family regression tripwire
+    - ade-bench-f1001              # canary (f1 family) — h0009 convention-bleed victim; @baseline PASS tripwire
+trials: 1 # one trial per task — applies to BOTH smoke and full
+concurrency:
+  trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
+            # task identity on the harbor path), so concurrent stage commits race on
+            # `git HEAD` ("cannot lock ref 'HEAD'"). 1 = no concurrent commits.
+observers:
+  - kind: jsonl
+    path: events.jsonl
+  - kind: stdout
+experiment_meta:
+  # max_budget_usd deferred — first loops run on a flat OpenAI subscription, not metered API.
+  paper_baseline:
+    name: pass_rate # ade-bench is scored by simple pass rate = #pass / #total
+    value: 0.1875   # 9/48 — initial spacedock baseline. rk score compares its stratified_pass_at_1,
+                    # which for ade-bench's single Harbor dataset (one stratum) equals #pass/#total.
+provenance:
+  pin_model_version: false
+  pin_image_digest: false
