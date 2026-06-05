@@ -1,6 +1,6 @@
 ---
 title: Candidate Selector / Contract Scorer -- run multiple candidate solves, then choose the committed answer by leak-safe local contract satisfaction rather than hidden oracle access
-status: concept
+status: ideate
 kind: concept
 source: captain strategy after Pass@k headroom evidence; Output Contract stage exists but still needs a way to choose among multiple plausible committed artifacts.
 started: 2026-06-05T09:34:45Z
