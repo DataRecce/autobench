@@ -139,15 +139,33 @@ before its smoke run).
 - **Evidence to cite:** quote the instruction and classify it —
   mechanical-substitution / worked-example / abstract-structural.
 
+### G8 — Regression-canary coverage (generative instructions)
+A **generative** instruction — one that fires on every task, not gated on a precondition that
+limits it to the targets — can regress any currently-passing task it touches. A targets-only
+smoke set is structurally blind to that: h0009 passed its 7-task targeted smoke (1 flip,
+sentinel held) then lost **−3** at full scale on f1/quickbooks passers the smoke never ran
+("convention bleed"). So a generative change must carry a regression panel in its smoke spec.
+- **N/A (PASS) if:** the instruction is gated/scoped to a narrow precondition (e.g. "only when
+  a package model for this entity exists") or is a mechanical substitution on a specific
+  construct — classify and mark N/A.
+- **FAIL if:** the instruction is generative AND the smoke `benchmark.tasks` lists no
+  currently-passing `@baseline` canary from families other than the targets. Recommend adding
+  ≥1 passing canary per other family (REVISE-class — fixable in place, idea unchanged).
+- **PASS if:** generative AND the smoke spec carries the canary panel (≥1 non-target
+  `@baseline` passer from each other family: airbnb / ana-eng / asana / f1 / intercom / quickbooks).
+- **Evidence to cite:** classify the instruction (generative vs gated/mechanical); if
+  generative, list the smoke `benchmark.tasks` canaries and confirm each is a `@baseline`
+  passer from a non-target family.
+
 ## Recommendation rubric
 
-After scoring all seven rules, the gatekeeper emits one overall recommendation. **WARNs never
+After scoring all eight rules, the gatekeeper emits one overall recommendation. **WARNs never
 drive the recommendation by themselves** — surface them in the "For the captain" note (G7 is
 WARN-only by design and always lands there). Only FAILs move it off APPROVE:
 
 - **APPROVE** — no FAILs (any number of WARNs allowed). Nothing blocks the gate; the captain
   can advance to `smoke`. Carry every WARN into the captain note.
-- **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules (G1/G4/G5)
+- **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules (G1/G4/G5/G8)
   the ensign can fix in place without changing the idea; no FAIL on G2/G3/G6. Recommend the
   specific fix, then re-review.
 - **REJECT** — any FAIL on **G2 (leak-guard)**, **G3 (spec scope)**, or **G6 (fidelity)** —
@@ -175,6 +193,7 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated <date>). Revi
 | G5 both frozen | PASS/WARN/FAIL | <ls/head cite> |
 | G6 resolver fidelity | PASS/WARN/FAIL | <claim vs inserted text> |
 | G7 actionability/inert-risk | PASS/WARN | <instruction class + inert-risk note> |
+| G8 regression-canary coverage | PASS/FAIL/N/A | <generative? + non-target passing canaries cited> |
 
 **For the captain:** <what to look at / what to decide, 1–3 lines.>
 ```

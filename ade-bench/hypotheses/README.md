@@ -166,7 +166,11 @@ by that recommendation.**
   3. Make the smoke spec: `cp ../specs/h<NNNN>-<slug>.yaml ../specs/h<NNNN>-<slug>.smoke.yaml`
      and add `benchmark.tasks: [<target dataset IDs>]` (a general change with no targets
      uses `benchmark.n_tasks: 5` instead). `rk run` has NO task-selector flag — subsetting
-     is spec-side only.
+     is spec-side only. **If the instruction is generative** (fires on every task, not gated
+     on a precondition that limits it to the targets), `benchmark.tasks` MUST also carry a
+     **regression panel** — ≥1 currently-passing `@baseline` task from each family OTHER than
+     the targets (airbnb / ana-eng / asana / f1 / intercom / quickbooks) — as canaries (see
+     the `smoke` stage; enforced by gatekeeper G8).
   4. Freeze both:
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.yaml` and
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.smoke.yaml`.
@@ -196,6 +200,14 @@ A focused pre-flight on the hypothesis's **target datasets** via the smoke spec
 deferred — this is a worthiness gate.)*
 
 - **Inputs:** the frozen smoke spec `specs/h<NNNN>-<slug>.smoke.frozen.yaml`.
+- **Smoke-set composition.** Targets + a stable-pass sentinel. **If the instruction is
+  generative** (fires on every task, not gated on a precondition), the smoke set MUST also
+  include a **regression panel** — ≥1 currently-passing `@baseline` task from each family
+  OTHER than the targets (airbnb / ana-eng / asana / f1 / intercom / quickbooks) — as canaries.
+  A generative change can regress *anywhere it fires*, and a targets-only smoke is structurally
+  blind to that: h0009 looked like a GO on its 7-task targeted smoke, then lost **−3** at full
+  scale on f1/quickbooks passers the smoke never ran. **A canary dropping FAIL is a NO-GO
+  regardless of how many targets flipped.**
 - **Outputs (from `ade-bench/`):**
   ```bash
   uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --explain   # $0, fast, foreground
