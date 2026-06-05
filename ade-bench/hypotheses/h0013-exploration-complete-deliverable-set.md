@@ -75,6 +75,27 @@ audit AND `stratified_pass_at_1 > 0.6458`.
 **Smoke gate:** on the 2 targets + the 2 quickbooks sentinels, the variant must not regress
 the sentinels and should flip at least `quickbooks001` to a pass before promotion to full.
 
+## Gatekeeper review
+
+**Recommendation: APPROVE** — single Exploration-stage idea matching the claim; leak-guard
+byte-identical; specs differ only in the two allowed fields (+ smoke adds `benchmark.tasks`);
+generative lever carries an airbnb/asana/f1 canary panel (intercom has no `@baseline` passer to
+supply one — structurally uncoverable, documented).
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). Reviewed 2026-06-05T06:35:00Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff = one insertion (lines 47-54) under `## Stage: Exploration` only; Implementation/Validation/Finalization untouched; dependency/package guardrail prose untouched. |
+| G2 leak-guard intact | PASS | Lines 1-32 (leak-guard + dependency guardrails) byte-identical to parent; grep of added lines for curl/wget/clone/ls-remote/AUTO_*/solution__*/check_option/verifier/equality/expected-output/drive-to-zero/re-run/fetch = none found. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0013...yaml` shows only `experiment:` + `solver_workflow:`; `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff full smoke` adds only the `benchmark.tasks` block; both targets (quickbooks001, ana-eng007-medium) present; all slugs `ade-bench-` prefixed. |
+| G5 both frozen | PASS | `h0013...frozen.yaml` and `...smoke.frozen.yaml` both exist; both carry `agent.kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text reproduces the Falsifiable claim verbatim in spirit (Exploration stage, "identify the COMPLETE set … a green compile is NOT evidence … record each deliverable and ensure every one is built"); generative/up-front, NOT self-anchored — names independent local signals (task statement, `schema.yml`, installed package staging set), not "re-run your own model / compare to existing code". |
+| G7 actionability/inert-risk | WARN | Instruction class: abstract coverage/enumeration prose ("enumerate the complete set", "ensure every one is built") — NOT a structural SQL rewrite (no FROM/spine/join/grain), but also not a concrete mechanical substitution or worked-example skeleton. Inert-risk per the h0008/h0010 "talks but doesn't do" pattern: the solver may acknowledge the enumeration in reasoning yet still stop at compile-green. Smoke must verify the committed artifact (were the missing stg_quickbooks__* models actually built), not the chatter. |
+| G8 regression-canary coverage | PASS (with caveat) | Generative (fires every task during Exploration). Canary panel: airbnb001 (✅@baseline), asana001 (✅@baseline), f1001 (✅@baseline) — one passer each from non-target families airbnb/asana/f1. Caveat: the intercom family has NO `@baseline` passer (intercom001/002/003 all FAIL), so a passing intercom canary is structurally impossible; documented in the smoke spec comment, not an omission. ana-eng + quickbooks are target families (covered by targets/sentinels). |
+
+**For the captain:** APPROVE-class. One thing to weigh before smoke: G7 inert-risk — this is the abstract-prose family that has been behaviorally inert at gpt-5.5/xhigh (h0008 0/7, h0010 0/4); the smoke deep-dive must confirm the missing `stg_quickbooks__*` models were actually *built* in the committed artifact, not just discussed. One structural gap to note: intercom cannot contribute a passing canary (zero `@baseline` passers in that family), so the generative lever's intercom blast-radius will only be observable at full scale, not smoke.
+
 ## Smoke result
 
 ## Run result
@@ -82,3 +103,16 @@ the sentinels and should flip at least `quickbooks001` to a pass before promotio
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: README diff touches ONLY `## Stage: Exploration` (adds the single complete-deliverable rule); leak-guard intact; other stages + guardrails untouched; no hidden-test references
+  Forked `solver_workflows/h0013-exploration-complete-deliverable-set`; diff vs parent = one 8-line insertion (README lines 47-54) under Exploration only; leak-guard lines 1-32 byte-identical; no AUTO_*/solution__*/verifier tokens in added text.
+- DONE: Generative lever's smoke spec carries a G8 regression panel (2 targets + 2 quickbooks sentinels + ≥1 passing canary per non-target family)
+  `benchmark.tasks` = quickbooks001, ana-eng007-medium (targets) + quickbooks002/003 (sentinels) + airbnb001/asana001/f1001 (passing canaries). Caveat: intercom has ZERO @baseline passers (intercom001/002/003 all FAIL) — passing intercom canary structurally impossible, documented in spec comment. Both specs frozen; FULL diff vs baseline = only experiment: + solver_workflow:; smoke adds only benchmark.tasks.
+- DONE: Gatekeeper review block written (per-rule PASS/WARN/FAIL table + overall APPROVE + one-line rationale)
+  Recommendation APPROVE; G1-G6 PASS, G7 WARN (abstract-prose inert-risk), G8 PASS-with-caveat (intercom uncoverable).
+
+### Summary
+
+Forked the @baseline solver and added one Exploration-stage rule (enumerate the COMPLETE deliverable set; a green compile is not evidence the models exist). AC-1 verified: `diff specs/baseline.yaml specs/h0013-exploration-complete-deliverable-set.yaml` shows only experiment: + solver_workflow:. The lever is generative (fires every task during Exploration) so the smoke spec carries a regression panel; the one structural gap is intercom, which has no @baseline passer to supply a canary — surfaced for the captain. Gatekeeper recommends APPROVE with a G7 inert-risk WARN (this is the abstract-prose family that was inert in h0008/h0010 — the smoke deep-dive must verify the missing stg_quickbooks__* models were actually built, not just discussed). Did not run smoke per dispatch.
