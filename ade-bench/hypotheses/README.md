@@ -183,13 +183,20 @@ by that recommendation.**
 - **Gate presentation to the captain (REQUIRED — every propose gate).** Don't just brief
   *what* the hypothesis verifies; also lay out the smoke set as a table so the captain can
   sanity-check coverage before approving. Resolve each task's `@baseline` reward first
-  (`rk registry resolve run @baseline`, then read `per_trial_outcomes.json`), and present:
+  (`rk registry resolve run @baseline`, then read `per_trial_outcomes.json`), and present a
+  **boxed table** with these columns — `Task` / `Baseline` / `Should pass in smoke?` /
+  `Role / why we picked it` — using the glyphs `❌ FAIL`, `✅ PASS`, `🎯 want it to flip to
+  PASS`, `✅ must stay PASS`:
 
-  | task | baseline passed? | should pass in smoke? | Role / why we picked it |
-  |------|:---------------:|:--------------------:|-------------------------|
-  | `<target>` | FAIL | want PASS | target — the failure this lever is meant to flip |
-  | `<sentinel>` | PASS | must stay PASS | stable-pass sentinel — proves the lever did no obvious harm |
-  | `<canary>` | PASS | must stay PASS | G8 canary for family `<fam>` — guards against convention bleed where the generative lever fires off-target |
+  ```
+  ┌───────────────┬──────────┬─────────────────────┬─────────────────────────────────────────────┐
+  │     Task      │ Baseline │ Should pass in smoke?│             Role / why we picked it          │
+  ├───────────────┼──────────┼─────────────────────┼─────────────────────────────────────────────┤
+  │ <target>      │ ❌ FAIL  │ 🎯 want it to flip  │ Target — the failure this lever should flip. │
+  │ <sentinel>    │ ✅ PASS  │ ✅ must stay PASS   │ Sentinel — known passer; breaks ⇒ side effs. │
+  │ <canary:fam>  │ ✅ PASS  │ ✅ must stay PASS   │ Canary (<fam> family) — regression tripwire. │
+  └───────────────┴──────────┴─────────────────────┴─────────────────────────────────────────────┘
+  ```
 
   One row per smoke task. State the net you're hoping for (e.g. "flip ≥1 of N targets, lose
   zero sentinels/canaries"). Lead with this table + a plain-words brief of the lever; keep the
