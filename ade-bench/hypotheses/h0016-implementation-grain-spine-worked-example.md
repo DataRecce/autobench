@@ -80,6 +80,34 @@ plus the absolute `stratified_pass_at_1` vs `@baseline`.**
 check) whether the committed SQL now drives the grain off the entity table — answering
 whether a concrete example lands where prose did not.
 
+## Gatekeeper review
+
+**Recommendation: APPROVE** — single Implementation-stage addition of the exact
+worked-example SQL skeleton the claim names; leak-guard byte-identical; full spec diffs
+in only `experiment:`+`solver_workflow:`; generative instruction carries the full G8
+canary panel.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). Reviewed 2026-06-05.
+
+Fork parent resolved: `source:` = forked from then-current `@baseline`; `rk registry resolve
+run @baseline` = `runs/ade-bench-baseline/622bdedac572b479` whose `solver_workflow` =
+`./solver_workflows/codex-ade-dbt-minimal`. Agree → `<parent-solver>` = `solver_workflows/codex-ade-dbt-minimal`.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff parent fork` = one hunk `55a56,74`, a pure addition inside `## Stage: Implementation` (between "schema patterns." and "Run basic confirmation"); 0 `## Stage:` headers in diff; exactly the worked-example skeleton the claim names, no other stage/guardrail touched. |
+| G2 leak-guard intact | PASS | leak-guard lines 9-31 byte-identical parent↔fork; grep of added (`^>`) lines for `AUTO_/solution__/check_option/verifier/equality test/expected output/curl/wget/git clone/ls-remote` = none. Added text is generic placeholders (`<entity>/<child>/<fk>/<id>/cnt`) — no ground-truth, no hidden-test ref. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0016….yaml` = only L2 `experiment:` and L11 `solver_workflow:`; `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0016….yaml …smoke.yaml` = only an added `benchmark.tasks:` block; all 9 slugs `ade-bench-` prefixed; all 4 named targets (asana004/005, intercom001/003) present; asana001 stable-pass sentinel present. |
+| G5 both frozen | PASS | `…frozen.yaml` (1733B) + `…smoke.frozen.yaml` (1946B) both exist; both carry `kind: spacedock_solver` + `runtime: codex`; smoke frozen carries all 9 task slugs. |
+| G6 resolver fidelity | PASS | Inserted skeleton matches the claim's quoted WRONG/RIGHT block verbatim; generative-CONSTRUCTIVE ("make the entity the FROM driver and LEFT JOIN the aggregate") — tells the solver how to build, not a self-anchored "re-run/verify your own output" check. Not in the dead h0006/07/08 family. |
+| G7 actionability/inert-risk | PASS | Worked-example / few-shot form (literal before→after SQL skeleton to pattern-match) — this IS the cure G7 recommends for h0010's inert abstract-structural prose. No WARN. |
+| G8 regression-canary coverage | PASS | Generative (fires on ANY "one row per entity" model, not gated). Smoke canary panel present: airbnb001, ana-eng008, f1001, quickbooks004 — verified @baseline passers (reward=1.0 each in `622bdedac572b479/per_trial_outcomes.json`), one per non-target family (airbnb/ana-eng/f1/quickbooks). |
+
+**For the captain:** Clean APPROVE — no FAILs, no WARNs. This is the deliberate worked-example
+re-test of h0010's inert prose grain-spine rule; G7 is satisfied (not flagged) precisely because
+the fix is now copyable. G8 panel is complete with f1/quickbooks canaries guarding the
+convention-bleed that lost h0009 −3 at full scale. Advance to `smoke`.
+
 ## Smoke result
 
 ## Run result
@@ -87,3 +115,16 @@ whether a concrete example lands where prose did not.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Fork the @baseline solver (codex-ade-dbt-minimal) and edit ONLY ## Stage: Implementation: add the grain-spine fix as a CONCRETE worked-example SQL skeleton
+  `cp -r` → `solver_workflows/h0016-implementation-grain-spine-worked-example/`; diff vs parent = single addition `55a56,74` inside Implementation only (generic WRONG/RIGHT skeleton, placeholder names `<entity>/<child>/<fk>/<id>/cnt`, entity-as-FROM-spine + LEFT JOIN agg with 0/NULL); leak-guard bytes-identical, 0 other stages/guardrails touched.
+- DONE: FULL spec diffs baseline ONLY in experiment: + solver_workflow:. SMOKE spec benchmark.tasks = 4 targets + sentinel + G8 canary panel; kind/runtime preserved; Freeze both.
+  Full diff = only L2 experiment + L11 solver_workflow; smoke adds only benchmark.tasks (asana004/005, intercom001/003, asana001 sentinel, + airbnb001/ana-eng008/f1001/quickbooks004 canaries); both frozen (commit 2e… ; `…frozen.yaml` + `…smoke.frozen.yaml` carry spacedock_solver/codex).
+- DONE: Run the propose gatekeeper applying G1-G8; record APPROVE/REVISE/REJECT; confirm G8 PASSES; paste two-field spec diff + README diff into gate evidence.
+  Gatekeeper review block appended: all 8 rules PASS, overall APPROVE; G8 PASS (generative + 4 non-target @baseline-passer canaries verified reward=1.0). Spec diffs + README diff hunk cited inline in evidence.
+
+### Summary
+
+Forked the @baseline solver and replaced h0010's behaviorally-inert PROSE grain-spine rule with the CONCRETE worked-example SQL skeleton (generic before/after with placeholder names) quoted in the falsifiable claim — the decisive copyable-vs-described re-test, Implementation stage only. Full spec differs from baseline only in the two allowed fields; smoke spec carries the 4 grain-spine targets + asana001 sentinel + the mandatory G8 regression-canary panel (this is a generative instruction firing on any "one row per entity" model, with f1001/quickbooks004 specifically guarding the convention-bleed that sank h0009). Both specs frozen; the gatekeeper returned a clean APPROVE (no FAILs, no WARNs).
