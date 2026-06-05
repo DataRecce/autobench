@@ -180,6 +180,21 @@ by that recommendation.**
      and writes a `## Gatekeeper review` block into the hypothesis file: a per-rule
      PASS/WARN/FAIL table plus an overall **APPROVE / REVISE / REJECT** recommendation with a
      one-line rationale. The gatekeeper is advisory — it does not pass or block the gate.
+- **Gate presentation to the captain (REQUIRED — every propose gate).** Don't just brief
+  *what* the hypothesis verifies; also lay out the smoke set as a table so the captain can
+  sanity-check coverage before approving. Resolve each task's `@baseline` reward first
+  (`rk registry resolve run @baseline`, then read `per_trial_outcomes.json`), and present:
+
+  | task | baseline passed? | should pass in smoke? | Role / why we picked it |
+  |------|:---------------:|:--------------------:|-------------------------|
+  | `<target>` | FAIL | want PASS | target — the failure this lever is meant to flip |
+  | `<sentinel>` | PASS | must stay PASS | stable-pass sentinel — proves the lever did no obvious harm |
+  | `<canary>` | PASS | must stay PASS | G8 canary for family `<fam>` — guards against convention bleed where the generative lever fires off-target |
+
+  One row per smoke task. State the net you're hoping for (e.g. "flip ≥1 of N targets, lose
+  zero sentinels/canaries"). Lead with this table + a plain-words brief of the lever; keep the
+  full spec/diff detail in the hypothesis file. For a generative lever, the table makes the G8
+  panel auditable at a glance — a missing family is a REVISE before smoke, not a surprise at full.
 - **Gatekeeper (advisory pre-review):** its recommendation is input to your decision, not a
   substitute for it. A rule the gatekeeper marks FAIL is a likely reject; tune the bar by
   asking an agent to update `_gatekeeper/propose-review-guideline.md` on demand (it is not
@@ -189,9 +204,11 @@ by that recommendation.**
   `experiment:` + `solver_workflow:` (the smoke spec additionally adds `benchmark.tasks`);
   `agent.kind` ≠ `spacedock_solver` or `runtime` ≠ `codex`.
 - **Good:** exactly one README idea changed; leak-guard intact; `diff` of the two specs
-  shows only the two allowed fields; gatekeeper recommendation recorded.
+  shows only the two allowed fields; gatekeeper recommendation recorded; the smoke-set table
+  (task / baseline-passed / should-pass / role) presented to the captain with baseline rewards
+  resolved.
 - **Bad:** multiple knobs changed; leak-guard relaxed; advancing past a gatekeeper REJECT
-  without recording why.
+  without recording why; asking for approval without showing the smoke-set table.
 
 ### `smoke`  *(🚦 go/no-go gate)*
 
