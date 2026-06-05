@@ -175,11 +175,58 @@ package's convention.
 
 ## Verdict
 
-**REJECTED at smoke (NO-GO).** f1001 canary regressed 1→0 via h0009-style convention-bleed
-(14 hallucinated `src_*` models) — a NO-GO on its own — and BOTH targets were inert
-(quickbooks001 byte-identical to baseline, the 3 `stg_quickbooks__*` models never created;
-ana-eng007-medium structurally inapplicable). Net −1 on the 7-task panel (5/7 → 4/7).
-Routing: **conclude REJECTED**. Do not promote to full.
+**REJECTED — cleanly falsified at smoke (NO-GO); no full run.** The smoke deep-dive is the
+evidence of record: a cleanly-falsified hypothesis routes `smoke → conclude` without a `full`
+run. Not promoted; nothing else run.
+
+**Evidence.** Run-dir `runs/ade-bench-h0015-implementation-repair-package-model-coverage/36c1bcd6bbe217fd`.
+Strict audit clean (`summary {clean:7, coverage_missing:0, tainted:0}`, all 7 trials
+`taint_status: clean`, each cell `subagent-trace-manifest` captured>0) → score trusted:
+`stratified_pass_at_1 = 0.5714` (4/7) vs `@baseline` 622bdedac572b479 on the SAME 7 slugs =
+5/7 (0.7143) → **net −1** (one canary lost, zero targets gained).
+
+**Failure mechanism (three independent fronts).**
+1. **quickbooks001 INERT (the bet's whole point).** The 3 `stg_quickbooks__{estimate,
+   refund_receipt,sales_receipt}` models were never created. The committed SQL is
+   byte-identical to `@baseline` — the FO's final report lists exactly one changed file
+   (`models/quickbooks__general_ledger.sql`), no staging models added; the 6 verifier checks
+   still return `Got 1` (the missing-model sentinel). The solver fixed the one visible
+   compile error, built green (`PASS=172`), and stopped — exactly the baseline failure mode.
+   The "copy a concrete local package artifact" framing did NOT transfer from a single
+   in-place column-type cast (h0009 asana002) to a multi-model staging-layer reconstruction.
+2. **f1001 REGRESSED 1→0 by convention-bleed.** On a project with no `src_` source-view
+   layer, the rule made the solver invent 14 spurious `src_*.sql` models and rewrite all 13
+   `stg_f1_dataset__*` to ref them; the project's own guard `src_models_are_correct` now
+   returns `Got 14`. This is the exact h0009 bleed (f1001 was the same full-scale victim),
+   reproduced at smoke scale. A canary regression is a NO-GO on its own.
+3. **ana-eng007-medium INAPPLICABLE.** Its lone failure is a 5-row value gap in an EXISTING
+   model (`dim_products`, `AUTO_dim_products_equality Got 5`); there is no absent
+   package-implied model for the rule to create, so it was a no-op (distance identical to
+   baseline).
+
+**TRANSFERABLE RULE (the load-bearing lesson for the package family).** The asana002 win
+(h0009) is looking like a SPECIAL CASE, not a general "copy package artifacts" mechanism: it
+was a single in-place `::type` cast on a model the solver was ALREADY authoring. The general
+form decomposes into two failure shapes, both seen here:
+- Package-copy that requires **CONSTRUCTING new models** is INERT (quickbooks001) — a single
+  Implementation paragraph cannot make the solver reconstruct a missing multi-model staging
+  layer it otherwise stops short of (the README-prose ceiling, consistent with h0010/h0016).
+- Package-copy that touches the **SOURCE layer** BLEEDS even with same-layer / do-no-harm
+  guards (f1001) — "expose more package-implied models" fires broadly and hallucinates the
+  dbt-package src-layer idiom onto projects that deliberately don't use it.
+
+This is a **yellow flag** for the package-flavored legs still queued:
+- **h0020** (package-type cast) — NARROWEST, closest to the asana002 shape (in-place cast on
+  an existing model), likely the safest of the family.
+- **h0023** (Output-Contract deliverable-set) — bets on BUILDING missing models, i.e. the
+  exact inert leg falsified here; highest risk.
+
+Per conclude-stage guidance, the lever family is showing a meta-pattern (construct-class
+inert, source-touching-class bleeds) but is not yet exhausted (the narrow in-place-cast shape
+is unprobed). I am **NOT auto-filing a follow-up** — deferring the package-family strategy
+call (run h0020, drop h0023, or reframe) to the captain.
+
+Routing: **conclude REJECTED**. Not promoted; no follow-up filed.
 
 ## Stage Report: propose
 
@@ -206,3 +253,16 @@ Forked the @baseline seed solver and added one Implementation-stage rule: on a r
 ### Summary
 
 Smoke is a clean NO-GO. The strict audit was clean (7/7, tainted:0, manifests captured) so the score is trusted: 4/7 vs @baseline's 5/7 on the same slugs = −1 net. The package-copy rule was INERT on its primary target — quickbooks001 is byte-identical to baseline (the solver fixed the one visible compile error, built green at PASS=172, and stopped; the 3 `stg_quickbooks__{estimate,refund_receipt,sales_receipt}` models were never created, so the `*_existence` tests still return `Got 1`). The same rule REGRESSED the f1001 canary by reproducing the exact h0009 convention-bleed: it hallucinated 14 `src_*` source-view models + rewrote all 13 `stg_f1_dataset__*` to ref them on a project that uses no src layer, tripping the project's own `src_models_are_correct` guard (`Got 14`). ana-eng007-medium was structurally inapplicable (failure is a 5-row value gap in an existing model). A canary regression is a NO-GO on its own; with both targets inert there is no offsetting flip. Recommend conclude REJECTED — the README-prose ceiling holds (one Implementation paragraph cannot make the solver reconstruct a missing multi-model staging layer, and it actively damages non-package-convention families).
+
+## Stage Report: conclude
+
+- DONE: Write ## Verdict: REJECTED (cleanly falsified at smoke, no full run) with the full failure mechanism, run-dir, clean strict audit, and stratified_pass_at_1 vs @baseline
+  Rewrote terse smoke-routing Verdict into the authoritative conclude Verdict: run-dir 36c1bcd6bbe217fd, strict audit clean (clean:7 tainted:0), stratified_pass_at_1=0.5714 (4/7) vs @baseline 5/7 = net −1; three-front mechanism (quickbooks001 INERT/byte-identical, f1001 REGRESSED 1→0 via 14 invented src_*, ana-eng007-medium inapplicable).
+- DONE: Record the TRANSFERABLE RULE (asana002 = special case, not general copy-package mechanism) and the yellow flag for queued package legs h0020/h0023
+  Verdict now states: construct-new-models class is INERT, source-touching class BLEEDS; asana002 was a single in-place ::type cast. Flagged h0020 (narrow in-place cast, safest) vs h0023 (builds missing models = the inert leg, highest risk).
+- DONE: Do NOT auto-file a follow-up; defer the package-family strategy call to the captain
+  No follow-up filed; Verdict explicitly defers run-h0020 / drop-h0023 / reframe decision to the captain per conclude-stage exhaustion guidance (family not yet exhausted — narrow cast shape unprobed).
+
+### Summary
+
+Concluded h0015 as REJECTED — cleanly falsified at smoke (NO-GO), no full run; the smoke deep-dive is the evidence of record. Did not rewrite the smoke-authored ## Smoke result / ## Behavioral analysis; only authored the authoritative ## Verdict (replacing the prior terse smoke-routing note) capturing the three-front failure mechanism, the clean-audit-attested score (4/7 vs @baseline 5/7 = net −1, run-dir 36c1bcd6bbe217fd), and the transferable rule that the h0009 asana002 win is a SPECIAL CASE (single in-place ::type cast), not a general copy-package mechanism — construct-new-models is inert, source-touching bleeds. Flagged the package family for the captain (h0020 narrow cast safest, h0023 build-missing-models is the inert leg) and deferred the strategy call rather than auto-filing. Did not promote, run anything, or file a follow-up; FO handles verdict frontmatter + archival.
