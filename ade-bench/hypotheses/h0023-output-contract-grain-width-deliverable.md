@@ -1,7 +1,7 @@
 ---
 id: h0023
 title: Output Contract (new stage) — write each model's grain key-source, ordered column set, per-column types, and complete deliverable set from named local files BEFORE writing SQL (folds in the re-classified ana-eng006 — type-cast, not fan-out)
-status: propose
+status: smoke
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug types 2 width + 3star re-classified-as-type/width + 6 deliverable-set); realizes the new Output Contract stage; merged carrier of two convergent finalize candidates (width + 3star). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
