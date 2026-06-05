@@ -5,8 +5,8 @@ status: conclude
 kind: hypothesis
 source: forked from h0010's failure. h0010 stated the grain-spine fix as a PROSE Implementation rule and it was behaviorally inert (0/4 — solver discussed the spine, even built the CTE for intercom001, but never made the entity the FROM spine in the committed SQL). h0009's only win (asana002) came from copying a CONCRETE local artifact. This re-attempts the SAME grain-spine fix but in concrete, copyable, worked-example form (a generic before/after SQL skeleton with placeholder names) — the decisive test of whether a structural fix can land when made copyable rather than described. Forks the then-current @baseline (re-fork at propose).
 started: 2026-06-05T02:33:17Z
-completed:
-verdict:
+completed: 2026-06-05T06:19:01Z
+verdict: REJECTED
 score:
 worktree:
 ---
