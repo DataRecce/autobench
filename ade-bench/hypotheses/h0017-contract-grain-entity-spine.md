@@ -1,12 +1,12 @@
 ---
 id: h0017
 title: Output Contract — a NEW stage that, before any SQL is written, records each model's grain key-set from the NAMED local relation the existing code/instruction treats as the FROM driver, and copies THAT spine (entity FROM, children LEFT JOINed) — leaving any downstream coalesce/default where it already lives
-status: smoke
+status: conclude
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type 1a - Grain - entity spine (missing parent rows)); realizes the new Output Contract stage. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-05T14:03:33Z
+verdict: REJECTED
 score:
 worktree:
 ---
@@ -271,6 +271,25 @@ the exact analog file + the exact FROM/JOIN line to clone), or conceding the gra
 reachable by README prose at gpt-5.5.
 
 ## Verdict
+
+**REJECTED** — smoke NO-GO; no full run (per `smoke → conclude`, the smoke deep-dive above is the
+evidence of record). 0/4 grain targets flipped (`Got N` unchanged), 5/5 canaries held, clean strict
+audit (run `a498329abd068ab5`). Captain confirmed REJECT 2026-06-05.
+
+The Output Contract stage **reached** the committed SQL (clearing the h0010/h0016 *inert* ceiling) and
+was **safe** (no canary regressed; it fired-and-held on 3 passers), but did **not** fix grain:
+*reached-but-built-backwards* — the solver authored a contract naming the **child** as the grain
+driver and built `from child left join entity` (the inverse of the stage's rule), so partless parents
+still drop. Full artifact-level read in `## Behavioral analysis`.
+
+**Transferable learning:** a new *stage* buys REACH + SAFETY but not EFFICACY by itself; a clause that
+asks the solver to *derive* the contract inherits its wrong defaults — only *copying a concrete named
+local artifact verbatim* has ever flipped a target (asana002). Grain-spine is now **0-for-3** across
+three stages (h0010 prose, h0016 worked-example, h0017 Output-Contract-derive) → the prose/derive
+grain family is **exhausted**. The only untried grain shape is a mechanical "copy the verbatim
+`from X left join Y` line of the named analog" lever; absent that, concede grain-spine is unreachable
+by README prose at gpt-5.5. Recorded in `_artifacts/WORKFLOW-REFINE.md` (Output Contract entry) and
+`_artifacts/bug-type-taxonomy.md`.
 
 ## Stage Report: propose
 
