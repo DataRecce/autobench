@@ -215,10 +215,57 @@ reasserting itself on a cast just as it did on the restructure family (h0010/h00
 
 ## Verdict
 
-**NO-GO at smoke → conclude REJECTED.** Reason: target asana002 did not flip (the prescribed `due_at::timestamp`
-cast never landed on `asana__task.sql`; the solver re-edited the raw `asana.duckdb`/seed layer and stayed at `Got 2`),
-and the load-bearing quickbooks003 canary regressed (14→11). The cast instruction is inert prose at the model layer,
-and the artifact check disproves the premise that h0009's flip came from this cast. Recommended routing: **conclude (REJECTED)**.
+**REJECTED — cleanly falsified at smoke (NO-GO); no full run. Score: 1/3 (`stratified_pass_at_1 = 0.3333`).**
+
+The hypothesis routed `smoke → conclude` without a full run: the smoke deep-dive is the evidence of record. Real
+run-dir: `/home/kent/.local/share/razorback/runs/ade-bench-h0020-implementation-package-type-contract-cast/1ec768e85f5d4579`.
+Strict audit clean (`tainted: 0, clean: 3, coverage_missing: 0`, subagent-trace-manifest `captured: 1` on all 3);
+`stratified_pass_at_1 = 0.3333`. *Methodology aside:* the `--runs-dir runs` flag did not take — results landed in the
+default razorback runs dir, not `ade-bench/runs/`; data is valid and audit/score were run against the real dir.
+
+**Mechanism (from the smoke deep-dive):**
+
+- **asana002 — INERT (NO FLIP, Got 2→2).** The prescribed in-place `due_at::timestamp` cast NEVER landed on
+  `models/asana__task.sql` (read 5×, never patched). The solver instead edited `dbt_project.yml` `+column_types`
+  and ran an `exec_command` python that `ALTER`ed the raw `asana.duckdb` seed tables — its wrong-layer habit, the
+  same layer @baseline hit. `AUTO_asana__task_equality` still `Got 2`. The most concrete, most-favorable in-place-cast
+  prose was inert at the model layer.
+- **f1001 — HELD (PASS 6/6).** The applicability gate effectively worked: f1001 built its OWN local
+  `models/staging/f1_dataset/src_*.sql` + `stg_f1_dataset__*` models with no `fivetran` token and no
+  `src_<dataset>__<entity>` Fivetran rename. No installed `dbt_packages/` staging model feeds f1001, so the lever did
+  not fire and caused no harm — the h0009 convention-bleed victim was protected.
+- **quickbooks003 — REGRESSED 14→11, but NOT from this lever.** The 24 `::timestamp` tokens were pre-existing model
+  code read during exploration, not edits. The regression is orthogonal under-edit/variance on the unrelated
+  `using_department`-removal task: the variant only unwrapped the `{% if var('using_department', True) %}` guards
+  (keeping the `departments` CTE + `department_name` + joins) where @baseline did a SECOND patch fully DELETING the CTE,
+  so 3 models (`int_quickbooks__expenses_union`, `int_quickbooks__sales_union`, `quickbooks__ap_ar_enhanced`) tripped
+  "less columns than solution". The same-layer guard never got a chance to act; the bleed-suppression claim is
+  therefore left untested while the canary still dropped (the smoke gate is outcome-based → NO-GO regardless of cause).
+
+Net: 0/1 target flip + 1/2 load-bearing canaries regressed. The README-prose ceiling reasserts itself on a cast
+exactly as it did on the restructure family (h0010/h0011/h0013/h0016).
+
+**Transferable findings (for the ledger):**
+
+1. **The README-prose ceiling holds even at the most-favorable case.** Even the NARROWEST, most-concrete
+   in-place-cast prose — anchored to a concrete local artifact (the installed `asana_source` staging model) and
+   prescribing a single-column mechanical `::timestamp` cast, the exact edit shape the loop calls its "one landed
+   mechanism" — was INERT. The solver kept its raw-table `ALTER` / seed `+column_types` habit and never edited the
+   model SQL. Anchoring + mechanical-substitution framing did NOT pull the edit to the model layer. The "tell the
+   solver how to build it in prose" approach is exhausted for cast-shaped edits too, not just restructures.
+
+2. **The asana002 "one win" is now IN DOUBT.** h0020's evidence — the solver's natural path leaves Got 2 even when
+   explicitly told to cast the model column — strongly suggests h0009's asana002 FAIL→PASS flip did NOT come from a
+   model-SQL `::timestamp` cast on `asana__task.sql`. It may have been run-to-run variance or a different edit
+   (a raw-data shape change that happened to clear the mismatch). **FLAG:** the "a mechanical in-place edit is the one
+   thing that lands" thesis — which h0023's type leg and other downstream bets lean on — needs the h0009 asana002
+   artifact (its committed `apply_patch` payload / run-dir) RE-READ before it is trusted. If h0009's flip was not a
+   model-SQL cast, the loop currently has ZERO confirmed README-lever flips.
+
+**No follow-up filed.** Per the conclude stage's "do not reflexively file when the evidence says the lever family is
+exhausted": both findings point at a meta-pattern (prose-driven model-layer edits are inert) and a foundational
+audit need (re-read the h0009 asana002 artifact). These are strategy calls — surfaced here for the captain rather than
+auto-filed as another doomed variant. No promote, no full run, no follow-up `h<NNNN>` created.
 
 ## Stage Report: propose
 
@@ -258,3 +305,16 @@ Per the captain's revision at the propose gate, the smoke panel was trimmed from
 ### Summary
 
 Smoke is a clean-audited NO-GO: 0/1 target flip and 1/2 load-bearing canaries regressed. The artifact check is the load-bearing finding — the prescribed `due_at::timestamp` cast never landed on `models/asana__task.sql`; the solver re-edited the raw `asana.duckdb`/seed `+column_types` layer (the @baseline path) and stayed at `Got 2`. This both shows the cast lever is inert prose at the model layer and disproves the premise that h0009's asana002 flip came from this cast. quickbooks003 regressed for an orthogonal reason (an under-edit on the using_department task, not a lever bleed), so the bleed-suppression claim is left untested while the canary still dropped. Methodology aside: the `--runs-dir runs` flag did not take, so results landed in the default razorback runs dir; data valid, audit+score run there. Recommend conclude (REJECTED).
+
+## Stage Report: conclude
+
+- DONE: Write ## Verdict: REJECTED (cleanly falsified at smoke, no full run; 1/3)
+  Replaced ## Verdict with full conclude verdict; mechanism (asana002 INERT cast never landed on asana__task.sql; f1001 HELD; quickbooks003 REGRESSED 14→11 from orthogonal under-edit not the lever); cites real run-dir .../1ec768e85f5d4579, clean strict audit (clean:3 tainted:0), stratified_pass_at_1=0.3333; --runs-dir methodology aside recorded.
+- DONE: Record the TWO transferable findings
+  (a) README-prose ceiling holds even at the most-favorable case — narrowest concrete in-place-cast prose was inert, solver kept raw-table ALTER habit, never edited model SQL. (b) asana002 "one win" now IN DOUBT — h0009's flip may not have been a model-SQL ::timestamp cast; FLAGGED that the "mechanical in-place edit lands" thesis (h0023 type leg + others) needs the h0009 asana002 artifact re-read before trusted.
+- DONE: Do NOT auto-file a follow-up; defer the strategy call to the captain
+  No follow-up h<NNNN> filed; both findings surfaced to the captain as a strategy/audit decision per the conclude "do not reflexively file when the family is exhausted" rule. No promote, no full run.
+
+### Summary
+
+Concluded h0020 as REJECTED — cleanly falsified at the smoke NO-GO gate (1/3, no full run). The Smoke result and Behavioral analysis (smoke ensign, commit 1fcfe12) were left intact; only the ## Verdict section was replaced with the full conclude verdict. Two transferable findings recorded: the README-prose ceiling holds even for the narrowest most-concrete in-place cast (the solver never edited the model SQL, keeping its raw-table ALTER habit), and h0009's asana002 "one win" is now in doubt — flagged that the "mechanical in-place edit lands" thesis needs the h0009 artifact re-read before downstream bets (h0023 type leg) trust it. No follow-up filed; strategy call deferred to the captain. FO handles verdict frontmatter + archival.
