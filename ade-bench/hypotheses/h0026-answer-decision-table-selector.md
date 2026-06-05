@@ -103,7 +103,7 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). 
 | G5 both frozen | PASS | `h0026….frozen.yaml` and `…smoke.frozen.yaml` both present; both carry `kind: spacedock_solver` + `runtime: codex`; smoke frozen lists the 6 tasks. |
 | G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim: N>=3 candidates, each a per-option decision table (label / local relation / exact local check / IN-OUT / one-line reason / mechanically transcribed answer), selector scores by completeness / local support / no contradiction / exact transcription, rejects prose-plausible candidates even when dbt builds. Generative-or-independent (selection against independent local checks), not the inert self-anchored "re-run your own model" family. |
 | G7 actionability/inert-risk | WARN | Protocol is mechanically expressible (produce a fixed-column table per option; score by enumerable criteria) — not a FROM/spine/grain SQL rewrite, so lower inert-risk than h0010-class structural prose. Inert-risk note: the multi-candidate selection step has no worked-example skeleton; whether gpt-5.5/xhigh actually runs N independent candidates and a comparison rather than narrating one is unproven and is exactly what smoke must verify (check the committed answer + saved tables, not the transcript). |
-| G8 regression-canary coverage | PASS | Instruction is **gated** (fires only on answer-style tasks), but smoke carries a full cross-family canary panel anyway to prove the gate stays OFF elsewhere: f1007 (f1), airbnb001, ana-eng001, asana001, quickbooks002 — each an `@baseline` PASS (reward=1.0) from a non-target family. Intercom omitted: `@baseline` has zero intercom passers (intercom001/002/003 all reward=0.0), documented in-spec. |
+| G8 regression-canary coverage | PASS | Instruction is **gated** (fires only on answer-style tasks), so a full cross-family panel is not required; the smoke carries a trimmed 2-canary gate-off sample to prove the gate stays OFF: f1007 (f1 — closest family to the target) and asana001 (asana — structurally distant family), each an `@baseline` PASS (reward=1.0) from a non-target family. Panel trimmed at captain direction from 5 canaries to 2 (dropped airbnb001, ana-eng001, quickbooks002). Intercom omitted: `@baseline` has zero intercom passers (intercom001/002/003 all reward=0.0), documented in-spec. |
 
 **For the captain:** Two WARNs, no FAILs → APPROVE. (1) G1 — confirm the new `## Protocol:` block shape is the intended form for a protocol-family hypothesis (the guideline's "exactly one `## Stage:`" wording predates the selector family). (2) G7 — this is the family's first smoke; verify the flip by inspecting f1011's committed answer string + the saved candidate decision tables, not the solver chatter, and confirm the 5 canaries stay PASS (gate-off proof). A canary drop is NO-GO even if f1011 flips.
 
@@ -135,3 +135,11 @@ in-spec and in the proposal). Both specs frozen. Gatekeeper applied directly (no
 in this runtime): **APPROVE** with two WARNs — G1 (new `## Protocol:` block rather than a
 `## Stage:` edit, the expected shape for a protocol-family hypothesis) and G7 (first smoke for
 this family; verify the flip from the committed answer + saved tables, not the transcript).
+
+**Update (captain revision before gate):** smoke canary panel trimmed from 5 to 2. Since the
+lever is gated to answer-style tasks, a full cross-family panel is unnecessary with a single
+flip target; the smoke now carries exactly 3 tasks — `ade-bench-f1011` (target), `ade-bench-f1007`
+(f1 — closest gate-off tripwire), `ade-bench-asana001` (asana — distant-family gate-leakage
+tripwire). Dropped airbnb001, ana-eng001, quickbooks002. Smoke spec comment block updated, smoke
+spec re-frozen (full spec unchanged, not re-frozen), G8 gatekeeper row updated to reflect the
+trimmed panel (still PASS). ETA: 3 tasks × ~9 min ≈ 27 min.
