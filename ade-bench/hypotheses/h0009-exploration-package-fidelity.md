@@ -101,6 +101,37 @@ Run dir: `runs/ade-bench-h0009-exploration-package-fidelity/13ecf093adb674c2`.
 
 ## Run result
 
+**Full run.** `runs/ade-bench-h0009-exploration-package-fidelity/1026ae344528e6eb`
+(48/48 completed, 0 errored). `@baseline` = `runs/ade-bench-baseline/622bdedac572b479`
+(31/48 = 0.6458).
+
+**Audit + score (same run-dir).** `rk audit … --policy strict`: CLEAN —
+`{clean: 48, tainted: 0, coverage_missing: 0}` (verified by team-lead). `rk score`:
+`stratified_pass_at_1 = 0.625` (30/48), Wilson CI [0.4836, 0.7478]; `against_constant`
+verdict `above` the 0.1875 floor.
+
+**Paired delta vs `@baseline`.** The CLI `rk runs diff` cannot run on these two run-dirs
+— ade-bench outcomes carry `query_id: null` (tasks key on `trial_name`, not `query_id`),
+so `diff/pairing.py:22` raises `TypeError: int() argument … not 'NoneType'`. This is a
+harness data-shape limitation, not a run defect (the strict audit on the same run-dir is
+clean). I computed the paired delta directly from `per_trial_outcomes.json`, pairing by
+task slug (suffix-stripped), with a 10k paired bootstrap (seed 0) matching `compute_diff`:
+
+| metric | value |
+|--------|-------|
+| paired n | 48 (full overlap, no unmatched tasks either side) |
+| baseline pass@1 | 0.6458 (31/48) |
+| h0009 pass@1 | **0.6250 (30/48)** |
+| **delta (h0009 − baseline)** | **−0.0208 (NET −1 task)** |
+| paired bootstrap 95% CI on delta | **[−0.1042, +0.0625]** (straddles 0) |
+| McNemar exact two-sided p (5 discordant: 2 gain / 3 regress) | **1.0000** |
+
+FAIL→PASS gains (2): `asana002`, `f1011`. PASS→FAIL regressions (3): `f1001`,
+`f1006-hard`, `quickbooks003`. **NET −1 / below baseline.** The delta is negative, its CI
+straddles zero, and p=1.0 — h0009 does **NOT** clear the promotion tripwire (CI does not
+exclude a regression; absolute score 0.625 < @baseline 0.6458). The change is statistically
+indistinguishable from noise in aggregate while costing one net task.
+
 ## Behavioral analysis
 
 Captain-requested deep-dive on the smoke run (`13ecf093adb674c2`), comparing each cell's
@@ -158,7 +189,100 @@ actively authoring it (`asana002` hit both; the others each missed one). Net eff
 full 48 is expected to be small. The higher-leverage finding is h0010 (grain spine, 4
 candidate flips from one rule).
 
+### Full-run deep-dive (1026ae344528e6eb vs @baseline)
+
+The smoke read predicted "narrow gain, small net." The full run is **worse than that — NET
+−1**: 2 gains, 3 regressions. The decisive new evidence is the **3 regressions, all on
+non-target tasks** that the smoke set could not see. The same instruction that helped on the
+one task with a clean package analog (`asana002`) caused **convention bleed** on three tasks
+where "match the package" was the wrong move.
+
+**The 3 regressions — each a distinct over-modification driven by the instruction:**
+
+1. **`f1001` (1→0): renamed source models to a package-style grain the hidden tests reject.**
+   Baseline built `src_circuits`, `src_constructor_results`, … — the exact names the hidden
+   structural tests check (`src_models_are_correct`, `stg_models_use_src_models`,
+   `stg_races_uses_correct_sources`); 6/6 PASS. h0009 renamed them to
+   `src_f1_dataset__circuits`, `src_f1_dataset__constructor_results`, … — a **Fivetran
+   `src_<dataset>__<entity>` naming convention**. f1 is **not** a Fivetran package; there is
+   no package to reproduce. The rename broke `src_models_are_correct` (compile error:
+   `'dict object' has no attribute 'model.f1.src_circuits'`) plus the two
+   `stg_*_uses_correct_sources` ref-checks → 4/6 fail. Pure convention bleed: the instruction
+   ("reproduce the package's … grain / column set / naming") was applied to a project with no
+   package, manufacturing a divergence from a previously-correct, test-shaped naming.
+
+2. **`quickbooks003` (1→0): trimmed columns to match the package staging contract, dropping
+   columns the solution requires.** Baseline 14/14 PASS. h0009 11/14 — the 3 failures are
+   equality compile-errors: `int_quickbooks__expenses_union`, `int_quickbooks__sales_union`,
+   and `quickbooks__ap_ar_enhanced` each "**has less columns than** solution__…". The
+   instruction told the solver to "reproduce the package's … output column set"; here the
+   installed `quickbooks_source` package defines the *staging* contract, and the solver
+   shaped its *intermediate/final* models to that narrower staging column set rather than the
+   wider set the task's solution defines. The package fidelity pull actively *removed*
+   columns that baseline had kept. This is the mirror image of the asana002 win — there,
+   copying the package contract added the right columns; here, copying it dropped the right
+   columns.
+
+3. **`f1006-hard` (1→0): value-level divergence, weakly attributable.** Baseline 4/4 PASS;
+   h0009 fails `AUTO_constructor_points_equality` with `Got 2` (2 rows differ), the other 3
+   pass. No package analog on f1 (formula1, not Fivetran), so the mechanism is not
+   package-contract bleed; this is a 2-row value drift on a "-hard" task. Best read as
+   run-to-run instability rather than a clean causal effect of the instruction — but it lands
+   on the regression side of the ledger regardless, and a method change whose *net* sign is
+   negative cannot lean on "one of the three regressions might be noise."
+
+**The 2 gains:**
+
+- **`asana002` (0→1): causal, package-fidelity win (same as smoke).** The ensign read the
+  installed `asana_source` Fivetran package and corrected source column **types** to match
+  its macros (`remaining_mismatches = 0`); 3/3 hidden tests PASS incl.
+  `AUTO_asana002…_equality`. This is the one task where a package analog existed AND the
+  solver was authoring the matching model — the lever working as designed.
+- **`f1011` (0→1): incidental, NOT attributable to the instruction.** f1011 is a formula1
+  task with no Fivetran package present, so the package-fidelity instruction had nothing to
+  act on. The 6 option-check tests now pass where baseline failed. Most parsimoniously
+  run-to-run variation, not a package-fidelity effect — symmetric to the `f1006-hard` noise
+  on the loss side.
+
+**Smoke-set blind spot (the load-bearing finding).** The smoke set was the targeted Fivetran
+cluster + an asana sentinel: `intercom001, intercom003, asana002, asana004, asana005,
+quickbooks001, asana001`. **None of the 3 regressed tasks (`f1001`, `f1006-hard`,
+`quickbooks003`) were in it.** Two of them are f1 tasks — exactly the population the smoke
+set excluded by design. So the smoke gate was structurally incapable of catching the
+dominant failure mode (convention bleed onto non-package projects), and the GO→full
+recommendation was sound on the evidence it had but blind to the collateral. A
+targets-only smoke set systematically under-samples the regressions a *generative*
+instruction can cause everywhere it fires.
+
 ## Verdict
+
+**REJECTED — do NOT promote. `@baseline` stays `622bdedac572b479` (31/48 = 0.6458).**
+
+Package-fidelity as a single Exploration instruction is **NET-NEGATIVE at full scale**:
+30/48 (0.625) vs @baseline 31/48 (0.6458), delta **−0.0208**, paired bootstrap 95% CI
+**[−0.1042, +0.0625]** (straddles 0), McNemar exact p **1.0000**. The change does not clear
+the promotion tripwire (CI does not exclude a regression; absolute score below baseline) on
+a clean strict audit ({clean:48, tainted:0}).
+
+The hypothesis is **falsified as written**. The mechanism is real but **double-edged**: the
+exact instruction that lets the solver copy a package's column contract when a clean analog
+exists (`asana002`, the one causal win) also drives it to copy package conventions where
+they don't belong — manufacturing regressions via **convention bleed**:
+- `f1001`: applied Fivetran `src_<dataset>__<entity>` naming to a non-Fivetran f1 project,
+  breaking the hidden structural tests that expect plain `src_<entity>` names (6/6 → 2/6).
+- `quickbooks003`: shaped intermediate/final models to the package's narrower *staging*
+  column set, dropping columns the solution requires ("has less columns than solution__…",
+  14/14 → 11/14).
+- `f1006-hard`: 2-row value drift, weakly attributable / likely noise — but on the loss side.
+
+The narrow gain (one task with a clean package analog the solver was authoring) does **not**
+outweigh the collateral. A generative Exploration instruction fires on *every* task, so its
+blast radius includes the non-package majority where "reproduce the package" is actively
+harmful — and the targets-only smoke set could not see this (none of the 3 regressions were
+in it; two are f1 tasks the smoke set excluded by design). The higher-leverage,
+non-conflated direction surfaced here is **h0010** (grain-spine construction rule — build
+one-row-per-entity models FROM the entity table, LEFT JOIN children), which targets the
+shared root cause of the still-failing Fivetran cluster without the package-convention bleed.
 
 ## Stage Report: propose
 
@@ -229,3 +353,16 @@ Forked the current @baseline solver (codex-ade-dbt-minimal, 622bdedac572b479) in
 ### Summary
 
 Smoke ran cleanly on all 7 targets (strict audit clean, 0 errored). One Fivetran target (asana002) flipped FAIL→PASS and the sentinel (asana001) held, giving a GO signal. The flip is causally tied to the Exploration change: the asana002 worker read the installed Fivetran `asana_source` package and reproduced its column contract rather than hand-rolling. Still-failing cells (intercom001, quickbooks001) show the instruction was reached but residual grain/value divergence remains — worth a full run to measure net effect vs @baseline. Gate recommendation: GO → full.
+
+## Stage Report: analyze
+
+- DONE: Paste the paired `rk runs diff @baseline <h0009-full-run>` delta (CIs, adjusted p) + absolute stratified_pass_at_1 (0.625, 30/48) vs @baseline (0.6458, 31/48) into ## Run result; state plainly it is NET -1 / below baseline / does NOT clear the promotion tripwire. Audit verified CLEAN.
+  `rk runs diff` CLI crashes on ade-bench (query_id:null → TypeError in pairing.py:22); computed paired delta directly from per_trial_outcomes.json (slug-paired, 10k bootstrap seed 0): delta -0.0208, 95% CI [-0.1042, +0.0625] (straddles 0), McNemar p=1.0; 30/48 vs 31/48 = NET -1, below baseline, does NOT clear tripwire. Strict audit CLEAN {clean:48, tainted:0} (team-lead).
+- DONE: Behavioral deep-dive — the 3 REGRESSIONS. For each PASS->FAIL read h0009 vs @baseline verifier/test-stdout + explain WHY package-fidelity broke a passing task. Confirm the 2 gains; note the smoke-set blind spot.
+  f1001: convention bleed — renamed sources to Fivetran `src_<dataset>__<entity>` on a non-Fivetran f1 project, broke hidden structural tests (6/6→2/6). quickbooks003: trimmed cols to package staging contract ("has less columns than solution__", 14/14→11/14). f1006-hard: 2-row value drift, likely noise. Gains: asana002 (causal type-contract match, 3/3) + f1011 (incidental, no package present). All 3 regressions absent from the 7-task smoke set (2 are f1 tasks the smoke set excluded) → smoke structurally blind.
+- DONE: Write verdict-bearing learnings into the entity (## Behavioral analysis / ## Verdict): package-fidelity is NET-NEGATIVE at full scale; recommend conclude REJECTED, do NOT promote (@baseline stays 622bdedac572b479).
+  Wrote Full-run deep-dive subsection + Verdict (REJECTED, NET-NEGATIVE, convention-bleed mechanism, h0010 as the non-conflated successor). @baseline stays 622bdedac572b479.
+
+### Summary
+
+h0009 full run (1026ae344528e6eb, clean strict audit) scores 0.625 (30/48) vs @baseline 0.6458 (31/48): NET -1, paired delta -0.0208, CI [-0.1042, +0.0625] straddling zero, McNemar p=1.0 — does NOT clear the promotion tripwire. The decisive finding is the 3 regressions, all on tasks the targeted smoke set could not see: the generative package-fidelity instruction caused convention bleed (f1001 Fivetran-style source renaming on a non-Fivetran project; quickbooks003 column-trimming to the package staging contract) while delivering only one causal gain (asana002). Verdict: REJECTED, do NOT promote; @baseline stays 622bdedac572b479. h0010 (grain-spine construction rule) is the non-conflated successor.
