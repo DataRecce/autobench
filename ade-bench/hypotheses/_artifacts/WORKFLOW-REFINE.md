@@ -78,6 +78,13 @@ or a dispatched worker, never a direct first-officer edit.
   selector), **h0027** (do-no-harm-selector). Each must show *how its selection criterion escapes
   self-anchoring* (independent falsifier / forced candidate divergence) before it earns a full
   run — otherwise it likely repeats h0026.
+- **Encoded (2026-06-05, captain direction):** this learning is now a **propose-gate rule — G9
+  "Selector independence"** in `_gatekeeper/propose-review-guideline.md`: any multi-candidate /
+  selector protocol is screened BEFORE smoke on two axes — (a) *generation independence* (the
+  single-session harness cannot supply N independent candidates; require isolation or forced
+  divergence) and (b) *judgment independence* (no selection criterion may be anchored solely to
+  the candidate's own checks; require an external falsifier). h0026 would have FAILed both axes
+  at propose — the "fake-independence selector" is now caught without spending a smoke run.
 - **Evidence:** `_archive/h0026-answer-decision-table-selector.md` (`## Smoke result`,
   `## Behavioral analysis`, `## Verdict`); run `a01f97caf6d6462e`. MEMORY:
   `ade-bench-validation-self-anchored-false-green`, `ade-bench-solver-blind-to-oracle`.
