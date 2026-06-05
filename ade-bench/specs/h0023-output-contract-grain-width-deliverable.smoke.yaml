@@ -1,0 +1,55 @@
+version: 1
+experiment: ade-bench-h0023-output-contract-grain-width-deliverable # variants: ade-bench-h0001-<slug>
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/h0023-output-contract-grain-width-deliverable # variants repoint to ./solver_workflows/h<NNNN>-<slug>
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+  override_timeout_sec: 2400
+  max_timeout_sec: 2400
+  reasoning_effort: xhigh # held constant across all hypotheses
+  tools_allowed: []
+  tools_denied: []
+benchmark:
+  kind: harbor
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+  # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
+  # baseline / first run: skip smoke, run full directly.
+  tasks: # GENERATIVE lever (fires on every author/restructure task) => 10-task set: 4 targets + G8 cross-family regression-canary panel; ade-bench- prefixed (bare slugs rejected by rk run)
+    # --- 4 targets (all FAIL @baseline 622bdedac572b479; want to flip ≥1 of the locally-derivable legs) ---
+    - ade-bench-asana004         # TARGET — grain (load-bearing copy-and-repoint flip; int_asana__project_user_agg reproduces un-narrowed CTE key set, asana__project repoints ref)
+    - ade-bench-quickbooks001    # TARGET — deliverable set (derivable:yes; three missing stg_quickbooks__* models templated by installed dbt_packages/quickbooks_source)
+    - ade-bench-ana-eng004       # TARGET — width/type-2 representative (contract locally derivable to 22 cols; two oracle-only deltas cap a full flip — do-no-harm/derive-not-pad case)
+    - ade-bench-ana-eng006       # TARGET — re-classified TYPES + COLUMN-SET (in-place DATE cast on transaction_created_date is the live lever; dim_products/obt_product_inventory width gaps not locally derivable)
+    # --- G8 cross-family regression canaries (all PASS=1.0 @baseline; must stay PASS) ---
+    - ade-bench-airbnb001        # canary (airbnb family)
+    - ade-bench-ana-eng001       # canary (ana-eng family)
+    - ade-bench-asana001         # canary (asana family)
+    - ade-bench-f1007            # canary (f1 family)
+    - ade-bench-quickbooks002    # canary (quickbooks family)
+    - ade-bench-f1001            # canary — non-package convention-bleed sentinel (the exact task the h0009 ungated package-fidelity rule regressed)
+    # intercom supplies NO canary: intercom001/002/003 all FAIL @baseline, so the family has no passer (G8 should not expect one).
+trials: 1 # one trial per task — applies to BOTH smoke and full
+concurrency:
+  trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
+            # task identity on the harbor path), so concurrent stage commits race on
+            # `git HEAD` ("cannot lock ref 'HEAD'"). 1 = no concurrent commits.
+observers:
+  - kind: jsonl
+    path: events.jsonl
+  - kind: stdout
+experiment_meta:
+  # max_budget_usd deferred — first loops run on a flat OpenAI subscription, not metered API.
+  paper_baseline:
+    name: pass_rate # ade-bench is scored by simple pass rate = #pass / #total
+    value: 0.1875   # 9/48 — initial spacedock baseline. rk score compares its stratified_pass_at_1,
+                    # which for ade-bench's single Harbor dataset (one stratum) equals #pass/#total.
+provenance:
+  pin_model_version: false
+  pin_image_digest: false

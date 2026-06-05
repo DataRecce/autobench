@@ -194,6 +194,38 @@ and is a NO-GO regardless of target flips.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — single new `## Stage: Output Contract` inserted between
+Exploration and Implementation (byte-identical to h0017's block and to the
+concept's proposed block); leak-guard intact; full spec differs only in
+`experiment:`+`solver_workflow:`; smoke adds only `benchmark.tasks` carrying all 4
+targets + a full cross-family canary panel (incl the f1001 convention-bleed sentinel);
+both frozen with `spacedock_solver`/`codex` preserved.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). Reviewed 2026-06-05T00:00:00Z.
+
+Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; `@baseline`
+run `622bdedac572b479` resolves to the same dir (31/48 = 0.6458). G1/G6 diffed against it.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff codex-ade-dbt-minimal/README.md h0023/README.md` = one contiguous insert `49a50,139`; exactly one new `## Stage: Output Contract` block between Exploration (ends "…before making project changes.") and Implementation; no other stage or guardrail prose touched. |
+| G2 leak-guard intact | PASS | README lines 1-32 (no-external-fetch + dependency/package guardrails) byte-identical to parent (`diff` empty); grep of added lines 50-139 for `curl/wget/git clone/git ls-remote/AUTO_/solution__/check_*/verifier/equality test/has less columns/expected output seed/self-re-run/drive-to-zero` = none. Stage references only local artifacts (project yml/`*.yml`, `sources.yml`, seeds, siblings, upstream relations, `dbt_packages/`, broken `ref()` graph, instruction). |
+| G3 spec two fields | PASS | `diff baseline.yaml h0023…yaml` = only line 2 `experiment:` + line 11 `solver_workflow:`; `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` unchanged. |
+| G4 smoke tasks-only | PASS | `diff h0023…yaml h0023…smoke.yaml` = only an added `benchmark.tasks:` block (`23a24,37`); all slugs `ade-bench-` prefixed; carries every target the `## Hypothesis` names (asana004, quickbooks001, ana-eng004, ana-eng006). Sentinel/canary present (asana001 + panel) so no WARN. |
+| G5 both frozen | PASS | `h0023…frozen.yaml` and `h0023…smoke.frozen.yaml` both written by `rk freeze`; both carry `kind: spacedock_solver` + `runtime: codex`; smoke frozen lists exactly 10 `ade-bench-` tasks. |
+| G6 resolver fidelity | PASS | Inserted text = the concept's proposed Output-Contract block verbatim (grain key-source / ordered columns / per-column types / deliverable set, then "build to satisfy the written contract" as the Implementation acceptance gate) — matches the Falsifiable claim's four clauses + the two guards + worked derivation. Generative/independent (derive-from-local-artifacts), NOT self-anchored re-run-your-own-output (no dead-family phrasing present). |
+| G7 actionability/inert-risk | WARN | Mixed shape. The grain leg is framed as a concrete copy-and-repoint mechanical edit and ships a fully-worked asana004 SQL-level derivation (the asana002-class substitution form that landed) — low inert-risk. But the four-clause contract is partly abstract prose ("write the contract down", derive columns/types) of the h0010/h0013/h0016 "talks but doesn't do" family that has been inert at gpt-5.5/`xhigh`. Inert-risk is real; the smoke go/no-go MUST verify the committed SQL + unchanged `Got N` distance, not the transcript (per AC-3 / the future-scope inert-detector). |
+| G8 regression-canary coverage | PASS | Generative (fires on every author/restructure task) → panel required. Smoke carries ≥1 `@baseline` passer per non-target family: airbnb001 (airbnb), ana-eng001 (ana-eng), asana001 (asana), f1007 + f1001 (f1), quickbooks002 (quickbooks) — all reward=1.0 in `622bdedac572b479/per_trial_outcomes.json`. intercom supplies no passer (intercom001/002/003 all FAIL) so no intercom canary is possible — correctly noted, not a gap. f1001 is the non-package convention-bleed sentinel (the exact task h0009 regressed). |
+
+**For the captain:** No FAILs (7 PASS, 1 WARN). The lone WARN is G7 inert-risk on the abstract
+contract-derivation clauses — the same ceiling h0010/h0013/h0016 hit. The hypothesis already
+scopes this honestly: load-bearing flips are the locally-derivable legs (asana004 grain copy-
+and-repoint, quickbooks001 deliverable set), while ana-eng004 width and the exact ana-eng006
+deltas sit at the blind-to-oracle ceiling and are NOT flip claims. Enforce the AC-3 discipline
+at smoke: verify the committed SQL (asana004 `int_asana__project_user_agg` reproduces the
+un-narrowed CTE key set; quickbooks001 three `stg_quickbooks__*` actually BUILT; ana-eng006
+in-place `DATE` cast applied) and the unchanged `Got N` distance before crediting any flip, and
+watch f1001 for convention bleed (an f1001 regression is a NO-GO regardless of target flips).
+
 ## Smoke result
 
 ## Run result
@@ -201,3 +233,16 @@ and is a NO-GO regardless of target flips.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: README diff vs parent = exactly ONE new `## Stage: Output Contract` block inserted between Exploration and Implementation; leak-guard + all other stages byte-identical; FULL spec differs from baseline ONLY in `experiment:` + `solver_workflow:`.
+  `diff codex-ade-dbt-minimal/README.md h0023/README.md` = single contiguous insert `49a50,139`; `diff h0017/README.md h0023/README.md` = empty (byte-identical block); README lines 1-32 byte-identical to parent; `diff baseline.yaml h0023…yaml` = only line 2 + line 11.
+- DONE: Generative lever — smoke `benchmark.tasks` carries the 4 targets + the G8 cross-family canary panel incl f1001; both specs frozen with `agent.kind=spacedock_solver` and `runtime=codex` preserved.
+  Smoke = asana004/quickbooks001/ana-eng004/ana-eng006 (all reward=0.0 @baseline) + airbnb001/ana-eng001/asana001/f1007/quickbooks002/f1001 (all reward=1.0 @baseline 622bdedac572b479); both `*.frozen.yaml` retain `spacedock_solver`/`codex`; frozen smoke lists exactly 10 `ade-bench-` tasks.
+- DONE: Gatekeeper run; `## Gatekeeper review` block written (per-rule PASS/WARN/FAIL + overall APPROVE) per `_gatekeeper/propose-review-guideline.md`, G7 + G8 explicitly addressed; ALL commits pathspec-scoped (no bare/`-a` commits).
+  7 PASS / 1 WARN (G7 inert-risk on the abstract contract-derivation clauses) → overall APPROVE; G8 PASS (full panel, intercom correctly has no passer); commit used explicit pathspec, excluded shared `specs/provenance.yaml`.
+
+### Summary
+
+Authored the propose artifacts for h0023 (Output Contract carrier for WIDTH #2, the re-classified 3star ana-eng006 as TYPES+COLUMN-SET, and DELIVERABLE-SET #6). Forked `codex-ade-dbt-minimal` and inserted the verbatim Output-Contract stage block (byte-identical to h0017's); the two specs differ from baseline only in the two allowed fields, smoke adds the 10-task panel (4 targets + 6 canaries incl the f1001 convention-bleed sentinel), and both froze cleanly with the solver kind/runtime preserved. Gatekeeper recommends APPROVE with one WARN: G7 flags the same inert-risk ceiling h0010/h0013/h0016 hit on the abstract contract clauses — the smoke go/no-go must verify the committed SQL and unchanged `Got N` distance, not the transcript, and treat an f1001 regression as a NO-GO.
