@@ -1,12 +1,12 @@
 ---
 id: h0026
 title: Answer Decision Table Selector -- run multiple answer candidates and choose by per-option local-check completeness plus mechanical answer transcription
-status: smoke
+status: conclude
 kind: hypothesis
 source: concept-candidate-selector-contract-scorer fan-out; tests the answer-task selector design, not another answer-task README rule. Forks the current @baseline solver protocol only as a declared protocol-family variant.
 started: 2026-06-05T09:42:10Z
-completed:
-verdict:
+completed: 2026-06-05T13:34:38Z
+verdict: REJECTED
 score:
 worktree:
 ---
