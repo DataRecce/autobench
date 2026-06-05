@@ -82,14 +82,25 @@ or a dispatched worker, never a direct first-officer edit.
   `## Behavioral analysis`, `## Verdict`); run `a01f97caf6d6462e`. MEMORY:
   `ade-bench-validation-self-anchored-false-green`, `ade-bench-solver-blind-to-oracle`.
 
-### Output Contract: a new derivation stage before any SQL (h0017 smoke NO-GO; h0023 pending, 2026-06-05)
+### Output Contract: a new derivation stage before any SQL (h0017 + h0023 both NO-GO, 2026-06-05)
 - **Layer:** solver workflow
 - **Refinement type:** new stage — a derivation stage *between Exploration and Implementation*
   that records each model's grain key-source, ordered column set, per-column types, and the
   complete deliverable set from **named local artifacts** before any SQL is written.
-- **What is being tried:** concept `concept-contract-first-derivation-stage`, realized by
-  **h0017** (grain entity spine — smoke done, NO-GO), **h0023** (grain/width/deliverable — smoke
-  queued), and **h0022** (answer decision table — not yet dispatched).
+- **What was tried:** concept `concept-contract-first-derivation-stage`, realized by
+  **h0017** (grain entity spine — NO-GO), **h0023** (grain/width/deliverable — NO-GO), and
+  **h0022** (answer decision table — not yet dispatched).
+
+- **Finding (h0023 smoke, ADDED — run `e018ce3babecc3dc`, 9 tasks = 3 targets + 6 canaries incl
+  f1001 convention-bleed sentinel):** automatic NO-GO: **f1001 canary REGRESSED** (was PASS 6/6
+  @baseline; smoke 2/6 — `stg_models_use_src_models Got 11`, `stg_races_uses_correct_sources Got 1`,
+  `stg_results_uses_correct_sources Got 1`). All 3 targets inert (Got N unchanged:
+  quickbooks001 Got 1, ana-eng006 Got 204, ana-eng004 FAIL). The **deliverable-set clause** caused
+  the f1 solver to create package-style staging models on a task (f1001) that does not use them —
+  convention-bleed from the clause's "resolve ref() graph + create missing models" pattern applied
+  too broadly. The *same-thing-same-shape* guard was insufficient to contain it. The copy-shaped
+  thesis is inconclusive — neither quickbooks001 (copy missing stg_ models) nor ana-eng006 (DATE
+  cast) executed; f1001's regression was the only behavioral signal.
 - **Finding (h0017 smoke; 9 tasks = 4 grain targets + 5 cross-family canaries; clean audit
   `tainted:0`, `captured=1`/cell; run `a498329abd068ab5`).** Judge the new stage on three axes:
   - **REACH — it works (the headline).** The stage is NOT inert: it fired on **7/9** cells and
@@ -109,29 +120,34 @@ or a dispatched worker, never a direct first-officer edit.
     *"driven by active conversation part rows"* — naming the child IS the bug. It did not copy the
     correct spine from the same-domain analog (`int_intercom__conversation_part_aggregates`) that
     shipped in the workspace; it re-derived and inverted.
-- **Learning:** **a new stage buys REACH + SAFETY but not EFFICACY by itself — efficacy is
-  bottlenecked by COPY-vs-DERIVE.** A *derive/write-the-contract* clause inherits the solver's
-  wrong defaults (here, child-as-grain); the only mechanism that has ever flipped a target
-  (asana002 under h0009) is **copying a concrete local artifact verbatim**. Relocating a *derive*
-  lever to an earlier stage does not escape the ceiling — the solver fills the earlier slot with
-  the same default. **Refine the stage's clauses from DERIVE → COPY** (e.g. grain clause: "copy
-  the exact `from X left join Y` line of the named analog verbatim; never re-author the join
-  direction"), and require the contract block to **cite the source file+line** each element was
-  copied from (force copy-not-invent; make inversion detectable). Prediction this sets up for
-  **h0023**: its *copy-shaped* legs (quickbooks001 = copy the 3 package-defined missing models;
-  ana-eng006 = copy the `DATE` cast) should fare better than its *derive/blind* leg (ana-eng004
-  pure width, decisive columns only in the hidden seed).
-- **Bears on:** **h0023** (the decisive copy-vs-derive test — watch quickbooks001/ana-eng006 vs
-  ana-eng004); **h0022** (answer decision table — copy-shaped per-option checks); and the grain
-  follow-up: grain-spine is now **0-for-3** across three stages (h0010/h0016/h0017) → the
-  prose/example/derive family is **exhausted**; the only untried grain shape is the **mechanical
-  "copy the verbatim spine line"** lever (R1 above), else concede grain is unreachable by README
-  prose at gpt-5.5 (a captain strategy call, not a reflexive follow-up).
-- **Evidence:** `h0017-contract-grain-entity-spine.md` (`## Smoke result`, `## Behavioral
-  analysis`; commit `41054bb`); run `runs/ade-bench-h0017-contract-grain-entity-spine/a498329abd068ab5`;
-  stage-engagement proxy (`Contract:`/`grain key` hits in `agent/codex.txt`): fired on asana001/
-  asana004/f1007/intercom001-003/quickbooks002, no engagement on airbnb001/ana-eng001. MEMORY:
-  `ade-bench-instruction-lever-taxonomy`. Full effect write-up mirrors this entry.
+- **Learning (updated after h0023):** **a new stage buys REACH but not SAFETY OR EFFICACY by
+  default — clause-by-clause analysis is mandatory before shipping.**
+  - *h0017 (grain clause):* reach ✓, safety ✓ (5/5 canaries held), efficacy ✗ — the grain clause
+    is DERIVE-shaped; the solver inverts the join direction. Fix: make it COPY (copy the verbatim
+    `from X left join Y` line of the named analog, cite source file+line).
+  - *h0023 (deliverable-set clause):* reach unclear, safety ✗ (**f1001 REGRESSED** — convention-
+    bleed), efficacy ✗ — the deliverable-set clause fires too broadly: it treats any installed
+    package as a source for missing models, even on projects (f1: F1 stats) that don't use
+    package-style staging models. The *same-thing-same-shape* guard did not prevent it. Fix: the
+    deliverable-set clause must be **strictly scoped** — only trigger when the task instruction
+    explicitly names a missing model or a `*_existence` test fails; never infer "this project should
+    have staging models" from the presence of an installed package alone.
+  - *Columns/types clauses:* **untested** — f1001's regression contaminated the run before these
+    could be distinguished. Their safety and efficacy are genuinely unknown.
+  - **The COPY-vs-DERIVE thesis is inconclusive** (h0023 failed before the copy-shaped legs could
+    execute). Still the best hypothesis for *why* the grain clause fails; still untested.
+  - **Do NOT ship the current Output Contract stage as-is to any future hypothesis.** The
+    deliverable-set clause is a regression risk. The grain clause is inert. Strip or scope both
+    before re-using the stage.
+- **Bears on:** **h0022** (answer decision table — copy-shaped per-option checks; not yet
+  dispatched; its clause is orthogonal to deliverable-set, so it is not contaminated by h0023's
+  finding and is still worth running); the grain follow-up (0-for-3 exhausted, captain to decide);
+  any future Output-Contract-family hypothesis must scope the deliverable-set clause before filing.
+- **Evidence:** `_archive/h0017-contract-grain-entity-spine.md` (commit `41054bb`); run
+  `runs/ade-bench-h0017-contract-grain-entity-spine/a498329abd068ab5`; `_archive/h0023-output-
+  contract-grain-width-deliverable.md` (commits `764bfaa`, `a93412a`); run
+  `runs/ade-bench-h0023-output-contract-grain-width-deliverable/e018ce3babecc3dc`. MEMORY:
+  `ade-bench-instruction-lever-taxonomy`.
 
 ### Autoresearch loop: keep the `smoke` gate; judge it by learning-rate, not flip-rate (captain decision, 2026-06-05)
 - **Layer:** autoresearch loop
