@@ -1,7 +1,7 @@
 ---
 id: h0013
 title: Exploration — enumerate the COMPLETE set of required deliverable models up front; a green compile is not evidence they exist
-status: hypothesis
+status: propose
 kind: hypothesis
 source: concept-resolve-uncovered-false-greens fan-out; evidence re-audit of @baseline (622bdedac572b479, 31/48). Cluster "incomplete deliverable set / stopped at compile-green" — quickbooks001 built only quickbooks__general_ledger and never built the 3 stg_quickbooks__* staging models the oracle grades (6/12 checks failed); ana-eng007-medium also left graded models unbuilt. h0009 flagged this as a "fix-it-task completeness lever" deferred to a later hypothesis. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-04T13:40:51Z
