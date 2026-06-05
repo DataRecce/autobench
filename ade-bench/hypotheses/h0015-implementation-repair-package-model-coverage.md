@@ -93,11 +93,93 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). 
 
 ## Smoke result
 
+**Verdict: NO-GO → conclude REJECTED.** 0/2 targets flipped AND the f1001 canary
+regressed (1→0). A canary dropping to FAIL is a NO-GO regardless of target flips; here
+both targets were also inert, so there is nothing to weigh against the regression.
+
+- Run-dir: `runs/ade-bench-h0015-implementation-repair-package-model-coverage/36c1bcd6bbe217fd`
+- **Clean-audit attestation (AC-2):** `rk audit … --policy strict` →
+  `summary: {clean: 7, coverage_missing: 0, tainted: 0}`; all 7 trials `taint_status: clean`;
+  every cell `subagent-trace-manifest` captured = 1 (>0). Score trusted.
+- `rk score` → `stratified_pass_at_1 = 0.5714` (4/7), n_completed 7, n_errored 0.
+  vs `@baseline` 622bdedac572b479 on the SAME 7 slugs = 5/7 (0.7143) → **−1 net (one
+  canary lost, zero targets gained)**.
+
+| Task | Role | base→smoke | dbt distance (Got N) base→smoke | Why |
+|------|------|-----------|--------------------------------|-----|
+| quickbooks001 | TARGET | 0→0 ❌ | 6 FAIL → 6 FAIL (3 stg ×{exist,equal}, all `Got 1`) — IDENTICAL | **Rule INERT.** Solver fixed the one visible compile error (`quickbooks__general_ledger.sql`), built green (`PASS=172`), declared done — exactly the baseline failure mode. Never created the 3 `stg_quickbooks__*` models. |
+| ana-eng007-medium | TARGET | 0→0 ❌ | 1 FAIL → 1 FAIL (`AUTO_dim_products_equality Got 5`) — IDENTICAL | **Rule inapplicable.** `dim_products` already EXISTS; failure is a 5-row value gap, not a missing package model. Solver fixed 2 unrelated models, built green, stopped. |
+| f1001 | CANARY | 1→0 ❌ **REGRESSION** | 6/6 PASS → 5/6 (`src_models_are_correct Got 14`) | **CONVENTION-BLEED.** Rule made solver invent 14 spurious `src_*.sql` "source" models + rewrite all 13 `stg_f1_dataset__*` to ref them. The project's own guard `src_models_are_correct` catches exactly those 14 wrong rows. |
+| quickbooks003 | CANARY | 1→1 ✅ | — | Held (same-package bleed victim from h0009 — held here). |
+| quickbooks004 | SENTINEL | 1→1 ✅ | — | Held. |
+| airbnb001 | CANARY | 1→1 ✅ | — | Held. |
+| asana001 | CANARY | 1→1 ✅ | — | Held. |
+
+**Load-bearing artifact check (smoke-gate requirement):** the smoke-gate demanded confirmation
+the solver actually CREATED the 3 `stg_quickbooks__{estimate,refund_receipt,sales_receipt}`
+models, not merely discussed them. CONFIRMED NEGATIVE — they were not created. The
+quickbooks001 verifier is byte-identical to baseline (the 3 `*_existence` tests still return
+`Got 1 result`, the missing-model sentinel), and the FO's final report lists exactly one
+changed file (`models/quickbooks__general_ledger.sql`) with no staging models added. The
+package-copy rule did not fire on its primary target.
+
 ## Run result
+
+Not run. Smoke is NO-GO (canary regression); do not promote to full.
 
 ## Behavioral analysis
 
+The hypothesis was the concrete counterpart to h0013's failed abstract prose: bet that the
+ONE proven landing mechanism (h0009 asana002 — copy a concrete local package artifact) would
+carry quickbooks001 by telling the solver, on a repair task, to copy the 3 package-defined
+staging models out of `dbt_packages/`. Smoke falsified it on two independent fronts:
+
+1. **Inert on the primary target (the bet's whole point).** On quickbooks001 the solver
+   behaved IDENTICALLY to baseline: classified the task, fixed the single visible compile
+   error (the missing `quickbooks__general_ledger` ref), saw `dbt build PASS=172`, and
+   declared done. The new Implementation instruction — "builds green is necessary but NOT
+   sufficient … enumerate package-implied models … create any that are absent by copying the
+   `dbt_packages/` definition" — produced ZERO behavioral change: no `stg_quickbooks__*`
+   model was created, the same 6 tests fail with the same `Got 1`. The "copy a concrete local
+   artifact" framing did NOT transfer from h0009's single-column-contract copy (asana002) to
+   a multi-model staging-layer reconstruction. The instruction reads as a generic
+   "be thorough" exhortation the solver discounts once the build is green — the same
+   passive-repair stop-at-green failure h0009's deep-dive originally flagged.
+
+2. **Convention-bleed regression on a non-target family (the gatekeeper G8 risk, realized).**
+   The exact failure the G8 row predicted happened: on f1001 — a non-Fivetran f1 task whose
+   project does NOT use a `src_` source-view layer — the solver mis-applied the
+   "enumerate package-implied staging/source models the project is meant to expose" rule. It
+   invented 14 new `src_*.sql` view models and rewrote all 13 `stg_f1_dataset__*` models to
+   select from them, hallucinating the dbt-package src-layer idiom onto a project that never
+   had it. The project's own shipped guard `src_models_are_correct` flips to `Got 14 results`
+   — it is literally counting the 14 spurious models. f1001 was the same victim that broke at
+   h0009 full scale; the lever reproduced that bleed at smoke scale on a 7-task panel. This is
+   the generative downside materializing: the rule is gated on "repair task + package-implied
+   model missing," but "repair" fires broadly and the model the rule decides is "missing"
+   is, on f1, a model the project deliberately does not expose.
+
+3. **Structurally inapplicable on the secondary target.** ana-eng007-medium's lone failure is
+   a 5-row value mismatch in an EXISTING model (`dim_products`); there is no absent
+   package-implied model for the rule to create, so it was a no-op (distance identical to
+   baseline). This target was never a fit for a missing-model lever.
+
+Net: the rule is simultaneously too weak where it was supposed to land (inert on
+quickbooks001, the bet) and too strong where it must not fire (fabricates a source layer on
+f1001). Both are classic h0010/h0009 signatures — prose-described structural reconstruction
+does not land, and a broadly-firing "expose more models" instruction bleeds the dominant
+package convention onto families that don't use it. The README-prose ceiling holds: a single
+Implementation paragraph cannot make the solver reconstruct a multi-model staging layer it
+otherwise stops short of, and the same paragraph actively damages projects outside the
+package's convention.
+
 ## Verdict
+
+**REJECTED at smoke (NO-GO).** f1001 canary regressed 1→0 via h0009-style convention-bleed
+(14 hallucinated `src_*` models) — a NO-GO on its own — and BOTH targets were inert
+(quickbooks001 byte-identical to baseline, the 3 `stg_quickbooks__*` models never created;
+ana-eng007-medium structurally inapplicable). Net −1 on the 7-task panel (5/7 → 4/7).
+Routing: **conclude REJECTED**. Do not promote to full.
 
 ## Stage Report: propose
 
@@ -111,3 +193,16 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). 
 ### Summary
 
 Forked the @baseline seed solver and added one Implementation-stage rule: on a repair/"fix the broken project" task, "builds green" is necessary but not sufficient — enumerate package-implied staging/intermediate models from the local `dbt_packages/` tree + project schema/refs and CREATE any absent ones by reproducing the installed package's own definition (copy, don't hand-roll). This is the CONCRETE counterpart to h0013's failed abstract prose: it plays to the one proven landing mechanism (h0009 asana002 copied a concrete local package artifact). Full spec differs from baseline in only experiment: + solver_workflow:; smoke spec adds quickbooks001 + ana-eng007-medium (targets), quickbooks004 (sentinel), and a cross-family G8 regression panel (quickbooks003/airbnb001/asana001/f1001) because the copy-package action is exactly h0009's convention-bleed family. Both specs frozen; gatekeeper review 8/8 PASS → APPROVE. Did NOT run smoke per dispatch.
+
+## Stage Report: smoke
+
+- DONE: Smoke run completed on the 7-task frozen spec; strict audit clean (tainted:0) + subagent-trace-manifest captured>0 BEFORE trusting score; focused `rk score` recorded with clean-audit attestation and run-dir
+  `rk audit --policy strict` → `summary {clean:7, coverage_missing:0, tainted:0}`, all 7 trials clean, each cell manifest captured=1; `rk score` → stratified_pass_at_1=0.5714 (4/7); run-dir 36c1bcd6bbe217fd. Written into ## Smoke result.
+- DONE: Deep-dive on BOTH targets (verdict delta + distance-to-pass vs @baseline) AND the load-bearing artifact check for quickbooks001 (3 stg models created?); all 5 guards confirmed with special attention to quickbooks003 + f1001
+  quickbooks001 0→0 INERT (6→6 FAIL, `Got 1`; 3 `stg_quickbooks__*` NOT created — FO changed only `quickbooks__general_ledger.sql`); ana-eng007-medium 0→0 inert (1→1 FAIL `Got 5`, dim_products already exists); **f1001 1→0 REGRESSION** (convention-bleed: 14 invented `src_*` models, `src_models_are_correct Got 14`); quickbooks003/quickbooks004/airbnb001/asana001 all held PASS. Written into ## Smoke result + ## Behavioral analysis.
+- DONE: Plain-language go/no-go with one-line reason + gate routing recommendation, led by verdict not tables
+  NO-GO — f1001 canary regressed via h0009 convention-bleed AND both targets inert (net −1); route to conclude REJECTED. In ## Verdict.
+
+### Summary
+
+Smoke is a clean NO-GO. The strict audit was clean (7/7, tainted:0, manifests captured) so the score is trusted: 4/7 vs @baseline's 5/7 on the same slugs = −1 net. The package-copy rule was INERT on its primary target — quickbooks001 is byte-identical to baseline (the solver fixed the one visible compile error, built green at PASS=172, and stopped; the 3 `stg_quickbooks__{estimate,refund_receipt,sales_receipt}` models were never created, so the `*_existence` tests still return `Got 1`). The same rule REGRESSED the f1001 canary by reproducing the exact h0009 convention-bleed: it hallucinated 14 `src_*` source-view models + rewrote all 13 `stg_f1_dataset__*` to ref them on a project that uses no src layer, tripping the project's own `src_models_are_correct` guard (`Got 14`). ana-eng007-medium was structurally inapplicable (failure is a 5-row value gap in an existing model). A canary regression is a NO-GO on its own; with both targets inert there is no offsetting flip. Recommend conclude REJECTED — the README-prose ceiling holds (one Implementation paragraph cannot make the solver reconstruct a missing multi-model staging layer, and it actively damages non-package-convention families).
