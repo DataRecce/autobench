@@ -68,14 +68,14 @@ oracle used here; always cite `c5acd9b29faeb087`.)
 
 | # | Bug type | What goes wrong (plain) | Oracle signature | Tasks | Hypotheses | Status |
 |---|---|---|---|---|---|---|
-| 1 | **Grain / missing rows** — wrong or incomplete spine | built off the child/wrong table so parent (or date) rows with no children silently drop | small `Got N` on an `*_agg`/entity/date model | **1a entity:** asana004, asana005, asana005-hard, intercom001, intercom002, intercom003 · **1b date-spine:** airbnb009 | h0010 (prose) → h0016 (worked-example) for 1a; **1b uncovered** | **REJECTED** 0/4 (1a); 1b not yet attacked |
-| 2 | **Width / missing columns** | hand-picked a column subset, not the full output contract | "has less columns than `solution__`" | ana-eng004, f1002, ana-eng006 (2 models) | h0011 (worked-example) | **REJECTED** 0/3 |
-| 3 | **Value divergence** — shape right, numbers wrong | right rows & columns, wrong values; only an *independent* recompute catches it | `Got N` on a computed metric | ana-eng007, ana-eng007-medium, f1006, ana-eng006 (`fact_inventory`) | h0012 (independent recompute) | propose |
-| 3★ | **↳ Large-magnitude / join fan-out** *(candidate sub-type)* | a join multiplies rows (double-count) → big row delta, not a subtle value error | very large `Got N` (e.g. `Got 204`) vs grain's 3–7 | ana-eng006 (`fact_inventory`) | — (SQL-unconfirmed; verify before filing) | open |
-| 4 | **Tolerance-band divergence** *(NEW)* | numbers are close but fall outside the test's allowed tolerance (rounding / float / method) | test named `*_equality_with_tolerance`, `Got N` | airbnb007 | **uncovered** | open |
-| 5 | **Type / contract mismatch** | values "right" but column type/representation differs (e.g. text vs `timestamp`) | `Got N`, fixed by a `::type` cast | asana002 | h0009 (package fidelity) — the loop's **one win** | +1 smoke / −1 full |
-| 6 | **Incomplete deliverable / missing models** | compiles green so solver stops; graded models never built | `*_existence` tests fail (models absent) | quickbooks001 (also ana-eng007-medium per re-audit; see Corrections) | h0013 (enumerate), h0015 (copy package) | propose / hypothesis |
-| 7 | **Analytical-answer guess** | answer-style deliverable includes an option on plausibility, unverified | `check_option_*` fails | f1011 | h0014 (per-claim evidence) | hypothesis |
+| 1 | **Grain / missing rows** — wrong or incomplete spine | built off the child/wrong table so parent (or date) rows with no children silently drop | small `Got N` on an `*_agg`/entity/date model | **1a entity:** asana004, asana005, asana005-hard, intercom001, intercom002, intercom003 · **1b date-spine:** airbnb009 | **1a:** h0010 (prose, REJ) → h0016 (example, REJ) → **h0017** (Output Contract stage: grain key-source) · **1b:** **h0019** (Impl: emerge-from-join, no cross-join) | 1a **REJECTED 0/4** by prose/example → **re-attacked** via Output Contract (h0017); **1b now covered** (h0019) |
+| 2 | **Width / missing columns** | hand-picked a column subset, not the full output contract | "has less columns than `solution__`" | ana-eng004, f1002, ana-eng006 (2 models) | h0011 (example, REJ) → **h0023** (Output Contract stage; absorbs ana-eng004/f1002 + re-classified ana-eng006) | **REJECTED 0/3** → **re-attacked** via Output Contract (h0023); honest that 2 width deltas are blind-to-oracle |
+| 3 | **Value divergence** — shape right, numbers wrong | right rows & columns, wrong values; only an *independent* recompute catches it | `Got N` on a computed metric | ana-eng007, ana-eng007-medium, f1006, ana-eng006 (`fact_inventory`) | h0012 (indep. recompute) → **h0021** (Impl: type-stable dedup `ORDER BY`, ana-eng007) | h0012 propose; **h0021 filed** (re-scoped to ana-eng007; f1006 excluded — not locally derivable) |
+| 3★ | **↳ Large-magnitude / join fan-out** *(candidate sub-type)* | a join multiplies rows (double-count) → big row delta, not a subtle value error | very large `Got N` (e.g. `Got 204`) vs grain's 3–7 | ana-eng006 (`fact_inventory`) | folded into **h0023** (Output Contract types+columns) | **RE-CLASSIFIED — NOT a fan-out.** ana-eng006 oracle: `check_row_count` + `*_existence` PASS (102 rows, no dup). `Got 204` = date string-vs-`DATE` type diff + width. 3★ drops as a standalone sub-type. |
+| 4 | **Tolerance-band divergence** *(NEW)* | numbers are close but fall outside the test's allowed tolerance (rounding / float / method) | test named `*_equality_with_tolerance`, `Got N` | airbnb007 | **h0018** (Output Contract stage: rolling window as calendar RANGE) | **now covered** (h0018) — airbnb007 re-root-caused as a date-grain/rolling-window **construction** error, not a numeric-tolerance tweak |
+| 5 | **Type / contract mismatch** | values "right" but column type/representation differs (e.g. text vs `timestamp`) | `Got N`, fixed by a `::type` cast | asana002 | h0009 (package fidelity, the **one win**) → **h0020** (Impl: precondition-gated in-place type cast, no add/drop/rename) | h0009 +1/−1 (convention-bleed); **h0020 filed** — gated mechanical cast to kill the regression |
+| 6 | **Incomplete deliverable / missing models** | compiles green so solver stops; graded models never built | `*_existence` tests fail (models absent) | quickbooks001 (also ana-eng007-medium per re-audit; see Corrections) | h0013 (enumerate, NO-GO), h0015 (copy package), **h0023** (deliverable-set clause) | h0013 NO-GO, h0015 hypothesis; **also addressed by h0023** Output Contract deliverable-set derivation |
+| 7 | **Analytical-answer guess** | answer-style deliverable includes an option on plausibility, unverified | `check_option_*` fails | f1011 | h0014 (per-claim evidence) → **h0022** (Output Contract stage: option→check→IN/OUT, default OUT) | h0014 + **h0022 filed** (decision table before answer SQL) |
 
 ## Read the bug type straight from the oracle output
 
@@ -120,24 +120,48 @@ the @baseline oracle output corrects it:
   copyable example *reaches* the committed SQL where prose is inert, but "reaches" ≠ "passes"
   (0/4). New: **1b date-spine** (airbnb009) is an untried, well-scoped variant — the fix is a
   known shape (complete calendar spine + LEFT JOIN).
-- **#3 / #3★** — `fact_inventory`'s `Got 204` is an order of magnitude above the grain failures'
-  3–7; that pattern usually means a join fanned out (double-count), a different mechanism from a
-  subtle value error. Confirm in the committed SQL before treating fan-out as its own type.
-- **#4 Tolerance** — distinct because the answer is *nearly* right; the lever is about
-  rounding/precision/method alignment, not structure.
+- **#3 / #3★** — `fact_inventory`'s `Got 204` *looked* like a fan-out (an order of magnitude above the
+  grain failures' 3–7), but the oracle **falsifies** it: `check_row_count` + `AUTO_fact_inventory_existence`
+  PASS (102 rows, no duplication; the committed SQL already dedups via `ROW_NUMBER()`). The 204 is a
+  value/type-representation symmetric diff — `transaction_created_date` passed through as a raw
+  `MM/DD/YYYY` string instead of cast to `DATE` — plus width on dim_products/obt. **3★ is dropped as a
+  standalone sub-type**; ana-eng006 folds into the Output Contract types+columns lever (h0023). The
+  "verify before filing" caveat held — confirm the oracle row-count before treating big `Got N` as fan-out.
+- **#3 value** — re-scoped to the genuine value-divergence tasks; the type-dependent dedup `ORDER BY`
+  sub-bug (ana-eng007) gets a surgical in-place cast (h0021); f1006's residual is not locally derivable.
+- **#4 Tolerance** — re-root-caused on airbnb007 (`daily_agg_nps_reviews`) as a **date-grain /
+  rolling-window construction** error (a per-day aggregate over a 28-day calendar RANGE, not N preceding
+  rows), not a numeric rounding/precision tweak — so the lever is structural (h0018, Output Contract
+  stage), copying the project's own existing rolling-window model rather than nudging precision.
 - **#5 Type/contract** — the loop's **only win** (asana002, `due_at::timestamp`) — a mechanical
   cast that *landed*; but it regressed at full scale (convention-bleed cost f1/quickbooks).
 - **#6 Missing models** — the `*_existence` failures are the unambiguous tell; quickbooks001's
   3 `stg_*` models exist in the installed package (h0015's copy-the-package angle).
+- **NEW direction — the Output Contract stage.** A new `## Stage: Output Contract` inserted *between
+  Exploration and Implementation* makes the solver write down, from NAMED local artifacts and before any
+  SQL: (1) grain key-source, (2) full ordered column set, (3) per-column types (cast in place), (4) the
+  complete deliverable model set (resolve the `ref()` graph; installed-package models are templates).
+  Gated to author/refactor (no-op/pure-repair skip). It is the loop's pivot off prose: a *different
+  control point* (contract-first), not another in-line "restructure your SQL" ask. Four filed hypotheses
+  ride it — h0017 (grain), h0023 (columns/types/deliverables), h0018 (rolling-window range), h0022
+  (answer decision table); the other three (h0019/h0020/h0021) are surgical Implementation-stage repairs.
+  Honest caveat carried in each: load-bearing flips are the *locally-derivable* legs (grain copy,
+  deliverable set, in-place cast); width and exact oracle-only deltas stay at the blind-to-oracle ceiling.
+  Full rationale + the proposed `## Stage:` block: `concept-contract-first-derivation-stage.md`.
 
 ## Meta-pattern (the recurring lesson)
 
 README-prose / worked-example levers have largely hit a **ceiling** at gpt-5.5 / `reasoning_effort:
 xhigh`: a verbatim copyable skeleton changes the committed SQL yet still flips zero targets,
 because the residual gap is task-specific correctness the README can't supply without leaking.
-Scoreboard: h0008 0/7 · h0009 +1/−1 · h0010 0/4 · h0011 0/3 · h0016 0/4. Open non-prose
-directions: capability lever (stronger model/effort), multi-sample-and-select (attack run-to-run
-variance), independent-invariant verification (#3's lever, re-scoped per the Corrections).
+Scoreboard: h0008 0/7 · h0009 +1/−1 · h0010 0/4 · h0011 0/3 · h0016 0/4. **Pivot (2026-06-05,
+h0017–h0023 from the `innovate-bugtype-fixes` workflow):** off prose/worked-example and onto (a) a
+structural **Output Contract** derivation stage between Exploration and Implementation
+(h0017/h0018/h0022/h0023) and (b) surgical **Implementation-stage in-place casts/guards**
+(h0019/h0020/h0021) — plus first coverage of the previously-uncovered **1b date-spine** (h0019) and
+**#4 tolerance** (h0018), and the re-classified **3★** (folded into h0023). Other open non-prose
+directions: capability lever (stronger model/effort), multi-sample-and-select (run-to-run variance),
+independent-invariant verification (h0012, #3's lever).
 
 ---
 
