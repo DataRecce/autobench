@@ -5,8 +5,8 @@ status: conclude
 kind: hypothesis
 source: forked from the h0009 smoke deep-dive — quickbooks001 is a separate gap from the grain-spine cluster: it is a passive "the project is broken, fix it" task where the solver fixes the one visible compile error, sees the build go green, and STOPS — even though dbt_packages/quickbooks_source literally contains the 3 missing staging models the grader wants (stg_quickbooks__estimate/refund_receipt/sales_receipt). Plays to the one proven mechanism (h0009 asana002: copying a concrete local package artifact LANDS; h0010 showed prose-described structural rewrites do NOT). Forks the then-current @baseline (re-fork at propose; @baseline 622bdedac572b479 unless h0009 promotes first).
 started: 2026-06-05T08:58:01Z
-completed:
-verdict:
+completed: 2026-06-05T11:26:56Z
+verdict: REJECTED
 score:
 worktree:
 ---
