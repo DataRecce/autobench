@@ -98,9 +98,62 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). 
 
 ## Smoke result
 
+**NO-GO — 0/2 targets flipped (quickbooks001 INERT, ana-eng007-medium REGRESSED).**
+
+- Run-dir: `runs/ade-bench-h0013-exploration-complete-deliverable-set/81b53d6e31c406dd`
+- `stratified_pass_at_1 = 0.6` (3/5), n_completed=5, n_errored=0. Below the `@baseline`
+  0.6458 (and the smoke panel is not comparable to the 48-task baseline rate — the
+  load-bearing signals are the per-target flips, not the panel mean).
+- **Clean-audit attestation (AC-2):** `rk audit --policy strict` on this run-dir →
+  `clean: 5, tainted: 0`; all 5 trials `taint_status: clean`. All 5
+  `subagent-trace-manifest.json` present with `captured: 1` (>0). Score trusted.
+
+| Task | Role | Base | Smoke | Flip | Distance base→smoke (`Got N` fails) | Behavioral why (committed artifact) |
+|------|------|------|-------|------|-------------------------------------|-------------------------------------|
+| quickbooks001 | target | FAIL (0) | FAIL (0) | NO | 6 fail → 6 fail (**identical**) | INERT. The 3 `stg_quickbooks__{estimate,refund_receipt,sales_receipt}` models were **NOT built** — the `_existence` tests still return `Got 1 result` (a row appears precisely when the model is absent), byte-identical to baseline. Transcript: solver echoed the enumeration rule verbatim (5 mentions of "complete set/deliverable") but mentioned the 3 graded models **0 times** across both sessions while discussing `general_ledger` 56×. Enumeration fired in the planning recital, did not change the built scope. |
+| ana-eng007-medium | target | FAIL (0) | FAIL (0) | NO | 1 fail → **3 fail (WORSE)** | REGRESSED / anti-flip. Baseline failed only `AUTO_dim_products_equality` (Got 5) with `obt_product_inventory_equality` + `obt_sales_overview_equality` PASSING. Under h0013 the solver's broader edits **broke both previously-passing obt models** (Got 32, Got 18) and made dim_products worse (Got 5→10). All 3 are `_equality` (built-but-wrong), not existence. The enumeration instruction induced wider, regressive edits. |
+| quickbooks002 | sentinel | PASS (1) | PASS (1) | held | — | guard held |
+| asana003 | canary | PASS (1) | PASS (1) | held | — | guard held |
+| f1007-hard | canary | PASS (1) | PASS (1) | held | — | guard held |
+
+Sentinel + both canaries held PASS. No collateral regression on the guard panel; the
+damage is confined to a within-target anti-flip on ana-eng007-medium.
+
 ## Run result
 
 ## Behavioral analysis
+
+**The G7 inert-risk WARN is confirmed — and on the second target the abstract-prose lever
+was actively harmful.**
+
+quickbooks001 is the clean inert case the gatekeeper flagged. The committed artifact is
+indistinguishable from `@baseline`: same 6 failing tests, same `Got 1 result` on the three
+`_existence` probes (which fire iff the model does not exist), same `general_ledger`-only
+scope. The transcript proves the mechanism: the solver **read the rule and recited it**
+("Identify the complete set of models the task requires before editing. In 'project is
+erroring / fix it' tasks, a green compile alone is not evidence deliverables exist") but its
+actual enumeration never surfaced `estimate`/`refund_receipt`/`sales_receipt` — those three
+strings appear **zero times** in 355 transcript lines. The solver settled on "the missing
+model" (singular, = general_ledger) exactly as baseline did. Acknowledging the rule in
+reasoning was NOT evidence the artifact changed — the load-bearing G7 question answered
+NO. This is the same behavioral signature as h0008 (0/7) and h0010 (0/4): abstract
+coverage/enumeration prose is inert at gpt-5.5/xhigh.
+
+ana-eng007-medium is worse than inert — it is a regression. The instruction did change
+behavior here, but in the wrong direction: the solver made wider edits and broke two models
+(`obt_product_inventory`, `obt_sales_overview`) that `@baseline` got right, while still not
+fixing `dim_products`. Distance-to-pass moved 1→3 failing tests. This is the failure mode of
+a vague "build the complete set / ensure every one is built" directive with no concrete
+target list: it licenses broad, unanchored rework that regresses correct models without
+locating the actually-missing/actually-wrong ones. The instruction has no mechanism to point
+the solver at the *specific* graded deliverables (those live only in the hidden `AUTO_*`
+tests, which the leak-guard correctly withholds), so "complete set" is unanchored.
+
+Net: the lever neither flipped the inert case nor improved the regressive one, and it
+manufactured a fresh regression on a previously-1-fail target. The abstract-prose family
+remains behaviorally dead (for inert tasks) or counterproductive (for tasks where it does
+fire). Same root cause as h0008/h0010: prose that names a coverage *goal* without a concrete,
+solver-observable enumeration target does not move the committed SQL.
 
 ## Verdict
 
@@ -129,3 +182,16 @@ Forked the @baseline solver and added one Exploration-stage rule (enumerate the 
 ### Summary
 
 Applied the captain's propose-gate panel revision to the smoke spec only. Final smoke panel = quickbooks001 + ana-eng007-medium (targets), quickbooks002 (sentinel), asana003 + f1007-hard (canaries) — quickbooks003 and the entire airbnb family dropped per explicit captain G8 override (smoke accepted as blind to airbnb-family regressions, observable only at full). Re-froze the smoke spec; the 5 slugs are present in `.smoke.frozen.yaml`. FULL spec, FULL frozen spec, and the solver README were left untouched; smoke still differs from full only in `benchmark.tasks`. Did not run smoke per dispatch.
+
+## Stage Report: smoke
+
+- DONE: Smoke run completed; `rk audit --policy strict` clean (tainted:0) + subagent-trace-manifest captured>0 BEFORE trusting score; focused `rk score` recorded in ## Smoke result with clean-audit attestation and run-dir
+  Run-dir `runs/.../81b53d6e31c406dd`; audit clean:5/tainted:0; all 5 manifests captured=1; `stratified_pass_at_1=0.6` (3/5).
+- DONE: Post-run deep-dive for BOTH targets — verdict delta vs @baseline, distance-to-pass smoke-vs-@baseline, behavioral why backed by COMMITTED artifact; quickbooks001 G7 inert-risk confirmed; sentinel + canaries held PASS
+  quickbooks001 INERT (6→6 fail, 3 stg models never built, existence Got 1; transcript: 0 mentions of the 3 graded models, rule only recited); ana-eng007-medium REGRESSED (1→3 fail, broke 2 previously-passing obt models); quickbooks002/asana003/f1007-hard held PASS. Written into ## Smoke result + ## Behavioral analysis.
+- DONE: Plain-language go/no-go with one-line reason + gate routing recommendation
+  NO-GO; recommend route to conclude (REJECTED) — abstract-prose lever inert on target 1, actively regressive on target 2.
+
+### Summary
+
+Smoke on the frozen 5-task panel: 3 PASS / 2 FAIL, audit strict-clean (tainted:0), manifests captured>0, score trusted. 0/2 targets flipped. quickbooks001 is the textbook G7 inert case the gatekeeper warned of — the committed artifact is byte-identical to @baseline (same 6 fails, existence Got 1 = the 3 stg models were never built), and the transcript shows the solver recited the enumeration rule but never surfaced the 3 graded models. ana-eng007-medium is worse: the instruction fired but regressed two previously-passing obt models (distance 1→3 fails). Sentinel quickbooks002 + canaries asana003/f1007-hard all held PASS. This is the h0008/h0010 abstract-prose-is-inert pattern, here also actively harmful. Recommend NO-GO → conclude (REJECTED); do not promote to full.
