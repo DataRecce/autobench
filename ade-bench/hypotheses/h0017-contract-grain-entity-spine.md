@@ -163,9 +163,112 @@ many targets flip.
 
 ## Smoke result
 
+**NO-GO — 0/4 targets flipped, 5/5 canaries held.** One-line reason: the Output Contract stage
+*reached* the committed SQL (intercom001 even wrote a `Contract:` comment block) but the solver
+authored a contract that **named the child as the grain driver** and built the model **backwards**
+(`from <child_agg> left join <entity>`), the exact narrowing the stage's prose forbade — so the
+distance-to-pass (`Got N`) is byte-for-byte unchanged vs `@baseline` on every target.
+
+Run-dir: `runs/ade-bench-h0017-contract-grain-entity-spine/a498329abd068ab5` (9-task captain-trimmed smoke).
+Audit: `rk audit --policy strict` → `{clean: 9, coverage_missing: 0, tainted: 0}`; `captured=1` on
+all 9 cells. Score: `stratified_pass_at_1 = 0.5556` (5/9) — the 5 canaries, 0/4 targets. (This 0.5556
+is a 9-task subset number, NOT comparable to the 48-task `@baseline` 0.6458; it just reflects 5 canary
+passers + 4 target fails.)
+
+Flip / distance / why table (smoke vs `@baseline` 622bdedac572b479):
+
+| Target | @baseline | Smoke | Failing test (Got N: BL → smoke) | Verdict | Classification |
+|--------|-----------|-------|----------------------------------|---------|----------------|
+| intercom001 | FAIL | FAIL | AUTO_intercom__threads_equality (Got 7 → **Got 7**) | no flip | **reached-but-wrong** (contract written, model built child-driven) |
+| intercom002 | FAIL | FAIL | conversation_metrics_equality + threads_equality (Got 7+7 → **Got 7+7**) | no flip | reached-but-wrong (final `from metrics`/`from threads`, child-derived) |
+| intercom003 | FAIL | FAIL | conversation_metrics_equality (Got 7 → **Got 7**) | no flip | reached-but-wrong (final `from final`, child-derived) |
+| asana004 | FAIL | FAIL | int_asana__project_user_agg_equality (Got 3 → **Got 3**) | no flip | reached-but-wrong (new model `from count_project_users left join agg_project_users`) |
+
+Canary holds (all `@baseline` PASS → still PASS, reward 1.0): airbnb001 ✅, ana-eng001 ✅, asana001 ✅
+(also the asana sentinel), f1007 ✅, quickbooks002 ✅. **No canary regressed** — the same-thing-same-shape
++ derive-not-pad guards + author/restructure gate contained the h0009 convention-bleed risk on this panel.
+
+`Got N` unchanged on 4/4 targets is the cheap inertness signal; but the committed-artifact read below
+shows this is *not* the h0010 "discussed-not-done" inertness — the stage executed and changed the SQL,
+it just produced the wrong spine direction.
+
 ## Run result
 
 ## Behavioral analysis
+
+**Headline:** the Output Contract stage cleared the h0010/h0016 "talks-but-doesn't-do" bar — the
+committed SQL on every target *changed* and shows the solver actively reasoning about grain — but it
+failed at a deeper layer: when the solver writes the contract itself, it picks the **child** as the
+grain driver and builds `from child left join entity`, the inverse of the stage's "entity FROM,
+children LEFT JOINed" rule. The lever moved the control point earlier as designed, but the solver
+fills that earlier control point with the same wrong mental model, so the verifier distance is
+unchanged.
+
+**intercom001 (the designated reachable bet) — committed artifact read.** The solver authored
+`models/intercom__threads.sql` and even prefixed it with the contract block the stage asked for:
+
+```
+/*
+Contract:
+- Grain: one row per conversation_id, driven by active conversation part rows.
+...
+*/
+```
+
+That contract sentence — "driven by active conversation part rows" — *is the bug*: it names the
+child (conversation parts) as the grain source, directly contradicting the stage's "do not narrow it
+to only the keys that have matching child rows." The body has both a `conversations` CTE (the entity)
+and a `conversation_part_aggregates` CTE (the child), but the final select is:
+
+```
+from conversation_part_aggregates
+left join conversations
+    on conversation_part_aggregates.conversation_id = conversations.conversation_id
+```
+
+i.e. **child as FROM driver, entity LEFT JOINed** — exactly backwards. The 7 conversations with zero
+parts never appear → `Got 7` unchanged. The hypothesis claimed intercom001 was reachable because a
+concrete same-domain analog (`int_intercom__conversation_part_aggregates`, already
+`from latest_conversation left join latest_conversation_part`) ships in the workspace; the solver did
+not copy that analog's spine direction — it re-derived the model from scratch and inverted the join.
+Classification: **reached-the-artifact-but-wrong-direction** (a new, more-informative failure mode
+than h0010/h0016 inertness).
+
+**asana004 — committed artifact read.** The solver created
+`models/intermediate/int_asana__project_user_agg.sql` with the two CTEs lifted (as h0016 predicted),
+and its final CTE is `from count_project_users left join agg_project_users` — keyed on the child
+CTEs (the 13 projects that have a user), NOT `from project left join …` (the full 16-project spine).
+It *did* correctly leave the `coalesce(...)` downstream in `asana__project` (repointed
+`project_join` to `ref('int_asana__project_user_agg')`), which is the one thing the stage's worked
+example emphasized — so the prose was partially followed. But the new model's grain is still the
+narrowed child key set the stage explicitly forbade, so the 3 partless projects drop → `Got 3`
+unchanged. Classification: **reached-but-wrong** (structural-refactor case; consistent with the
+h0016-confirmed inert risk recorded in the hypothesis as secondary/stretch).
+
+**Method adherence.** The stage was *executed* on the targets (contract comment on intercom001;
+correct downstream-coalesce placement on asana004) — it is not discussed-and-skipped. The failure is
+that the solver's self-authored contract encodes the child-grain assumption, then Implementation
+faithfully builds to that wrong contract. Writing the contract earlier did not change which relation
+the solver believes is the driver.
+
+**Why the lever did not land (transferable rule).** The escape thesis was "anchor to a concrete,
+copyable, same-domain local analog." But the stage only *describes* that anchor in prose ("the table
+the existing code treats as the FROM driver", "do not narrow"); it does not force the solver to
+literally read a named analog file and copy its `from … left join …` line. At gpt-5.5/xhigh the
+solver re-derives instead of copying, and its default derivation keys aggregates on the child. So
+this is the **same dead-prose-ceiling family** as h0010/h0016, just relocated to an earlier stage:
+prose that asks the solver to choose the right spine direction is inert regardless of which stage it
+sits in. The one mechanism that ever landed (asana002) was a literal substitution, not a
+direction-choice. A lever that would actually move these cells must be mechanical: e.g. "copy the
+`from X left join Y` header of the named analog model verbatim, then rename columns" — point at the
+specific local file and the specific line to clone, not the abstract rule.
+
+**Recommendation:** NO-GO at smoke → `conclude` (REJECTED) without a full run. Do NOT auto-file
+another "tell the solver the right grain in prose" variant — that family (h0010, h0016, and now h0017
+at an earlier stage) is empirically exhausted at this model/effort. Surface to the captain: the only
+untried shape on the grain-spine bug is a **mechanical copy-the-named-analog-line** instruction (name
+the exact analog file + the exact FROM/JOIN line to clone), or conceding the grain-spine bug is not
+reachable by README prose at gpt-5.5.
 
 ## Verdict
 
@@ -181,3 +284,16 @@ many targets flip.
 ### Summary
 
 Forked the @baseline solver into `solver_workflows/h0017-contract-grain-entity-spine` and inserted the canonical Output Contract stage verbatim — the single README change — between Exploration and Implementation, leaving the leak-guard and every other stage byte-identical. Authored the full + smoke specs (full differs from baseline only in `experiment:`/`solver_workflow:`; smoke adds the 6 grain targets + the 5-family G8 canary panel) and froze both with `spacedock_solver`/`codex` preserved. Gatekeeper review: overall **APPROVE**, no FAILs; the one flag is G7 (WARN) — the asana refactor targets are the inert structural-refactor shape from h0010/h0016, so the real bet is the intercom subset (which ships a verified concrete copy analog). The 6-target + 5-canary smoke is ~11 tasks (~100 min serial), so the captain may choose to trim it at the gate.
+
+## Stage Report: smoke
+
+- DONE: Smoke spec trimmed to the approved 9 tasks (asana005/asana005-hard removed) and re-frozen (9 `ade-bench-` tasks, kind/runtime preserved); the detached `rk run` on the 9-task frozen smoke spec completes with a CLEAN strict audit (`tainted: 0`) and `captured > 0`.
+  Commit 322ed77 (trim+re-freeze). Run-dir `runs/ade-bench-h0017-contract-grain-entity-spine/a498329abd068ab5`; `rk audit --policy strict` = `{clean: 9, coverage_missing: 0, tainted: 0}`; `captured=1` on all 9 cells; `rk score` stratified_pass_at_1=0.5556 (5/9).
+- DONE: Per-target distance-to-pass (`Got N` smoke vs @baseline) computed for the 4 targets (intercom001/002/003 + asana004); behavioral read of ≥1 still-failing target (and any flip) via the COMMITTED SQL artifact, classified flipped/inert/closer/inapplicable — written into `## Smoke result` + `## Behavioral analysis`.
+  `Got N` unchanged 4/4 (intercom 7→7, asana004 3→3). Committed artifacts extracted from the ensign session jsonl: intercom001 final select `from conversation_part_aggregates left join conversations` (child driver — backwards); asana004 new model `from count_project_users left join agg_project_users` (child driver). Classified **reached-but-wrong** (stage executed, spine direction inverted) — distinct from h0010/h0016 discussed-not-done inertness.
+- DONE: Canary check: none of airbnb001/ana-eng001/asana001/f1007/quickbooks002 regressed FAIL (a canary FAIL = NO-GO); plain-words GO/NO-GO recorded with the artifact-level why.
+  All 5 canaries reward=1.0 (held). Verdict: **NO-GO** — 0/4 targets flipped, lever reached the SQL but produced the wrong (child-driven) grain; same dead-prose family as h0010/h0016 relocated earlier. Route smoke→conclude (REJECTED).
+
+### Summary
+
+Trimmed the smoke set to the captain-approved 9 tasks, re-froze, and ran it detached; clean strict audit, captured>0 on every cell. **NO-GO: 0/4 targets flipped, 5/5 canaries held.** The deep-dive is decisive and goes past the cheap inertness signal: `Got N` is unchanged on all 4 targets, but the committed SQL *did* change — the Output Contract stage executed (intercom001 wrote a `Contract:` comment, asana004 correctly left the `coalesce` downstream), yet the solver authored a contract naming the **child** as the grain driver and built `from <child_agg> left join <entity>`, the exact inverse of the stage's "entity FROM, children LEFT JOINed" rule. This is a more-informative failure than h0010/h0016 inertness (reached-but-wrong vs discussed-not-done) but lands in the same prose-ceiling family: prose asking the solver to pick the spine direction is inert regardless of stage. Recommend REJECT and surfacing to the captain that the grain-spine bug needs a *mechanical* copy-the-named-analog-line lever (or conceding it's unreachable by prose at gpt-5.5), not another prose restatement.
