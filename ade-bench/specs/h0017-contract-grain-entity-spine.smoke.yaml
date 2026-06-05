@@ -21,14 +21,13 @@ benchmark:
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
   # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
   # baseline / first run: skip smoke, run full directly.
-  tasks: # GENERATIVE lever (fires on every author/restructure task) => 6 grain targets + G8 cross-family regression-canary panel; ade-bench- prefixed (bare slugs rejected by rk run)
-    # --- 6 grain-spine targets (all FAIL @baseline 622bdedac572b479; want to flip) ---
+  tasks: # GENERATIVE lever (fires on every author/restructure task) => 9-task captain-trimmed set: 4 grain targets + G8 cross-family regression-canary panel; ade-bench- prefixed (bare slugs rejected by rk run)
+    # --- 4 grain-spine targets (all FAIL @baseline 622bdedac572b479; want to flip) ---
     - ade-bench-intercom001      # PRIMARY reachable (concrete local copy analog int_intercom__conversation_part_aggregates)
     - ade-bench-intercom002      # PRIMARY reachable
     - ade-bench-intercom003      # PRIMARY reachable
     - ade-bench-asana004         # SECONDARY/stretch (h0016-confirmed structural-refactor inert risk)
-    - ade-bench-asana005         # SECONDARY/stretch
-    - ade-bench-asana005-hard    # SECONDARY/stretch
+    # asana005 / asana005-hard dropped per captain (near-certain-inert structural refactors per h0016; G8 panel kept intact).
     # --- G8 cross-family regression canaries (all PASS @baseline; must stay PASS) ---
     - ade-bench-airbnb001        # canary (airbnb family)
     - ade-bench-ana-eng001       # canary (ana-eng family)

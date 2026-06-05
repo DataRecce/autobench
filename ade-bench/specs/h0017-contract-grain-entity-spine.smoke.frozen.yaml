@@ -32,8 +32,6 @@ benchmark:
   - ade-bench-intercom002
   - ade-bench-intercom003
   - ade-bench-asana004
-  - ade-bench-asana005
-  - ade-bench-asana005-hard
   - ade-bench-airbnb001
   - ade-bench-ana-eng001
   - ade-bench-asana001
@@ -60,7 +58,7 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:aa3c64b122c9d06bf48eaf988f5970aa69556d69506c3118cf07d10b2401b48a
-  harness_git_sha: 6bce099a97850fa2a09efedddb93d575d882bd9b
+  harness_git_sha: 081efad94d3aca4f99ef4b56bd023b733a6d14af
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
