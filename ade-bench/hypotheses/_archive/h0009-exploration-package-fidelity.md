@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: forked from the h0005 @baseline (622bdedac572b479, 31/48 = 0.6458) 17-failure raw-log analysis + h0007's rejection note (surviving direction #2 — "improve the solver's up-front understanding so it does not form the wrong mental model"). Queued behind h0008; both attack the same failures from different stages (Finalization invariants vs Exploration root-cause). solver_workflows/codex-ade-dbt-minimal at fork (re-fork from whatever @baseline is when this fires).
 started: 2026-06-03T14:07:16Z
-completed:
-verdict:
+completed: 2026-06-05T00:48:07Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-05T00:48:07Z
 ---
 
 ## Hypothesis
