@@ -265,6 +265,26 @@ deferred — this is a worthiness gate.)*
      in reasoning is NOT evidence — verify the artifact.
   Write the full per-task detail (a flip/distance/why table + the behavioral read) into
   `## Smoke result` and `## Behavioral analysis`.
+- **Workflow-refinement evaluation (AUTOMATIC — do this without being asked).** If the
+  hypothesis's lever is a change to the **solver workflow's structure** — a new stage, a
+  removed / reordered / replaced stage, or a new protocol / protocol-family (tell-tales: a
+  `## Protocol-family declaration` section, or a `## Hypothesis` framed around "a NEW stage" or
+  reordering stages, as opposed to a rule tweak *inside* an existing stage; the hypothesis's own
+  framing is authoritative) — then the deep-dive is NOT done at the per-task flip. You MUST also
+  evaluate the **workflow change itself**:
+  1. **Was the stage/protocol exercised?** Across the *whole* smoke set (not just the target),
+     did the new/changed stage actually fire and produce its declared artifact? Where was it
+     inert or inapplicable?
+  2. **Effect of the structural change** — independent of whether the target flipped: did it
+     change the committed artifacts / solver behavior — help, harm, or nothing? A target that
+     did NOT flip can still be a real workflow finding (h0026: target stayed FAIL, yet we learned
+     a self-scored selector needs an independent falsifier).
+  3. **Record it in the workflow-refinement log.** Append/refresh an entry in
+     `_artifacts/WORKFLOW-REFINE.md` using that file's entry template (layer / refinement type /
+     finding / **learning** / bears-on / evidence). Mandatory and automatic — part of the smoke
+     commit; do not wait for the captain.
+  The go/no-go you then report covers BOTH axes: the task-level result *and* the workflow-level
+  learning.
 - **Report to the captain in plain language.** The entity gets the full detail; the captain
   gets a SIMPLE-WORDS on-screen summary at the gate — what flipped, did we get closer, and
   (if NO-GO) why the hypothesis didn't work — not the raw tables. Lead with the go/no-go and
@@ -377,6 +397,16 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
   reached the committed artifact, the distance-to-pass deltas, and any transferable rule
   (what kind of lever lands vs is inert). Memory is a convenience mirror; the entity body is
   the source of truth a teammate on another machine will read.
+- **Finalize the workflow-refinement finding (AUTOMATIC for any workflow-structural
+  hypothesis).** If this hypothesis changed the workflow's structure (new / removed / reordered /
+  replaced stage, or a new protocol — the same test as the smoke *Workflow-refinement
+  evaluation* step), its entry in `_artifacts/WORKFLOW-REFINE.md` MUST reach a final state before
+  archive: set the entry's status to the verdict (adopted into the workflow / rejected as written
+  / open with a named next step), and make sure its **learning** line is sharp and its
+  **bears-on** line lists the sibling hypotheses it should steer. Do this whether `conclude` was
+  reached from `smoke` (REJECTED) or after a full `analyze` — and without being told. The entity
+  file stays the per-experiment record; the workflow-refinement log is the cross-experiment
+  structural memory.
 - **Derive new hypotheses from the deep-dive findings.** Turn the smoke/analyze behavioral
   read into concrete next bets (each ONE README change, falsifiable, with named target
   datasets). **But do not reflexively file when the evidence says the lever family is
