@@ -301,9 +301,38 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
   did the agent + ensigns actually execute the README's prescribed method? (2) why it
   works; (3) why it fails (and the per-task distance-to-pass `checks_passed /
   expected_test_count`).
+- **Required questions every analyze report MUST answer** (in `## Run result` /
+  `## Behavioral analysis` — so the captain reads them, not extracts them):
+  1. **Net + full per-task ledger** — absolute score vs `@baseline` and paired delta + CI;
+     AND *every* task that changed verdict in *both* directions (FAIL→PASS gains **and**
+     PASS→FAIL regressions), each with its mechanism. Never report only the gains.
+  2. **Smoke vs full** — if smoke was a GO, why did the full verdict differ? Name exactly what
+     the smoke set could not see (e.g. regressions on families it didn't sample).
+  3. **Already-correct-and-broken** — for each regression, was the task *passing* at
+     `@baseline`? Call out damage to working code explicitly; distinguish "failed to help"
+     from "broke a passer."
+  4. **Was the change executed?** — for representative gains and regressions, did the
+     *committed artifact* actually change? Classify: executed-and-helped / executed-and-hurt /
+     inert (discussed-not-done) / premise-falsified (followed but target not local). Verify
+     the artifact, not the chatter.
+  5. **Prevention + next move** — concrete and actionable: how to keep the gains without the
+     harm (scoping guardrails), how to catch it earlier (smoke canaries / G8), and the
+     recommended next step (do NOT reflexively file if the lever family is exhausted —
+     escalate to the captain).
+- **Report to the captain in plain language.** Keep the full detail (tables, CIs, SQL) in the
+  entity; give the captain a SIMPLE-WORDS on-screen summary — net result, what flipped each
+  way, why, and the recommendation. Lead with the headline; never make the captain read raw
+  tables to learn the verdict.
+- **Tooling note:** `rk runs diff` can raise `TypeError` on ade-bench run-dirs (outcomes carry
+  `query_id: null`, keyed on `trial_name`). If so, compute the paired delta directly from
+  `per_trial_outcomes.json` (pair by task slug) and say you did — it is a harness data-shape
+  limitation, not a run defect.
 - **Good:** verdict cites the diff CI + adjusted p; behavioral findings name specific
-  failure mechanisms.
-- **Bad:** reading a within-CI wobble as a win; a score with no behavioral read.
+  failure mechanisms; all five required questions answered; regressions named as damage to
+  passers; captain gets a plain-words summary.
+- **Bad:** reading a within-CI wobble as a win; a score with no behavioral read; reporting
+  only the gains and omitting the regressions; a report the captain must interrogate to learn
+  the flips, the prevention, or the next move.
 
 ### `conclude`  *(terminal — hypothesis path)*
 

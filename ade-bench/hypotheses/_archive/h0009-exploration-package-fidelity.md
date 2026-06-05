@@ -307,6 +307,29 @@ shared root cause of the still-failing Fivetran cluster without the package-conv
    stable-pass sentinel. The single-sentinel design is adequate only for narrowly-scoped
    checks whose blast radius is provably the target set.
 
+### Prevention — concrete guardrails (how to stop the −3) and detection
+
+f1001 (6/6) and quickbooks003 (14/14) were **already correct/passing** at `@baseline`; the
+generative instruction *broke working code* (→ 2/6 and 11/14). Because the solver is blind to
+which tasks it is already passing, harm cannot be self-detected — so prevention has to come
+from scoping *when the instruction fires*, in three guardrails:
+
+1. **Applicability gate** — act only when the precondition genuinely holds for THIS model
+   (e.g. "only if `dbt_packages/` has a package model for the same entity you are building;
+   otherwise do nothing"). Kills f1001 (no Fivetran package on f1 → instruction is a no-op,
+   no rename).
+2. **Same-layer match** — mirror only the package model of the SAME layer/grain
+   (staging→staging); never apply a *staging* contract to an intermediate/final model. Kills
+   quickbooks003 (the staging column-set never touches the intermediate models it trimmed).
+3. **Do-no-harm / minimal change** — only create or change models the task explicitly asks
+   for; never rename or restructure already-building models or sources to "match conventions."
+
+**Detection (the reliable backstop, since scoping is fragile):** put currently-passing
+`@baseline` tasks from *unrelated* families in the smoke set as canaries. Had the smoke
+included an f1 and a quickbooks passer, the −3 would have surfaced in ~30 min instead of after
+the full run. This is now enforced workflow-wide — see the `smoke` stage "regression panel"
+rule + gatekeeper **G8** (regression-canary coverage) in `_gatekeeper/propose-review-guideline.md`.
+
 ## Stage Report: propose
 
 - DONE: The forked solver README's ONLY change vs codex-ade-dbt-minimal/README.md is the single Exploration-stage package-fidelity instruction; leak-guard / no-external-reference prose intact; NO reference to hidden AUTO_*/verifier tests.
