@@ -199,7 +199,11 @@ by that recommendation.**
   ```
 
   One row per smoke task. State the net you're hoping for (e.g. "flip ≥1 of N targets, lose
-  zero sentinels/canaries"). Lead with this table + a plain-words brief of the lever; keep the
+  zero sentinels/canaries"). **Also give the captain an ETA:** smoke runs serially
+  (`n_concurrent_trials=1`) at a steady **~9 min/task** end-to-end (image build + solver +
+  verify), so `ETA ≈ N_tasks × 9 min` (the four prior runs landed in the 8.1–10.8 min/task
+  band — quote ~75–100 min for a 9-task smoke). The run is detached (nohup), so the captain
+  needn't wait on-screen. Lead with this table + a plain-words brief of the lever; keep the
   full spec/diff detail in the hypothesis file. For a generative lever, the table makes the G8
   panel auditable at a glance — a missing family is a REVISE before smoke, not a surprise at full.
 - **Gatekeeper (advisory pre-review):** its recommendation is input to your decision, not a
