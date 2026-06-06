@@ -74,21 +74,22 @@ sentinels and should flip `f1011` to a pass before promotion to full.
 
 ## Gatekeeper review
 
-**Recommendation: APPROVE** — single Implementation-stage idea, leak-guard byte-identical, full spec differs only in the two allowed fields, idea is generative-but-GATED to answer-style deliverables so no cross-family canary panel is required (G8 N/A).
-Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). Reviewed 2026-06-05T09:00:00Z.
+**Recommendation: APPROVE** — single Implementation-stage idea, leak-guard byte-identical, full spec differs only in the two allowed fields, instruction is GATED to answer-style deliverables (G8 N/A) and is not a multi-candidate/selector protocol (G9 N/A); no FAILs.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-05). Reviewed 2026-06-06.
 
 | Rule | Verdict | Evidence |
 |------|---------|----------|
-| G1 single idea/stage | PASS | `diff` is one hunk `63a64,81` falling inside `## Stage: Implementation`; 0 `## Stage:` headers in the diff; one idea (per-option confirming/refuting query for answer-style deliverables). |
-| G2 leak-guard intact | PASS | Added lines grep clean for `AUTO_`/`solution__`/`check_option`/`verifier`/`equality test`/`expected output seed`/`curl`/`wget`/`git clone`/`ls-remote` (NONE FOUND); README lines 1-48 (leak-guard + dependency/package guardrails) byte-identical to parent. |
-| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0014-...yaml` = only `experiment:` (line 2) + `solver_workflow:` (line 11); `kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
-| G4 smoke tasks-only | PASS | `diff` full→smoke adds only `benchmark.tasks` (`ade-bench-f1011`, `ade-bench-f1007`, `ade-bench-f1004`); all `ade-bench-`-prefixed; includes the named target f1011; sentinels f1007+f1004 present (no WARN). |
-| G5 both frozen | PASS | `specs/h0014-...frozen.yaml` and `...smoke.frozen.yaml` both exist; frozen full carries `kind: spacedock_solver` (l4) + `runtime: codex` (l5). |
-| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim verbatim in spirit: Implementation stage, "back each component of the answer with its own explicit query… include only if a direct query confirms it, exclude if it refutes it; do not include/drop on plausibility alone." Generative/independent (query the raw data per option), not self-anchored re-run of own output. |
-| G7 actionability/inert-risk | PASS | Carries a worked-example SQL skeleton (one confirming/refuting query per option, decide by result, assemble from confirmed-only) the solver can copy rather than re-derive — the worked-example form G7 prefers, not abstract structural prose. |
-| G8 regression-canary coverage | N/A | Instruction is GATED: it fires ONLY on analysis/answer-style deliverables (multi-option pick or single derived conclusion), not on every dbt task. Not generative → no cross-family canary panel required; targets+sentinels sufficient. |
+| G1 single idea/stage | PASS | README diff is one hunk `63a64,81` inside `## Stage: Implementation` (header L50, next header Validation L64); 0 `## Stage:` headers in the diff; 0 lines deleted/changed-from-parent; one idea (per-option confirming/refuting query for answer-style deliverables). |
+| G2 leak-guard intact | PASS | Grep of added lines for `solution__`/`AUTO_`/`check_option_`/`verifier`/`equality test`/`has less columns`/`expected output seed`/`curl`/`wget`/`git clone`/`ls-remote`/`http`/`fetch`/`download`/`oracle` = NONE FOUND; 0 parent lines removed or changed → leak-guard + dependency prose byte-identical to parent. |
+| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0014-...yaml` = only `experiment:` (L2) + `solver_workflow:` (L11); `kind: spacedock_solver` (L4), `runtime: codex` (L5), `trials: 1` (L24) preserved; no third field. |
+| G4 smoke tasks-only | PASS | Full→smoke diff adds only `benchmark.tasks` (0 lines removed/changed); slugs `ade-bench-f1011`, `ade-bench-f1007`, `ade-bench-f1004` — all `ade-bench-`-prefixed; includes named target f1011; sentinels f1007+f1004 are stable @baseline f-series passers (no WARN). |
+| G5 both frozen | PASS | `specs/h0014-...frozen.yaml` and `...smoke.frozen.yaml` both exist; both carry `kind: spacedock_solver` (L4) + `runtime: codex` (L5). |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim: Implementation stage, "back each component of the answer with its own explicit query… include an option only if a direct query confirms it, and exclude it if the query refutes it… Do not include or drop an option based on reading model logic or plausibility alone." Generative/independent (queries the raw data per option), not a self-anchored re-run of own output; no dead-family phrasing. |
+| G7 actionability/inert-risk | PASS | Carries a worked-example SQL skeleton (one confirming/refuting query per option, decide by its result, assemble from confirmed-only) the solver can copy rather than re-derive — the worked-example form G7 prefers, not abstract structural prose. |
+| G8 regression-canary coverage | N/A | GATED, not generative: opening clause "For analysis/answer-style deliverables — selecting which statements are true… or producing a single derived conclusion" scopes the rule to a precondition (answer-style deliverables), so it does not fire on every dbt task → no cross-family canary panel required; targets+sentinels sufficient. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol: the rule runs one confirming/refuting query per option of a single answer and assembles the answer from confirmed options — it does not generate N candidates and pick one. Neither independence axis applies. |
 
-**For the captain:** Single GATED answer-style lever targeting the lone f1011 tail (baseline 0/6, included unverified option D). No FAILs; G8 N/A by gating. Expected full-run delta is small by design (one failure) — file/run for cluster completeness, not as a high-leverage bet. Smoke is a 3-task set (~27 min ETA).
+**For the captain:** Single GATED answer-style lever targeting the lone f1011 tail (baseline 0/6, included unverified option D). No FAILs; G8 N/A by gating, G9 N/A (not a selector). Expected full-run delta is small by design (one failure) — file/run for cluster completeness, not a high-leverage bet. Smoke is a 3-task set (~27 min ETA).
 
 ## Smoke result
 

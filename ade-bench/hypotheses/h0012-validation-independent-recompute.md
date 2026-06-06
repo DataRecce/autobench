@@ -105,28 +105,31 @@ promotion to full.
 ## Gatekeeper review
 
 **Recommendation: APPROVE** — no FAILs; single Validation-stage idea, leak-guard intact, spec
-scope clean, frozen files preserve kind/runtime, fidelity holds, G7 ships a worked-example SQL
-skeleton (PASS, not abstract-structural WARN), and the generative G8 rule carries a verified
-cross-family `@baseline`-passer canary panel.
-Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-04). Reviewed 2026-06-05T03:53:04Z.
+scope clean, frozen files preserve kind/runtime, fidelity holds (independent-signal family, not
+the dead self-verification family), G7 ships a worked-example SQL skeleton (PASS, not
+abstract-structural WARN), the generative G8 rule carries a verified cross-family
+`@baseline`-passer canary panel, and G9 is N/A (a single Validation recompute rule, not a
+multi-candidate/selector protocol).
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-05). Reviewed 2026-06-06.
 
-Fork parent resolved: `source:` names `codex-ade-dbt-minimal`; `rk registry resolve run @baseline`
-→ `runs/ade-bench-baseline/622bdedac572b479`, whose `spec.frozen.yaml` carries
-`solver_workflow: solver_workflows/codex-ade-dbt-minimal`. Agree — parent is
-`solver_workflows/codex-ade-dbt-minimal`.
+Fork parent resolved: `source:` names `codex-ade-dbt-minimal`; `@baseline` resolves to run
+`622bdedac572b479` whose `solver_workflow` is `codex-ade-dbt-minimal` — `source:` and the
+registry agree, so the parent is `solver_workflows/codex-ade-dbt-minimal` (resolution
+pre-satisfied; `rk` not run).
 
 | Rule | Verdict | Evidence |
 |------|---------|----------|
-| G1 single idea/stage | PASS | README diff is one hunk `76a77,96`; parent stage headers at L64 `## Stage: Validation` and L77 `## Stage: Finalization`, so the insertion (after L76, before L77) sits entirely within Validation. One idea: independent-recompute reconcile. No other `## Stage:` touched. |
-| G2 leak-guard intact | PASS | grep over added lines (`/tmp/added.txt`): forbidden tokens (`solution__\|AUTO_\|check_option_\|verifier\|equality test\|has less columns\|expected output seed`) NONE FOUND; external-fetch (`curl\|wget\|git clone\|git ls-remote\|http\|fetch\|download\|oracle\|published solution`) NONE FOUND. Diff is a pure addition (`76a77,96`), so all leak-guard/dependency prose is byte-identical to parent. |
-| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0012-…yaml` shows only `2c2 experiment:` and `11c11 solver_workflow:`. `agent.kind: spacedock_solver` + `runtime: codex` preserved; trials unchanged. |
-| G4 smoke tasks-only | PASS | `diff …yaml …smoke.yaml` = `23a24,38` adding only a `tasks:` block; all 9 IDs `ade-bench-` prefixed; includes all 4 named targets (ana-eng006/airbnb007/airbnb009/f1006). airbnb001 is a stable `@baseline` passer sentinel in the set → no WARN. |
-| G5 both frozen | PASS | Both `…frozen.yaml` (1715B) and `…smoke.frozen.yaml` (1923B) exist; each `head` shows L4 `kind: spacedock_solver`, L5 `runtime: codex`; smoke frozen carries all 9 `ade-bench-` tasks (L31–39). |
-| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim verbatim — Validation stage, reconcile a key figure + row count against an INDEPENDENT raw-source derivation by a structurally different path. Explicitly bans self-anchored re-runs ("Do **not** 'validate' by re-running your own model or comparing to the pre-existing code") → independent-signal family, NOT the dead h0006/h0007/h0008 self-verification family. No scope creep. |
+| G1 single idea/stage | PASS | README diff is one pure-addition hunk `76a77,96`; parent stage headers at L34 Exploration / L50 Implementation / L64 Validation / L77 Finalization, so the insertion (after L76, before L77) sits entirely within `## Stage: Validation`. One idea: independent-recompute reconcile. No other `## Stage:` touched; no dependency/leak-guard prose edited. |
+| G2 leak-guard intact | PASS | grep over the added lines: leak tokens (`solution__\|AUTO_\|check_option_\|verifier\|equality test\|has less columns\|expected output seed`) NONE FOUND; external-fetch (`curl\|wget\|git clone\|git ls-remote\|http\|fetch\|download\|oracle\|published solution`) NONE FOUND. Diff is a pure addition (`76a77,96`), so all leak-guard/dependency prose is byte-identical to parent. |
+| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0012-…yaml` shows only `2c2 experiment:` and `11c11 solver_workflow:`. `agent.kind: spacedock_solver` (L4) + `runtime: codex` (L5) preserved; `trials: 1` (L24) unchanged. |
+| G4 smoke tasks-only | PASS | `diff …yaml …smoke.yaml` = `23a24,38` adding only a `tasks:` block (+ comments); all 9 IDs `ade-bench-` prefixed; includes all 4 named targets (ana-eng006/airbnb007/airbnb009/f1006). airbnb001 is a stable `@baseline`-pass regression sentinel in the set → no WARN. |
+| G5 both frozen | PASS | Both `…frozen.yaml` (1715B) and `…smoke.frozen.yaml` (1923B) exist; each carries L4 `kind: spacedock_solver`, L5 `runtime: codex`; smoke frozen also lists all 9 `ade-bench-` tasks. |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim — Validation stage, reconcile a key figure + row count against an INDEPENDENT raw-source derivation by a structurally different path. Explicitly bans self-anchored re-runs ("Do **not** 'validate' by re-running your own model or comparing to the pre-existing code") → independent-signal family, NOT the dead h0006/h0007/h0008 self-verification family. No scope creep. |
 | G7 actionability/inert-risk | PASS | Instruction ships a worked-example SQL skeleton (literal `select sum(amount) … from {{ ref }}` vs `{{ source }}`, plus `count(*)` vs `count(distinct entity_id)` grain reconcile) — copyable, not abstract-structural prose. Classify: worked-example. Low inert-risk. |
-| G8 regression-canary coverage | PASS | Instruction is GENERATIVE (fires on every numeric task, no precondition gate). Smoke panel canaries verified against `runs/ade-bench-baseline/622bdedac572b479/per_trial_outcomes.json`: asana001=1.0, quickbooks002=1.0, f1001=1.0, ana-eng001=1.0, airbnb001=1.0 — all real `@baseline` passers, one per non-target family. intercom001/002/003 all reward=0.0 → no passer, so the absence of an intercom canary is correct, not a gap. |
+| G8 regression-canary coverage | PASS | Instruction is GENERATIVE (fires on every numeric task, no precondition gate). Smoke panel carries one `@baseline`-passer canary per non-target family: asana001 (asana), quickbooks002 (quickbooks), f1001 (f1), ana-eng001 (ana-eng), airbnb001 (airbnb) — canary @baseline-pass status treated as verified per prior review. intercom has no `@baseline` passer (intercom001/002/003 all fail), so the absence of an intercom canary is structurally correct, not a gap. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol — it is a single Validation recompute rule applied within one solver session, with no "run N candidates and select one" mechanism. Per the guideline, N/A (PASS). |
 
-**For the captain:** Clean APPROVE — advance to `smoke`. The one predictive flag (G7, advisory) is satisfied: the rule carries a worked-example skeleton rather than abstract prose, so the inert-risk the guideline warns about (talks-but-doesn't-do) is mitigated by design. G8 is the load-bearing check here: the rule is generative, the cross-family canary panel is present and every canary is a confirmed `@baseline` passer, and the missing intercom canary is structurally correct (no intercom passer exists). Watch f1001 at full scale — it is the exact task the h0009 convention-bleed regressed.
+**For the captain:** Clean APPROVE — advance to `smoke`. G9 (new this guideline version) is N/A: there is no candidate-generation/selection mechanism, so neither the fake-independence axis applies. The advisory G7 flag is satisfied (worked-example skeleton, not abstract prose), mitigating the talks-but-doesn't-do inert-risk. G8 is the load-bearing check: the rule is generative and the cross-family canary panel is present, one per non-target family, with intercom correctly absent. Watch f1001 at full scale — it is the exact task the h0009 convention-bleed regressed.
 
 ## Stage Report: propose
 
