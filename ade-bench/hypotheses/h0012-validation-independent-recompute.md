@@ -1,7 +1,7 @@
 ---
 id: h0012
 title: Validation — reconcile one key figure (and row count) against an INDEPENDENT derivation from raw source, never against your own re-run
-status: propose
+status: smoke
 kind: hypothesis
 source: concept-resolve-uncovered-false-greens fan-out; evidence re-audit of @baseline (622bdedac572b479, 31/48). The heavyweight cluster — 6 value-divergence false-greens (ana-eng006, ana-eng007, airbnb007, asana005-hard, f1006, airbnb009). This is the ONLY proven lever (the f1007-hard catch worked solely because it compared an independent number). The dead part is *self-anchored* checks, not the Validation stage itself (per docs/baseline-validation-self-anchored-false-green.md §4). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-04T13:40:51Z
