@@ -114,7 +114,45 @@ Two real flips, zero canary regressions, clean audit. Smoke gate met (flips ≥1
 
 ## Run result
 
+**Full run-dir** `runs/ade-bench-h0012-validation-independent-recompute/3d8294de42b726e1` —
+`stratified_pass_at_1 = 0.5625` (27/48). **@baseline** `622bdedac572b479` = 0.6458 (31/48).
+**NET −4.** Strict audit on the full run-dir is clean (`clean: 48, tainted: 0,
+coverage_missing: 0`) → AC-2 satisfied.
+
+**Paired delta (AC-3).** `rk runs diff` TypeErrors on these run-dirs (`query_id: null`, the
+known ade-bench data-shape limitation), so the delta was computed directly from
+`per_trial_outcomes.json` paired by task slug (48/48 slugs matched, no orphans), with a
+10,000-iteration paired bootstrap:
+
+- point delta = **−0.0833** (variant 0.5625 − baseline 0.6458)
+- paired 95% CI = **[−0.2083, +0.0208]** — straddles 0 and tilts negative
+- discordant: **2 gains, 6 regressions, net −4**
+
+The CI **does not clear the promotion tripwire** (it must *exclude* a regression; here it
+includes one and most of the mass is ≤ 0) and the absolute score 0.5625 is **below** @baseline
+0.6458. **Both promotion conditions fail.**
+
+### Full per-task ledger (BOTH directions)
+
+| Task | @baseline | variant | Δ | family | mechanism |
+|------|-----------|---------|---|--------|-----------|
+| airbnb007 | 0 | 1 | **+GAIN** | airbnb | reconcile fired on raw NPS/review-count + per-model grain row-counts → drove the value fix (executed-and-helped; held from smoke) |
+| asana002 | 0 | 1 | **+GAIN** | asana | reconcile fired (model-rows vs source-rows vs distinct-IDs, "0 mismatches") → flipped `AUTO_asana__task_equality Got 2`→PASS. Known causal-flip task (h0009 also flipped it); reconcile reached the artifact (executed-and-helped, partly task-volatile) |
+| ana-eng003 | 1 | 0 | **−REGR** | ana-eng | broke a passer: variant rewrote `dim_customer` to **5 columns + an enforced contract** (dropped 13 cols baseline kept); `AUTO_dim_customer_equality` ERROR ("less columns than expected") |
+| f1003-hard | 1 | 0 | **−REGR** | f1 | broke a passer: answer-selection task — variant committed **6 answers** (baseline 3); `count_answers Got 1` (one over-included wrong answer) |
+| f1005 | 1 | 0 | **−REGR** | f1 | broke a passer: first applied the CORRECT `sum→max` (= baseline), then a **2nd patch reverted `max`→`row_number() … standings_rank=1`** (last-race-by-date) → `AUTO_constructor_points_equality Got 2` |
+| f1005-medium | 1 | 0 | **−REGR** | f1 | broke a passer: same model, went straight to `standings_rank=1` last-race path instead of baseline's `max(points)` → `Got 2` |
+| f1006-hard | 1 | 0 | **−REGR** | f1 | broke a passer: same `sum→standings_rank=1` last-race rewrite of constructor_points + driver_points → `Got 2` |
+| quickbooks003 | 1 | 0 | **−REGR** | quickbooks | broke a passer: "remove department" task — variant `{% if var %}`-gated the department code + left `models/quickbooks.yml` un-patched (baseline deleted the code and patched the yml) → 3 equality tests ERROR. Solver-path divergence, weakest reconcile linkage |
+
+Note: **f1006 itself stayed FAIL (0→0) at full** — the celebrated smoke `sum→max` flip did NOT
+hold at full scale (variance), while the same rule broke 4 of f1006's siblings.
+
 ## Behavioral analysis
+
+> **NOTE — the section below (subsections a/b/c) is the SMOKE-run analysis written at the smoke
+> stage.** The FULL-run behavioral analysis (the load-bearing damaged-passer read) is in
+> **§ FULL-RUN behavioral analysis** further down.
 
 ### (a) Distance-to-pass on the 2 held targets (verifier `Got N`, smoke vs @baseline)
 
@@ -133,7 +171,139 @@ Two real flips, zero canary regressions, clean audit. Smoke gate met (flips ≥1
 
 The ana-eng006 worker **did** run the independent reconcile (report at `…/ade-bench-ana-eng006__YaYamSQ/agent/codex.txt` line 23): raw `inventory_transactions` joined directly to raw `products` vs `obt_product_inventory` → **0 product-level mismatches**; quantity total **6615** matched across source/`fact_inventory`/`obt`; grain row-counts all 102. The reconcile reported clean agreement — yet the verifier shows `AUTO_fact_inventory_equality` **Got 204** value mismatches + two column-count compile errors. The worker's independent derivation was self-consistent on the dimensions it chose (counts, quantity totals, product-name joins) but **orthogonal to the oracle's expected output** (specific column set + per-row values it has no visibility into). Independent-from-raw redundancy beats *self-anchored* error, but it cannot recover an unknown column/value contract — the same blind-to-oracle wall noted for the verify-the-target family. Hence inert here, not closer.
 
+## FULL-RUN behavioral analysis
+
+Cells read on the FULL run (`3d8294de42b726e1`) vs @baseline (`622bdedac572b479`), committed
+`apply_patch` artifacts (not chatter), from `…/agent/sessions/**/*.jsonl`.
+
+### The load-bearing question — did the reconcile DAMAGE passers? YES, and via a mechanism the dispatch hypothesis under-specified.
+
+The dispatch's predicted harm was "solver computes a WRONG independent derivation, sees it
+disagree with its already-correct model, and 'fixes' the correct model to match the wrong
+number." The artifacts show a **more insidious variant**: the rule pushed the solver **off a
+simple correct path onto an over-engineered "structurally different" path that is subtly wrong,
+then the model's *own* reconcile agreed with it (correlated, not independent).**
+
+**The f1 constructor_points cluster (4 of 6 regressions) — the smoking gun.**
+- @baseline solved f1005 / f1005-medium / f1006-hard with **one** patch: `sum(points) →
+  max(points)` grouped by season. `max` over cumulative standings = the final standing.
+  CORRECT → all PASSED (confirmed: baseline patches show `sum→max` only).
+- The variant, driven by the h0012 "reconcile by a structurally different path" rule,
+  **abandoned `max`** for a `row_number() OVER (… ORDER BY race_date DESC, round_number DESC,
+  race_id DESC) … WHERE standings_rank = 1` path (pick the points of the *chronologically last
+  race* of the season). For f1005 this happened as a **second patch that explicitly reverted
+  the correct `max`** it had just written (session `…019e9e76…` line 118 = `sum→max`, line 174
+  = `max → cs.points + standings_rank=1`).
+- "last race by date" ≠ "max cumulative points" on 2 rows per dataset (`Got 2`): ordering
+  ties / a season whose final-date row is not the points-max. The result is a wrong table.
+- **The reconcile then "confirmed" the wrong model** (f1006-hard session `…019e9e92…` lines
+  151–152): the solver reconciled `constructor_points` against a `latest_constructor` CTE built
+  with the **same** `standings_rank=1` logic → `cp_mismatch_latest = 0`, Verstappen 575, etc.
+  This is **correlated redundancy, not independent** — the check reused the model's own new
+  derivation, so it could not see the defect. The solver even *observed* a real source
+  discrepancy ("2023 exposes sprint points present in standings but not in race results",
+  line 109) and resolved it by trusting standings — entrenching the wrong grain.
+
+This is the exact false-green wall in the memory note (`verification-without-oracle-real-world`):
+a second derivation that *looks* independent but is correlated with the first cannot catch the
+error, and worse, the rule's demand to "treat any disagreement as a defect and fix" **converted
+a correct simple model into a wrong elaborate one.** The rule's false-positive cost is realized.
+
+**ana-eng003 (regression) — "declare your grain" over-formalization.** Baseline built
+`dim_customer` with all 18 source columns (PASS). Variant emitted a 5-column model **plus a new
+`schema.yml` with `contract: enforced: true`** and a 5-column contract (and `email_address
+data_type: integer`, itself wrong). `AUTO_dim_customer_equality` ERROR ("less columns than
+expected"). The row-count/grain-reconcile framing nudged toward formalizing a narrow contract
+instead of reproducing the full table — damage to a passer.
+
+**f1003-hard (regression) — over-inclusion bias.** Not a numeric task at all (answer-selection:
+which questions are answerable). Baseline committed exactly 3 correct answers; variant committed
+6 (added `most_podiums`, `most_pole_positions`, `most_races`) → `count_answers Got 1` (one wrong
+over-inclusion). The generative rule perturbs even non-numeric tasks; "treat disagreement as a
+defect to fix" biases toward action/inclusion.
+
+**quickbooks003 (regression) — solver-path divergence (weakest reconcile link).** "Remove the
+department feature" task. Baseline deleted the department CTEs/joins/columns and patched
+`models/quickbooks.yml`; variant `{% if var('using_department') %}`-gated the code and **left
+`quickbooks.yml` un-patched** → 3 equality ERRORs. Most attributable to path variance + extra
+validation overhead consuming turns, not a direct wrong-derivation; counts against the
+generative rule's churn but is the least clean causal attribution of the six.
+
+### The 2 gains are executed-and-helped (reconcile reached the artifact)
+- **airbnb007** (held from smoke): raw-source NPS / review-count reconcile (14243 listings, 0
+  mismatches) + per-model grain row-counts fired across all committed models → value fix → PASS.
+- **asana002** (new at full, not in smoke set): reconcile compared model-rows vs source-rows vs
+  distinct-IDs ("0 mismatches") and the task flipped `AUTO_asana__task_equality Got 2`→PASS.
+  Known causal-flip task (h0009 flipped it via a different lever) → partly task-volatile, but
+  the reconcile reached the artifact here.
+
+### Smoke vs full — what smoke could NOT see
+Smoke went 7/9 with TWO flips (f1006, airbnb007) and ZERO canary regressions, so it read as a
+clean GO. The full run reverses that:
+1. **f1006's smoke flip did not hold** (0→0 at full) — it was within-task variance, not a stable
+   win. Smoke over-credited a volatile flip.
+2. **The f1 damage was invisible to smoke.** Smoke's only f1 canary was `f1001`, a stable passer
+   the rule never perturbs. The rule's harm lands on f1 tasks that require the `max`-vs-standings
+   judgement (f1005, f1005-medium, f1006-hard, f1003-hard) — **none of which smoke sampled.** A
+   single passer-canary per family cannot detect a rule that breaks a *different* member of that
+   family. This is the multi-canary-per-family gap (G8 needs depth, not just one passer per
+   family) flagged at propose ("watch f1001 at scale") but f1001 was the wrong sentinel — it was
+   never going to move.
+3. ana-eng003 / quickbooks003 regressions were on canary-family members smoke didn't run
+   (smoke's ana-eng canary was ana-eng001, qb canary was quickbooks002 — both untouched).
+
 ## Verdict
+
+**REJECTED.** Both promotion conditions fail: absolute `stratified_pass_at_1 = 0.5625 <
+@baseline 0.6458`, and the paired delta is **−0.0833** with a 95% CI of **[−0.2083, +0.0208]**
+that includes a regression (does not clear the tripwire). Net **−4** on a clean strict audit
+(2 gains, 6 regressions). 4 of the 6 regressions are damage to f1 passers; the 2 gains are real
+but cannot offset the harm.
+
+**Transferable learning — the generative-reconcile false-positive cost is real, and worse than
+predicted.** A "reconcile against an independent derivation" rule applied *generatively* (on
+every task, ungated) is net-harmful because:
+1. **A "structurally different path" is not a guarantee of a *better* path.** The rule pushed the
+   solver off a simple correct derivation (`max(points)`) onto an elaborate "independent" one
+   (`last-race-by-date standings_rank=1`) that is subtly wrong. The instruction implicitly
+   assumes the second path is more trustworthy; it is merely *different*, and difference can be
+   wrong. For f1005 the solver even reverted its own correct fix to obey the rule.
+2. **The "independent" check became correlated.** Once the solver rebuilt the model on the new
+   path, it reconciled the model against the *same* new logic → 0 mismatches → false-green. This
+   is precisely the correlated-error wall (`verification-without-oracle-real-world`): only
+   genuinely independent redundancy beats no-oracle; a reconcile the solver constructs *after*
+   committing to a derivation shares that derivation's blind spot.
+3. **Generative scope perturbs even non-numeric/structural tasks** (f1003-hard over-inclusion;
+   ana-eng003 contract over-formalization; quickbooks003 path churn), where the rule has no
+   purchase and only adds an action/inclusion bias and turn overhead.
+
+**Prevention (if any future variant is attempted — not recommended):**
+- **Scope/gate the rule** to numeric-aggregate tasks where the solver is *changing* a figure,
+  and forbid replacing a simple correct aggregate with a more elaborate "independent" derivation
+  — reconcile should *check* the existing path, never *become* the new path.
+- **Require the reconcile to be genuinely independent of the model's chosen logic** (e.g. a
+  coarser source-level total computed before the model is touched), and never reconcile a model
+  against a CTE built with the same window/grain — that is self-anchoring in disguise.
+- **Multi-canary-per-family smoke (depth, not breadth).** One passer-canary per family is blind
+  to a rule that breaks a *different* family member. The f1 damage needed ≥2–3 f1 canaries
+  spanning the `max`/standings judgement (f1005-class), not just the inert f1001. Update G8 to
+  require multiple canaries per affected family, chosen to be *perturbable*, not just stable.
+- **Distrust single-task smoke flips** — f1006's smoke flip was variance and reverted at full;
+  weight a flip by whether it reaches the committed artifact AND is stable, not by smoke pass/fail.
+
+**Next move: escalate to the captain; do NOT reflexively refile.** The independent-invariant
+direction is now twice-burned — the *self-anchored* family was dead (h0006/h0007/h0008,
+solver-blind-to-oracle), and h0012 shows that even a *genuinely-different-path* reconcile,
+applied generatively, is net-harmful because the second path is not guaranteed correct and
+re-correlates with the model post-fix. The lever family "make the solver check its own numbers
+without an oracle" is exhausted as a *generative* rule; any survivor would have to be narrowly
+scoped, gated to figure-changes, and forbidden from replacing correct simple paths — a much
+smaller bet the captain should weigh against other directions, not an automatic refile.
+
+(IN-STAGE Validation rule, not a workflow-structural change → WORKFLOW-REFINE.md step skipped
+per dispatch; the learning lives here and in the entity. The in-stage-rule learning also belongs
+in the instruction-lever taxonomy note: generative reconcile = net-negative; scope-and-gate or
+drop.)
 
 ## Gatekeeper review
 
@@ -244,3 +414,18 @@ preserved. Gatekeeper not run (dispatched separately).
 ### Summary
 
 Smoke is a clean go for promotion to full: 7/9 (0.7778 > @baseline 0.6458 even on this stacked panel), two artifact-verified flips, zero canary regressions, clean strict audit. The independent-recompute reconcile is load-bearing and reached the committed SQL on both flips — f1006 most cleanly (reconcile against `*_results` sums by a different source path exposed the cumulative-sum inflation, driving the committed `sum→max` patch). The two held targets are INERT (Got N unchanged), and ana-eng006 shows the rule's ceiling: it fires correctly but cannot beat the blind-to-oracle wall when the worker's self-consistent independent derivation is orthogonal to the hidden oracle's column/value contract. Recommend advancing to full; watch f1001 at scale (h0009 convention-bleed regressed it before).
+
+## Stage Report: analyze
+
+- DONE: Run result: absolute score 0.5625 vs @baseline 0.6458 + paired delta, AND the FULL per-task ledger BOTH directions (2 gains, 6 regressions, each with mechanism).
+  0.5625 (27/48) vs 0.6458 (31/48); NET −4. `rk runs diff` TypeError'd (query_id null) → paired delta from per_trial_outcomes.json by slug + 10k bootstrap: Δ=−0.0833, 95% CI [−0.2083, +0.0208]. Strict audit on full run-dir clean (48 clean, 0 tainted). Gains: airbnb007, asana002. Regr: ana-eng003, f1003-hard, f1005, f1005-medium, f1006-hard, quickbooks003. Full ledger table in ## Run result.
+- DONE: Behavioral analysis: verify the committed artifact on gains AND >=2 regressions — did the reconcile DAMAGE passers? Plus smoke-vs-full.
+  YES, damaged passers. f1 cluster (4/6): baseline solved with one correct `sum→max` patch; variant rule pushed it to `row_number()…standings_rank=1` (last-race-by-date) — subtly wrong (`Got 2`); f1005 even REVERTED its own correct `max`. The "independent" reconcile re-correlated (model checked against a CTE with the same standings_rank logic → 0 mismatches false-green). ana-eng003: 5-col model + enforced contract (dropped 13 cols). f1003-hard: 6 answers vs baseline's 3 (over-inclusion). Smoke-vs-full: f1006 smoke flip REVERTED at full (variance); f1 damage invisible because the only f1 canary (f1001) was an inert passer that never moves. Detail in ## FULL-RUN behavioral analysis.
+- DONE: Verdict: REJECTED with transferable learning + prevention + next-move.
+  REJECTED (both promotion gates fail: 0.5625 < 0.6458, CI includes regression). Learning: generative reconcile's false-positive cost — a "structurally different path" is not guaranteed correct, and the reconcile re-correlates with the model post-fix (correlated-error wall). Prevention: scope/gate to figure-changes, forbid replacing simple-correct paths, require genuine independence, multi-perturbable-canary-per-family smoke, distrust single-task flips. Next move: escalate to captain, do NOT reflexively refile (the no-oracle self-check family is exhausted as a generative rule). Detail in ## Verdict.
+- SKIPPED: WORKFLOW-REFINE.md update
+  Per dispatch: h0012 is an IN-STAGE Validation rule, not a structural workflow change → learning recorded in ## Verdict + instruction-lever taxonomy instead.
+
+### Summary
+
+REJECTED. The generative independent-recompute Validation rule scored 0.5625 (27/48) vs @baseline 0.6458 (31/48), NET −4 on a clean strict audit (paired Δ=−0.0833, CI [−0.2083,+0.0208] — fails the tripwire). The load-bearing finding: the rule DAMAGED 4 f1 passers by pushing the solver off a simple correct `max(points)` aggregate onto an over-engineered "last-race standings" path that is subtly wrong, then "validated" it with a reconcile correlated to the new path (false-green) — the correlated-error wall, realized as net harm. Two real gains (airbnb007, asana002) cannot offset six regressions. Smoke missed all of this: f1006's flip was variance (reverted at full) and the single f1 canary (f1001) was inert. Recommend escalating to the captain; the no-oracle self-check lever family is exhausted as a generative rule.
