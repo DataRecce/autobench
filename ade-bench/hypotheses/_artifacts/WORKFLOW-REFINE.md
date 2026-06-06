@@ -149,6 +149,65 @@ or a dispatched worker, never a direct first-officer edit.
   `runs/ade-bench-h0023-output-contract-grain-width-deliverable/e018ce3babecc3dc`. MEMORY:
   `ade-bench-instruction-lever-taxonomy`.
 
+### Output Contract full-48 debug run — agent-plan analysis (h0017, 2026-06-06)
+- **Layer:** solver workflow
+- **Refinement type:** new stage — *observability/debug* use. A full 48-task run of the already-
+  REJECTED h0017 variant (captain-requested; NOT for verification), to read the solver's committed
+  `Contract:` blocks as a window into its (often wrong) mental model. Run `19283fb82dbd4ffd`, clean
+  strict audit (`tainted:0`, 48/48, 0 errored). Two background readers extracted committed artifacts
+  for every changed-verdict task.
+- **Finding — score:** 29/48 (0.6042) vs `@baseline` 31/48 (0.6458), **net −2**. GAINS (FAIL→PASS):
+  airbnb007, f1006. REGRESSIONS (PASS→FAIL): f1003, f1006-hard, f1010-medium, quickbooks003. 0/6
+  grain targets flipped (consistent with the smoke). **The 9-task smoke was blind to ALL 6
+  changed-verdict tasks** — none were in the smoke set; the smoke's "0 flips / 5 canaries held"
+  saw neither the 2 gains nor the 4 regressions. (The h0009 coverage lesson, made concrete.)
+- **Finding — causation (committed-artifact reads, not chatter):**
+  - **NOT convention-bleed.** The author/restructure gate worked: it correctly SKIPPED the pure-repair
+    tasks (f1006-hard, quickbooks003). No task over-built deliverables or bled a package pattern.
+  - **Real stage-caused effects are small:** +airbnb007 (real — the solver wrote "review-date grain +
+    calendar-range 28-day lookback" into the contract first, then built to it; the **grain-key-source
+    clause** drove the flip) and at most −f1010-medium (premature contract-pinning locked the wrong
+    reading of the ambiguous "account for pit stops" spec — *subtract* vs *exclude* pit laps; oracle
+    wanted exclude, per a dual `_exclude_pit_stops` seed).
+  - **The other 4 flips are orthogonal to the stage:** f1006 (coincidental sibling-convention
+    `sum→max` on a *repair* task the stage didn't fire on), f1003 (analytical criterion-drift
+    over-inclusion: 6 rows vs 3), f1006-hard (over-engineered repair off baseline's minimal `sum→max`
+    path), quickbooks003 (keep-vs-drop "remove all references" misread; baseline was *rescued* by a
+    compile failure h0017 never hit).
+  - **Common root across the regressions = false-green self-validation** (each worker validated its
+    output against its *own* derived expectation, never the oracle) — the recurring wall, not a new
+    stage harm.
+  - **Caveat:** 1 trial/arm; gpt-5.5 @ xhigh is not bit-deterministic. Part of the ±delta is
+    run-to-run variance. Net read: **the stage is ~score-neutral within noise**, not a −2 harm.
+- **The `Contract:` block IS a usable reasoning probe (the debug payload):** on a failing task it
+  states the wrong mental model in the solver's own words.
+  - `asana004` (FAIL): `-- Grain: one row per project_id present in int_asana__project_user` — grains
+    on the CHILD intermediate (only projects that have a user) → drops the 3 user-less projects
+    (`Got 3`). The bug is legible *in the contract itself*.
+  - `airbnb005` (PASS): `/* Contract: one row per reviewed listing_id ... columns ... types ... */` —
+    clean grain/columns/types → correct SQL.
+- **Learning:**
+  - The Output Contract stage is **REACH-positive, ~score-neutral, and observability-positive** — its
+    `Contract:` blocks are a genuine "show-your-reasoning" instrument, most valuable on the 14
+    fired-and-failed tasks. For a CLEAN standing debug lens, an **observe-only variant** (always write
+    the contract block, then build *exactly as baseline* — drop the "build to satisfy" mandate and the
+    gate) would give the reasoning window on all 48 at *guaranteed* zero score impact.
+  - **airbnb007's real flip validates the rolling-window-as-calendar-range mechanism** → empirically
+    motivates **h0018**.
+  - **Smoke coverage:** a generative lever's smoke must sample beyond targets+one-per-family — here
+    all 6 movers were unsampled. Reinforces the G8 / smoke-set composition rule.
+  - **`agent/codex.txt` is the first-officer layer, NOT the solver's contract** — the `Contract:`
+    blocks + stage text live in the ensign worker `agent/sessions/*.jsonl`. A grep for "Output
+    Contract" on `codex.txt` returning 0 does NOT mean the stage wasn't delivered (it is in the frozen
+    solver README, inlined for every task). Read the worker session, not the FO transcript.
+- **Bears on:** **h0018** (now empirically motivated by airbnb007); **h0022** (untested, orthogonal to
+  the deliverable-set risk); a possible *observe-only* debug-lens variant; the **false-green
+  self-validation** wall (the dominant regression root, MEMORY `ade-bench-validation-self-anchored-false-green`).
+- **Evidence:** run `runs/ade-bench-h0017-contract-grain-entity-spine/19283fb82dbd4ffd` (per-cell
+  `agent/sessions/*.jsonl` = committed Contract blocks + SQL; `verifier/test-stdout.txt` = oracle);
+  two reader analyses (this session, 2026-06-06). MEMORY: `ade-bench-instruction-lever-taxonomy`,
+  `ade-bench-validation-self-anchored-false-green`.
+
 ### Autoresearch loop: keep the `smoke` gate; judge it by learning-rate, not flip-rate (captain decision, 2026-06-05)
 - **Layer:** autoresearch loop
 - **Refinement type:** gate-rule — the `propose → smoke → full` go/no-go gate.
