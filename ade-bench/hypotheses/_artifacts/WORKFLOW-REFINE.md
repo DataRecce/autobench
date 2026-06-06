@@ -270,6 +270,10 @@ or a dispatched worker, never a direct first-officer edit.
   siblings **h0024/h0025/h0027** (same requirement: an *independent* IN-decision falsifier, not
   self/internal consistency); the grain follow-up (reaffirms 0-for-N exhausted — the discriminating
   fact is oracle-only; concede unless the sharpened prescriptive-author clause is tried).
+- **Real-world framing:** this is "the oracle problem" — see `verification-without-oracle.md` for how
+  accounting/science/intelligence/compilers solve verification-without-ground-truth, the
+  *independent-vs-correlated* test every check must pass, and why **reconcile-to-raw (double-entry)**
+  beats plan-review for the value-divergence cluster.
 - **Evidence:** this session's 4-subagent simulation (2026-06-06); run
   `runs/ade-bench-h0017-contract-grain-entity-spine/19283fb82dbd4ffd/ade-bench-asana004__z4s6LiP/verifier/test-stdout.txt`
   (`Got 3`, seed `INSERT 16`); oracle
