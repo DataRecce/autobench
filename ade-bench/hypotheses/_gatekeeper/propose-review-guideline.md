@@ -2,7 +2,7 @@
 title: Propose-stage gatekeeper review guideline
 applies-to-stage: propose
 maintained-by: the captain, on demand, by asking an agent to update it (NOT auto-updated by the workflow; the gatekeeper reads this file fresh on every run)
-last-updated: 2026-06-04
+last-updated: 2026-06-05
 ---
 
 # Propose-stage gatekeeper review guideline
@@ -109,6 +109,8 @@ the baseline finding proved inert.
   equals", "check that the output is correct" with no independent source named. Their presence
   in the inserted text is a strong FAIL signal **unless** the check reconciles against a
   genuinely independent local signal (a different source table / grain / join path).
+  Self-anchored **selection** — a multi-candidate protocol scored by the candidates' own
+  checks — is the same disease at the protocol level (h0026); it is reviewed under **G9**.
 - **FAIL if:** the inserted text diverges from the claim; it adds scope the hypothesis did
   not promise; it is a self-verification instruction that re-runs the solver's own derivation
   or compares to the pre-existing code (the dead h0006/h0007/h0008 family).
@@ -157,17 +159,57 @@ sentinel held) then lost **−3** at full scale on f1/quickbooks passers the smo
   generative, list the smoke `benchmark.tasks` canaries and confirm each is a `@baseline`
   passer from a non-target family.
 
+### G9 — Selector independence (multi-candidate / selector protocol families)
+Applies only when the hypothesis declares a **multi-candidate / selector protocol** — it runs
+N candidates and selects one; mark **N/A (PASS)** otherwise. Earned from **h0026** (REJECTED at
+smoke): the protocol executed faithfully — N≥3 candidates, real local probes, saved decision
+tables, mechanical selection — and was still structurally unable to win, because **both
+independence axes were missing, and both were visible in the propose artifacts before any run**.
+The failure mode is the **fake-independence selector**: photocopy candidates judged by their own
+light. Check both axes:
+
+- **(a) Generation independence — are the N candidates real, or one mind photocopied?**
+  The harness runs **one solver session per task** (`trials: 1`, single `agent`), so a
+  README-only protocol that says "run N ≥ 3 candidates" is necessarily *simulated inside one
+  session*: every candidate shares the same exploration, context window, and first reading, so
+  they converge on the same answer (h0026: three "independent" candidates, identical wrong
+  `ABDE`). To satisfy this axis the design must provide **isolation** (genuinely separate
+  runs/sessions/agents — a harness/spec-level mechanism, not README prose) or **forced
+  divergence** (each candidate is assigned a distinct stance on the borderline decisions, e.g.
+  "candidate 2 must argue option B is OUT and try to defeat the IN evidence").
+- **(b) Judgment independence — who grades the candidates?** List every scoring criterion the
+  selector uses and name its **anchor**. A criterion computed from the candidate's **own**
+  artifacts (completeness of its own table, "support N/N" against its own probes, answer string
+  matches its own table) is **self-anchored selection**: a plausible-but-wrong candidate
+  self-scores perfect and wins (h0026's scorer graded the wrong answer 6/6). Running real SQL
+  against real data does **not** make a check independent — independence is about who *authors
+  and interprets* the check, not whether the data is real. To satisfy this axis at least one
+  load-bearing criterion must be **external to all candidates**: e.g. falsifier checks authored
+  before any candidate exists, candidates cross-examining each other's IN decisions, or a
+  per-IN-decision adversarial probe that a wrong IN would fail.
+- **FAIL if:** the claim's mechanism depends on candidate diversity but the substrate provides a
+  single session and no forced-divergence design (axis a); **or** every selection criterion is
+  anchored to the candidate's own checks/artifacts (axis b).
+- **WARN if:** isolation/divergence or an external criterion is claimed but cannot be verified
+  from the README + specs alone.
+- **Evidence to cite:** quote the candidate-generation text and classify the substrate
+  (in-session vs isolated vs forced-divergence); table each scoring criterion → its anchor
+  (candidate-own vs external).
+
 ## Recommendation rubric
 
-After scoring all eight rules, the gatekeeper emits one overall recommendation. **WARNs never
+After scoring all nine rules, the gatekeeper emits one overall recommendation. **WARNs never
 drive the recommendation by themselves** — surface them in the "For the captain" note (G7 is
 WARN-only by design and always lands there). Only FAILs move it off APPROVE:
 
 - **APPROVE** — no FAILs (any number of WARNs allowed). Nothing blocks the gate; the captain
   can advance to `smoke`. Carry every WARN into the captain note.
-- **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules (G1/G4/G5/G8)
+- **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules (G1/G4/G5/G8/G9)
   the ensign can fix in place without changing the idea; no FAIL on G2/G3/G6. Recommend the
-  specific fix, then re-review.
+  specific fix, then re-review. (G9 caveat: a G9 FAIL is REVISE-class only when independence
+  can be added without changing the single idea — e.g. adding forced-divergence stances or an
+  external falsifier criterion; if the self-anchored selection criterion *is* the idea, the
+  variant should go back to `hypothesis` instead.)
 - **REJECT** — any FAIL on **G2 (leak-guard)**, **G3 (spec scope)**, or **G6 (fidelity)** —
   the integrity rules. The variant should go back to `hypothesis`.
 
@@ -194,6 +236,7 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated <date>). Revi
 | G6 resolver fidelity | PASS/WARN/FAIL | <claim vs inserted text> |
 | G7 actionability/inert-risk | PASS/WARN | <instruction class + inert-risk note> |
 | G8 regression-canary coverage | PASS/FAIL/N/A | <generative? + non-target passing canaries cited> |
+| G9 selector independence | PASS/WARN/FAIL/N/A | <substrate class + per-criterion anchors> |
 
 **For the captain:** <what to look at / what to decide, 1–3 lines.>
 ```
