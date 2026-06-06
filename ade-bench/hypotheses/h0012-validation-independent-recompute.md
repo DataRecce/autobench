@@ -96,9 +96,42 @@ promotion to full.
 
 ## Smoke result
 
+Run-dir `runs/ade-bench-h0012-validation-independent-recompute/9efca9a9001b7262` — `stratified_pass_at_1 = 0.7778` (7/9). Strict audit clean (`clean: 9, tainted: 0, coverage_missing: 0`). Per-task vs `@baseline` (`622bdedac572b479`):
+
+| Task | Role | @baseline | smoke | Result |
+|------|------|-----------|-------|--------|
+| f1006 | TARGET | 0.0 | 1.0 | **FLIP → PASS** |
+| airbnb007 | TARGET | 0.0 | 1.0 | **FLIP → PASS** |
+| ana-eng006 | TARGET | 0.0 | 0.0 | held FAIL (inert) |
+| airbnb009 | TARGET | 0.0 | 0.0 | held FAIL (inert) |
+| airbnb001 | canary | 1.0 | 1.0 | held PASS |
+| ana-eng001 | canary | 1.0 | 1.0 | held PASS |
+| asana001 | canary | 1.0 | 1.0 | held PASS |
+| f1001 | canary | 1.0 | 1.0 | held PASS |
+| quickbooks002 | canary | 1.0 | 1.0 | held PASS |
+
+Two real flips, zero canary regressions, clean audit. Smoke gate met (flips ≥1 target, sentinel airbnb001 held).
+
 ## Run result
 
 ## Behavioral analysis
+
+### (a) Distance-to-pass on the 2 held targets (verifier `Got N`, smoke vs @baseline)
+
+- **ana-eng006 — INERT.** Baseline & smoke verifier outputs are byte-equivalent in shape: `AUTO_fact_inventory_equality` **Got 204** (both), plus `AUTO_dim_products_equality` and `AUTO_obt_product_inventory_equality` ERROR (compile/column-count, the "has less columns than expected" shape) in both; `pass=4 fail=3` in both. `Got N` unchanged (204 → 204) ⇒ the rule is inert on this cell. (Note: the entity body's per-task characterization said `AUTO_dim_products_equality Got 5`; the actual @baseline shape is a 204-row `fact_inventory` value mismatch + two column-count compile errors. The distance metric — unchanged 204 — is what's load-bearing.)
+- **airbnb009 — INERT.** `mom_agg_review_date_range` **Got 1** in both baseline and smoke; `fail=1` both. Unchanged ⇒ inert on this cell.
+
+### (b) Committed-SQL read — the independent-recompute reconcile FIRED and reached the committed SQL on the flips
+
+**f1006 (flipped-because-reached-SQL):** the worker ran the h0012 reconcile *before* committing, used the disagreement to root-cause, then committed the fix.
+- Committed model patch (apply_patch, `…/ade-bench-f1006__LERUBYG/agent/sessions/…019e9ca2….jsonl` line 164): `sum(cs.points) → max(cs.points)` in `constructor_points.sql` and `sum(ds.points) → max(ds.points)` in `driver_points.sql` — exactly the h0012-predicted "summed all cumulative season rows instead of final standing" bug, fixed at season grain.
+- Independent reconcile that drove it (same session, line 145 output): a `dbt show --inline` query reconciling the model figure against TWO structurally-different derivations — `max(points)` from `*_standings` AND `sum(points)` from a *different source table* `stg_f1_dataset__results`/`constructor_results`. Output exposed the inflation (Max Verstappen 2023: model **6,453** vs independent **575/530**), plus a grain-implied row-count reconcile (`actual_rows=3190 == expected_rows=3190`). This is the rule's exact demand (independent path + row-count reconcile), not chatter — the reconcile query is in the committed artifact and preceded the `max()` patch.
+
+**airbnb007 (corroborating flip):** subagent report (`…/ade-bench-airbnb007__k9sVo4M/agent/codex.txt` line 26) records "Raw-source listing NPS reconciliation: 14243 listings compared, **0 NPS mismatches, 0 review-count mismatches**" and "raw daily 28-day reconciliation for 2021-10-22: model nps_28d=45, reviews_28d=7399; **raw matched exactly**" + per-model grain row-count reconciles — the independent-raw-source reconcile fired across all six committed models.
+
+### (c) Why ana-eng006 still failed — blind-to-oracle wall (the rule fired but couldn't see the oracle)
+
+The ana-eng006 worker **did** run the independent reconcile (report at `…/ade-bench-ana-eng006__YaYamSQ/agent/codex.txt` line 23): raw `inventory_transactions` joined directly to raw `products` vs `obt_product_inventory` → **0 product-level mismatches**; quantity total **6615** matched across source/`fact_inventory`/`obt`; grain row-counts all 102. The reconcile reported clean agreement — yet the verifier shows `AUTO_fact_inventory_equality` **Got 204** value mismatches + two column-count compile errors. The worker's independent derivation was self-consistent on the dimensions it chose (counts, quantity totals, product-name joins) but **orthogonal to the oracle's expected output** (specific column set + per-row values it has no visibility into). Independent-from-raw redundancy beats *self-anchored* error, but it cannot recover an unknown column/value contract — the same blind-to-oracle wall noted for the verify-the-target family. Hence inert here, not closer.
 
 ## Verdict
 
@@ -198,3 +231,16 @@ is generative, so the smoke spec carries a G8 cross-family regression panel (asa
 quickbooks002 / f1001 / ana-eng001 / airbnb001) alongside the 4 targets — intercom supplies no
 canary because it has no @baseline passer. Both specs frozen with `spacedock_solver` / `codex`
 preserved. Gatekeeper not run (dispatched separately).
+
+## Stage Report: smoke
+
+- DONE: Smoke result: per-task flip/distance table smoke-vs-@baseline — confirm the 2 flips (f1006, airbnb007 -> PASS), the 5 canaries held PASS (zero regressions), and the strict audit is clean (tainted 0, captured>0).
+  7/9 = 0.7778 (run-dir `9efca9a9001b7262`); f1006 0.0→1.0 and airbnb007 0.0→1.0 flip; canaries airbnb001/ana-eng001/asana001/f1001/quickbooks002 all 1.0→1.0; strict audit `clean:9 tainted:0 coverage_missing:0` (re-run independently). Smoke gate met. Table in ## Smoke result.
+- DONE: Behavioral analysis: committed-SQL read proving the independent-recompute reconcile actually FIRED and reached the committed SQL on >=1 flip (verify the artifact, not the chatter), plus the Got-N distance (inert vs closer) and why-still-failing for >=1 held target (ana-eng006 / airbnb009).
+  f1006 = flipped-because-reached-SQL: committed apply_patch `sum→max` (session line 164) preceded by the independent reconcile query (line 145) exposing model 6,453 vs independent 575/530 + row-count reconcile 3190==3190. airbnb007 corroborates (raw NPS reconcile, 0 mismatches). Distance: ana-eng006 Got 204→204 INERT, airbnb009 Got 1→1 INERT. Why ana-eng006 fails: reconcile fired (0 raw mismatches, qty 6615 matched) but blind-to-oracle — orthogonal to the hidden AUTO_*_equality column/value contract (204 mismatch + column-count compile errors).
+- SKIPPED: WORKFLOW-REFINE.md update
+  Per dispatch: h0012 is an IN-STAGE Validation rule (single README addition inside `## Stage: Validation`), not a structural workflow change (no new stage/protocol) — WORKFLOW-REFINE.md step explicitly skipped.
+
+### Summary
+
+Smoke is a clean go for promotion to full: 7/9 (0.7778 > @baseline 0.6458 even on this stacked panel), two artifact-verified flips, zero canary regressions, clean strict audit. The independent-recompute reconcile is load-bearing and reached the committed SQL on both flips — f1006 most cleanly (reconcile against `*_results` sums by a different source path exposed the cumulative-sum inflation, driving the committed `sum→max` patch). The two held targets are INERT (Got N unchanged), and ana-eng006 shows the rule's ceiling: it fires correctly but cannot beat the blind-to-oracle wall when the worker's self-consistent independent derivation is orthogonal to the hidden oracle's column/value contract. Recommend advancing to full; watch f1001 at scale (h0009 convention-bleed regressed it before).
