@@ -66,11 +66,45 @@ Fork parent resolved: `source:` forks `solver_workflows/codex-ade-dbt-minimal`; 
 
 ## Smoke result
 
+**GO — artifact-proven flip, zero canary regression.** Run dir: `runs/ade-bench-h0018-contract-rolling-window-calendar-range/72b3c0a6d7ac9f05` (gpt-5.5@xhigh, trials:1).
+
+**Strict audit (clean):** `rk audit --policy strict` → `tainted: 0`, `clean: 6`, `coverage_missing: 0` (coverage captured for every cell, no taint findings). **Score:** `rk score` → `stratified_pass_at_1 = 1.0` (6/6 PASS), Wilson CI [0.610, 1.0], above the `against_constant` 0.1875 and above `@baseline` 0.6458.
+
+| Task | Role | @baseline | h0018 variant | Delta |
+|------|------|-----------|---------------|-------|
+| ade-bench-airbnb007 | TARGET | FAIL (Got 4) | **PASS** | **flip +1** |
+| ade-bench-airbnb001 | canary (airbnb family) | PASS | PASS | hold |
+| ade-bench-ana-eng001 | canary | PASS | PASS | hold |
+| ade-bench-asana001 | canary | PASS | PASS | hold |
+| ade-bench-f1007 | canary | PASS | PASS | hold |
+| ade-bench-quickbooks002 | canary | PASS | PASS | hold |
+
+Paired smoke-panel delta vs `@baseline` on these 6 slugs: 5/6 → 6/6 (+1), the single moving cell being the named target `airbnb007`; 5/5 canaries held PASS (all 5 were `@baseline` passers, reward=1). No canary regression.
+
+**Got-N distance (target):** `@baseline` `daily_agg_nps_reviews_equality_with_tolerance` = **FAIL 4** (`Got 4 results, configured to fail if != 0` — all four numeric cols outside the 0.01 band). h0018 variant = **PASS** (Got 0; full test suite 11/11 PASS). The oracle distance cleared completely, not merely narrowed.
+
+**ARTIFACT PROOF (the decisive read — committed `daily_agg_nps_reviews.sql`, read from the `Add File` apply_patch payload in the airbnb007 cell session rollout, NOT transcript chatter):**
+
+- `@baseline` committed model (WRONG, rows-based frame):
+  `SUM(COALESCE(R.NPS_SCORE_DAILY,0)) OVER (ORDER BY D.REVIEW_DATE ROWS BETWEEN 27 PRECEDING AND CURRENT ROW) AS NPS_SCORE_28D` — a `ROWS BETWEEN 27 PRECEDING` frame that counts ROWS on the sparse per-day grain, spanning far more than 28 calendar days.
+- h0018 variant committed model (RIGHT, calendar-date RANGE lifted from the `*mom*` sibling shape):
+  `LEFT JOIN daily_reviews AS review_28d ON review_28d.review_date BETWEEN current_day.review_date - INTERVAL '27 day' AND current_day.review_date` — the `BETWEEN <date> - 27 AND <date>` calendar-RANGE window the hypothesis predicted (the `mom_agg_reviews` `BETWEEN current_date - 29 AND current_date` shape with the interval changed to 27). The 28d totals are computed by `SUM(review_28d.reviews_daily)` / `SUM(review_28d.promoters_daily - detractors_daily)` over that join.
+
+The variant's committed model is a single `Add File: models/daily_agg_nps_reviews.sql` patch; a regex scan of both airbnb007 session rollouts found **zero** added (`+`) lines containing `rows between … preceding` (the only `rows between` text in the rollout is the README worked-example prompt echo). The window mechanism flipped from rows-between-preceding to a copied calendar-date RANGE exactly as the lever predicted, and `Got 4 → PASS` moved with it. Both GO conditions (artifact-proven window-copy + Got-4 movement) are banked on the artifact, not on the non-deterministic reward alone.
+
 ## Run result
 
 ## Behavioral analysis
 
+**The lever fired exactly as designed, and on the one axis that has ever mattered on this `@baseline`.** The hypothesis was filed as a low-confidence completeness bet because the prior grain levers (h0010 prose 0/4, h0016 entity-spine skeleton) were acknowledged-but-not-executed at gpt-5.5/xhigh — the G7 inert-risk WARN. The differentiator claimed was the asana002-shape: a mechanical, copyable, in-place substitution anchored to a concrete local artifact already present in the same project (`mom_agg_reviews.sql`'s `BETWEEN … - 29 AND …` join), delivered as a BEFORE/AFTER worked example in the Implementation stage rather than abstract restructuring prose. The committed SQL confirms the solver did precisely the copy-and-change-the-interval the worked example prescribed: it built the 28d columns from a `BETWEEN current_day.review_date - INTERVAL '27 day' AND current_day.review_date` self-join, not a `rows between` window function. This is the second confirmed instance (after the asana002 win under h0009) that a mechanical copyable worked example anchored to a local sibling moves committed SQL where restructuring prose does not.
+
+**Grain handling came along for free.** The model groups `daily_reviews` by `review_date` from `fct_reviews` (one row per day-that-has-a-review), matching the sparse 3,786-row actually-occurring-dates grain the solution uses — no calendar-spine padding. The full tolerance test (which also checks `sum`/`avg` of all four numeric cols + `min/max(review_date)` + `total_rows`) passed, so both the grain and the window are within the 0.01 band: `INSERT 3786` rows matches the solution seed exactly.
+
+**Honest scope of the win.** This is a single-trial smoke under non-deterministic gpt-5.5@xhigh. The GO is banked on the committed-artifact proof (the calendar-RANGE join is in the file) plus the Got-4→PASS movement, NOT on the reward being deterministically reproducible. The hypothesis explicitly did NOT claim to recover the within-tolerance value targets or the exact window length (those live only in the hidden solution seed; `_28d` was the only local cue for N=28) — yet the solver inferred N=28 from the column name and landed inside tolerance. That is a stronger result than the filed completeness bet, but full-scale variance is the open question for the `full` stage: the construct is generative (fires on any rolling-window column), so the airbnb-family canary coverage (G8 WARN: only airbnb001 guards the construct-sharing family) should be watched at full scale for a break in a different airbnb member.
+
 ## Verdict
+
+**GO → advance to full.** The named target `airbnb007` flipped FAIL→PASS with the calendar-date RANGE window (`BETWEEN <date> - INTERVAL '27 day' AND <date>`) artifact-proven in the committed `daily_agg_nps_reviews.sql` — lifted from the `mom_agg_reviews` sibling shape exactly as predicted, replacing the `@baseline` `ROWS BETWEEN 27 PRECEDING` frame — and `Got 4` cleared to PASS (11/11 tests). Zero of the 5 canaries regressed (all held PASS on a clean strict audit, `tainted:0`/`coverage_missing:0`). Both GO gates met; this is NOT inert. Gate routing: flip + zero canary regression ⇒ **full**. (In-stage Implementation tweak ⇒ workflow-refinement-log N/A.)
 
 ## Stage Report: propose
 
@@ -90,3 +124,16 @@ Fork parent resolved: `source:` forks `solver_workflows/codex-ade-dbt-minimal`; 
 ### Summary
 
 Re-framed h0018 from the non-executable "extend the new Output Contract stage" (the `@baseline` solver `codex-ade-dbt-minimal` has no such stage) into a single Implementation-stage worked-example rule: a rolling 'over last N days' figure must be a calendar-date RANGE copied verbatim from the project's own `*mom*` sibling's `BETWEEN current_date - (N-1) AND current_date` join (change only the interval), never a `rows between (N-1) preceding and current row` frame that mis-counts on a sparse per-day grain. Forked the solver, built + froze full and smoke specs (smoke = target airbnb007 + 5 cross-family canaries; intercom omitted, 0/3 passers), and recorded an advisory APPROVE gatekeeper review with WARNs on G7 (same window/grain axis prior grain levers found inert) and G8 (only one airbnb canary guards the construct-sharing family). No rk run launched — gate stops here for the captain's decision.
+
+## Stage Report: smoke
+
+- DONE: Strict audit + score recorded for the ALREADY-COMPLETED run.
+  `rk audit --policy strict` on runs/ade-bench-h0018-contract-rolling-window-calendar-range/72b3c0a6d7ac9f05 → tainted:0, clean:6, coverage_missing:0; `rk score` → stratified_pass_at_1=1.0 (6/6), above @baseline 0.6458. Results in ## Smoke result.
+- DONE: Per-target deep-dive on airbnb007 — oracle distance Got 4 cleared and improvement is ARTIFACT-PROVEN.
+  Committed `daily_agg_nps_reviews.sql` (from the `Add File` apply_patch payload in the airbnb007 cell rollout) uses `LEFT JOIN … ON review_28d.review_date BETWEEN current_day.review_date - INTERVAL '27 day' AND current_day.review_date` — the calendar-date RANGE lifted from `mom_agg_reviews` (29→27), NOT `rows between … preceding` (zero added `rows between … preceding` lines in either rollout). @baseline used `ROWS BETWEEN 27 PRECEDING`; daily test FAIL 4 → PASS. All 5 canaries (airbnb001/ana-eng001/asana001/f1007/quickbooks002) were @baseline passers and held PASS — zero regression.
+- DONE: Plain-words go/no-go written to ## Smoke result + reported. CAPPED: one smoke, no iteration.
+  GO: airbnb007 flips FAIL→PASS with the calendar-RANGE window artifact-proven in committed SQL AND zero canary regression. Gate routing ⇒ full.
+
+### Summary
+
+The h0018 smoke run (PID already exited; no new run launched) is a clean GO. Strict audit clean (tainted:0, coverage_missing:0), score 6/6 (stratified_pass_at_1=1.0). The named target airbnb007 flipped FAIL→PASS: its committed `daily_agg_nps_reviews.sql` expresses the 28-day window as a calendar-date RANGE (`BETWEEN <date> - INTERVAL '27 day' AND <date>`, the `mom_agg_reviews` sibling shape with the interval changed), replacing the @baseline `ROWS BETWEEN 27 PRECEDING` frame, and the `daily_agg_nps_reviews_equality_with_tolerance` test went FAIL 4 → PASS (11/11). Window-mechanism flip is artifact-proven from the apply_patch payload, not transcript chatter; all 5 canaries held PASS (zero regression). Gate: flip + zero canary regression ⇒ advance to full. In-stage Implementation tweak ⇒ workflow-refinement-log N/A.
