@@ -183,11 +183,113 @@ dropping FAIL is NO-GO regardless of target movement.
 
 ## Smoke result
 
+**NO-GO — INERT. Capped: one smoke, no iteration. Verdict: REJECTED.**
+
+Run dir: `runs/ade-bench-h0030-implementation-grain-rowcount-reconcile-vs-parent/6914762d8b3a5546`
+(`--runs-dir runs`). Spec: `specs/h0030-...smoke.frozen.yaml`
+(`solver_workflow_content_hash sha256:a49994d6…`, runtime codex, gpt-5.5 @ xhigh, trials 1).
+
+- **Strict audit: CLEAN — `tainted: 0`, `clean: 10`, `coverage_missing: 0`.** `captured: 1` (>0) in
+  every one of the 10 cells (`subagent-trace-manifest.json`).
+- **Focused score: `stratified_pass_at_1 = 0.70` (7/10), `n_errored = 0`.** The 7 passes are
+  exactly the 7 canaries; the 3 fails are the 3 intercom targets. Against `@baseline` constant
+  0.1875 the score reads "above", but that is entirely the canary panel — **all three targeted
+  grain tasks stayed FAIL.**
+
+**Per-target flip / distance / why (vs `@baseline` `runs/ade-bench-baseline/622bdedac572b479`):**
+
+| Target | @baseline | smoke | Δ verdict | @baseline dist | smoke dist | Inert? |
+|--------|-----------|-------|-----------|----------------|------------|--------|
+| intercom001 | FAIL (r=0) | FAIL (r=0) | none | `threads_equality` **Got 7** | `threads_equality` **Got 7** | INERT (byte-unchanged) |
+| intercom002 | FAIL (r=0) | FAIL (r=0) | none | `conversation_metrics`+`threads` **Got 7/7** | `conversation_metrics`+`threads` **Got 7/7** | INERT (byte-unchanged) |
+| intercom003 | FAIL (r=0) | FAIL (r=0) | none | `conversation_metrics` **Got 7** | `conversation_metrics` **Got 7** | INERT (byte-unchanged) |
+
+All three targets: **`Got 7` byte-identical to `@baseline`**, distance ≥5 (=7). This is the
+inert-detector NO-GO per the run-first-CAPPED bet — the mechanical reconcile-bolted-to-rewrite did
+NOT break the inertness wall that held h0010/h0016/h0017. Zero intercom flip.
+
+**Canary panel — ALL 7 HELD (zero regression), strict-clean, captured=1 each:**
+
+| Canary | Family | @baseline | smoke | Result |
+|--------|--------|-----------|-------|--------|
+| f1001 | f1 (perturbable) | PASS | PASS (6/6) | held |
+| f1005 | f1 (perturbable, h0012 casualty) | PASS | PASS (4/4) | held |
+| ana-eng001 | ana-eng (perturbable) | PASS | PASS (1/1) | held |
+| ana-eng002 | ana-eng (perturbable) | PASS | PASS (2/2) | held |
+| airbnb001 | airbnb | PASS | PASS | held |
+| asana001 | asana | PASS | PASS (2/2) | held |
+| quickbooks002 | quickbooks | PASS | PASS (8/8) | held |
+
+Both ≥2-perturbable fragile families (f1, ana-eng) survived intact — unlike h0012, which broke f1
+passers past a clean smoke. No canary dropped FAIL. So the lever is **safe but inert**: it does not
+regress passers, but it does not move the targets either.
+
 ## Run result
+
+(Capped at smoke — no full run. Verdict is conclude-REJECTED on the smoke evidence below.)
 
 ## Behavioral analysis
 
+**The reconcile reached the committed SQL on all three targets — this is NOT the h0010/h0016/h0017
+"talked-but-didn't-do" inertness. It is a stronger, more informative failure: the reconcile FIRED,
+produced a NUMBER, and the solver actively defeated it by reconciling against the WRONG parent and
+then using the rule's own case-(ii) "leave-it-if-legitimately-scoped" escape to bless the child
+grain.** Artifact-proven from the committed models + the ensign `task_complete` validation messages:
+
+- **intercom001** (committed `models/intercom__threads.sql`, from the apply_patch in the ensign
+  session): the model is `from threads ... group by 1` where the `threads` CTE is built FROM
+  `{{ var('conversation_part_history') }}` (the CHILD), with `left join conversations` as a
+  decoration — i.e. the spine is the child, exactly the backwards `from child left join parent`
+  shape the rule's worked-example warned against. The solver's own evidence: `model_rows=5`,
+  `source_conversations=5`, "`0` thread aggregate mismatches" → it ran the COUNT(DISTINCT) reconcile,
+  the two numbers MATCHED, so no rebuild fired. False-green. Oracle: Got 7.
+- **intercom002** (`intercom__threads.sql` + `intercom__conversation_metrics.sql`): same — "5 source
+  conversations, 5 thread rows, 5 metric rows, 0 mismatches". Reconcile fired (`count(distinct` ×8,
+  `left join` ×7 in session), matched, shipped. Oracle: Got 7/7.
+- **intercom003** (`intercom__conversation_metrics.sql`) — the **decisive smoking gun**. The ensign's
+  final validation literally states: *"Parent source note: local `conversation_history` has 2 distinct
+  parent ids while active parts have 5, so the model is scoped to active conversation parts and uses
+  parent history only for canonical `conversation_created_at` when available."* The solver ran the
+  reconcile, SAW the parent/child key-set disagreement (the exact signal the rule was built to
+  surface), and then used the G10 check-don't-replace case-(ii) clause ("if legitimately scoped, the
+  shortfall is EXPECTED — leave it") to RATIONALISE the child grain rather than rebuild from the
+  parent. Oracle: Got 7.
+
+**Why inert despite firing — the [[verification-without-oracle]] correlated-error wall, restated.**
+The reconcile gave the solver a number, but the solver cannot identify WHICH key set is the canonical
+oracle parent without the oracle. Its `_fivetran_active` filter + min/aggregate derivation collapses
+both the parent (`conversation_history`) and the child to the same 5 keys, so the COUNT(DISTINCT)
+probe agrees with the model and the anti-join is empty — a textbook correlated-error false-green: the
+"independent" raw-source SELECT re-applies the same `active` filter the model uses, so it is not
+actually independent of the grain error. And the case-(ii) softening (added for G10 to avoid the
+h0012 mandate-replace failure) is precisely the hole the solver walks through: it is free to declare
+any short table "legitimately scoped." The mechanical-number ingredient that won asana002 (`::timestamp`)
+worked because the target was a *value to match*; here the target is *which population is canonical*,
+which the reconcile cannot settle without the oracle.
+
+**Workflow-refinement note:** N/A — h0030 is an IN-STAGE Implementation rule tweak, not a
+structural/protocol change (no new/removed/reordered stage, no protocol-family). Per the dispatch and
+the smoke stage-def tell-tales, the automatic `_artifacts/WORKFLOW-REFINE.md` step does NOT apply.
+The transferable lesson (a raw-source reconcile is defeated when the same `active`-row filter
+correlates the "independent" probe with the model, and a check-don't-replace escape lets the solver
+bless the wrong scope) belongs to the instruction-lever taxonomy + verification-without-oracle notes,
+which the FO/captain can fold in at conclude.
+
 ## Verdict
+
+**REJECTED (capped — one smoke, no iteration).** The bet was bimodal {0, 3}: 3 shots at one shared
+child-driven grain-drop cause; INERT if `Got 7` did not drop below 5. Outcome: **0 flips, all three
+intercom `Got 7` byte-unchanged (distance 7, ≥5)** — the inert wall (h0010/h0016/h0017) held. The
+mechanical raw-source reconcile + completeness anti-join did NOT break inertness; it FIRED and
+false-greened against the solver's wrong-parent interpretation (intercom003 is artifact-proof: the
+solver saw the 2-vs-5 parent/child split and chose to scope on the child). Zero canary regressions
+(7/7 held, both ≥2-perturbable fragile families f1 + ana-eng intact), so the lever is safe-but-inert,
+not harmful. No GO condition met (no FAIL→PASS flip; no artifact-proven distance<5). This is the
+fourth grain-family rejection and confirms the grain-drop cluster is past the construct/number-lever
+frontier: the deciding fact ("which key set is the canonical parent") is unrecoverable without the
+oracle, and a self-applied `active`-filtered reconcile re-correlates into a false-green. Recommend
+conclude → REJECTED; do not iterate; treat the grain-drop cluster as oracle-blocked for the
+construct/reconcile lever family.
 
 ## Gatekeeper review
 
@@ -240,3 +342,16 @@ Forked the @baseline solver (codex-ade-dbt-minimal) into h0030 and added exactly
 ### Summary
 
 Revised the already-APPROVED h0030 to align with E0/h0032 + the E1 triage. Three changes: (1) the Implementation rule now runs TWO raw-parent probes — the COUNT(DISTINCT key) reconcile AND a completeness anti-join (every raw parent key must appear in the output), because E0 proved a bare count is blind to drop-N-add-N while the anti-join CLEARED two-sided; the raw-source binding (plain SELECT on `{{ source() }}`, never the model's own CTE) is preserved as load-bearing. (2) The smoke is scoped to E1 = intercom001/002/003 only plus the existing 7-canary panel; airbnb009 and asana004 were removed and re-routed (E2/h0019 and Track Z) with the body's Target datasets + Hypothesis + caveat updated. (3) The gatekeeper review block is refreshed to APPROVE with the G4 WARN resolved. Both specs re-frozen with a new solver_workflow_content_hash; kind/runtime/trials preserved. NOTE: the dispatch fetch command `claude-team show-stage-def` was not on PATH (exit 127); recovered it from the on-disk binary `/home/kent/spacedock/skills/commission/bin/claude-team` — flagging the broken PATH to the FO. Per the run-first-CAPPED captain decision, propose stops at the gate; the smoke is NOT launched.
+
+## Stage Report: smoke
+
+- DONE: Smoke run completed on specs/h0030-...smoke.frozen.yaml with a CLEAN strict audit (tainted:0) and captured>0 in every cell; the focused rk score is recorded in ## Smoke result.
+  `rk audit --policy strict` summary `{clean:10, tainted:0, coverage_missing:0}`; every cell `subagent-trace-manifest.json` `captured:1`. `rk score` `stratified_pass_at_1=0.70` (7/10, n_errored=0). Run dir `runs/ade-bench-h0030-implementation-grain-rowcount-reconcile-vs-parent/6914762d8b3a5546`.
+- DONE: Per-target deep-dive on intercom001/002/003 — did Got 7 DROP, and is any drop ARTIFACT-PROVEN; CAPPED inert-detector + zero-canary-regression.
+  All three targets `Got 7` BYTE-UNCHANGED vs @baseline (intercom001 threads; intercom002 conversation_metrics+threads; intercom003 conversation_metrics) → distance 7 (≥5) → INERT. The reconcile DID reach the committed SQL (count(distinct)/left join present, grain checks logged) but false-greened: committed models grain FROM conversation_part child with conversations left-joined as decoration. intercom003 artifact-proof: ensign validation states "conversation_history has 2 distinct parent ids while active parts have 5, so the model is scoped to active conversation parts" — solver saw the parent/child split and used the case-(ii) leave-it escape to bless the child grain. Zero canary regression: all 7 held (f1001/f1005/ana-eng001/ana-eng002/airbnb001/asana001/quickbooks002), both ≥2-perturbable fragile families intact.
+- DONE: Plain-words go/no-go to the captain — GO only on ≥1 flip or artifact-proven distance<5 + zero canary regression; else conclude REJECTED.
+  NO-GO / INERT / REJECTED. 0 intercom flips, Got 7 unchanged (≥5), zero canary regression. No GO condition met. Capped: one smoke, no iteration. Recommend conclude → REJECTED.
+
+### Summary
+
+h0030 smoke is a clean INERT NO-GO → REJECTED. The mechanical raw-source grain reconcile (COUNT(DISTINCT) + completeness anti-join) did NOT break the inertness wall that held h0010/h0016/h0017: all three intercom targets stayed FAIL with `Got 7` byte-identical to @baseline (distance 7, ≥5). This is a stronger failure than prior grain levers — the reconcile FIRED and reached the committed SQL, but false-greened because the solver reconciled against the wrong parent (the `_fivetran_active` filter collapses parent and child to the same 5 keys, re-correlating the "independent" probe) and then used the G10 case-(ii) "leave-it-if-legitimately-scoped" escape to bless the child grain (intercom003 is artifact-proof: solver saw conversation_history=2 distinct ids vs active-parts=5 and chose the child). All 7 canaries held with a clean strict audit (tainted:0) — the lever is safe-but-inert, not harmful; both ≥2-perturbable fragile families (f1, ana-eng) survived, unlike h0012. Fourth grain-family rejection: the deciding fact ("which key set is canonical") is unrecoverable without the oracle, confirming the grain-drop cluster is oracle-blocked for the construct/reconcile lever family. In-stage Implementation tweak — WORKFLOW-REFINE step N/A. NOTE: dispatch fetch `claude-team` not on PATH (exit 127); recovered via on-disk binary `/home/kent/spacedock/skills/commission/bin/claude-team`.
