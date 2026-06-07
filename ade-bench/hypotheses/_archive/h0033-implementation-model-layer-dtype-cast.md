@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: _proposal/oracle-problem-systematic-program.md (E4); successor to archived h0020 (REJECTED -- cast the raw seed, wrong layer) and h0009 (asana002 win but convention-bled -3); E0/h0032 found NO declared data_type/contract entries in the project, so the cast keys off the observed type mismatch vs a sibling/instruction, not a declared contract. captain go-ahead 2026-06-07.
 started: 2026-06-07T15:17:49Z
-completed:
-verdict:
+completed: 2026-06-07T16:20:41Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-07T16:20:41Z
 ---
 
 ## Hypothesis
