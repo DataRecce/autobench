@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: captain synthesis after _artifacts/arbitration-without-oracle.md and WORKFLOW-REFINE findings: Output Contract is useful as an observability surface (h0017) but not sufficient for correctness; h0026 proved self-anchored candidate scoring fails without independent judgment. This hypothesis tests the next protocol-family step: two independent contract routes plus an evidence-hierarchy arbitrator that can SELECT, REJECT_BOTH, or ABSTAIN before any SQL is authored.
 started: 2026-06-07T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-07T05:22:55Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-07T05:22:56Z
 ---
 
 ## Hypothesis
