@@ -1,7 +1,7 @@
 ---
 id: h0021
 title: Implementation — when a fix re-types a key, keep the dedup/ranking window deterministic under the original type via an in-place cast in the ORDER BY
-status: hypothesis
+status: propose
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type Value divergence (shape right, numbers wrong) — type-dependent dedup/ranking ORDER BY ordering sub-bug (ana-eng007 dim_products). f1006 residual excluded (not locally derivable). ana-eng007-medium demoted to sentinel per the critique (h0013 1->3 regression risk under its vague 'fix everything' instruction).); in-stage lever (Implementation). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
