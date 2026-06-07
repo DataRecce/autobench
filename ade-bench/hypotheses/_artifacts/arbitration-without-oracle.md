@@ -118,6 +118,14 @@ Arbitration:
   justifies the drop.
 - Abstain when the hidden solution encodes an intermediate-model convention that the
   task, schema, and local code do not specify.
+- **Abstain (or treat the count as non-arbitrating) when the parent key set is itself
+  filter-correlated with the candidate (h0030).** If both the parent and the child
+  inherit the same upstream `active`/effective-date filter, `COUNT(DISTINCT parent_key)`
+  collapses to the same scoped key set as the candidate and the count + anti-join agree
+  even though the grain is wrong. The parent-key count only arbitrates when the parent's
+  population is unambiguous and filter-free; "which population is canonical" (h0030's
+  intercom 2-vs-5 split) is an oracle-only fact, not a locally-arbitrable one. See
+  `verification-without-oracle.md` → correlated-error-through-a-shared-upstream-filter.
 
 ### Value Divergence
 

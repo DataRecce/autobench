@@ -291,6 +291,30 @@ oracle, and a self-applied `active`-filtered reconcile re-correlates into a fals
 conclude → REJECTED; do not iterate; treat the grain-drop cluster as oracle-blocked for the
 construct/reconcile lever family.
 
+**Conclude-discipline: no grain follow-up filed (family exhausted / oracle-blocked).** Per the
+conclude rule ("do not reflexively file when the evidence says the lever family is exhausted"), no
+`h<NNNN>` grain successor is created. h0030 is the 4th grain-family rejection
+(h0010/h0016/h0017/h0030); the construct/reconcile frontier is past — the deciding fact ("which key
+set is the canonical parent") is unrecoverable without the oracle, and a self-applied `active`-filtered
+reconcile re-correlates into a false-green. The transferable lessons are recorded cross-experiment
+in `_artifacts/bug-type-taxonomy.md` (#1a grain rows + per-type lesson) and
+`_artifacts/verification-without-oracle.md` (correlated-error-through-a-shared-upstream-filter
+sub-case + the sharp-test population/filter clause + the E0/h0032 fixture-must-share-the-filter
+method refinement), cross-ref'd in `_artifacts/arbitration-without-oracle.md`. This is an IN-STAGE
+Implementation tweak, not a structural/protocol change, so `_artifacts/WORKFLOW-REFINE.md` does NOT
+apply (per the instruction-lever-taxonomy convention).
+
+**Program-level reassessment (run-and-reassess decision point — `_proposal/oracle-problem-systematic-program.md`).**
+h0030 *was* E1, the program's explicitly-named make-or-break bet (E1, §127, the bimodal {0, 3}
+cluster shot). **E1 is now dead (0 flips, inert NO-GO).** Per the program's own pre-registered
+"realistic mode if E1 stays inert" (§202): the remaining flip portfolio's realistic ceiling is
+**+3** — E2 (airbnb009 / h0019, anti-cross-join), E3 (airbnb007 / h0018, rolling-window differential
+vs the project's own passing sibling), E4 (asana002, mechanical in-place `::timestamp` cast). That
+takes the loop to **34/48 (0.7083)** — short of the 75% goal (36/48). The program's risk was
+concentrated in E1 and that risk materialized; the +6 best-case (37/48) is off the table. Decision:
+**run E2/E3/E4 and reassess** — do not speculatively hunt a 6th visible-arbitrator target up front;
+revisit the ceiling only after E2/E3 results are in (program §2, §245).
+
 ## Gatekeeper review
 
 **Recommendation: APPROVE** — REVISED artifacts (count + completeness anti-join pairing; E1 intercom-only target set) re-reviewed; clean single-stage Implementation addition; G10 cleared on all three axes (gated scope, raw-parent independence on BOTH probes, check-don't-replace); G8 panel carries ≥2 perturbable canaries on both construct-sharing families; the prior G4 WARN is now PASS (smoke targets exactly equal the Target datasets). No FAILs.
@@ -355,3 +379,16 @@ Revised the already-APPROVED h0030 to align with E0/h0032 + the E1 triage. Three
 ### Summary
 
 h0030 smoke is a clean INERT NO-GO → REJECTED. The mechanical raw-source grain reconcile (COUNT(DISTINCT) + completeness anti-join) did NOT break the inertness wall that held h0010/h0016/h0017: all three intercom targets stayed FAIL with `Got 7` byte-identical to @baseline (distance 7, ≥5). This is a stronger failure than prior grain levers — the reconcile FIRED and reached the committed SQL, but false-greened because the solver reconciled against the wrong parent (the `_fivetran_active` filter collapses parent and child to the same 5 keys, re-correlating the "independent" probe) and then used the G10 case-(ii) "leave-it-if-legitimately-scoped" escape to bless the child grain (intercom003 is artifact-proof: solver saw conversation_history=2 distinct ids vs active-parts=5 and chose the child). All 7 canaries held with a clean strict audit (tainted:0) — the lever is safe-but-inert, not harmful; both ≥2-perturbable fragile families (f1, ana-eng) survived, unlike h0012. Fourth grain-family rejection: the deciding fact ("which key set is canonical") is unrecoverable without the oracle, confirming the grain-drop cluster is oracle-blocked for the construct/reconcile lever family. In-stage Implementation tweak — WORKFLOW-REFINE step N/A. NOTE: dispatch fetch `claude-team` not on PATH (exit 127); recovered via on-disk binary `/home/kent/spacedock/skills/commission/bin/claude-team`.
+
+## Stage Report: conclude
+
+- DONE: Finalize the bug-type-taxonomy.md grain rows (#1a entity-grain) — mark h0030 REJECTED (4th grain rejection h0010/h0016/h0017/h0030) + the sharp per-type lesson.
+  Board row #1 Status rewritten (1a construct/reconcile family EXHAUSTED, 4 REJ; h0030 FIRED+REACHED SQL yet false-greened via shared `_fivetran_active` filter re-correlating the probe; deciding fact oracle-only). Per-type lessons #1 Grain extended with the filter-correlation false-green + G10 case-(ii) escape + intercom003 artifact-proof; "do not re-file" recorded.
+- DONE: Record the transferable CORRELATED-ERROR refinement in _artifacts/verification-without-oracle.md (+ cross-ref arbitration-without-oracle.md); ALSO the E0/h0032 method refinement.
+  Added "Correlated error through a shared upstream filter" sub-case (independence must hold for the POPULATION/FILTER, not just relation/route); augmented the sharp-test with the population/filter clause; revised the #1a reach-map row to ❌; added the E0/h0032 fixture-must-share-the-target's-filter method refinement to Bears-on; cross-ref'd in arbitration-without-oracle.md → Grain/Missing Rows (abstain when parent key set is filter-correlated).
+- DONE: Per conclude discipline DO NOT auto-file a grain follow-up; record the run-and-reassess decision point in ## Verdict; set verdict narrative to REJECTED.
+  No grain successor filed (family exhausted/oracle-blocked). Verdict appended: E1 (=h0030) dead ⇒ realistic ceiling +3 (E2 airbnb009/h0019, E3 airbnb007/h0018, E4 asana002 cast) ⇒ 34/48, short of 75%; decision = run E2/E3/E4 and reassess. WORKFLOW-REFINE.md confirmed N/A (in-stage Implementation tweak). Verdict narrative is REJECTED. (Frontmatter verdict/completed/archive left to the FO per dispatch.)
+
+### Summary
+
+Finalized the cross-experiment records for h0030's capped-inert REJECTED verdict (smoke run 6914762d8b3a5546; analysis was already written by the smoke ensign — not re-run). bug-type-taxonomy.md now records h0030 as the 4th and final 1a grain rejection with the sharp lesson that — unlike the prior 3 inert levers — h0030's reconcile FIRED and REACHED the committed SQL yet false-greened because the shared `_fivetran_active` filter collapsed parent and child to the same 5 keys (anti-join empty), re-correlating the "independent" raw-source probe; the solver then took the G10 case-(ii) legitimate-scope escape. The new transferable rule is recorded in verification-without-oracle.md as a correlated-error sub-case (independence must hold for the POPULATION/FILTER, not just the relation/route) plus the E0/h0032 fixture-must-share-the-filter method refinement, cross-ref'd in arbitration-without-oracle.md. No grain follow-up auto-filed (family exhausted/oracle-blocked); the entity Verdict records the program-level run-and-reassess decision point (E1 dead ⇒ +3 ceiling ⇒ 34/48, short of 75%). Frontmatter verdict=REJECTED + completed + archive left to the FO per dispatch.

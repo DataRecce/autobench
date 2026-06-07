@@ -37,11 +37,42 @@ trace to one origin. ML self-consistency fails when all samples share a misconce
 reverse-inference Plan Reviewer (2026-06-06) are all the same defect: a check correlated with
 the thing it checks.
 
+### Correlated error through a *shared upstream filter* (new sub-case, h0030, 2026-06-07)
+
+A "raw-source independent probe" — the strongest shape we have, the f1007-hard move — can **still
+re-correlate** if it inherits the model's upstream **FILTER / population scope**. h0030 added
+exactly such a probe for grain-drop: reconcile the model's `COUNT(*)` against `COUNT(DISTINCT key)`
+on the raw parent **plus** a completeness anti-join (every raw-parent key must appear). It was a
+plain SELECT on `{{ source() }}`, route-independent and generation-independent — and it still
+false-greened on all three intercom targets (`Got 7` byte-unchanged, distance 7). The reason: the
+intercom models apply a `_fivetran_active` filter that collapses **both** the parent
+(`conversation_history`) **and** the child (`conversation_part`) to the **same 5 keys**, so the
+raw-source `COUNT(DISTINCT key)` agreed with the model and the anti-join was empty. The probe read
+the *right relation by the right route* but over the *wrong (filtered) population*, so it shared the
+model's grain error and confirmed it.
+
+**The refinement:** independence must hold for the **POPULATION / FILTER, not just the relation or
+the route.** A probe that re-applies (or silently inherits) the same `WHERE`/`active`/effective-date
+filter the model uses is not independent of the grain error, even when it reads the immutable source
+table by a different SQL path. Add this to the sharp test below: a check is independent only if its
+*key set* is computed without the model's scoping predicate. When the deciding fact is "which
+population is canonical" (h0030: 2 distinct ids in history vs 5 active parts), no
+same-filter raw-source probe can settle it — that fact is oracle-only. Compounding this, a
+**check-don't-replace** escape (the G10 case-(ii) "if legitimately scoped, leave it" softening,
+added to avoid h0012's mandate-replace damage) becomes the hole the solver walks through: it is free
+to bless the short table as "legitimately scoped." The mechanical-number ingredient that won
+asana002 (`::timestamp`) worked because the target was a **value to match**; here the target was
+**which population is canonical**, which a filter-correlated reconcile cannot recover. (Cross-ref:
+`arbitration-without-oracle.md` → *Grain / Missing Rows* — its `ABSTAIN`-when-the-parent-count-is-a-
+filtered-convention clause is the same wall; a parent-key count only arbitrates when the parent's
+population is itself unambiguous and filter-free.)
+
 ## The sharp test for any proposed check
 
 > **Is this check _independent_ of the thing it checks, or _correlated_ with it?**
 > - Reads the solver's own plan / framing / output, or re-runs the solver's own logic → **correlated** → it will false-green. Reject.
 > - Recomputes the truth from the **raw source** by a *different route*, or checks a relation the answer must obey regardless of method → **independent** → it can catch.
+> - **Independence must also hold for the POPULATION / FILTER, not just the relation/route (h0030).** A raw-source probe that re-applies (or silently inherits) the model's `WHERE`/`active`/effective-date scoping predicate computes its key set over the *same filtered population* and re-correlates — it will false-green even though it reads the immutable source table. The probe's key set must be derived without the model's scoping filter; if "which population is canonical" is itself the deciding fact, no same-filter probe can settle it (oracle-only).
 
 Apply this before writing the hypothesis. Reverse-inference failed it (it reasoned from the
 contract's own framing). h0026's selector failed it (scored each candidate by its *own* local
@@ -96,7 +127,7 @@ note is the **toolbox** (reconcile / invariant / differential / disconfirm) and 
 | #4 rolling-window/tolerance | the project's own existing rolling model → **local** | ✅ already flipped under h0017 (airbnb007) |
 | #6 incomplete deliverable | `schema.yml`/ref-graph *if enumerated* | ⚠️ partial (enumerable-only) |
 | #5 type/contract | type declared / derivable downstream | ⚠️ partial (asana002 `::timestamp`) |
-| #1a entity grain | intercom: local parent ✓ · **asana004: oracle-only convention** | ⚠️ split — mostly not |
+| #1a entity grain | intercom: ~~local parent ✓~~ → **parent is filter-correlated (h0030)** · asana004: oracle-only convention | ❌ revised down — construct/reconcile family REJECTED & oracle-blocked (h0030) |
 | #3 value divergence | the computed **value** itself → **oracle-only** for the number, but **reconcilable from raw source** | ⭐ reconciliation is the only shot; no plan-reviewer can |
 | #7 analytical guess | which options are true → needs independent **recompute** | ❌ for plan-review; needs per-claim evidence (h0014) |
 
@@ -109,6 +140,17 @@ note is the **toolbox** (reconcile / invariant / differential / disconfirm) and 
 - The next concrete lever: an **independent-reconciliation check** on a value-divergence target
   (e.g. ana-eng007) where a raw-source recompute is locally derivable — the highest-transfer
   import here.
+- **E0/h0032 harness method refinement (h0030 finding).** E0's controlled 2×2
+  (`_artifacts/h0032-e0-harness/result_2x2.json`) CLEARED the count+anti-join reconcile two-sided
+  on its injected-error fixtures — but those fixtures were **CLEAN**: they lacked a *shared upstream
+  filter* between parent and child, so the injected drop showed up cleanly. The real intercom
+  targets have a `_fivetran_active` filter on **both** parent and child that collapses them to the
+  same key set, which the synthetic fixtures did not model — so E0 validated the probe in a regime
+  the actual failure does not inhabit, and predicted GO where the live run went inert. **A future E0
+  fixture for any grain/completeness probe MUST share the target's upstream filter (apply the same
+  `active`/effective-date predicate to both parent and child) so the harness exercises the
+  filter-correlation false-green, not just a clean drop.** Without that, the harness's two-sided
+  clearance is over-optimistic for filter-scoped models.
 
 ## Evidence / provenance
 
