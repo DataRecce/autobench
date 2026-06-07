@@ -65,31 +65,48 @@ When you author an aggregate or per-entity model whose grain is meant to be
 COMPLETE over a parent key set — a per-entity or dimension model that should
 expose one row per entity, or a date/calendar model that should be gap-free, as
 described by its `schema.yml` entry or the task instruction — reconcile its grain
-against an INDEPENDENT count taken from the raw parent, not against your own
-judgment that the output looks right. Compute `COUNT(DISTINCT <key>)` directly on
-the canonical raw PARENT source — a plain SELECT on the source relation, with NO
-model logic; do NOT re-run, re-derive, or wrap your own model — and compare it to
-your model's `COUNT(*)`. (For a date grain the parent is the complete date spine
-between the source min and max date.) A shortfall is a SIGNAL TO INVESTIGATE, NOT
-an automatic rewrite: re-read the model's intended grain, then — (i) if it is
-meant to carry every parent key and some are missing, you grained on a filtered
-child; rebuild FROM the parent (LEFT JOIN the child/aggregate relations onto it)
-and re-reconcile; (ii) if the model is legitimately scoped to a subset, the
-shortfall is EXPECTED — leave it. NEVER replace a simple, correct aggregate with
-a structurally-different path merely to change the number. This rule does not
-apply to aggregates with no canonical parent key set — do not invent a parent.
+against an INDEPENDENT view of the raw parent, not against your own judgment that
+the output looks right. Run TWO checks, both reading a plain SELECT on the raw
+PARENT source (with NO model logic; do NOT re-run, re-derive, or wrap your own
+model):
 
-Worked example — reconcile produced count against the raw parent, rebuild only if
-completeness is the intended grain:
+1. COUNT reconcile — compute `COUNT(DISTINCT <key>)` directly on the canonical raw
+   PARENT source and compare it to your model's `COUNT(*)`. (For a date grain the
+   parent is the complete date spine between the source min and max date.)
+2. COMPLETENESS anti-join — confirm that every DISTINCT parent key from the raw
+   source actually APPEARS in your model's output (anti-join the raw key set
+   against your output; the set of missing keys must be empty). The count alone is
+   blind to a drop-N-add-N error — if you drop N real parent rows and admit N
+   wrong rows, the two counts still match while the grain is wrong; the anti-join
+   catches exactly that case, so run both, not just the count.
+
+A shortfall in the count OR any raw parent key missing from the anti-join is a
+SIGNAL TO INVESTIGATE, NOT an automatic rewrite: re-read the model's intended
+grain, then — (i) if it is meant to carry every parent key and some are missing,
+you grained on a filtered child; rebuild FROM the parent (LEFT JOIN the
+child/aggregate relations onto it) and re-reconcile both checks; (ii) if the model
+is legitimately scoped to a subset, the shortfall is EXPECTED — leave it. NEVER
+replace a simple, correct aggregate with a structurally-different path merely to
+change the number. This rule does not apply to aggregates with no canonical parent
+key set — do not invent a parent.
+
+Worked example — reconcile produced count AND completeness against the raw parent,
+rebuild only if completeness is the intended grain:
 ```text
 # 1. CONFIRM the intended grain from schema.yml / the instruction:
 #    int_project_user_agg is meant to expose one row per project (complete).
 # 2. COUNT(*) of your current model:
 #    produced = 13
-# 3. INDEPENDENT count from the RAW PARENT source (plain SELECT, no model logic):
+# 3a. INDEPENDENT count from the RAW PARENT source (plain SELECT, no model logic):
 #    expected = (select count(distinct project_id) from {{ source('app','projects') }})  -- 16
-# 4. SHORTFALL (13 < 16) AND completeness is intended => you grained on a filtered
-#    child; rebuild FROM the parent. (If the 13-row scope were legitimate, leave it.)
+# 3b. INDEPENDENT completeness anti-join — every raw parent key must appear in output:
+#    select project_id from {{ source('app','projects') }}
+#    except
+#    select project_id from {{ ref('int_project_user_agg') }}     -- must be EMPTY
+#    (3 keys come back here -> 3 parent projects are missing from the model.)
+# 4. SHORTFALL (13 < 16) OR non-empty anti-join AND completeness is intended => you
+#    grained on a filtered child; rebuild FROM the parent. (If the 13-row scope were
+#    legitimate, both checks are EXPECTED to disagree — leave it.)
 ```
 ```sql
 -- BEFORE: grained on a pre-filtered child — parent keys with no child row vanish
@@ -98,7 +115,8 @@ from {{ ref('int_project_tasks') }}   -- only projects that HAVE tasks
 group by 1
 
 -- AFTER: parent is the spine; the child aggregate is LEFT JOINed onto it, so
---   every parent key survives. COUNT(*) now reconciles to COUNT(DISTINCT) on parent.
+--   every parent key survives. COUNT(*) now reconciles to COUNT(DISTINCT) on the
+--   parent AND the completeness anti-join (raw parent keys EXCEPT output) is empty.
 select p.project_id, coalesce(c.n_tasks, 0) as n_tasks
 from {{ source('app','projects') }} p        -- the canonical parent key set
 left join (

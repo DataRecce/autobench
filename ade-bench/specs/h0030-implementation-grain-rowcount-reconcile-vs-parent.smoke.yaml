@@ -21,11 +21,12 @@ benchmark:
   dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
   # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
   # baseline / first run: skip smoke, run full directly.
-  tasks: # GENERATIVE-class lever (the grain row-count reconcile fires on every aggregate/entity model whose grain is meant to be complete over a parent key set — that covers MOST aggregate models, so smoke carries the full G8 cross-family regression panel with G8/G10 perturbable doubling on the two construct-sharing families f1 + ana-eng); ade-bench- prefixed (bare slugs rejected by rk run)
-    # --- 3 grain targets (all FAIL @baseline 622bdedac572b479; want ≥1 grain-drop to flip with the parent-grained SQL visible in the commit) ---
+  tasks: # GENERATIVE-class lever (the grain row-count reconcile + completeness anti-join fires on every aggregate/entity model whose grain is meant to be complete over a parent key set — that covers MOST aggregate models, so smoke carries the full G8 cross-family regression panel with G8/G10 perturbable doubling on the two construct-sharing families f1 + ana-eng); ade-bench- prefixed (bare slugs rejected by rk run)
+    # --- E1 = the intercom grain cluster ONLY (all FAIL @baseline 622bdedac572b479; 3 shots at the one clean shared cause; want ≥1 to flip with the parent-grained SQL visible in the commit, Got 7 below 5) ---
+    # (airbnb009 -> E2/h0019: its date spine is already built unprompted; the residual is a cross-join, not a missing spine, so the reconcile is the wrong lever. asana004 -> Track Z: oracle-only int_ convention, not in the flip portfolio.)
     - ade-bench-intercom001      # TARGET — AUTO_intercom__threads_equality "Got 7" (clean child-driven grain drop, no ambiguity)
-    - ade-bench-airbnb009        # TARGET — mom_agg_review_date_range "Got 1" (date-spine; complete-calendar grain)
-    - ade-bench-asana004         # TARGET — AUTO_int_asana__project_user_agg_equality "Got 3" (prescription/underdetermined; flips only if solver reads grain as one-row-per-project)
+    - ade-bench-intercom002      # TARGET — same shared child-driven grain-drop cause
+    - ade-bench-intercom003      # TARGET — same shared child-driven grain-drop cause
     # --- G10/G8 perturbable doubling: ≥2 perturbable canaries in EACH construct-sharing family (h0012 lesson: a generative reconcile can break a DIFFERENT family member than the single canary) ---
     - ade-bench-f1001            # canary (f1, proven-fragile to figure-rewrite) — the convention-bleed tripwire; perturbable aggregate model-author
     - ade-bench-f1005            # canary (f1) — direct h0012 casualty; if a grain/count lever survives f1005 it is a meaningful safety signal
