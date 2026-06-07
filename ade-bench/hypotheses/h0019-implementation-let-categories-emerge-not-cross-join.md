@@ -1,7 +1,7 @@
 ---
 id: h0019
 title: Implementation — on a repair, let each category/group emerge from the existing join, never force a constant per-key row by cross-joining every category against every key value
-status: propose
+status: smoke
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type 1b - Grain - date/calendar spine (missing days)); in-stage lever (Implementation). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
