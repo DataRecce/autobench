@@ -41,7 +41,7 @@ cross-model note below the table.
 | ana-eng007-medium | `AUTO_dim_products_equality` | `Got 5` | value divergence | ❌ also fails |
 | f1006 | `AUTO_constructor_points_equality` | `Got 2` | value divergence | ✅ **flips** |
 | airbnb007 | `daily_agg_nps_reviews_equality_with_tolerance` | `Got 4` | tolerance-band divergence | ❌ also fails |
-| asana002 | `AUTO_asana__task_equality` | `Got 2` (fixed by `::timestamp` cast) | type/contract mismatch | ✅ **flips** |
+| asana002 | `AUTO_asana__task_equality` | `Got 2` — **NOT a `::type` cast** (h0033): structural package-migration (Fivetran made tags optional); fixed by a `{% if using_task_tags %}` conditional-inclusion rewrite | ~~type/contract mismatch~~ → **structural package-migration** (re-classified, h0033) | ✅ **flips** (solver-native) |
 | quickbooks001 | 3× `stg_quickbooks__*` **existence + equality** | `Got 1` ×6 (models absent) | incomplete deliverable / missing models | ❌ also fails |
 | f1011 | `check_option_b` | `Got 1` | analytical-answer guess | ✅ **flips** |
 
@@ -73,7 +73,7 @@ oracle used here; always cite `c5acd9b29faeb087`.)
 | 3 | **Value divergence** — shape right, numbers wrong | right rows & columns, wrong values; only an *independent* recompute catches it | `Got N` on a computed metric | ana-eng007, ana-eng007-medium, f1006, ana-eng006 (`fact_inventory`) | h0012 (indep. recompute, **REJ**) → **h0021** (Impl: type-stable dedup `ORDER BY`, ana-eng007) | **h0012 REJECTED** (full 0.5625 vs @baseline 0.6458, NET −4 / run `3d8294de42b726e1`): the GENERATIVE reconcile DAMAGED passers — pushed 4 f1 `constructor_points` passers off a simple-correct `sum→max` onto a subtly-wrong "structurally different" path, then false-green-validated against a CTE sharing the model's own logic (correlated-error realized as net harm). 2 gains (airbnb007, asana002) couldn't offset 6 regressions. The generative "check your own numbers without an oracle" family is **EXHAUSTED** (after self-anchored h0006/7/8); any survivor must be gated to figure-*changes*, forbidden from replacing a simple-correct path, smoke-tested with ≥2 perturbable canaries/family. **h0021 filed** (re-scoped to ana-eng007; f1006 excluded — not locally derivable). |
 | 3★ | **↳ Large-magnitude / join fan-out** *(candidate sub-type)* | a join multiplies rows (double-count) → big row delta, not a subtle value error | very large `Got N` (e.g. `Got 204`) vs grain's 3–7 | ana-eng006 (`fact_inventory`) | folded into **h0023** (Output Contract types+columns) | **RE-CLASSIFIED — NOT a fan-out.** ana-eng006 oracle: `check_row_count` + `*_existence` PASS (102 rows, no dup). `Got 204` = date string-vs-`DATE` type diff + width. 3★ drops as a standalone sub-type. |
 | 4 | **Tolerance-band divergence** *(NEW)* | numbers are close but fall outside the test's allowed tolerance (rounding / float / method) | test named `*_equality_with_tolerance`, `Got N` | airbnb007 | **h0018** (Output Contract stage: rolling window as calendar RANGE) | **now covered** (h0018) — airbnb007 re-root-caused as a date-grain/rolling-window **construction** error, not a numeric-tolerance tweak |
-| 5 | **Type / contract mismatch** | values "right" but column type/representation differs (e.g. text vs `timestamp`) | `Got N`, fixed by a `::type` cast | asana002 | h0009 (package fidelity, the **one win**) → **h0020** (Impl: precondition-gated in-place type cast, no add/drop/rename) | h0009 +1/−1 (convention-bleed); **h0020 filed** — gated mechanical cast to kill the regression |
+| 5 | **Type / contract mismatch** ~~asana002~~ → **MIS-CLASSIFIED; asana002 is STRUCTURAL** (h0033) | values "right" but column type/representation differs (e.g. text vs `timestamp`) — **but asana002 was never this**: its `Got 2` is a structural package-migration (Fivetran made `task_tags` optional), not a representation mismatch | `Got N`, fixed by a `::type` cast | ~~asana002~~ (re-classified → structural package-migration); no current task is a confirmed pure type/contract bug | h0009 (package fidelity, the **one apparent win**) → h0020 (Impl: precondition-gated in-place cast, **REJ** — inert, cast never reached model SQL) → **h0033** (Impl: model-layer `::type` cast, **REJ** — INERT, no surface) | **CAST-LEVER FAMILY EXHAUSTED for asana002 (3 REJ: h0009 bled / h0020 seed-layer-inert / h0033 no-surface).** h0033 (the model-layer-targeted cast) confirmed the diagnosis was wrong: the committed `asana__task.sql` gained a `{% if using_task_tags %}` conditional-inclusion rewrite with **ZERO `::type` casts** — asana002 is a STRUCTURAL bug a mechanical cast has no surface to act on. asana002 flipped SOLVER-NATIVE (consistent with Mini-solvable), not lever-attributable. **Do not re-file a cast lever for asana002.** No current task is a confirmed pure type/contract mismatch. |
 | 6 | **Incomplete deliverable / missing models** | compiles green so solver stops; graded models never built | `*_existence` tests fail (models absent) | quickbooks001 (also ana-eng007-medium per re-audit; see Corrections) | h0013 (enumerate, NO-GO), h0015 (copy package), h0023 (deliverable-set clause, **REJ**) | h0013 NO-GO, h0015 hypothesis; h0023 NO-GO — deliverable-set clause caused **convention-bleed** (f1001 canary REGRESSED); clause must be scope-gated to tasks with explicit missing-model signals before re-use |
 | 7 | **Analytical-answer guess** | answer-style deliverable includes an option on plausibility, unverified | `check_option_*` fails | f1011 | h0014 (per-claim evidence) → **h0022** (Output Contract stage: option→check→IN/OUT, default OUT) | h0014 + **h0022 filed** (decision table before answer SQL) |
 
@@ -149,8 +149,30 @@ the @baseline oracle output corrects it:
   rolling-window construction** error (a per-day aggregate over a 28-day calendar RANGE, not N preceding
   rows), not a numeric rounding/precision tweak — so the lever is structural (h0018, Output Contract
   stage), copying the project's own existing rolling-window model rather than nudging precision.
-- **#5 Type/contract** — the loop's **only win** (asana002, `due_at::timestamp`) — a mechanical
-  cast that *landed*; but it regressed at full scale (convention-bleed cost f1/quickbooks).
+- **#5 Type/contract — RE-CLASSIFIED; asana002 was never a type/contract bug, and the cast-lever
+  family is EXHAUSTED.** Three rejections converge on one finding: asana002's `Got 2` is a
+  **structural package-migration** ("Fivetran made `task_tags` optional"), NOT a representation/type
+  mismatch — a mechanical `::type` cast has **no surface to act on**. h0009 appeared to win
+  (`due_at::timestamp`) but bled at full scale (−1, convention bleed on f1/quickbooks) and the
+  "win" was always in doubt (h0020). **h0020** (gated cast) was REJECTED inert — the cast never
+  reached the model SQL (solver kept its raw-seed/`+column_types` habit). **h0033** (the model-layer-
+  *targeted* cast — the explicit "edit the model `.sql`, NEVER the seed" rule + a copyable worked
+  example, the last untried cast shape) was REJECTED **INERT** and is the decisive negative: the
+  committed `models/asana__task.sql` gained a Jinja `{% set using_task_tags %}` + `{% if
+  using_task_tags %}` **conditional-inclusion rewrite** that gates the `task_tags` CTE/columns/join
+  (+ matching `config(enabled=…)` on `int_asana__task_tags.sql`/`asana__tag.sql`) — the genuine
+  structural fix — with **ZERO `::type` casts** (only `cast(null as {{ dbt.type_string() }})`
+  placeholders for the disabled branch). The seed/`+column_types` were untouched (so NOT the h0020
+  wrong-layer mode), and no cast bled into the h0009 bleed families (f1001/quickbooks003/asana001 all
+  HELD) — but both are moot: the lever **never fired on its own named target**. asana002 flipped
+  FAIL→PASS, but SOLVER-NATIVE (consistent with Mini-solvable) and NOT lever-attributable; a green
+  score is not artifact-proof of the cast. **The cast-lever family is EXHAUSTED for asana002
+  (h0009 bled / h0020 seed-layer-inert / h0033 no-surface). Do not re-file a cast lever for it.**
+  Transferable: a "mechanical cast/edit" lever is INERT when the real bug is STRUCTURAL — the solver
+  fixes it structurally without emitting the prescribed mechanical token, so the lever's named
+  surface never appears (the **E4 green-but-inert** case; attribution requires the prescribed
+  artifact in the COMMITTED SQL, not a green flip). Run-dir
+  `runs/ade-bench-h0033-implementation-model-layer-dtype-cast/33cf2891e1f5e6b6`.
 - **#6 Missing models** — the `*_existence` failures are the unambiguous tell; quickbooks001's
   3 `stg_*` models exist in the installed package (h0015's copy-the-package angle).
 - **NEW direction — the Output Contract stage.** A new `## Stage: Output Contract` inserted *between
@@ -170,7 +192,9 @@ the @baseline oracle output corrects it:
 README-prose / worked-example levers have largely hit a **ceiling** at gpt-5.5 / `reasoning_effort:
 xhigh`: a verbatim copyable skeleton changes the committed SQL yet still flips zero targets,
 because the residual gap is task-specific correctness the README can't supply without leaking.
-Scoreboard: h0008 0/7 · h0009 +1/−1 · h0010 0/4 · h0011 0/3 · h0016 0/4. **Pivot (2026-06-05,
+Scoreboard: h0008 0/7 · h0009 +1/−1 · h0010 0/4 · h0011 0/3 · h0016 0/4 · h0033 INERT (target
+flipped solver-native, the prescribed `::type` cast never appears in the committed SQL — a
+mechanical-cast lever has no surface when the real bug is structural). **Pivot (2026-06-05,
 h0017–h0023 from the `innovate-bugtype-fixes` workflow):** off prose/worked-example and onto (a) a
 structural **Output Contract** derivation stage between Exploration and Implementation
 (h0017/h0018/h0022/h0023) and (b) surgical **Implementation-stage in-place casts/guards**

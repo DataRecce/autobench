@@ -67,6 +67,32 @@ asana002 (`::timestamp`) worked because the target was a **value to match**; her
 filtered-convention clause is the same wall; a parent-key count only arbitrates when the parent's
 population is itself unambiguous and filter-free.)
 
+### A green flip is not lever attribution — the "inert lever / green-but-inert" failure (h0033, 2026-06-07)
+
+A separate trap from correlated error, on the *generative-edit* (not check) side: a **mechanical
+edit lever** (e.g. "apply a `::<type>` cast in the model `.sql` when a column mismatches a
+sibling/instruction") can be **INERT yet the target still flips green**, because the solver fixes
+the bug **structurally** — without ever emitting the prescribed mechanical token — and the green
+score then *looks* like a win. h0033 is the clean case: it was the last untried cast shape (explicit
+"edit the MODEL `.sql`, NEVER the seed/`+column_types`" + a copyable worked example, built to beat
+h0020's seed-layer inertness). At smoke `asana002` flipped FAIL→PASS and zero canaries regressed —
+but the committed `models/asana__task.sql` gained a `{% if using_task_tags %}` **conditional-
+inclusion rewrite** (the genuine fix for "Fivetran made tags optional") with **ZERO `::<type>`
+casts**. The diagnosis was wrong: asana002 is a **structural package-migration**, not a
+representation mismatch, so the cast had **no surface to act on** — and the solver, fixing it
+structurally, never wrote the prescribed token. The flip was **solver-native** (consistent with
+asana002 being Mini-solvable), NOT lever-attributable.
+
+**The rule:** attribution requires the **prescribed artifact in the COMMITTED SQL**, not a green
+flip. Before banking any generative-edit lever as a GO, read the committed `apply_patch` and confirm
+the lever's named token actually appears and caused the change — a green score on the target is
+necessary but **not sufficient**. The cheap inert-detector (is `Got N` unchanged?) catches the
+*nothing-happened* inertness, but **this is the opposite failure: something DID happen and the target
+DID flip, but it was not the lever** — only the artifact read distinguishes a real lever win from a
+solver-native flip the lever rode for free. Corollary for the proposer: **a "mechanical cast/edit"
+lever is the wrong tool when the real bug is structural** — apply the independent-vs-correlated test
+to *checks*, and this artifact-attribution test to *generative edits*, before filing either.
+
 ## The sharp test for any proposed check
 
 > **Is this check _independent_ of the thing it checks, or _correlated_ with it?**
@@ -126,7 +152,7 @@ note is the **toolbox** (reconcile / invariant / differential / disconfirm) and 
 | #1b date-spine | "row for every day" + data min/max → **local** | ✅ invariant: grain covers [min,max] |
 | #4 rolling-window/tolerance | the project's own existing rolling model → **local** | ✅ already flipped under h0017 (airbnb007) |
 | #6 incomplete deliverable | `schema.yml`/ref-graph *if enumerated* | ⚠️ partial (enumerable-only) |
-| #5 type/contract | type declared / derivable downstream | ⚠️ partial (asana002 `::timestamp`) |
+| #5 type/contract | type declared / derivable downstream | ❌ revised down — **asana002 RE-CLASSIFIED as structural** (h0033): not a representation mismatch but a package-migration (tags optional); a `::type` cast has no surface. The cast-lever family is EXHAUSTED for asana002 (h0009/h0020/h0033). No current task is a confirmed pure type/contract bug. |
 | #1a entity grain | intercom: ~~local parent ✓~~ → **parent is filter-correlated (h0030)** · asana004: oracle-only convention | ❌ revised down — construct/reconcile family REJECTED & oracle-blocked (h0030) |
 | #3 value divergence | the computed **value** itself → **oracle-only** for the number, but **reconcilable from raw source** | ⭐ reconciliation is the only shot; no plan-reviewer can |
 | #7 analytical guess | which options are true → needs independent **recompute** | ❌ for plan-review; needs per-claim evidence (h0014) |
