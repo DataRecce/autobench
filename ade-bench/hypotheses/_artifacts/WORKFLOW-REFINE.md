@@ -344,3 +344,78 @@ or a dispatched worker, never a direct first-officer edit.
   composition + `### propose` smoke-set guidance); `_archive/h0012-validation-independent-recompute.md`
   (run `3d8294de42b726e1`); MEMORY `verification-without-oracle-real-world`,
   `ade-bench-instruction-lever-taxonomy`.
+
+### Dual Output Contract Arbitration — new pre-Implementation stage: two independent contracts + evidence-hierarchy arbitrator (h0031, smoke, 2026-06-07)
+- **Layer:** solver workflow (`solver_workflows/h0031-dual-output-contract-arbitration/README.md`).
+- **Refinement type:** NEW stage / NEW protocol-family — one `## Stage: Dual Output Contract
+  Arbitration` inserted between Exploration and Implementation: Phase 1 shared evidence snapshot,
+  Phase 2 two independent contracts (B = forced-divergence, must not read A), Phase 3 an
+  evidence-hierarchy arbitrator writing machine-readable `arbitration.json`
+  (SELECT_A / SELECT_B / MERGE_NON_CONFLICTING / REJECT_BOTH / ABSTAIN) before any SQL.
+- **Finding (smoke, run `0de9870ae2220bca`, 8/11 pass, clean strict audit tainted:0, captured:1
+  all 11):** the stage is **NOT inert and NOT theatre — it materialized real, independent,
+  evidence-bearing artifacts** on every target, yet **moved zero targets and zero distances-to-pass
+  vs `@baseline`**. Two sub-findings:
+  1. **Protocol fidelity is real (refutes the G7 inert-risk watch-item, on the targets).** All 3
+     targets wrote a genuine `arbitration.json` to disk via `apply_patch` (verified `test -f` +
+     `ls`), and the committed SQL matched the arbitrated `selected_claims` (AC-5 held). **Route B
+     genuinely diverged from A on real claims (the G9/AC-1 single-session wall was cleared on the
+     targets):** intercom001's B drove conversation_created_at from `conversation_history` with an
+     explicit `attempt_to_defeat_route_a` block; ana-eng004's B swapped the product source from
+     `dim_products`→raw `northwind.products` (supplier_company→supplier_ids); f1011's B proposed a
+     CEF option reading the arbitrator rejected. Arbitration used INDEPENDENT probes, not transcript
+     plausibility — intercom rejected B via a raw conservation check (`part_rows_with_history_match:
+     0`, a history join would not conserve parent rows); ana-eng004 used a coverage probe
+     (`dim_products misses 16 of 102 inventory rows; raw products covers all 102`).
+  2. **The protocol does NOT beat the blind-to-oracle wall — it hits it in arbitration form.** All
+     three targets land at the *identical* distance-to-pass as baseline: ana-eng004 "has less
+     columns than solution" (exact width is oracle-only — `arbitration.json` itself records
+     `target_schema_yaml: "No schema YAML declares obt_product_inventory"` — yet
+     `abstained_claims: []`); intercom001 "Got 7 results" (the part_type→assignment/reopen/contact
+     metric mapping is oracle-only — local data had `assignment_rows:0, reopen_rows:0, comment_rows:0`,
+     i.e. NO visible rows to validate the mapping — yet selected at tier-3, not abstained); f1011
+     committed **ABDE**, the *byte-identical wrong answer* baseline committed, failing the same
+     `check_option_b` — B=IN was supported by a self-derived local probe that correlates with the
+     wrong reading (the h0026 self-anchored-scorer / correlated-error false-green, now with a
+     two-route apparatus on top). **AC-4 (abstention honored) was violated exactly where it mattered:
+     every target had `abstained_claims: []` on the one load-bearing claim that was genuinely
+     oracle-only.** When the workspace cannot decide, two independent contracts still converge on the
+     same locally-plausible-but-unsupported premise, and the arbitrator picks it instead of abstaining.
+- **What the stage did to committed artifacts independent of target movement / whole-set coverage:**
+  the new stage was **selectively exercised — fired on only 4 of 11 cells** (the 3 targets + f1001),
+  each of which wrote a real `arbitration.json`. The **7 pure-passer canaries**
+  (airbnb001 / ana-eng001 / asana001 / f1007 / quickbooks002 + the perturbable doublets
+  **ana-eng002 / asana003**) **did NOT materialize the protocol at all** — no `arbitration.json`
+  written; the `selected_claims`/decision-enum string hits there are README-skeleton echo, not
+  produced artifacts. So the README's "across the WHOLE smoke set" framing is false in practice: the
+  solver ran the protocol only on tasks it found ambiguous and skipped it on tasks it found easy.
+  Upside: because the 7 easy canaries were untouched, **zero canaries regressed** (all 8 panel
+  members 1.0, full pass-count match) is genuine unchanged-baseline behavior, not luck — the h0012
+  perturbable-doublet tripwire (ana-eng002 / asana003) did not fire because the lever never reached
+  those constructs.
+- **Learning:** **adding a second independent contract route + an evidence-hierarchy arbitrator does
+  NOT create an oracle.** Genuine generation-independence (route B diverges) and genuine
+  judgment-independence (arbitrate on external evidence, not transcript) are both achievable
+  in-session — but they are necessary, not sufficient. On an oracle-only disagreement (exact width,
+  exact metric mapping, single-option inclusion) the only correct move is `ABSTAIN`, and an
+  arbitrator that *can* abstain still won't if it is allowed to promote a tier-3 "defensible local"
+  guess to a SELECT. The next protocol step is not a third route; it is a **hard abstention gate**:
+  a claim with no tier-1/tier-2 visible support (instruction or schema) and no conservation/coverage
+  signal that *decides between the routes* MUST be marked ABSTAIN, and an abstained load-bearing
+  claim must not be silently filled by either contract's default. Until abstention is enforced rather
+  than permitted, dual-contract arbitration reproduces the single-author answer on exactly the tasks
+  it was built to fix. This is the same wall as `solver-blind-to-oracle` / h0026 / the
+  `verification-without-oracle` synthesis — confirmed a third time, now for the two-route generative form.
+- **Bears on:** every future multi-route / arbitration / selector protocol (h0024 / h0025 / h0027 and
+  any successor of h0031): generation-independence + external-criterion judgment are table stakes,
+  not the contribution; the contribution must be an *enforced* abstention on oracle-only claims.
+  Confirms G9 (selector independence) and G10 (self-correcting false-positive) as the right gate
+  axes, and shows the in-session forced-divergence substrate CAN diverge (a partial answer to the
+  G9 WARN) without solving the underlying oracle problem.
+- **Evidence:** run `runs/ade-bench-h0031-dual-output-contract-arbitration/0de9870ae2220bca`
+  (clean strict audit; `per_trial_outcomes.json`); committed `arbitration.json` for ana-eng004
+  (MERGE_NON_CONFLICTING) / intercom001 (SELECT_A) / f1011 (SELECT_A, answer ABDE) extracted from
+  `agent/sessions/*.jsonl`; baseline `runs/ade-bench-baseline/622bdedac572b479` (f1011 baseline
+  answer = ABDE, same `check_option_b` fail; ana-eng004 + intercom001 same distance-to-pass);
+  MEMORY `ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`,
+  `ade-bench-validation-self-anchored-false-green` (h0026).
