@@ -81,6 +81,16 @@ interaction check (do the two rules harm any passer when both are live).
 
 ## Run result
 
+**IN PROGRESS** (launched 2026-06-07T16:32Z) — FULL 48-task confirmation run.
+
+- **Spec:** `specs/h0034-combined-e2-e3-full-confirmation.frozen.yaml` (all 48 tasks, no selector; `kind: spacedock_solver`, `runtime: codex`, `trials: 1`).
+- **Run dir:** `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`
+- **PID:** `2522572` (detached `nohup`; log `/tmp/rk-h0034-full.log`, pid `/tmp/rk-h0034-full.log.pid`).
+- **Launch cmd:** `RAZORBACK_SPACEDOCK_PLUGIN_DIR=$(git rev-parse --show-toplevel)/spacedock; nohup uv run --project ../razorback rk run specs/h0034-combined-e2-e3-full-confirmation.frozen.yaml --runs-dir runs > /tmp/rk-h0034-full.log 2>&1 &`
+- **Confirmed started:** run dir + `result.json`/`job.log`/`config.json` present; first cell `ade-bench-airbnb001__Dmadk6o` image built (`ade-bench-airbnb001__dmadk6o-main:latest`, in use) and agent bootstrap underway in `job.log` (NVM/node 22 + `@openai/codex@latest` install). `--explain` resolved the combined solver README cleanly beforehand.
+- **ETA:** ~7 h (48 tasks × ~9 min, serial n_concurrent_trials=1).
+- **Next (FO):** adopt the completed run for strict audit (`tainted: 0`, `captured > 0`) + `rk score --format json` + paired `rk runs diff @baseline <run>` (CI/adjusted p) + absolute `stratified_pass_at_1` vs 0.6458; verify both target flips (airbnb007, airbnb009) hold artifact-proven and no passer regressed; promote `@baseline` on success.
+
 ## Behavioral analysis
 
 ## Verdict
@@ -97,3 +107,14 @@ interaction check (do the two rules harm any passer when both are live).
 ### Summary
 
 Built the combined confirmation variant (h0034) by forking `codex-ade-dbt-minimal` and lifting the two already-smoke-GO'd Implementation rules VERBATIM into one fork: h0019's anti-cross-join rule (airbnb009) and h0018's rolling-window calendar-RANGE-copy rule (airbnb007), each with its worked-example skeleton, both inside `## Stage: Implementation` with disjoint preconditions (completeness-repair vs rolling-window column) so they read as two independent, non-interacting rules. Set-diff confirms the combined additions = union of the two source forks' additions, byte-for-byte; everything outside Implementation is byte-identical to the parent. Built and froze ONLY the FULL 48-task spec (two-field delta vs baseline, no task selector, no smoke spec — this run goes propose→full since both levers were smoke-GO'd individually). Gatekeeper recommendation: APPROVE (no FAILs). Propose STOPS at the gate — no `rk run` launched; the FULL run is the next stage.
+
+## Stage Report: full
+
+- DONE: The FULL 48-task run is LAUNCHED DETACHED on specs/h0034-combined-e2-e3-full-confirmation.frozen.yaml: nohup, stdout/err -> /tmp/rk-h0034-full.log, PID -> /tmp/rk-h0034-full.log.pid; confirm it actually started (run dir + first cell/image-build underway). Record run-dir + PID in ## Run result (mark 'in progress').
+  Run dir `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`, PID `2522572` (alive). First cell `ade-bench-airbnb001__Dmadk6o` image built (`ade-bench-airbnb001__dmadk6o-main:latest`, in use); `job.log` shows agent bootstrap (NVM/node 22 + `@openai/codex@latest`). `--explain` resolved the combined README cleanly. `## Run result` marked IN PROGRESS.
+- DONE: Report the run-dir path + PID + that the run is in progress, then STOP. Do NOT poll/hold for the ~7-hour duration -- the FO adopts the completed run for audit + score + analyze.
+  Launch-only assignment honored: no audit/score launched (run not done); no second run launched; stopping after this commit + completion signal.
+
+### Summary
+
+Launched the FULL 48-task confirmation run for the combined E2+E3 variant detached via `nohup` after a clean `--explain` sanity check. The run is in progress: run dir `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`, PID `2522572` (alive), log `/tmp/rk-h0034-full.log`. First cell (airbnb001) image is built and the codex agent bootstrap is underway in `job.log`. Per the assignment I did NOT poll/hold for the ~7 h duration and did NOT run audit/score — the FO adopts the completed run for the strict audit + score + paired `rk runs diff` + promote decision.
