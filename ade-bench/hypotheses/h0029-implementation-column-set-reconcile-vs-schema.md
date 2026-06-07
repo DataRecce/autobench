@@ -134,3 +134,16 @@ may be noise — bank a GO on artifact-proven flips, not a single reward change.
 ## Gatekeeper review
 
 ## Stage Report: propose
+
+- DONE: Forked solver README adds EXACTLY the G10-gated additive column-set reconcile as ONE Implementation-stage instruction (with the worked-example skeleton); leak-guard/dependency prose byte-identical to the codex-ade-dbt-minimal parent.
+  `diff codex-ade-dbt-minimal/README.md h0029-.../README.md` = pure addition `63a64,100` (no existing line modified), entirely inside `## Stage: Implementation`; forbidden-token grep (`AUTO_`/`solution__`/`has less columns`/`verifier`/`curl`…) hits only the parent's pre-existing leak-guard lines (9/10/16/22/26), zero in added lines 64–100.
+- DONE: Full spec specs/h0029-...yaml differs from specs/baseline.yaml ONLY in experiment + solver_workflow; smoke spec adds benchmark.tasks with the 10 named tasks (targets ade-bench-ana-eng004/f1002/ana-eng006 + canaries ade-bench-ana-eng001/ana-eng003/f1001/f1004/airbnb001/asana001/quickbooks002).
+  `diff baseline.yaml h0029.yaml` = 2 hunks (lines 2, 11) only; `diff h0029.yaml h0029.smoke.yaml` = single added `benchmark.tasks` block `23a24,38`, all 10 slugs `ade-bench-` prefixed.
+- DONE: Both specs frozen via rk freeze --allow-missing; agent.kind=spacedock_solver and runtime=codex preserved in both.
+  `rk freeze` wrote both `.frozen.yaml`; grep confirms `kind: spacedock_solver` + `runtime: codex` (lines 4/5) in both frozen files, full carries the new experiment/solver_workflow, smoke carries all 10 task slugs (lines 31–40).
+- SKIPPED: Run the gatekeeper (Output 5).
+  Per dispatch: the FO dispatches an INDEPENDENT gatekeeper review after this build completes, so the review stays independent of the builder. Outputs 1–4 only, per instruction.
+
+### Summary
+
+Forked the @baseline seed (codex-ade-dbt-minimal) into h0029 and inserted one Implementation-stage instruction: a mechanical `declared − produced` column-set reconcile against the DECLARED schema.yml/instruction list (READ not re-derived), gated to models that carry a declared column list, ADDITIVE-only (add missing declared columns; never drop/rename/rewrite an existing column or add an undeclared one), shipped with a worked-example set-difference skeleton. The leak-guard / no-external-reference / dependency prose is byte-identical to the parent — the diff is a pure 37-line addition inside `## Stage: Implementation`. Full spec differs from baseline only in experiment + solver_workflow; smoke spec adds a 10-task benchmark.tasks panel (3 width targets + G8/G10 perturbable doubling on the ana-eng and f1 construct-sharing families + one passer per other family). Both specs frozen, kind/runtime preserved. Did Outputs 1–4 only; the independent gatekeeper (Output 5) is the FO's to dispatch.
