@@ -202,7 +202,54 @@ manufacture the cross join the `@baseline` produced unprompted. GATE: flip + zer
 
 ## Run result
 
+**FULL confirmation carried in the combined E2+E3 run (h0034).** E2/h0019 was confirmed at full inside
+`h0034-combined-e2-e3-full-confirmation` (run
+`runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`, clean strict audit `tainted:0`,
+`trials:1`).
+
+- **airbnb009 HELD at full: 0→1 (flip held), ARTIFACT-PROVEN.** The committed `models/agg/mom_agg_reviews.sql`
+  made the prescribed subtractive edit — `apply_patch` (exit 0, `M models/agg/mom_agg_reviews.sql`) replaced
+  the `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE…)` spine filter with `WHERE DATE_ACTUAL BETWEEN
+  (MIN…) AND (MAX…)`, the full-calendar-range completeness shape the anti-cross-join rule prescribes;
+  post-fix 4,508 aggregation dates (was 3,786). The same date-spine completeness mechanism reached the same
+  edit at full as at smoke.
+- **The lever is single-model, lever-attributable, and zero-regression on its own surface.** Neither E2 nor
+  E3 caused the two regressions in the combined run (asana003 build error, f1005 constructor-points rewrite)
+  — both are rule-independent gpt-5.5 non-determinism on models with no anti-cross-join precondition.
+
 ## Behavioral analysis
+
+**E2/h0019 is the program's one genuine fix.** The anti-cross-join + copyable BEFORE/AFTER worked-example
+Implementation rule flipped airbnb009 at smoke (run `d8bd75a0189bda65`, artifact-proven) AND held at full
+(via h0034, artifact-proven) — the asana002-shape mechanical-copyable-edit landing where the prose grain
+levers (h0010/h0016/h0017) went inert. It is a real, repeatable, single-model, lever-attributable +1.
+
+**Why it is not promoted (the binding constraint is VARIANCE, not lever quality).** In the combined full,
+airbnb009's clean +1 was masked by ±2 unrelated single-trial flips (incidental gain f1011; rule-independent
+regressions asana003, f1005), so the combined net was +0 and the paired 95% CI was [-4,+4] tasks — wider
+than the +1 signal. At `trials:1` over n=48 the do-no-harm tripwire is structurally unsatisfiable for a lone
++1 lever. The fix is real; the measurement cannot yet bank it. (See `_proposal/retrospective-2026-06-07.md`
+§2.1 + `_artifacts/WORKFLOW-REFINE.md` combined-full entry.)
+
+## RECOMMENDATION (conclude — NOT a terminal verdict; FO/captain decides)
+
+**airbnb009 / h0019 is a REAL, VALIDATED fix — smoke-GO + held at full, artifact-proven both times — but
+do NOT auto-promote on the combined single-trial run.** The combined full (h0034) netted +0 because
+unrelated single-trial variance (±4-task CI) masked this clean +1. The recommendation is a **NOISE-ROBUST
+re-confirm to bank the +1**, by one of:
+
+1. **(preferred) Fix the freeze-repo race** (MEMORY `ade-bench-freeze-repo-concurrency-race` — make the
+   freeze repo per-task/per-trial in razorback: `benchmark_task_id` into `compute_sealed_hash`, or unique
+   `RAZORBACK_FREEZE_DIR` per trial), then run a **multi-trial paired re-confirm of E2 ALONE** (h0019, no E3)
+   so the +1 separates from noise. This also unblocks multi-trial confirmation for the whole program.
+2. **(stopgap, no razorback change) An E2-only paired re-confirm across several trials run sequentially**
+   (airbnb009 + the G8 canary panel), isolating E2 from E3's unrelated regressions and averaging trials.
+
+Do NOT auto-promote `@baseline` on the strength of the combined run alone. Once E2 alone clears a noise-robust
+paired delta (CI excludes a regression), promote. Cross-refs: `_proposal/retrospective-2026-06-07.md` §5.1;
+`bug-type-taxonomy.md` (#1b airbnb009 FIXED). Status note: this entity remains a smoke-GO with a held full
+(via h0034) — the FO performs any terminal frontmatter; this block is the conclude-stage recommendation, not
+a self-set verdict.
 
 ## Verdict
 

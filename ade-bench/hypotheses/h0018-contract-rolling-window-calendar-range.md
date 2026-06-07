@@ -94,7 +94,40 @@ The variant's committed model is a single `Add File: models/daily_agg_nps_review
 
 ## Run result
 
+**FULL confirmation carried in the combined E2+E3 run (h0034), NOT a standalone full.** Per the program,
+E3/h0018 was confirmed at full inside `h0034-combined-e2-e3-full-confirmation` (run
+`runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`, clean strict audit `tainted:0`,
+`trials:1`).
+
+- **airbnb007 REVERTED at full: 0→0 (no flip).** The smoke-GO did NOT hold.
+- **The rolling-window calendar-RANGE copy DID reach the SQL** — the committed `daily_agg_nps_reviews.sql`
+  carried the 28-day rolling RANGE (`LEFT JOIN daily_reviews windowed ON windowed.review_date BETWEEN
+  dateadd('day',-27,dates.review_date) AND dates.review_date`) and `daily_agg_nps_reviews_equality_with_tolerance`
+  **PASSED**. The lever's mechanism is artifact-proven to land.
+- **The task still scored 0 because a SECOND scored model failed.** airbnb007's verdict is gated by
+  `listing_agg_nps_reviews` (per-listing lifetime NPS total, NO rolling window), whose
+  `listing_agg_nps_reviews_equality_with_tolerance` failed by 2 rows (`Got 2`). The E3 rule's precondition
+  (a rolling "over last N days" column) never matches `listing_agg`, so the lever cannot fire there.
+
+**Diagnosis — the multi-model-target trap (the h0012/f1006 pattern).** airbnb007 is scored by TWO models;
+the E3 lever addresses only the rolling-window one. The h0018 smoke-GO was **variance on the unaddressed
+`listing_agg` model**, not a real fix of the rolling window. A single-model lever cannot credit a flip on a
+target scored by ≥2 models when it matches only one. (Compounded by single-trial variance — see
+`_artifacts/WORKFLOW-REFINE.md` combined-full entry + `_proposal/retrospective-2026-06-07.md` §2.2.)
+
 ## Behavioral analysis
+
+### Full revert (E3, via h0034)
+
+**The rolling-window calendar-RANGE-copy MECHANISM is sound but INSUFFICIENT for this target.** At full the
+copy reached `daily_agg_nps_reviews` and that test passed — the construction lever works exactly as the
+smoke proved. But airbnb007 is a MULTI-MODEL target: its second scored model `listing_agg_nps_reviews`
+(lifetime per-listing NPS, no window) is outside the lever's precondition and failed by 2 rows, so the task
+verdict stayed FAIL. The smoke flip was variance on that unaddressed model — the h0012/f1006 multi-model
+pattern. This is the live reason the lever cannot be credited with the flip, distinct from inertness
+(it is NOT inert — it landed) and distinct from correlated error.
+
+### Smoke analysis (retained — the mechanism IS real)
 
 **The lever fired exactly as designed, and on the one axis that has ever mattered on this `@baseline`.** The hypothesis was filed as a low-confidence completeness bet because the prior grain levers (h0010 prose 0/4, h0016 entity-spine skeleton) were acknowledged-but-not-executed at gpt-5.5/xhigh — the G7 inert-risk WARN. The differentiator claimed was the asana002-shape: a mechanical, copyable, in-place substitution anchored to a concrete local artifact already present in the same project (`mom_agg_reviews.sql`'s `BETWEEN … - 29 AND …` join), delivered as a BEFORE/AFTER worked example in the Implementation stage rather than abstract restructuring prose. The committed SQL confirms the solver did precisely the copy-and-change-the-interval the worked example prescribed: it built the 28d columns from a `BETWEEN current_day.review_date - INTERVAL '27 day' AND current_day.review_date` self-join, not a `rows between` window function. This is the second confirmed instance (after the asana002 win under h0009) that a mechanical copyable worked example anchored to a local sibling moves committed SQL where restructuring prose does not.
 
@@ -104,7 +137,28 @@ The variant's committed model is a single `Add File: models/daily_agg_nps_review
 
 ## Verdict
 
-**GO → advance to full.** The named target `airbnb007` flipped FAIL→PASS with the calendar-date RANGE window (`BETWEEN <date> - INTERVAL '27 day' AND <date>`) artifact-proven in the committed `daily_agg_nps_reviews.sql` — lifted from the `mom_agg_reviews` sibling shape exactly as predicted, replacing the `@baseline` `ROWS BETWEEN 27 PRECEDING` frame — and `Got 4` cleared to PASS (11/11 tests). Zero of the 5 canaries regressed (all held PASS on a clean strict audit, `tainted:0`/`coverage_missing:0`). Both GO gates met; this is NOT inert. Gate routing: flip + zero canary regression ⇒ **full**. (In-stage Implementation tweak ⇒ workflow-refinement-log N/A.)
+**REJECTED (E3 — airbnb007 reverted at full + multi-model target).** The rolling-window calendar-RANGE-copy
+**mechanism itself is sound** — at full (via the combined run h0034) the committed `daily_agg_nps_reviews.sql`
+carried the 28-day calendar-RANGE self-join lifted from the `mom_agg_reviews` sibling and
+`daily_agg_nps_reviews_equality_with_tolerance` PASSED, artifact-proven exactly as the smoke predicted — **but
+it is insufficient for this target.** airbnb007's verdict is gated by a SECOND scored model,
+`listing_agg_nps_reviews` (per-listing lifetime NPS total, NO rolling window), which the E3 rule's
+precondition never matches and which failed by 2 rows (`Got 2`) at full. airbnb007 therefore reverted 0→0.
+**The h0018 smoke-GO was variance on the unaddressed `listing_agg` model, not a real fix of the rolling
+window — the h0012/f1006 multi-model-target trap.** A single-model rolling-window lever cannot satisfy a
+target scored on two models when it addresses only one.
+
+The smoke GO (artifact-proven window-copy on `daily_agg`, zero canary regression) remains a genuine
+demonstration that the worked-example calendar-RANGE-copy form reaches the committed SQL — it is the second
+confirmation of the worked-example-decisive lever family (after airbnb009/h0019), and that mechanism is
+banked as a method deliverable. But airbnb007 as a *target* is not winnable by this single-model lever; a
+flip would require a lever that also addresses the per-listing `listing_agg` model, or `trials>1` to
+distinguish the smoke flip from variance. **No promote.** Cross-refs: `bug-type-taxonomy.md` (#4 + the
+multi-model-target trap), `_artifacts/WORKFLOW-REFINE.md` (combined-full entry),
+`_proposal/retrospective-2026-06-07.md` §2.2.
+
+(In-stage Implementation tweak; the methodology/variance learning is recorded in WORKFLOW-REFINE — the
+lever mechanism itself is not a structural workflow change.)
 
 ## Stage Report: propose
 
@@ -137,3 +191,16 @@ Re-framed h0018 from the non-executable "extend the new Output Contract stage" (
 ### Summary
 
 The h0018 smoke run (PID already exited; no new run launched) is a clean GO. Strict audit clean (tainted:0, coverage_missing:0), score 6/6 (stratified_pass_at_1=1.0). The named target airbnb007 flipped FAIL→PASS: its committed `daily_agg_nps_reviews.sql` expresses the 28-day window as a calendar-date RANGE (`BETWEEN <date> - INTERVAL '27 day' AND <date>`, the `mom_agg_reviews` sibling shape with the interval changed), replacing the @baseline `ROWS BETWEEN 27 PRECEDING` frame, and the `daily_agg_nps_reviews_equality_with_tolerance` test went FAIL 4 → PASS (11/11). Window-mechanism flip is artifact-proven from the apply_patch payload, not transcript chatter; all 5 canaries held PASS (zero regression). Gate: flip + zero canary regression ⇒ advance to full. In-stage Implementation tweak ⇒ workflow-refinement-log N/A.
+
+## Stage Report: conclude
+
+- DONE: h0018 ## Verdict = REJECTED (airbnb007 reverted at full + multi-model target the single-model rolling-window rule cannot fully satisfy; mechanism sound but insufficient)
+  ## Verdict rewritten from the smoke "GO → advance to full" to REJECTED: at full (via h0034) the calendar-RANGE copy reached `daily_agg_nps_reviews` and that test PASSED (mechanism artifact-proven), but airbnb007's verdict is gated by a SECOND model `listing_agg_nps_reviews` (no rolling window, failed by 2 rows) the E3 precondition never matches → reverted 0→0. The smoke-GO was variance on the unaddressed model (h0012/f1006 multi-model pattern).
+- DONE: ## Run result + ## Behavioral analysis updated with the full revert (carried in h0034), the multi-model-target diagnosis, and the retained smoke mechanism
+  ## Run result records the full revert via run `1880d6497bdd6303` (daily_agg passed, listing_agg failed); ## Behavioral analysis adds a "Full revert (E3, via h0034)" section (mechanism sound, multi-model insufficient) above the retained smoke analysis.
+- DONE: Append ## Stage Report: conclude; do NOT set verdict frontmatter / do NOT archive
+  This report appended; frontmatter untouched; not archived (FO performs terminal frontmatter + archive).
+
+### Summary
+
+E3/h0018 concluded REJECTED. The rolling-window calendar-RANGE-copy MECHANISM is sound — at full (carried in the combined run h0034) the committed `daily_agg_nps_reviews.sql` carried the 28-day calendar-RANGE self-join lifted from the `mom_agg_reviews` sibling and its test PASSED, artifact-proven exactly as the smoke predicted. But airbnb007 is a MULTI-MODEL target: its verdict is also gated by `listing_agg_nps_reviews` (per-listing lifetime NPS, no rolling window), which the lever's precondition never matches and which failed by 2 rows at full, so airbnb007 reverted 0→0. The h0018 smoke-GO was variance on the unaddressed `listing_agg` model — the h0012/f1006 multi-model-target trap. The mechanism is banked as the second confirmation of the worked-example-decisive lever family (after airbnb009/h0019); the target itself needs a wider lever or trials>1. No promote. The multi-model-target trap + variance learnings are recorded in bug-type-taxonomy.md and WORKFLOW-REFINE.md; full synthesis in `_proposal/retrospective-2026-06-07.md`. FO performs terminal frontmatter + archive.

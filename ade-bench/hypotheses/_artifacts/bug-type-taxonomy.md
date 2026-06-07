@@ -33,14 +33,14 @@ cross-model note below the table.
 | intercom001 | `AUTO_intercom__threads_equality` | `Got 7` | grain (entity spine) | ❌ also fails |
 | intercom002 | `AUTO_intercom__threads_equality` + `…conversation_metrics_equality` | `Got 7` ×2 | grain (entity spine) | ❌ also fails |
 | intercom003 | `AUTO_intercom__conversation_metrics_equality` | `Got 7` | grain (entity spine) | ❌ also fails |
-| airbnb009 | `mom_agg_review_date_range` | `Got 1` — "a row for every day; some days missing" | grain (date/calendar spine) | ❌ also fails |
+| airbnb009 | `mom_agg_review_date_range` | `Got 1` — "a row for every day; some days missing" | grain (date/calendar spine) — **FIXED by h0019** (anti-cross-join + worked-example, artifact-proven smoke + full) | ❌ also fails |
 | ana-eng004 | `AUTO_obt_product_inventory_equality` | "has less columns" | width | ❌ also fails |
 | f1002 | `AUTO_most_podiums_equality` | "has less columns" | width | ❌ also fails |
 | ana-eng006 | `AUTO_dim_products` + `AUTO_obt_product_inventory` (width) **and** `AUTO_fact_inventory_equality` `Got 204` | mixed | width ×2 **+** value divergence | ❌ also fails |
 | ana-eng007 | `AUTO_dim_products_equality` | `Got 5` | value divergence | ❌ also fails |
 | ana-eng007-medium | `AUTO_dim_products_equality` | `Got 5` | value divergence | ❌ also fails |
 | f1006 | `AUTO_constructor_points_equality` | `Got 2` | value divergence | ✅ **flips** |
-| airbnb007 | `daily_agg_nps_reviews_equality_with_tolerance` | `Got 4` | tolerance-band divergence | ❌ also fails |
+| airbnb007 | **TWO scored models:** `daily_agg_nps_reviews_equality_with_tolerance` (rolling-window) **+** `listing_agg_nps_reviews_equality_with_tolerance` (per-listing lifetime NPS, no window) | `Got 4` (baseline) | tolerance-band divergence — **MULTI-MODEL target** (h0018/h0034): single-model rolling-window lever insufficient | ❌ also fails |
 | asana002 | `AUTO_asana__task_equality` | `Got 2` — **NOT a `::type` cast** (h0033): structural package-migration (Fivetran made tags optional); fixed by a `{% if using_task_tags %}` conditional-inclusion rewrite | ~~type/contract mismatch~~ → **structural package-migration** (re-classified, h0033) | ✅ **flips** (solver-native) |
 | quickbooks001 | 3× `stg_quickbooks__*` **existence + equality** | `Got 1` ×6 (models absent) | incomplete deliverable / missing models | ❌ also fails |
 | f1011 | `check_option_b` | `Got 1` | analytical-answer guess | ✅ **flips** |
@@ -68,11 +68,11 @@ oracle used here; always cite `c5acd9b29faeb087`.)
 
 | # | Bug type | What goes wrong (plain) | Oracle signature | Tasks | Hypotheses | Status |
 |---|---|---|---|---|---|---|
-| 1 | **Grain / missing rows** — wrong or incomplete spine | built off the child/wrong table so parent (or date) rows with no children silently drop | small `Got N` on an `*_agg`/entity/date model | **1a entity:** asana004, asana005, asana005-hard, intercom001, intercom002, intercom003 · **1b date-spine:** airbnb009 | **1a:** h0010 (prose, REJ) → h0016 (example, REJ) → h0017 (Output Contract, REJ) → **h0030** (Impl: parent-spine + raw-source COUNT(DISTINCT) reconcile + completeness anti-join, **REJ**) · **1b:** **h0019** (Impl: anti-cross-join — the actual airbnb009 residual, NOT a missing spine) | **1a construct/reconcile family EXHAUSTED (4 REJ: h0010/h0016/h0017/h0030).** h0030 was the untried "mechanical number" shot (independent `COUNT(DISTINCT key)` reconcile + anti-join, the f1007-hard mechanism) — and it FAILED differently/more sharply than the prior 3: it FIRED and REACHED the committed SQL (count(distinct)+anti-join present, intercom Got 7 byte-unchanged, distance 7≥5) yet FALSE-GREENED, because the shared `_fivetran_active` filter collapses parent AND child to the SAME 5 keys, so the "independent" raw-source probe RE-CORRELATED with the model error (anti-join empty) and the solver took the G10 case-(ii) legitimate-scope escape (intercom003 artifact-proof: "conversation_history has 2 distinct parent ids vs 5 active parts → scoped to active parts"). The deciding fact ("which population is canonical") is **oracle-only**. **1b** (h0019) re-routed off h0030; asana004 → Track Z (oracle-only `int_` convention). |
+| 1 | **Grain / missing rows** — wrong or incomplete spine | built off the child/wrong table so parent (or date) rows with no children silently drop | small `Got N` on an `*_agg`/entity/date model | **1a entity:** asana004, asana005, asana005-hard, intercom001, intercom002, intercom003 · **1b date-spine:** airbnb009 | **1a:** h0010 (prose, REJ) → h0016 (example, REJ) → h0017 (Output Contract, REJ) → **h0030** (Impl: parent-spine + raw-source COUNT(DISTINCT) reconcile + completeness anti-join, **REJ**) · **1b:** **h0019** (Impl: anti-cross-join — the actual airbnb009 residual, NOT a missing spine, **REAL FIX**) | **1a construct/reconcile family EXHAUSTED (4 REJ: h0010/h0016/h0017/h0030). 1b airbnb009 FIXED — h0019 is the ONE genuine win of the program** (anti-cross-join + copyable BEFORE/AFTER worked example): held smoke→full, artifact-proven both times (committed `mom_agg_reviews.sql` swaps the `IN(DISTINCT review dates)` spine filter for `BETWEEN MIN..MAX`, 3,786→4,508 dates). UNPROMOTED only because single-trial variance masked the +1 in the combined full (h0034 NET +0). See retrospective `_proposal/retrospective-2026-06-07.md` §1.** h0030 was the untried "mechanical number" shot (independent `COUNT(DISTINCT key)` reconcile + anti-join, the f1007-hard mechanism) — and it FAILED differently/more sharply than the prior 3: it FIRED and REACHED the committed SQL (count(distinct)+anti-join present, intercom Got 7 byte-unchanged, distance 7≥5) yet FALSE-GREENED, because the shared `_fivetran_active` filter collapses parent AND child to the SAME 5 keys, so the "independent" raw-source probe RE-CORRELATED with the model error (anti-join empty) and the solver took the G10 case-(ii) legitimate-scope escape (intercom003 artifact-proof: "conversation_history has 2 distinct parent ids vs 5 active parts → scoped to active parts"). The deciding fact ("which population is canonical") is **oracle-only**. **1b** (h0019) re-routed off h0030; asana004 → Track Z (oracle-only `int_` convention). |
 | 2 | **Width / missing columns** | hand-picked a column subset, not the full output contract | "has less columns than `solution__`" | ana-eng004, f1002, ana-eng006 (2 models) | h0011 (example, REJ) → h0023 (Output Contract, **REJ**) → **h0029** (Impl: column-set reconcile vs schema.yml) | h0011 REJ 0/3 + h0023 NO-GO (both construct-prose). **h0029 filed** = the independent-check angle never tried — a mechanical set-difference of produced vs DECLARED (schema.yml/instruction) columns, the "footing" reconcile; scoped to a model's own column set (no model-set inference → avoids h0023's convention-bleed). |
 | 3 | **Value divergence** — shape right, numbers wrong | right rows & columns, wrong values; only an *independent* recompute catches it | `Got N` on a computed metric | ana-eng007, ana-eng007-medium, f1006, ana-eng006 (`fact_inventory`) | h0012 (indep. recompute, **REJ**) → **h0021** (Impl: type-stable dedup `ORDER BY`, ana-eng007) | **h0012 REJECTED** (full 0.5625 vs @baseline 0.6458, NET −4 / run `3d8294de42b726e1`): the GENERATIVE reconcile DAMAGED passers — pushed 4 f1 `constructor_points` passers off a simple-correct `sum→max` onto a subtly-wrong "structurally different" path, then false-green-validated against a CTE sharing the model's own logic (correlated-error realized as net harm). 2 gains (airbnb007, asana002) couldn't offset 6 regressions. The generative "check your own numbers without an oracle" family is **EXHAUSTED** (after self-anchored h0006/7/8); any survivor must be gated to figure-*changes*, forbidden from replacing a simple-correct path, smoke-tested with ≥2 perturbable canaries/family. **h0021 filed** (re-scoped to ana-eng007; f1006 excluded — not locally derivable). |
 | 3★ | **↳ Large-magnitude / join fan-out** *(candidate sub-type)* | a join multiplies rows (double-count) → big row delta, not a subtle value error | very large `Got N` (e.g. `Got 204`) vs grain's 3–7 | ana-eng006 (`fact_inventory`) | folded into **h0023** (Output Contract types+columns) | **RE-CLASSIFIED — NOT a fan-out.** ana-eng006 oracle: `check_row_count` + `*_existence` PASS (102 rows, no dup). `Got 204` = date string-vs-`DATE` type diff + width. 3★ drops as a standalone sub-type. |
-| 4 | **Tolerance-band divergence** *(NEW)* | numbers are close but fall outside the test's allowed tolerance (rounding / float / method) | test named `*_equality_with_tolerance`, `Got N` | airbnb007 | **h0018** (Output Contract stage: rolling window as calendar RANGE) | **now covered** (h0018) — airbnb007 re-root-caused as a date-grain/rolling-window **construction** error, not a numeric-tolerance tweak |
+| 4 | **Tolerance-band divergence** *(NEW)* | numbers are close but fall outside the test's allowed tolerance (rounding / float / method) | test named `*_equality_with_tolerance`, `Got N` | airbnb007 (**MULTI-MODEL**) | h0018 (Impl: rolling window as calendar RANGE) → confirmed in **h0034** (combined full) | **h0018 REJECTED at full (E3).** The rolling-window calendar-RANGE-copy mechanism IS sound — it reached `daily_agg_nps_reviews` and that test PASSED at full — but airbnb007's verdict is gated by a SECOND scored model, `listing_agg_nps_reviews` (per-listing lifetime NPS, no rolling window), which the lever's precondition never matches and which failed by 2 rows. **MULTI-MODEL-TARGET TRAP** (the h0012/f1006 pattern): a single-model lever cannot credit a flip on a target scored by ≥2 models when it addresses only one. The h0018 smoke-GO was variance on the unaddressed `listing_agg`, not a real fix. See retrospective §2.2 + multi-model-target trap below. |
 | 5 | **Type / contract mismatch** ~~asana002~~ → **MIS-CLASSIFIED; asana002 is STRUCTURAL** (h0033) | values "right" but column type/representation differs (e.g. text vs `timestamp`) — **but asana002 was never this**: its `Got 2` is a structural package-migration (Fivetran made `task_tags` optional), not a representation mismatch | `Got N`, fixed by a `::type` cast | ~~asana002~~ (re-classified → structural package-migration); no current task is a confirmed pure type/contract bug | h0009 (package fidelity, the **one apparent win**) → h0020 (Impl: precondition-gated in-place cast, **REJ** — inert, cast never reached model SQL) → **h0033** (Impl: model-layer `::type` cast, **REJ** — INERT, no surface) | **CAST-LEVER FAMILY EXHAUSTED for asana002 (3 REJ: h0009 bled / h0020 seed-layer-inert / h0033 no-surface).** h0033 (the model-layer-targeted cast) confirmed the diagnosis was wrong: the committed `asana__task.sql` gained a `{% if using_task_tags %}` conditional-inclusion rewrite with **ZERO `::type` casts** — asana002 is a STRUCTURAL bug a mechanical cast has no surface to act on. asana002 flipped SOLVER-NATIVE (consistent with Mini-solvable), not lever-attributable. **Do not re-file a cast lever for asana002.** No current task is a confirmed pure type/contract mismatch. |
 | 6 | **Incomplete deliverable / missing models** | compiles green so solver stops; graded models never built | `*_existence` tests fail (models absent) | quickbooks001 (also ana-eng007-medium per re-audit; see Corrections) | h0013 (enumerate, NO-GO), h0015 (copy package), h0023 (deliverable-set clause, **REJ**) | h0013 NO-GO, h0015 hypothesis; h0023 NO-GO — deliverable-set clause caused **convention-bleed** (f1001 canary REGRESSED); clause must be scope-gated to tasks with explicit missing-model signals before re-use |
 | 7 | **Analytical-answer guess** | answer-style deliverable includes an option on plausibility, unverified | `check_option_*` fails | f1011 | h0014 (per-claim evidence) → **h0022** (Output Contract stage: option→check→IN/OUT, default OUT) | h0014 + **h0022 filed** (decision table before answer SQL) |
@@ -145,10 +145,28 @@ the @baseline oracle output corrects it:
   "verify before filing" caveat held — confirm the oracle row-count before treating big `Got N` as fan-out.
 - **#3 value** — re-scoped to the genuine value-divergence tasks; the type-dependent dedup `ORDER BY`
   sub-bug (ana-eng007) gets a surgical in-place cast (h0021); f1006's residual is not locally derivable.
-- **#4 Tolerance** — re-root-caused on airbnb007 (`daily_agg_nps_reviews`) as a **date-grain /
-  rolling-window construction** error (a per-day aggregate over a 28-day calendar RANGE, not N preceding
-  rows), not a numeric rounding/precision tweak — so the lever is structural (h0018, Output Contract
-  stage), copying the project's own existing rolling-window model rather than nudging precision.
+- **#1b date-spine — airbnb009 FIXED (the program's one genuine win, h0019).** The anti-cross-join +
+  copyable BEFORE/AFTER worked-example Implementation rule flipped airbnb009 FAIL→PASS at smoke AND held
+  at full, **artifact-proven both times** (not a green-flip-only claim): the committed
+  `models/agg/mom_agg_reviews.sql` made the prescribed subtractive edit — drop the `WHERE DATE_ACTUAL IN
+  (SELECT DISTINCT REVIEW_DATE…)` narrowing filter for `WHERE DATE_ACTUAL BETWEEN (MIN…) AND (MAX…)`,
+  keep the existing `LEFT JOIN`+`GROUP BY`, add NO cross join — so rows-per-day vary (3,786→4,508 dates,
+  `Got 1`→0). This is the asana002-shape mechanical-copyable-edit landing exactly where the prose grain
+  levers (h0010/h0016/h0017) went inert. It is a real, single-model, lever-attributable +1 — **UNPROMOTED
+  only because single-trial variance masked it in the combined full** (h0034 NET +0; CI ±4 tasks > the
+  +1 signal). Recommended path to bank it: `_proposal/retrospective-2026-06-07.md` §5.1 (fix the
+  freeze-repo race for `trials>1`, or an E2-only multi-trial paired re-confirm). Do NOT auto-promote on
+  one trial.
+- **#4 Tolerance — airbnb007 REVERTED at full; it is a MULTI-MODEL target (h0018 REJECTED, E3).** Re-root-
+  caused as a **date-grain / rolling-window construction** error (a per-day aggregate over a 28-day
+  calendar RANGE, not N preceding rows), and the calendar-RANGE-copy mechanism IS sound — the committed
+  `daily_agg_nps_reviews.sql` carried the 28-day `BETWEEN dateadd('day',-27,…) AND …` RANGE lifted from
+  the `mom_agg_reviews` sibling and its test PASSED at full. But airbnb007's verdict is gated by a SECOND
+  scored model, `listing_agg_nps_reviews` (per-listing lifetime NPS total, NO rolling window), which the
+  lever's precondition never matches and which failed by 2 rows at full. **The h0018 smoke-GO was variance
+  on the unaddressed `listing_agg` model, not a real fix of the rolling window — the h0012/f1006 multi-
+  model pattern.** The mechanism is correct but insufficient for this target; a single-model lever cannot
+  satisfy a target scored on two models. See the multi-model-target trap below.
 - **#5 Type/contract — RE-CLASSIFIED; asana002 was never a type/contract bug, and the cast-lever
   family is EXHAUSTED.** Three rejections converge on one finding: asana002's `Got 2` is a
   **structural package-migration** ("Fivetran made `task_tags` optional"), NOT a representation/type
@@ -186,6 +204,25 @@ the @baseline oracle output corrects it:
   Honest caveat carried in each: load-bearing flips are the *locally-derivable* legs (grain copy,
   deliverable set, in-place cast); width and exact oracle-only deltas stay at the blind-to-oracle ceiling.
   Full rationale + the proposed `## Stage:` block: `concept-contract-first-derivation-stage.md`.
+
+## The multi-model-target trap (NEW — h0018/h0034 E3, 2026-06-07)
+
+**A single-model lever cannot credit a flip on a target whose verdict is gated by ≥2 scored models when
+the lever addresses only one of them.** airbnb007 is scored by TWO models — `daily_agg_nps_reviews`
+(rolling-window) and `listing_agg_nps_reviews` (per-listing lifetime NPS, no window). The E3 rolling-
+window lever (h0018) addresses only the first; at full it landed correctly on `daily_agg` (test PASSED,
+artifact-proven) yet the task scored 0 because `listing_agg` failed by 2 rows — a model the lever's
+precondition never matches. The h0018 smoke-GO was therefore variance on the *unaddressed* model, not a
+real fix. This is the same shape as h0012's f1006 (a target whose pass/fail flickers on a model the lever
+does not touch).
+
+**The rule (encode at propose / smoke):** before crediting a single-model lever with a target flip,
+**enumerate ALL of the target's scored models** from the verifier test set (read the `*_equality` /
+`*_equality_with_tolerance` test names in `…/verifier/test-stdout.txt`). If the lever's precondition
+matches fewer than all of them, a single-run flip is **variance, not a fix** — require a repeat or a wider
+lever, and do not bank the flip. This would have caught airbnb007's false smoke-GO at propose. Pair it
+with the standing variance caution (`WORKFLOW-REFINE.md` — single-trial CI ±4 swamps a lone +1).
+Cross-ref: `_proposal/retrospective-2026-06-07.md` §2.2.
 
 ## Meta-pattern (the recurring lesson)
 

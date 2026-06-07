@@ -431,6 +431,58 @@ or a dispatched worker, never a direct first-officer edit.
   MEMORY `ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`,
   `ade-bench-validation-self-anchored-false-green` (h0026).
 
+### Combined-full confirmation methodology + the single-trial-variance-masking wall (h0034, E2+E3 combined full, 2026-06-07)
+- **Layer:** autoresearch loop
+- **Refinement type:** gate-rule / methodology — a **combined-full confirmation** variant (carry ≥2
+  previously-smoke-GO'd in-stage rules in ONE fork, skip smoke, run `propose → full` once) for run-economy
+  + an interaction check; and a finding about what a single-trial full run can and cannot bank.
+- **What was tried:** h0034 forked `codex-ade-dbt-minimal` and lifted the two smoke-GO'd Implementation
+  rules VERBATIM into one fork — E2/h0019 anti-cross-join (airbnb009) + E3/h0018 rolling-window calendar-
+  RANGE copy (airbnb007) — then ran the FULL 48-task confirmation once (`trials: 1`) to confirm both flips
+  at scale and promote `@baseline` if the paired delta cleared. Run
+  `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303`, clean strict audit (`tainted:0`).
+- **Finding — NET +0, NO-PROMOTE (the headline):** `stratified_pass_at_1 = 0.6458` = `@baseline` exactly.
+  GAINS: airbnb009 (E2, HELD, artifact-proven `mom_agg_reviews.sql` BETWEEN-spine) + f1011 (incidental
+  variance). REGRESSIONS: asana003 (build error `asana__daily_metrics` `cast('None' as date)` from solver
+  staging re-wiring) + f1005 (constructor-points `QUALIFY` rewrite off-by-2). **Both regressions are
+  rule-independent gpt-5.5 non-determinism** — neither E2 nor E3 touches asana staging or F1 constructor
+  points. 10k paired bootstrap (seed 20260607) over the 48 per-task deltas → **95% CI on mean delta
+  [-0.0833,+0.0833] = [-4,+4] tasks**, straddles 0.
+- **Finding — the combined-full methodology itself worked as a confirmation vehicle.** The two rules did
+  NOT interact to harm passers (the regressions were unrelated to both); the fork construction was clean
+  (combined added-set = union of the two source forks' additions, byte-for-byte; leak-guard byte-identical);
+  the strict audit was clean. Running both in one full is a legitimate run-economy + interaction-check move.
+  **But it cannot bank a lone +1.**
+- **Learning — THE SINGLE-TRIAL-VARIANCE-MASKING WALL (the binding constraint now).** At `trials:1` over
+  n=48, gpt-5.5@xhigh manufactures ±2 incidental flips/run independent of any lever; the paired CI is ±4
+  tasks — **wider than a single-lever +1 signal**. So the do-no-harm tripwire (CI must exclude a regression)
+  is **structurally unsatisfiable for a +1 lever at trials=1**. airbnb009 is a real, artifact-proven,
+  lever-attributable +1 — and it could NOT be banked because two unrelated noise flips cancelled it.
+  **The binding constraint is now measurement VARIANCE, not lever quality.** And we cannot just run
+  `trials>1` to shrink the CI: the **freeze-repo concurrency race** (MEMORY
+  `ade-bench-freeze-repo-concurrency-race`) pins the spec to `trials:1` (shared freeze git repo → "cannot
+  lock ref HEAD" when two trials commit at once). **So the variance wall is currently a HARNESS-LIMIT wall**
+  — to close it, make the freeze repo per-task/per-trial in razorback (pass `benchmark_task_id` into
+  `compute_sealed_hash`, or unique `RAZORBACK_FREEZE_DIR` per trial), which unblocks multi-trial paired
+  confirmation for the whole program.
+- **Learning — the MULTI-MODEL-TARGET TRAP (E3/airbnb007).** A single-model lever cannot credit a flip on a
+  target scored by ≥2 models when it addresses only one. airbnb007 is scored by `daily_agg_nps_reviews`
+  (rolling-window, the E3 target) AND `listing_agg_nps_reviews` (per-listing lifetime NPS, no window). At
+  full the calendar-RANGE copy reached `daily_agg` and that test PASSED — yet the task scored 0 because
+  `listing_agg` failed by 2 rows (a model E3 never matches). The h0018 smoke-GO was variance on the
+  unaddressed model, not a fix (the h0012/f1006 pattern). **Add a smoke/gatekeeper check: enumerate a
+  target's scored models before crediting a single-model lever; precondition-match < all models ⇒ treat a
+  single-run flip as variance.** Full detail in `bug-type-taxonomy.md` → "The multi-model-target trap".
+- **Bears on:** every promote decision (do not promote a lone +1 on a single trial); the E2-only re-confirm
+  path (`_proposal/retrospective-2026-06-07.md` §5.1); any future combined-full confirmation (clean vehicle,
+  but cannot bank sub-CI signal); razorback freeze-repo fix as the program-unblocking move; the propose
+  gatekeeper (add the multi-model-target check).
+- **Evidence:** `h0034-combined-e2-e3-full-confirmation.md` (`## Run result`, `## Behavioral analysis`,
+  `## Verdict`); run `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303`; baseline
+  `runs/ade-bench-baseline/622bdedac572b479`; `_proposal/retrospective-2026-06-07.md`; MEMORY
+  `ade-bench-freeze-repo-concurrency-race`, `verification-without-oracle-real-world`,
+  `ade-bench-instruction-lever-taxonomy`.
+
 ---
 
 ## h0032 (E0) — instrument-validation GATE before any second-path check is trusted (new protocol)
