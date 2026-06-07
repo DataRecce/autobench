@@ -246,6 +246,50 @@ exact distance-to-pass — f1011 the byte-identical wrong answer ABDE. Zero targ
 regressions. Transferable learning: route-divergence + external-criterion judgment are table stakes,
 not a contribution; the missing piece is an *enforced* abstention on oracle-only claims.
 
+## Next directions
+
+**This is a STRATEGY decision for the captain, not an auto-filed follow-up.** Per conclude
+discipline we do NOT reflexively file the next hypothesis — and here that restraint is load-bearing,
+because the blind-to-oracle wall is now a **meta-pattern**: h0026 (self-anchored selector) and h0031
+(two-route arbitration) have both hit it from opposite directions. h0031 supplied the two fixes h0026
+lacked — genuine candidate **divergence** (route B verifiably disagreed with A) and an **external
+judgment criterion** (raw conservation/coverage probes, never transcript) — and the wall held anyway.
+
+**What is now exhausted (do NOT file more of this):** the candidate-generation / multi-route /
+arbitration family. More routes, better divergence, better external judgment cannot manufacture an
+oracle. On an oracle-only disagreement the visible workspace simply does not contain the
+discriminating fact, so every route converges on the same locally-plausible-but-unsupported premise.
+A third contract route, a "route C", a fancier arbitrator, or a plan-reviewer on top would all
+reproduce this result.
+
+**The one candidate next lever — and it is a GENUINELY NEW one, because it changes the OBJECTIVE, not
+the candidate count.** Stop chasing the oracle; change what counts as success. An **ENFORCED
+abstention gate**:
+
+> A load-bearing claim with **no tier-1/tier-2 visible support** (explicit instruction or declared
+> `schema.yml`) **AND no conservation/coverage signal that actually decides between the routes** MUST
+> be marked `ABSTAIN`. An abstained load-bearing claim may not be silently filled by either
+> contract's tier-3 "defensible local" default.
+
+Why this is different from everything tried (h0017 / h0023 / h0026 / h0031): every prior lever tried
+to make the workflow *get the answer right* by adding generation or judgment. This lever accepts that
+on the unbreakable class the answer is *not locally recoverable* and changes the workflow's objective
+to **calibrated refusal** — it turns a confident wrong (a guaranteed −0 that also pollutes any
+downstream selection) into an honest "cannot decide locally." Its falsifier is sharp and cheap to
+smoke: on the three h0031 targets the enforced gate MUST flip every load-bearing SELECT-on-oracle-only
+to ABSTAIN (the arbitration.json on all three already self-records the oracle-only condition, e.g.
+ana-eng004's `"No schema YAML declares obt_product_inventory"`), and it must NOT abstain on the
+locally-decided canaries.
+
+**Open risk the captain should weigh before approving:** this lever raises abstention, not pass-rate.
+It is only worth pursuing if the benchmark / downstream consumer rewards calibrated abstention over a
+confident wrong guess. If the scoring is strictly pass/fail with no credit (or penalty relief) for
+abstaining, an enforced abstention gate will look like a pure score loss on the very targets it
+"handles" — so the strategic question for the captain is **whether the objective itself (maximize
+flips) is the right objective, or whether honest abstention on the oracle-only class is the more
+valuable behavior to reward.** That objective question, not another candidate-generation hypothesis,
+is the live fork.
+
 ## Stage Report: propose
 
 - DONE: The forked solver README implements the dual-output-contract arbitration protocol
@@ -272,3 +316,17 @@ Authored the h0031 dual-output-contract arbitration variant: forked the seed sol
 ### Summary
 
 NO-GO / cleanly falsified — recommend conclude REJECTED. The dual-output-contract arbitration protocol did exactly what the spec asked (genuinely independent route B, machine-readable evidence-based `arbitration.json` reaching the committed SQL on every target) yet moved zero targets and changed zero distances-to-pass vs @baseline; f1011 reproduced the baseline's byte-identical wrong answer ABDE. The hypothesis's own falsifier fired verbatim: on every target the load-bearing disagreement was oracle-only, both routes converged on the locally-plausible-but-unsupported reading, and the arbitrator forced a SELECT instead of ABSTAIN (AC-4 violated). Zero canary regressions (incl. perturbable doublets) — genuine, because the protocol was only exercised on the 4 ambiguous cells and never touched the 7 easy passers. Same blind-to-oracle wall as h0026 / solver-blind-to-oracle, confirmed for the two-route generative form.
+
+
+## Stage Report: conclude
+
+- DONE: The _artifacts/WORKFLOW-REFINE.md entry for h0031 is FINALIZED to a terminal state per that file's template
+  Header set to `(h0031, REJECTED — rejected-as-written, 2026-06-07)` + a new `**Status:**` line = `rejected-as-written` (protocol-family change tested + cleanly falsified at smoke, no full run). `Learning` line rewritten to lead with "genuinely-independent route B + external-criterion arbitration are TABLE STAKES, not a contribution" (they reproduced baseline's exact wrong answers) and name the missing piece (ENFORCED abstention gate). `Bears on` line now explicitly names the steered siblings: h0026 (self-anchored selector), h0017/h0023 (single-contract), and the solver-blind-to-oracle / verification-without-oracle family (now a meta-pattern).
+- DONE: The entity's distilled learnings are portable and complete in ## Verdict / ## Behavioral analysis
+  Audited the four required points already present (no re-run): failure mechanism (AC-4 violated on oracle-only claims, routes converge on locally-plausible-but-unsupported reading); change DID reach the committed artifact (real `arbitration.json` via apply_patch, AC-1/2/3/5 held — not inert); identical distance-to-pass deltas (Smoke-result table + f1011 byte-identical ABDE); transferable rule (divergence + external judgment are table stakes; enforced abstention is the missing piece). Complete — no additions needed to those two sections.
+- DONE: Per conclude discipline, DO NOT reflexively file a follow-up — surface the candidate next lever as a STRATEGY decision for the captain
+  Added `## Next directions` to the entity: NO new hypothesis filed. Surfaces the ENFORCED abstention gate as the one candidate next lever, explicitly flagged as a GENUINELY NEW lever (it changes the OBJECTIVE — calibrated refusal — not the candidate count, which is the exhausted family). Names the open risk (it raises abstention not pass-rate; only worth it if the consumer rewards calibrated abstention) and frames the live fork as an objective question for the captain. Did NOT set verdict frontmatter and did NOT archive (FO performs terminal frontmatter + archive).
+
+### Summary
+
+Finalized the cross-experiment records and the strategy fork for the cleanly-falsified h0031. No re-run and no run-dir reads — the smoke deep-dive is the evidence of record. The WORKFLOW-REFINE.md h0031 entry is now terminal (`rejected-as-written`) with a sharp table-stakes learning line and a bears-on line naming h0026 / h0017 / h0023 / the blind-to-oracle family. The entity's Verdict + Behavioral analysis already carried all four required portable learnings (verified, not re-derived). Per the exhausted-family discipline I filed NO follow-up; instead a new `## Next directions` section surfaces the ENFORCED abstention gate to the captain as a strategy decision, explicitly distinguishing it (a genuinely new OBJECTIVE-changing lever) from the now-exhausted candidate-generation/arbitration family, and flagging the open question of whether the benchmark rewards calibrated abstention over a confident wrong. Verdict frontmatter + archive deliberately left to the FO.

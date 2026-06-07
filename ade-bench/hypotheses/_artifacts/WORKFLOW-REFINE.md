@@ -345,7 +345,8 @@ or a dispatched worker, never a direct first-officer edit.
   (run `3d8294de42b726e1`); MEMORY `verification-without-oracle-real-world`,
   `ade-bench-instruction-lever-taxonomy`.
 
-### Dual Output Contract Arbitration — new pre-Implementation stage: two independent contracts + evidence-hierarchy arbitrator (h0031, smoke, 2026-06-07)
+### Dual Output Contract Arbitration — new pre-Implementation stage: two independent contracts + evidence-hierarchy arbitrator (h0031, REJECTED — rejected-as-written, 2026-06-07)
+- **Status:** **rejected-as-written** — protocol-family change tested and **cleanly falsified at smoke** (no full run; the hypothesis's own falsifier fired verbatim). Terminal.
 - **Layer:** solver workflow (`solver_workflows/h0031-dual-output-contract-arbitration/README.md`).
 - **Refinement type:** NEW stage / NEW protocol-family — one `## Stage: Dual Output Contract
   Arbitration` inserted between Exploration and Implementation: Phase 1 shared evidence snapshot,
@@ -393,25 +394,35 @@ or a dispatched worker, never a direct first-officer edit.
   members 1.0, full pass-count match) is genuine unchanged-baseline behavior, not luck — the h0012
   perturbable-doublet tripwire (ana-eng002 / asana003) did not fire because the lever never reached
   those constructs.
-- **Learning:** **adding a second independent contract route + an evidence-hierarchy arbitrator does
-  NOT create an oracle.** Genuine generation-independence (route B diverges) and genuine
-  judgment-independence (arbitrate on external evidence, not transcript) are both achievable
-  in-session — but they are necessary, not sufficient. On an oracle-only disagreement (exact width,
-  exact metric mapping, single-option inclusion) the only correct move is `ABSTAIN`, and an
-  arbitrator that *can* abstain still won't if it is allowed to promote a tier-3 "defensible local"
-  guess to a SELECT. The next protocol step is not a third route; it is a **hard abstention gate**:
-  a claim with no tier-1/tier-2 visible support (instruction or schema) and no conservation/coverage
-  signal that *decides between the routes* MUST be marked ABSTAIN, and an abstained load-bearing
-  claim must not be silently filled by either contract's default. Until abstention is enforced rather
-  than permitted, dual-contract arbitration reproduces the single-author answer on exactly the tasks
-  it was built to fix. This is the same wall as `solver-blind-to-oracle` / h0026 / the
-  `verification-without-oracle` synthesis — confirmed a third time, now for the two-route generative form.
-- **Bears on:** every future multi-route / arbitration / selector protocol (h0024 / h0025 / h0027 and
-  any successor of h0031): generation-independence + external-criterion judgment are table stakes,
-  not the contribution; the contribution must be an *enforced* abstention on oracle-only claims.
-  Confirms G9 (selector independence) and G10 (self-correcting false-positive) as the right gate
-  axes, and shows the in-session forced-divergence substrate CAN diverge (a partial answer to the
-  G9 WARN) without solving the underlying oracle problem.
+- **Learning:** **genuinely-independent route B + external-criterion arbitration are TABLE STAKES,
+  not a contribution** — they were both achieved (route B diverged on every target; the arbitrator
+  scored on raw conservation/coverage probes, never transcript plausibility) and they STILL
+  reproduced baseline's exact wrong answers (f1011 → byte-identical ABDE). Adding a second
+  independent contract route + an evidence-hierarchy arbitrator does NOT create an oracle. On an
+  oracle-only disagreement (exact column width, exact part_type→metric mapping, single-option
+  inclusion) the only correct move is `ABSTAIN`, and an arbitrator that *can* abstain still won't if
+  it is permitted to promote a tier-3 "defensible local" guess to a SELECT. The missing piece is an
+  **ENFORCED abstention gate** (not a third route): a load-bearing claim with no tier-1/tier-2
+  visible support (instruction or schema) AND no route-deciding conservation/coverage signal MUST be
+  marked `ABSTAIN`, and an abstained load-bearing claim must not be silently filled by either
+  contract's tier-3 default. Until abstention is *enforced* rather than *permitted*, dual-contract
+  arbitration reproduces the single-author answer on exactly the tasks it was built to fix. Same wall
+  as `solver-blind-to-oracle` / h0026 / the `verification-without-oracle` synthesis — confirmed a
+  third time, now for the two-route generative form, so **more candidate generation is exhausted**;
+  the live lever is changing the OBJECTIVE (abstain) rather than chasing the oracle.
+- **Bears on:** **h0026** (self-anchored-selector — h0031 confirms its wall survives genuine
+  candidate diversity + external judgment: the two-route apparatus is h0026 with the divergence and
+  external-criterion fixes applied, and it still false-greens via correlated-error on the
+  oracle-only claim); **h0017 / h0023** (single-contract Output-Contract stage — a SECOND independent
+  contract does not rescue the single-author failure mode; the wall is the oracle, not author count);
+  the **solver-blind-to-oracle / verification-without-oracle** family (h0026 + h0031 now make the
+  blind-to-oracle wall a META-PATTERN — do NOT reflexively file more candidate-generation/arbitration
+  levers); and every future multi-route / arbitration / selector protocol (h0024 / h0025 / h0027 and
+  any successor of h0031): generation-independence + external-criterion judgment are table stakes, not
+  the contribution; the contribution must be an *enforced* abstention on oracle-only claims. Confirms
+  G9 (selector independence) and G10 (self-correcting false-positive) as the right gate axes, and
+  shows the in-session forced-divergence substrate CAN diverge (a partial answer to the G9 WARN)
+  without solving the underlying oracle problem.
 - **Evidence:** run `runs/ade-bench-h0031-dual-output-contract-arbitration/0de9870ae2220bca`
   (clean strict audit; `per_trial_outcomes.json`); committed `arbitration.json` for ana-eng004
   (MERGE_NON_CONFLICTING) / intercom001 (SELECT_A) / f1011 (SELECT_A, answer ABDE) extracted from
