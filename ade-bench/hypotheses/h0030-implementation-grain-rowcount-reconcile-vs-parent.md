@@ -151,3 +151,16 @@ full).
 ## Gatekeeper review
 
 ## Stage Report: propose
+
+- DONE: Forked solver README adds EXACTLY the G10-gated grain row-count reconcile as ONE Implementation-stage instruction (with the from-parent-left-join + COUNT(DISTINCT) worked-example skeleton); a shortfall INVESTIGATES, never auto-replaces a simple-correct aggregate; leak-guard / dependency prose byte-identical to the codex-ade-dbt-minimal parent.
+  `diff parent vs fork` = a single pure addition (63a64-110): the reconcile paragraph + a `text` count-skeleton + a `sql` BEFORE/AFTER (`from parent left join (child agg) using(key)`). All other stages, leak-guard, and package/dependency prose unchanged. Fork: `solver_workflows/h0030-implementation-grain-rowcount-reconcile-vs-parent/README.md`.
+- DONE: Full spec differs from baseline.yaml ONLY in experiment + solver_workflow; smoke spec adds benchmark.tasks with the 10 tasks named in the body.
+  `diff baseline.yaml h0030...yaml` = only lines 2 (experiment) + 11 (solver_workflow). `diff full smoke` = only the added `benchmark.tasks` (10 tasks: targets intercom001/airbnb009/asana004 + canaries f1001/f1005/ana-eng001/ana-eng002/airbnb001/asana001/quickbooks002). No intercom canary (no @baseline passer; intercom001 is a target).
+- DONE: Both specs frozen via rk freeze --allow-missing; agent.kind=spacedock_solver and runtime=codex preserved in both.
+  `specs/h0030-...frozen.yaml` (sealed_hash 4fc450dc..., solver_workflow_content_hash sha256:9e8f75e3...) + `...smoke.frozen.yaml` (10 tasks present); both show `kind: spacedock_solver` / `runtime: codex`.
+- SKIPPED: Run the gatekeeper (Output 5).
+  Per dispatch: the FO dispatches an INDEPENDENT gatekeeper review after this ensign completes; ensign does NOT self-run it.
+
+### Summary
+
+Forked the @baseline solver (codex-ade-dbt-minimal) into h0030 and added exactly one Implementation-stage instruction: when a model's grain is meant to be complete over a parent key set, reconcile its COUNT(*) against an INDEPENDENT COUNT(DISTINCT key) on the raw parent source (plain SELECT, no model logic), and on a shortfall INVESTIGATE the intended grain — rebuild FROM the parent only if completeness is intended, never swap a simple-correct aggregate for a different path just to move the number (G10 check-don't-replace). Carries a from-parent-left-join + COUNT(DISTINCT) worked-example skeleton (the G7 mechanical-number ingredient h0010/h0016/h0017 lacked). Full spec differs from baseline only in experiment+solver_workflow; smoke spec adds 10 tasks (3 grain targets + a G8 panel with G8/G10 perturbable doubling on f1 and ana-eng). Both specs frozen with kind/runtime preserved. Note: the dispatch fetch command `claude-team show-stage-def` is not on PATH (exit 127) — recovered the propose stage definition directly from `hypotheses/README.md` and mirrored sibling h0029's structure; flagging the broken fetch command to the FO.
