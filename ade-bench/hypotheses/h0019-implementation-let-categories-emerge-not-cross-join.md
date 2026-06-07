@@ -164,6 +164,42 @@ Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; 
 
 ## Smoke result
 
+**GO — airbnb009 flips FAIL→PASS, ARTIFACT-PROVEN cross-join suppression, zero canary regression.**
+
+Run dir: `runs/ade-bench-h0019-implementation-let-categories-emerge-not-cross-join/d8bd75a0189bda65`
+(42m21s, concurrency 1, gpt-5.5@xhigh, solver_workflow_content_hash `sha256:9394871c…` — matches the
+gatekeeper-confirmed frozen skeleton). Strict audit CLEAN: `tainted: 0, clean: 6, coverage_missing: 0`
+(all 6 trials `findings:[]`, captured>0). Focused score: `stratified_pass_at_1 = 1.0` (6/6), `n_errored: 0`.
+
+| Task | Role | @baseline (622bded…) | Variant | Δ |
+|------|------|----------------------|---------|---|
+| `ade-bench-airbnb009` | **target** | 0.0 (FAIL, `Got 1`) | **1.0 (PASS)** | **+1 FLIP** |
+| `ade-bench-airbnb001` | canary (airbnb) | 1.0 | 1.0 | 0 |
+| `ade-bench-asana001` | canary (asana) | 1.0 | 1.0 | 0 |
+| `ade-bench-ana-eng001` | canary (ana-eng) | 1.0 | 1.0 | 0 |
+| `ade-bench-f1007` | canary (f1) | 1.0 | 1.0 | 0 |
+| `ade-bench-quickbooks002` | canary (quickbooks) | 1.0 | 1.0 | 0 |
+
+**Decisive deep-dive (airbnb009) — the lever LANDED, artifact-proven, not transcript chatter:**
+
+- Oracle distance: `@baseline` verifier `Got 1 result, configured to fail if != 0` → variant
+  `actual_test_total=1, actual_pass=1, actual_fail=0` (distance 1 → 0). reward 0 → 1.
+- **Committed `mom_agg_reviews.sql` (read from the dispatched-ensign `apply_patch` payload, NOT narration):**
+  the SINGLE edit to the model was a subtractive in-place removal of exactly the narrowing filter —
+  deleted `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)` from `dates_cte`
+  (and rewired the surviving `is_incremental()` predicate from `AND` to `WHERE`). **No cross join was
+  added.** The model's existing `LEFT JOIN` + `GROUP BY` are byte-intact, so each day's sentiment rows
+  EMERGE from the join and rows-per-day VARY with the data (`mom_distinct_days=29220=dim_dates`,
+  `missing_days=0`) — NOT the `@baseline`'s over-producing `cross join observed sentiments`
+  (`mom_rows=13524=4508×3`, a constant keys×categories product) that caused the original `Got 1`.
+- The 5 `cross join` strings in the worker session are all in (a) the workflow's own BEFORE/AFTER skeleton
+  text and (b) validation `dbt show` probes joining a single-row `bounds` CTE to bound a date range — none
+  is in the committed model; the committed model contains zero cross joins.
+
+This is the asana002-class mechanical subtractive edit landing where the prose-only restructure levers
+(h0010 0/4, h0016 0/4) went inert: the copyable skeleton steered the solver to DROP the filter and NOT
+manufacture the cross join the `@baseline` produced unprompted. GATE: flip + zero canary regression → **full**.
+
 ## Run result
 
 ## Behavioral analysis
@@ -197,3 +233,16 @@ Forked the @baseline solver and inserted exactly one Implementation-stage rule: 
 ### Summary (cycle 2)
 
 Applied the captain's REVISION: added a copyable BEFORE/AFTER SQL worked-example skeleton to the anti-cross-join Implementation rule. BEFORE shows the over-producing `cross join (select distinct category_col …)` that forces a constant rows-per-key = keys × categories; AFTER drops it so the category emerges through the model's EXISTING `left join … group by` and rows-per-key VARY. Phrased entirely generically (`key_set`/`fact_detail`/`key_col`/`category_col`) — renamed the relation alias `key_spine`→`key_set` so "spine" appears nowhere, added no date-spine instruction, and leaked no target-specifics or hidden tokens. Kept ONE Implementation block; leak-guard + Exploration/Validation/Finalization byte-identical; smoke tasks unchanged. Re-froze both specs (semantic diffs unchanged; content hash confirms the skeleton was captured). Re-ran the gatekeeper: G7 flips WARN→PASS (a copyable skeleton is now present — the exact ingredient that made h0030 reach the SQL while prose-only levers went inert), recommendation APPROVE with one residual WARN (G8 dataset limit). Propose STOPS at the gate — no rk run launched (CAPPED one-shot per the program).
+
+## Stage Report: smoke
+
+- DONE: Smoke run completed on specs/h0019-...smoke.frozen.yaml with a CLEAN strict audit (tainted:0) and captured>0 in every cell; focused rk score recorded in ## Smoke result
+  Run dir `d8bd75a0189bda65` (42m21s, 6 tasks). `rk audit --policy strict` = `tainted:0, clean:6, coverage_missing:0` (all trials findings:[]); `rk score` = `stratified_pass_at_1 1.0` (6/6), n_errored:0.
+- DONE: Per-target deep-dive on airbnb009 — oracle distance Got 1 → 0, flip ARTIFACT-PROVEN (committed mom_agg_reviews.sql NO LONGER cross-joins; rows-per-day VARY), read from apply_patch payload not narration; zero of 5 canaries regress
+  Verifier `Got 1`→`actual_fail=0` (reward 0→1). apply_patch deleted ONLY the `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE...)` narrowing filter; existing LEFT JOIN+GROUP BY byte-intact, NO cross join added (`mom_distinct_days=29220=dim_dates`, not 4508×3). Canaries airbnb001/asana001/ana-eng001/f1007/quickbooks002 all 1.0=1.0 (baseline 622bded… all 1.0).
+- DONE: Plain-words go/no-go to the captain — GO (flip + cross-join suppressed in committed SQL + zero canary regression); CAPPED one smoke, no iteration
+  GO. airbnb009 FAIL→PASS with the cross-join suppressed in the COMMITTED SQL (subtractive filter-drop, no cross join) and zero canary regression. One smoke run only; no iteration.
+
+### Summary
+
+The anti-cross-join Implementation rule with the copyable BEFORE/AFTER SQL skeleton LANDED. airbnb009 flipped FAIL(0,`Got 1`)→PASS(1,`actual_fail=0`), and the flip is artifact-proven from the dispatched-ensign apply_patch payload: the committed `mom_agg_reviews.sql` made exactly the predicted subtractive in-place edit — removed only the `dates_cte` narrowing filter, kept the existing `LEFT JOIN`/`GROUP BY` byte-intact, and added NO cross join — so sentiments emerge per day and rows-per-day vary (`mom_distinct_days=29220=dim_dates`), unlike the `@baseline` which built the spine unprompted but cross-joined all 3 sentiments (`13524=4508×3`, `Got 1`). All 5 cross-family canaries held at 1.0 (zero regression); strict audit clean (tainted:0), 6/6 pass. This is an in-stage Implementation rule tweak, NOT a structural/protocol change, so the workflow-refinement-log step does not apply. GATE: flip + zero canary regression → advance to full.
