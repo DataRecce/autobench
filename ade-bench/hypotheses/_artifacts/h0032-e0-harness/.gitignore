@@ -1,0 +1,3 @@
+# Fixture DuckDB files are downloadable GitHub release artifacts, not source.
+dbs/
+*.duckdb

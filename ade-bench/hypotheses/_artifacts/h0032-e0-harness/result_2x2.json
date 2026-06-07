@@ -1,0 +1,101 @@
+{
+  "checks": [
+    {
+      "check_id": "raw_parent_rowcount_reconcile",
+      "gates_downstream": "E1/h0030",
+      "fixture_model": "finishes_by_driver",
+      "fires_on_known_good": false,
+      "fires_on_injected": true,
+      "known_good_detail": {
+        "output_count": 860,
+        "raw_parent_distinct": 860,
+        "delta": 0
+      },
+      "injected_detail": {
+        "output_count": 813,
+        "raw_parent_distinct": 860,
+        "delta": -47
+      },
+      "two_sided_discriminating": true,
+      "verdict": "CLEARED",
+      "kill_reason": null,
+      "independence": "independent",
+      "independence_note": "Reconciles output COUNT(*) against COUNT(DISTINCT results.driverId) read from the RAW results+drivers tables (native cols); never reads the model's own CTE nor the solution__ oracle seed. Must-hold grain relation."
+    },
+    {
+      "check_id": "raw_parent_rowcount_reconcile__wins",
+      "gates_downstream": "E1/h0030",
+      "fixture_model": "driver_wins_by_season",
+      "fires_on_known_good": false,
+      "fires_on_injected": true,
+      "known_good_detail": {
+        "output_count": 403,
+        "raw_parent_distinct": 403,
+        "delta": 0
+      },
+      "injected_detail": {
+        "output_count": 396,
+        "raw_parent_distinct": 403,
+        "delta": -7
+      },
+      "two_sided_discriminating": true,
+      "verdict": "CLEARED",
+      "kill_reason": null,
+      "independence": "independent",
+      "independence_note": "Second model on the same instrument: distinct (driverId, year)|position=1 from RAW results+races. Injected drop = a whole season slice."
+    },
+    {
+      "check_id": "info_schema_dtype_vs_raw_source",
+      "gates_downstream": "E4",
+      "fixture_model": "finishes_by_driver.driver_id",
+      "fires_on_known_good": false,
+      "fires_on_injected": true,
+      "known_good_detail": {
+        "model_driver_id_type": "INTEGER",
+        "raw_driverId_type": "INTEGER"
+      },
+      "injected_detail": {
+        "model_driver_id_type": "VARCHAR",
+        "raw_driverId_type": "INTEGER"
+      },
+      "two_sided_discriminating": true,
+      "verdict": "CLEARED",
+      "kill_reason": null,
+      "independence": "independent",
+      "independence_note": "Compares model column dtype to the RAW source column dtype via information_schema/describe. NOTE: the entity's 'declared contract' variant is UNAVAILABLE -- no data_type:/contract: enforced anywhere in the corpus; deriving an 'expected' dtype from the model SQL would be CORRELATED. Only the raw-source-as-oracle variant is independent, and that is what is validated here."
+    },
+    {
+      "check_id": "ref_graph_existence_completeness",
+      "gates_downstream": "E5",
+      "fixture_model": "finishes_by_driver",
+      "fires_on_known_good": false,
+      "fires_on_injected": true,
+      "known_good_detail": {
+        "raw_keys_missing_from_output": 0
+      },
+      "injected_detail": {
+        "raw_keys_missing_from_output": 47
+      },
+      "two_sided_discriminating": true,
+      "verdict": "CLEARED",
+      "kill_reason": null,
+      "independence": "independent",
+      "independence_note": "Anti-join of the RAW-source required key-set against the output; fires if any raw parent key is absent. Reads raw results+drivers, never solution__ (the hidden oracle) nor the model CTE. This is the row-level dual of the count reconcile -- catches drops a count alone could mask (drop N + add N)."
+    }
+  ],
+  "adversarial": {
+    "correlated_error_trap": {
+      "polluted_output_distinct": 737,
+      "correlated_read_matches_output": true,
+      "independent_read_matches_output": false,
+      "lesson": "reconcile is sound ONLY if it reads the immutable raw source; reading a solver-rebuilt intermediate re-introduces the correlated error and false-greens."
+    },
+    "count_blind_spot": {
+      "output_count": 860,
+      "raw_distinct": 860,
+      "count_reconcile_fires": false,
+      "completeness_check_fires": true,
+      "lesson": "the count reconcile (E1) and the completeness anti-join (E5) are complementary: a drop-N-add-N bug is invisible to the count but caught by completeness."
+    }
+  }
+}

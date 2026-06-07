@@ -430,3 +430,38 @@ or a dispatched worker, never a direct first-officer edit.
   answer = ABDE, same `check_option_b` fail; ana-eng004 + intercom001 same distance-to-pass);
   MEMORY `ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`,
   `ade-bench-validation-self-anchored-false-green` (h0026).
+
+---
+
+## h0032 (E0) — instrument-validation GATE before any second-path check is trusted (new protocol)
+
+- **Decision (structural):** introduce a per-check **instrument-validation gate** — before a downstream
+  hypothesis (E1/h0030, E4, E5) is trusted to use an "independent second-path" check, the check must be
+  proven **two-sided discriminating** on a controlled fixture: FIRES on a known injected error AND stays
+  SILENT on a known-good. Inert (silent-on-injected) = the h0010/h0016 prose signature; correlated
+  (fires-on-known-good, or false-greens on a correlated read) = the h0008/h0012 signature. Runs OFFLINE
+  (no `rk run`, no solver README) against the real fixture DuckDB; ships nothing to the solver, so the
+  propose leak-guard does not apply — the gate is the INDEPENDENCE sharp test instead.
+- **Result:** E1/h0030 raw-parent row-count reconcile **CLEARED** (2 f1 models); E5 ref-graph/_existence
+  completeness **CLEARED**; E4 dtype-vs-**declared-contract** **KILLED — the artifact does not exist**
+  (zero `data_type:`/`contract:` across all of `shared/projects/dbt/`), but a dtype-vs-**raw-source**
+  substitute **CLEARED narrowly** (pass-through key/identity cols only; derived aggregates have no raw
+  oracle). Harness + machine-readable 2x2: `_artifacts/h0032-e0-harness/{harness.py,result_2x2.json}`.
+- **Two load-bearing caveats (proved by adversarial probes, fold into E1's design):**
+  1. The reconcile is sound ONLY if it reads the **immutable raw source** (`{{ source() }}`/loaded
+     tables). Reading a solver-rebuilt intermediate re-introduces the correlated error and false-greens
+     (probe A: correlated read 737==737 passes; true-raw read 737≠860 fires). This is the h0012 wall
+     restated for the reconcile.
+  2. A bare `COUNT(*)` reconcile is BLIND to drop-N-add-N (probe B: 860==860, silent); the E5 key-level
+     anti-join catches it. **E1 should pair the count with the completeness anti-join**, not ship the
+     count alone — they are complementary, not redundant.
+- **Bears on:** **E1/h0030** (proceed, but bind the raw read to `source()` and pair count+completeness);
+  **E4** (re-spec to dtype-vs-raw-source; drop the declared-contract framing — no contract exists; scope
+  it to pass-through columns); **E5** (proceed). General: every future "independent check" hypothesis
+  should pass an E0-style two-sided + independence gate (incl. an adversarial correlated-read probe)
+  BEFORE a 48-task run — this is the operational form of the `verification-without-oracle` independent-
+  vs-correlated test. Confirms the gate axes G9 (independence) and G10 (self-correcting false-positive).
+- **Evidence:** `_artifacts/h0032-e0-harness/result_2x2.json` (`checks[]` all CLEARED on the 2x2 +
+  `adversarial{}` correlated_error_trap / count_blind_spot); fixture = f1 DuckDB from the ade-bench
+  `databases` GitHub release (raw source + canonical @baseline outputs ship together);
+  baseline `runs/ade-bench-baseline/622bdedac572b479` (f1001 passing, model outputs canonical).
