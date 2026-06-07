@@ -142,6 +142,26 @@ before promotion to full.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — single subtractive/anti-cross-join Implementation rule, leak-guard byte-identical, both specs minimal, G8 panel present; no FAILs. The two WARNs (G7 inert-risk, G8 perturbable-canary gap) are the program's known watch-items, not blockers.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-07). Reviewed 2026-06-07T12:30:00Z.
+
+Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; `rk registry resolve run @baseline` → `runs/ade-bench-baseline/622bdedac572b479`, whose `solver_workflow` is `codex-ade-dbt-minimal`. Agree → parent = `solver_workflows/codex-ade-dbt-minimal`.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff` parent→fork = one hunk `55a56,73` (18 added lines, 0 deletions), all under `## Stage: Implementation`; Exploration/Validation/Finalization byte-identical. One idea: subtractive completeness repair + anti-cross-join. |
+| G2 leak-guard intact | PASS | Leak-guard prose (lines 1-32) byte-identical to parent. Forbidden-token grep over added lines (`AUTO_`/`solution__`/`check_option`/`verifier`/`equality test`/`expected output seed`/`Got N`/`curl`/`wget`/`git clone`/`git ls-remote`) = clean; also no spine re-instruction (`continuous`/`dim_dates`/`spine`/`sentiment`/`4508`) and no oracle count. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0019…yaml` = only `experiment:` + `solver_workflow:`. `kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0019…yaml h0019….smoke.yaml` = only added `benchmark.tasks` block (6 IDs, all `ade-bench-` prefixed). Includes the named target `ade-bench-airbnb009` + a stable-pass sentinel (`ade-bench-airbnb001`). |
+| G5 both frozen | PASS | `h0019….frozen.yaml` + `…smoke.frozen.yaml` both written by `rk freeze --allow-missing`; both carry `kind: spacedock_solver` + `runtime: codex`; smoke frozen lists all 6 tasks. |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim: Implementation stage, (a) subtractive in-place edit (drop the one narrowing filter; keep existing `LEFT JOIN`+`GROUP BY` byte-intact), (b) anti-cross-join (let category emerge per key; constant keys×categories = wrong-cross-join signature). Generative/construction-side, explicitly "a check on the edit's shape against the model's own data, not a check against any external or expected count" — NOT the dead self-anchored "re-run your own model"/"compare to old output" family. Spine deliberately NOT re-instructed (already inert per the @baseline transcript). |
+| G7 actionability/inert-risk | WARN | Mixed class: the subtractive half ("remove just that filter") is a concrete mechanical edit, but the load-bearing anti-cross-join half is **abstract structural prose without a worked-example SQL skeleton**. Per G7's record (README prose shaping SQL is inert at gpt-5.5/xhigh; the spine half was already done unprompted and inert as instruction), this is the live inert-risk. The hypothesis itself flags it sits under the README-prose ceiling (h0008 0/7, h0010 0/4, h0011 0/3, h0016 0/4) and pre-commits to NO-GO if the committed `mom_agg_reviews.sql` still cross-joins. Could be hardened with a literal before→after skeleton; not a blocker (WARN-only by design). |
+| G8 regression-canary coverage | WARN | Generative (fires on any completeness repair carrying a secondary grouping column, not gated to the target). Smoke panel carries ≥1 `@baseline` passer (reward=1.0 in 622bdedac572b479) from every non-target family that HAS a passer: airbnb001 (airbnb), asana001 (asana), ana-eng001 (ana-eng), f1007 (f1), quickbooks002 (quickbooks). Intercom correctly omitted — no `@baseline` intercom passer exists (001/002/003 all fail), so G8 should not expect one. WARN, not PASS: the family sharing the target's construct (airbnb) supplies only ONE non-target passer (airbnb001), and the canaries are not themselves completeness-repair-with-secondary-grouping tasks, so they are mostly inert passers the lever will not fire on — the perturbable-canary clause cannot be fully satisfied (no second airbnb passer + no other completeness-repair passer exists to recruit). Best achievable coverage given the dataset; accept the residual blind spot at full. |
+| G9 selector independence | N/A | Not a multi-candidate / selector protocol — single in-stage Implementation edit-shape rule, one solver session. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever. It constrains the EDIT SHAPE at build time and explicitly disclaims any verify-against-a-count or fix-on-disagreement step ("not a check against any external or expected count"); it never re-derives a figure to compare and act on. No self-correcting mechanism to evaluate. |
+
+**For the captain:** No FAILs → advance to smoke. Watch G7 (inert-risk): this lever lives under the proven README-prose ceiling, so the decisive smoke read is the committed `mom_agg_reviews.sql` artifact — INERT (still cross-joins all sentiments / `Got 1` unchanged) = NO-GO with no iteration (CAPPED per the program); category rows-per-day VARY = the lever landed. G8 WARN is a structural limit of the dataset (only one airbnb non-target passer, no other completeness-repair passer to recruit as a perturbable canary), not a fixable omission — accept the residual full-scale blind spot.
+
 ## Smoke result
 
 ## Run result
@@ -149,3 +169,18 @@ before promotion to full.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Forked solver README adds EXACTLY the anti-cross-join Implementation rule
+  `cp -r` fork `solver_workflows/h0019-implementation-let-categories-emerge-not-cross-join`; `diff` vs parent = one hunk `55a56,73` (18 added lines, 0 deletions), all under `## Stage: Implementation`; rule = subtractive in-place edit (drop the one narrowing filter, keep `LEFT JOIN`+`GROUP BY` byte-intact) + anti-cross-join (categories emerge per key; constant keys×categories = wrong-cross-join signature). Spine NOT re-instructed.
+- DONE: One ## Stage: Implementation block only; Exploration/Validation/Finalization + leak-guard byte-identical; no hidden tokens
+  Leak-guard (lines 1-32) and Exploration/Validation/Finalization byte-identical to parent (verified by `diff` of each region); forbidden-token grep over added lines clean (no `AUTO_*`/`solution__*`/`check_*`/`verifier`/`Got N`; no spine/`dim_dates`/`sentiment`/oracle-count tokens).
+- DONE: Specs — full differs from baseline ONLY in experiment+solver_workflow; smoke adds ONLY benchmark.tasks (target + G8 panel)
+  `diff baseline.yaml h0019…yaml` = 2 fields; `diff h0019…yaml …smoke.yaml` = only added `tasks:` block = ade-bench-airbnb009 (target) + airbnb001/asana001/ana-eng001/f1007/quickbooks002 (G8 canaries, no intercom passer exists). Both frozen via `rk freeze --allow-missing`; kind=spacedock_solver/runtime=codex/trials=1 preserved in both frozen files.
+- DONE: Gatekeeper ran; ## Gatekeeper review block written with per-rule table + overall recommendation
+  Recommendation APPROVE (no FAILs). G1/G2/G3/G4/G5/G6 PASS; G7 WARN (inert-risk — anti-cross-join half is abstract prose, the live watch-item); G8 WARN (generative panel present but no second perturbable airbnb canary exists to recruit); G9/G10 N/A.
+
+### Summary
+
+Forked the @baseline solver and inserted exactly one Implementation-stage rule: a completeness repair is a subtractive in-place edit (drop the one narrowing filter, keep the existing `LEFT JOIN`+`GROUP BY` byte-intact) that MUST NOT cross-join every category value against every key — let the secondary grouping column emerge per key so rows-per-key VARY. The spine half is deliberately NOT re-instructed because the @baseline airbnb009 transcript shows the solver already builds the continuous spine unprompted (its summary: "cross join observed sentiments", mom_rows=13524=4508×3, `Got 1`) — so the anti-cross-join clause is the single net-new lever. Specs are minimal (full=2 fields, smoke adds the target + a 5-family G8 canary panel; intercom has no passer); both frozen with kind/runtime/trials preserved. Gatekeeper recommendation: APPROVE with two known-program WARNs — G7 inert-risk (this sits under the README-prose ceiling, so the decisive smoke read is whether the committed `mom_agg_reviews.sql` STILL cross-joins → INERT/NO-GO/no-iterate vs lets categories emerge → landed) and G8 (the airbnb construct-family supplies only one non-target passer). Propose STOPS at the gate — no rk run launched.
