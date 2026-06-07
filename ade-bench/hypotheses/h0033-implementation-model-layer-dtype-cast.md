@@ -1,7 +1,7 @@
 ---
 id: h0033
 title: E4 -- Implementation; apply a mechanical in-place ::type cast in the MODEL .sql (never the raw seed) when a column's representation mismatches a sibling/instruction contract -- recover asana002 without convention-bleed
-status: propose
+status: smoke
 kind: hypothesis
 source: _proposal/oracle-problem-systematic-program.md (E4); successor to archived h0020 (REJECTED -- cast the raw seed, wrong layer) and h0009 (asana002 win but convention-bled -3); E0/h0032 found NO declared data_type/contract entries in the project, so the cast keys off the observed type mismatch vs a sibling/instruction, not a declared contract. captain go-ahead 2026-06-07.
 started: 2026-06-07T15:17:49Z
