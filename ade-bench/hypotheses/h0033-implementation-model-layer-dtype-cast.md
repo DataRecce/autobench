@@ -85,11 +85,40 @@ Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; 
 
 ## Smoke result
 
+**Run dir:** `runs/ade-bench-h0033-implementation-model-layer-dtype-cast/33cf2891e1f5e6b6` (job `33cf2891e1f5e6b6`).
+**Strict audit:** `summary {clean:6, tainted:0, coverage_missing:0}` — CLEAN. `captured=1` in every cell (all 6 `subagent-trace-manifest.json`).
+**Score (focused):** `stratified_pass_at_1 = 1.0`, `n_pass = 6/6`, `n_errored = 0`. Above the `pass_rate` constant.
+
+| Task | Role | @baseline | Smoke | Flip | Got N (base→smoke) | Cast in committed model? | Verdict |
+|------|------|-----------|-------|------|--------------------|--------------------------|---------|
+| asana002 | TARGET | FAIL (0.0) | PASS (1.0) | FAIL→PASS | Got 2 → 0 (cleared) | **NO — `{% if %}` rewrite, ZERO `::type` cast** | flip REAL but **lever INERT** |
+| f1001 | perturbable bleed canary (h0009) | PASS | PASS (1.0) | held | 6/6 → 6/6 | no cast (no bleed) | HELD ✅ |
+| quickbooks003 | perturbable bleed canary (h0009) | PASS | PASS (1.0) | held | 14/14 → 14/14 | no cast (no bleed) | HELD ✅ |
+| airbnb001 | cross-family sentinel | PASS | PASS (1.0) | held | 10/10 → 10/10 | 0 files touched | HELD ✅ |
+| ana-eng001 | cross-family sentinel | PASS | PASS (1.0) | held | 1/1 → 1/1 | 0 files touched | HELD ✅ |
+| asana001 | asana same-family sentinel | PASS | PASS (1.0) | held | 2/2 → 2/2 | no cast (no bleed) | HELD ✅ |
+
+**Decisive read (AC-2/AC-3):** the target flipped and zero canaries regressed, but the **lever did not cause the flip**. The committed `models/asana__task.sql` (apply_patch, worker session `019ea2b4…jsonl`) gained a Jinja `{% set using_task_tags = … %}` + `{% if using_task_tags %}` conditional-inclusion rewrite that gates the `task_tags` CTE/columns/join (plus matching `config(enabled=…)` on `int_asana__task_tags.sql` / `asana__tag.sql`) — the genuine fix for the instruction "Fivetran updated their Asana package; modify our data to match." The patch contains **NO `::<type>` cast** (the only `cast(...)` calls are `cast(null as {{ dbt.type_string() }})` placeholders for the disabled-tags branch). Files touched = model `.sql` only; the **raw seed and `+column_types` are untouched** (so NOT the h0020 wrong-layer mode — but moot, since the cast rule never fired at all). This satisfies the CAPPED inert-detector NO-GO: `Got 2` cleared via a solver-native structural fix, not via the prescribed mechanical `::type` cast.
+
 ## Run result
+
+(smoke only — no full run; gated to `conclude`/REJECTED per the inert read below)
 
 ## Behavioral analysis
 
+**Lever exercised?** No — not in the form it prescribes. The h0033 rule says "apply a mechanical in-place `::<type>` cast IN THE MODEL `.sql` when a column's representation mismatches a sibling/instruction." Across the whole 6-task smoke, **zero `::<type>` cast tokens** appear in any committed apply_patch (scanned `::timestamp|date|varchar|int|bigint|numeric|float|double|bool|text|decimal` in every worker session). The target was not a representation/type mismatch the cast could fix — it was a **structural package-migration** (tags became optional in the new Fivetran package), and the solver correctly fixed it with feature-flag gating, exactly the edit shape it lands on the baseline workflow.
+
+**asana002 (target, flipped — non-causal):** committed `models/asana__task.sql` rewrite is `{% if using_task_tags %}`-gated CTE/columns/join + `cast(null as …)` placeholders; `int_asana__task_tags.sql` and `asana__tag.sql` get `config(enabled=…)`. No `::type` cast; seed/`+column_types` untouched. `AUTO_asana__task_equality` PASS (was FAIL 2). @baseline asana002 wrote **no patch at all** and FAILed — so the flip is real, but driven by the solver finally writing the correct structural fix, not by the cast rule.
+
+**Bleed families (the decisive h0009 check):** f1001 worker made the normal f1 src_/stg_ build-out (28 files), quickbooks003 touched `dbt_project.yml` (a `using_department: true` var flip, NOT `+column_types`) + 3 models, asana001 touched `asana__project.sql`. **None contained a `::type` cast** → the convention-bleed h0009 failure mode did NOT recur. airbnb001/ana-eng001 sentinels: 0 files touched (lever never fired). All five HELD at 1.0.
+
+**Classification:** asana002 = *flipped, but the change that reached the committed SQL was NOT the lever* (inert lever, solver-native structural fix). Canaries = *instruction inapplicable / never triggered* (no observed type mismatch to cast). The single advisory WATCH from the G7 gatekeeper note ("will the cast reach the model `.sql` and not the seed") resolves as: the cast reached **neither** — it was never written, because the target is not actually a `::type`-castable mismatch. Same wall as the earlier inert attempts: the loop's solver does not produce a bare representation cast here because the real bug isn't a representation mismatch.
+
+**Variance caution honored:** the GO bar required an artifact-proven model-layer cast + Got 2 cleared + zero bleed. Got 2 cleared and zero bleed both hold, but the artifact proof FAILS — no cast in the committed model — so per the assignment ("bank a GO only on artifact-proven model-layer cast") this is NOT a GO regardless of the green score.
+
 ## Verdict
+
+**NO-GO → conclude (REJECTED).** Falsifiable claim required the model-layer in-place `::type` cast to flip asana002. The hypothesis is **falsified on the "inert" disjunct**: asana002 flipped FAIL→PASS and zero canaries regressed, but the committed `models/asana__task.sql` gained a `{% if using_task_tags %}` conditional-inclusion rewrite with **ZERO `::<type>` casts** — the lever never fired. The flip is a solver-native structural fix (Fivetran made tags optional), not the prescribed cast; the cast rule added nothing causal. The seed-untouched / no-`+column_types` check passes (not the h0020 mode), and the h0009 convention-bleed did NOT recur (no cast bled into f1001/quickbooks003/asana001), but those are moot given the lever is inert on its own named target. Route: `conclude` (REJECTED). The recurring lesson holds — the loop's solver does not emit a bare representation `::type` cast when the actual bug is structural, so a "mechanical cast" Implementation rule has no surface to act on here.
 
 ## Stage Report: propose
 
@@ -103,3 +132,16 @@ Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; 
 ### Summary
 
 Forked the `@baseline` solver into `solver_workflows/h0033-implementation-model-layer-dtype-cast` and added one Implementation-stage rule: when an output column's stored type/representation is OBSERVED to mismatch a sibling model's same column or the task instruction, fix it with a mechanical in-place `::<type>` cast IN THE MODEL `.sql` (worked example `due_at::timestamp`), additive/in-place only and NEVER editing the raw seed/source or `dbt_project.yml` `+column_types` (the h0020 wrong-layer failure), precondition-gated to that one observed column rather than broad re-typing (the h0009 convention-bleed). Because the lever is generative, the smoke panel doubles perturbable canaries on both h0009 bleed families (f1001 + quickbooks003) and adds the asana same-family sentinel plus airbnb/ana-eng passers; intercom is uncoverable (no @baseline passer). Full spec differs from baseline only in `experiment:`+`solver_workflow:`; smoke adds only `benchmark.tasks`; both specs frozen with kind/runtime preserved. Gatekeeper recommendation: APPROVE (no FAILs); the single advisory watch is G7's inert-risk (will the cast reach the model `.sql` and not the seed) — the decisive smoke read. Smoke NOT run per assignment; propose stops at the gate.
+
+## Stage Report: smoke
+
+- DONE: Smoke run completed on specs/h0033-implementation-model-layer-dtype-cast.smoke.frozen.yaml with a CLEAN strict audit (rk audit --policy strict => tainted:0) and captured>0 in every cell; the focused rk score is recorded in ## Smoke result
+  Run dir `runs/ade-bench-h0033-implementation-model-layer-dtype-cast/33cf2891e1f5e6b6`; audit `summary {clean:6, tainted:0, coverage_missing:0}`; captured=1 in all 6 manifests; `rk score` = stratified_pass_at_1 1.0, 6/6 pass, 0 errored.
+- DONE: Per-target deep-dive on asana002 — Got 2 cleared (AUTO_asana__task_equality FAIL 2 -> PASS) BUT artifact NOT proven: committed models/asana__task.sql gained a `{% if using_task_tags %}` conditional-inclusion rewrite with ZERO `::type` cast; seed + `+column_types` UNTOUCHED (not h0020). CAPPED inert-detector => NO-GO. Zero of the 5 canaries regress; no cast bled into f1001/quickbooks003 (the h0009 bleed check) or asana001
+  Worker session `019ea2b4…jsonl` apply_patch: files = model `.sql` only; only `cast(null as {{ dbt.type_string() }})` placeholders, no `::<type>`. f1001 6/6, quickbooks003 14/14, airbnb001 10/10, ana-eng001 1/1, asana001 2/2 — all HELD; cast-token scan = NONE in every worker patch.
+- DONE: Plain-words go/no-go to the captain — NO-GO (conclude/REJECTED); inert lever (Got 2 cleared via solver-native feature-flag fix, not the prescribed `::type` cast)
+  Verdict written in ## Verdict; one smoke, no iteration (CAPPED).
+
+### Summary
+
+Smoke ran clean (strict audit tainted:0, captured>0 all cells; rk score 6/6 = 1.0). asana002 flipped FAIL->PASS and zero canaries regressed, but the decisive artifact read shows the h0033 lever is INERT: the committed models/asana__task.sql gained a Jinja `{% if using_task_tags %}` conditional-inclusion rewrite (the genuine fix for the Fivetran "tags became optional" package migration) with ZERO `::<type>` casts. Seed/`+column_types` untouched (not the h0020 wrong-layer mode) and no cast bled into either h0009 bleed family (f1001/quickbooks003 both HELD, no cast in any committed patch) — but both are moot since the cast rule never fired on its own named target. The flip is solver-native and non-causal. Per the CAPPED inert-detector and the artifact-proof GO bar, this is a NO-GO -> conclude (REJECTED). In-stage lever, no structural workflow change => WORKFLOW-REFINE.md N/A.
