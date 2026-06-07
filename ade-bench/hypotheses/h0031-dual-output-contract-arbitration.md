@@ -1,7 +1,7 @@
 ---
 id: h0031
 title: Dual Output Contract Arbitration -- generate two independent contracts, then select/abstain by visible evidence before implementation
-status: hypothesis
+status: propose
 kind: hypothesis
 source: captain synthesis after _artifacts/arbitration-without-oracle.md and WORKFLOW-REFINE findings: Output Contract is useful as an observability surface (h0017) but not sufficient for correctness; h0026 proved self-anchored candidate scoring fails without independent judgment. This hypothesis tests the next protocol-family step: two independent contract routes plus an evidence-hierarchy arbitrator that can SELECT, REJECT_BOTH, or ABSTAIN before any SQL is authored.
 started: 2026-06-07T00:00:00Z
