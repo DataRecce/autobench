@@ -1,7 +1,7 @@
 ---
 id: h0029
 title: Implementation — reconcile the output column set against the DECLARED set (schema.yml + instruction) as a mechanical set-difference, never against your own judgment of which columns matter
-status: hypothesis
+status: propose
 kind: hypothesis
 source: verification-without-oracle synthesis (_artifacts/verification-without-oracle.md) — width (#2) is a bug class whose deciding fact lives in a DECLARED local artifact (schema.yml / instruction), so it is reachable by an INDEPENDENT check (accounting "footing/cross-footing": the declared set must equal the produced set). Prior width attempts h0011 (worked-example "include the full column set", REJECTED 0/3) and h0023 (Output-Contract deliverable/columns, NO-GO — f1001 convention-bleed) used construct-prose, not a reconciliation against the declared contract. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-06T00:00:00Z
