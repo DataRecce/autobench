@@ -48,6 +48,35 @@ flips (airbnb007, airbnb009) hold artifact-proven AND no passer regressed.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — confirmation/promote variant: two PREVIOUSLY-SMOKE-GO'd
+Implementation rules (h0019 anti-cross-join + h0018 rolling-window calendar-RANGE) lifted
+VERBATIM into ONE in-stage fork; leak-guard byte-identical; full spec two-field; clean combination.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-07). Reviewed 2026-06-07T16:30:00Z.
+
+Fork parent resolved: `source:` names `codex-ade-dbt-minimal` (seed); `rk registry resolve run
+@baseline` → `runs/ade-bench-baseline/622bdedac572b479`, whose `solver_workflow` =
+`solver_workflows/codex-ade-dbt-minimal` (content hash `133891fa…`). Both agree → `<parent-solver>`
+= `codex-ade-dbt-minimal`, the dir forked and diffed against.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | Diff vs parent adds only inside `## Stage: Implementation` (no `## Stage:` header in the diff; 4 stage headers in both parent and fork). **Confirmation variant:** intentionally carries TWO rules, but BOTH are previously-smoke-GO'd, BOTH live in the SAME Implementation stage, combined for run-economy + interaction check (per captain). Gate question = clean combination + leak-guard, not single-idea. |
+| G2 leak-guard intact | PASS | Header/leak-guard lines 1–49 byte-identical to parent; grep over the 86 added lines finds none of AUTO_/solution__/check_option_/verifier/equality test/expected output seed/Got N/curl/wget/git clone/git ls-remote. |
+| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0034-…yaml` shows only `experiment:` + `solver_workflow:`. `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. NO `benchmark.tasks` (all 48). |
+| G4 smoke tasks-only | N/A | No smoke spec — this run skips smoke (propose→full); both levers were smoke-GO'd individually (h0019 airbnb009, h0018 airbnb007). |
+| G5 both frozen | PASS | `specs/h0034-…frozen.yaml` exists, carries `kind: spacedock_solver` + `runtime: codex`. No smoke frozen by design (skips smoke). |
+| G6 resolver fidelity | PASS | Combined added-set is set-equal to (h0019 added 43 lines) ∪ (h0018 added 43 lines) = 86 lines, VERBATIM. Both rules are gated/generative-constructive derivations (how to build the SQL) with worked examples — neither is self-anchored "check your own work." Matches the claim (carry BOTH flips). |
+| G7 actionability/inert-risk | PASS | Both rules carry a worked-example SQL skeleton (BEFORE/AFTER cross-join; WRONG/RIGHT rows-frame vs calendar-RANGE) — the copyable few-shot form, not abstract structural prose. Already smoke-proven to reach the committed artifact. |
+| G8 regression-canary coverage | N/A | Both rules are GATED on narrow preconditions (h0019: completeness-repair carrying a secondary grouping column; h0018: a rolling "over last N days" window-suffixed column), not blanket-generative. Also a FULL 48-task run — all 48 ARE the panel; no smoke subset to under-cover. |
+| G9 selector independence | N/A | No multi-candidate / selector protocol — two single-shot Implementation derivations. |
+| G10 self-correcting false-positive | N/A | Neither rule is a verify-and-fix-on-disagreement lever; both are constructive Implementation derivations (build the SQL this shape), not reconcile-and-replace against a re-derived check. |
+
+**For the captain:** No FAILs. This is a confirmation/promote variant, not a new idea — the two
+rules read as independent, non-overlapping paragraphs (disjoint preconditions:
+completeness-repair vs rolling-window column), both lifted byte-for-byte from their smoke-GO'd
+forks. Decide: advance to the FULL 48-task run (skips smoke). The full run itself is the
+interaction check (do the two rules harm any passer when both are live).
+
 ## Smoke result
 
 ## Run result
@@ -55,3 +84,16 @@ flips (airbnb007, airbnb009) hold artifact-proven AND no passer regressed.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Combined variant fork = codex-ade-dbt-minimal + EXACTLY the two Implementation rules lifted VERBATIM
+  `solver_workflows/h0034-combined-e2-e3-full-confirmation/README.md`; combined added-set is set-equal to (h0019 added 43 lines) ∪ (h0018 added 43 lines) = 86 lines; both rules inside `## Stage: Implementation` (h0019 anti-cross-join + worked example before "Run basic confirmation", h0018 rolling-window calendar-RANGE + worked example after it); header/leak-guard lines 1–49, Exploration, Validation, Finalization all byte-identical to parent; no AUTO_*/solution__*/Got N tokens.
+- DONE: FULL spec specs/h0034-…yaml differs from baseline.yaml ONLY in experiment: + solver_workflow:, NO benchmark.tasks (all 48); frozen via rk freeze --allow-missing
+  `diff specs/baseline.yaml specs/h0034-…yaml` = the two fields only; `kind: spacedock_solver`/`runtime: codex`/`trials: 1` preserved; `specs/h0034-…frozen.yaml` written (`tasks: null` = all 48). No smoke spec (run skips smoke).
+- DONE: Gatekeeper ran; ## Gatekeeper review block written (per-rule PASS/WARN/FAIL + overall)
+  APPROVE, no FAILs; G1 = two PREVIOUSLY-SMOKE-GO'd rules combined for confirmation, G2 leak-guard byte-identical, G3 spec two-field; G4/G8/G9/G10 N/A (no smoke / gated rules / no selector / not self-correcting). Fork parent resolved to `codex-ade-dbt-minimal` (source + @baseline registry agree).
+
+### Summary
+
+Built the combined confirmation variant (h0034) by forking `codex-ade-dbt-minimal` and lifting the two already-smoke-GO'd Implementation rules VERBATIM into one fork: h0019's anti-cross-join rule (airbnb009) and h0018's rolling-window calendar-RANGE-copy rule (airbnb007), each with its worked-example skeleton, both inside `## Stage: Implementation` with disjoint preconditions (completeness-repair vs rolling-window column) so they read as two independent, non-interacting rules. Set-diff confirms the combined additions = union of the two source forks' additions, byte-for-byte; everything outside Implementation is byte-identical to the parent. Built and froze ONLY the FULL 48-task spec (two-field delta vs baseline, no task selector, no smoke spec — this run goes propose→full since both levers were smoke-GO'd individually). Gatekeeper recommendation: APPROVE (no FAILs). Propose STOPS at the gate — no `rk run` launched; the FULL run is the next stage.
