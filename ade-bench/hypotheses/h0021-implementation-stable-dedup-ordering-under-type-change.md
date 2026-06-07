@@ -134,3 +134,17 @@ unchanged committed `ORDER BY` means the lever was inert.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Forked solver README adds EXACTLY the in-place ORDER-BY-cast paragraph as ONE Implementation-stage idea; leak-guard / dependency prose byte-identical to parent.
+  `diff codex-ade-dbt-minimal/README.md h0021-.../README.md` = pure addition at `55a56,68` (one paragraph inside `## Stage: Implementation`, after `...schema patterns.`, before `Run basic confirmation...`); lines 1-32 (leak-guard/dependency) untouched.
+- DONE: Full spec differs from baseline ONLY in experiment + solver_workflow; smoke spec adds benchmark.tasks with the 7 tasks named in the body.
+  `diff baseline.yaml h0021-...yaml` = only lines 2 + 11; smoke adds the same two + a `tasks:` block (ana-eng007, ana-eng007-medium, ana-eng001, asana001, quickbooks002, f1007, airbnb001).
+- DONE: Both specs frozen via `rk freeze --allow-missing`; agent.kind=spacedock_solver and runtime=codex preserved in both.
+  Wrote h0021-...frozen.yaml + h0021-...smoke.frozen.yaml; grep confirms `kind: spacedock_solver` + `runtime: codex` + repointed solver_workflow in both frozen files.
+- SKIPPED: Gatekeeper (Output 5).
+  Per dispatch — the FO dispatches an INDEPENDENT gatekeeper review after completion; the ensign does not self-run it.
+
+### Summary
+Forked `codex-ade-dbt-minimal` -> `solver_workflows/h0021-implementation-stable-dedup-ordering-under-type-change` and inserted a single surgical Implementation-stage paragraph: when a fix re-types a key, keep an existing dedup/ranking `order by` deterministic under the key's ORIGINAL type via an in-place `cast(<key> as integer)` inside that same window — referencing only the model's own existing `row_number()`/`order by`, no new derivation. Full + smoke specs created and frozen (only experiment+solver_workflow differ from baseline; smoke adds 7-task selector). @baseline rewards resolved from run 622bdedac572b479: target ana-eng007 FAIL (0.0), within-family sentinel ana-eng007-medium also FAIL (0.0 — it shares the dim_products bug but under a vague broad-scope instruction; "must not regress" = must not drop below its current 5-fail state, NOT a flip target), all 5 cross-family canaries PASS (1.0). Generative-but-narrow lever (no-op unless a type-changed key drives an existing dedup `order by`), so G8 canary panel is carried; G10 does not apply (this is a construction guard, not a check/reconcile/validate-and-fix lever). Did Outputs 1-4 only; gatekeeper deferred to the FO's independent dispatch.
