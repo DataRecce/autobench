@@ -1,10 +1,10 @@
 ---
 id: h0032
 title: E0 -- Instrument-validation gate; an independent check must fire on an injected error and stay silent on a known-good before it touches a real task
-status: hypothesis
+status: propose
 kind: hypothesis
 source: _proposal/oracle-problem-systematic-program.md (E0 instrument-control); captain go-ahead 2026-06-07
-started:
+started: 2026-06-07T10:11:20Z
 completed:
 verdict:
 score:
