@@ -1,7 +1,7 @@
 ---
 id: h0030
 title: Implementation — grain aggregate/entity models on the canonical PARENT source and reconcile the output row count against an INDEPENDENT COUNT(DISTINCT key) on that parent; a shortfall proves you grained on a filtered child — rebuild from the parent
-status: hypothesis
+status: propose
 kind: hypothesis
 source: verification-without-oracle synthesis (_artifacts/verification-without-oracle.md) — grain-drop (#1a entity, #1b date-spine) is a metamorphic/completeness bug: the output must contain one row per key in the canonical parent, so an INDEPENDENT row-count reconcile (the f1007-hard mechanism, the only check that ever caught a false-green) detects the drop without the oracle. Prior grain attempts h0010 (construct-prose, REJ 0/4), h0016 (worked-example, REJ 0/4), h0017 (Output-Contract grain clause, REJ — reached SQL but built backwards) were all CONSTRUCT-only and inert at gpt-5.5/xhigh; none carried an independent reconcile NUMBER. The taxonomy flags "a mechanical [number] lever" as the only grain shot untried before conceding. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-06T00:00:00Z
