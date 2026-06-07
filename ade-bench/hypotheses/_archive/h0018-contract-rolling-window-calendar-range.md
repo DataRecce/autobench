@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type Tolerance-band divergence (*_equality_with_tolerance) — root-caused on airbnb007 (daily_agg_nps_reviews) as a date-grain / rolling-window CONSTRUCTION error - a per-day aggregate keyed on actually-occurring review_dates with a rolling 'over last 28 days' figure, NOT a numeric-formula error); realizes the new Output Contract stage. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-07T23:43:44Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-07T23:43:44Z
 ---
 ## Hypothesis
 

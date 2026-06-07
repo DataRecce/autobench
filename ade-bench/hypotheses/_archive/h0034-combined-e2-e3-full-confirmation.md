@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: _proposal/oracle-problem-systematic-program.md (E2+E3 batch-full, captain 2026-06-07); confirms h0019 (airbnb009 smoke-GO) + h0018 (airbnb007 smoke-GO) at full scale in ONE run (run-economy + interaction check); promote @baseline if the paired delta clears.
 started: 2026-06-07T16:22:23Z
-completed:
-verdict:
+completed: 2026-06-07T23:43:44Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-07T23:43:44Z
 ---
 
 ## Hypothesis
