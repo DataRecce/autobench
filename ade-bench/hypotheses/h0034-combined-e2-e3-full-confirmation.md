@@ -81,19 +81,56 @@ interaction check (do the two rules harm any passer when both are live).
 
 ## Run result
 
-**IN PROGRESS** (launched 2026-06-07T16:32Z) — FULL 48-task confirmation run.
+**DONE** (completed 2026-06-07T23:00Z; PID `2522572` exited). FULL 48-task confirmation, 1 trial/task.
 
-- **Spec:** `specs/h0034-combined-e2-e3-full-confirmation.frozen.yaml` (all 48 tasks, no selector; `kind: spacedock_solver`, `runtime: codex`, `trials: 1`).
-- **Run dir:** `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`
-- **PID:** `2522572` (detached `nohup`; log `/tmp/rk-h0034-full.log`, pid `/tmp/rk-h0034-full.log.pid`).
-- **Launch cmd:** `RAZORBACK_SPACEDOCK_PLUGIN_DIR=$(git rev-parse --show-toplevel)/spacedock; nohup uv run --project ../razorback rk run specs/h0034-combined-e2-e3-full-confirmation.frozen.yaml --runs-dir runs > /tmp/rk-h0034-full.log 2>&1 &`
-- **Confirmed started:** run dir + `result.json`/`job.log`/`config.json` present; first cell `ade-bench-airbnb001__Dmadk6o` image built (`ade-bench-airbnb001__dmadk6o-main:latest`, in use) and agent bootstrap underway in `job.log` (NVM/node 22 + `@openai/codex@latest` install). `--explain` resolved the combined solver README cleanly beforehand.
-- **ETA:** ~7 h (48 tasks × ~9 min, serial n_concurrent_trials=1).
-- **Next (FO):** adopt the completed run for strict audit (`tainted: 0`, `captured > 0`) + `rk score --format json` + paired `rk runs diff @baseline <run>` (CI/adjusted p) + absolute `stratified_pass_at_1` vs 0.6458; verify both target flips (airbnb007, airbnb009) hold artifact-proven and no passer regressed; promote `@baseline` on success.
+- **Spec:** `specs/h0034-combined-e2-e3-full-confirmation.frozen.yaml` (all 48 tasks; `kind: spacedock_solver`, `runtime: codex`, `trials: 1`).
+- **Run dir:** `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/` (48 task cells + `_razorback`).
+
+### Strict audit (AC-2) — CLEAN
+`rk audit … --policy strict` → `summary: {clean: 48, coverage_missing: 0, tainted: 0}`. All 48 cells clean, 0 tainted, 0 coverage-missing (captured everywhere). AC-2 PASS.
+
+### Score (absolute, AC-3) — NO LIFT
+`rk score --format json` → `stratified_pass_at_1 = 0.6458333…` (31/48), `stratified_n_completed: 48`, `n_errored: 0`. **Exactly equal to @baseline 0.6458** — zero absolute lift. Fails `stratified_pass_at_1 > 0.6458`.
+
+### Paired ledger vs @baseline (`runs/ade-bench-baseline/622bdedac572b479`), slug-paired
+`rk runs diff` TypeErrors on ade-bench run-dirs (`int(query_id)` with `query_id: null` — known issue), so paired by slug from `trial_name` (strip `__SUFFIX`, drop `ade-bench-` prefix) over `per_trial_outcomes.json`. 48/48 slugs paired, no orphans.
+
+- **baseline:** 31/48 pass · **h0034:** 31/48 pass · **observed paired mean delta = +0.0000** (abs net = **+0**)
+- **GAINS (2):** `airbnb009` 0→1 · `f1011` 0→1
+- **REGRESSIONS (2):** `asana003` 1→0 · `f1005` 1→0
+- **Targets:** `airbnb009` 0→1 (E2 HELD, artifact-proven) · **`airbnb007` 0→0 (E3 REVERTED)**
+- 29 same-pass, 15 same-fail.
+
+| Direction | Slug | Base | h0034 | Mechanism (artifact-proven) |
+|-----------|------|------|-------|------------------------------|
+| GAIN (E2 target) | airbnb009 | 0 | 1 | `apply_patch` on `models/agg/mom_agg_reviews.sql`: date-spine filter `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE…)` → `WHERE DATE_ACTUAL BETWEEN (MIN…) AND (MAX…)`. The anti-cross-join / full-calendar-range completeness shape the E2 rule prescribes. Post-fix: 4,508 aggregation dates (was 3,786). |
+| GAIN (incidental) | f1011 | 0 | 1 | Not a target; flipped by solver variance (the two rules don't touch F1 results model). |
+| REGRESSION (canary) | asana003 | 1 | 0 | Runtime Error building `asana__daily_metrics`: `Conversion Error: invalid date field "None"` — solver re-wired staging models to `var('task')`/`var('project')` (asana fivetran-package wiring) and a column resolved to literal `'None'` flowing into a `date_diff(cast('None' as date)…)`. **Rule-independent** — neither rule touches asana staging; gpt-5.5 wiring non-determinism (baseline wired it clean). |
+| REGRESSION | f1005 | 1 | 0 | `AUTO_constructor_points_equality` off by 2 rows: solver rewrote `constructor_points.sql` from `SUM(points) GROUP BY name,season` to last-round cumulative standings via `QUALIFY row_number() over (… order by round_number desc)=1` — a wrong points interpretation for 2 constructor-seasons. **Rule-independent** — no date-spine/rolling-window/cross-join; gpt-5.5 semantic non-determinism (baseline picked the SUM interpretation). |
+
+### Paired bootstrap (AC-3) — TRIPWIRE NOT CLEARED
+10k paired bootstrap over the 48 per-task deltas (seed 20260607): **95% CI on mean delta = [-0.0833, +0.0833]** = **[-4, +4] tasks** — straddles 0, does **not** exclude a regression. Observed delta +0.0000. The do-no-harm tripwire requires the CI to exclude a regression; it does not. **AC-3 FAILS** on all three legs: net non-positive, CI includes regression, and one target flip (airbnb007) reverted.
+
+### airbnb007 (E3) revert — diagnosis
+**The rolling-window calendar-RANGE copy DID reach the SQL this run** — `daily_agg_nps_reviews.sql` was written with a 28-day rolling RANGE (`LEFT JOIN daily_reviews windowed ON windowed.review_date BETWEEN dateadd('day',-27,dates.review_date) AND dates.review_date`), and `daily_agg_nps_reviews_equality_with_tolerance` **PASSED**. The reward is 0 because a **different** scored model, `listing_agg_nps_reviews` (per-listing lifetime NPS total, no rolling window), failed `listing_agg_nps_reviews_equality_with_tolerance` by **2 rows** (`Got 2 results`). The E3 rule's precondition (a rolling "over last N days" column) does not match `listing_agg`, so the rule never fires there. **The h0018 smoke-GO was variance on `listing_agg`, not a real fix of the rolling window — the h0012/f1006 multi-model pattern: a target whose verdict is gated by a model the lever doesn't address.**
 
 ## Behavioral analysis
 
+The 5 required analyze questions:
+
+**1. Net + ledger (both directions).** Net = **+0** (2 gains − 2 regressions). `stratified_pass_at_1 = 0.6458 = @baseline` exactly; paired bootstrap 95% CI [-4, +4] tasks straddles 0. GAINS: `airbnb009` 0→1 (E2 target, artifact-proven), `f1011` 0→1 (incidental variance). REGRESSIONS: `asana003` 1→0 (build error in `asana__daily_metrics`), `f1005` 1→0 (constructor-points semantic rewrite off by 2). Both regressions are damage to passers and are **rule-independent** (neither E2 nor E3 touches asana staging or F1 constructor points).
+
+**2. Smoke vs full — why airbnb007 reverted.** E2/airbnb009 held smoke→full (real fix, the same date-spine completeness mechanism reaches the same `mom_agg_reviews` edit). E3/airbnb007 reverted: at smoke (h0018) the listing-level model happened to score green; at full it failed by 2 rows. The rolling-window-copy **did** reach the SQL this run (`daily_agg_nps_reviews` carried the 28-day RANGE and its test PASSED) — but airbnb007's verdict is gated by a *second* model, `listing_agg_nps_reviews` (lifetime NPS, no rolling window), which the E3 rule's precondition never matches. So the h0018 smoke-GO was variance on the unaddressed model, exactly the **h0012/f1006 pattern**: a multi-model target whose pass/fail flickers on a model the lever does not touch.
+
+**3. Already-correct-and-broken (per regression).** `asana003`: baseline built `asana__daily_metrics` cleanly (PASS); this run the solver's staging re-wiring produced a `'None'` literal in a date column → `cast('None' as date)` Runtime Error → cascade FAILs. `f1005`: baseline computed constructor points as `SUM(points) GROUP BY name,season` (correct); this run the solver reinterpreted them as last-round cumulative standings (`QUALIFY row_number()… order by round_number desc =1`), wrong for 2 constructor-seasons. In both, the baseline was correct and the new run broke it — but via solver non-determinism on models with no E2/E3 precondition, not via the rule text.
+
+**4. Was-the-change-executed (committed-artifact check).** GAIN `airbnb009`: YES — `apply_patch` (exit 0, `M models/agg/mom_agg_reviews.sql`) replaced the `IN (DISTINCT review dates)` spine filter with `BETWEEN MIN..MAX`, the E2 full-calendar-range shape; full-refresh succeeded; post-fix 4,508 dates. REVERTED target `airbnb007`: the E3 shape WAS executed in `daily_agg_nps_reviews` (28-day RANGE self-join, test passed) — execution confirmed, but on the wrong model relative to the failing test. REGRESSION `asana003`: only one `apply_patch`, and it edited `dbt_packages/asana_source/models/stg_asana__*` (staging re-wiring) — it did **not** touch `asana__daily_metrics`, confirming the build error is downstream of a solver wiring change, not a rule edit. REGRESSION `f1005`: the `apply_patch` rewrote only `models/stats/constructor_points.sql`, with no date-spine/rolling/cross-join token — confirming rule-independence.
+
+**5. Prevention + next move.** Prevention: (a) the **multi-model-target trap** — before crediting a single-model lever (E3) with a target flip, check ALL scored models for that task; airbnb007 has two NPS models and E3 only addresses one, so a single smoke-GO can't be trusted. Encode this in the propose gatekeeper (G8-style: enumerate the target's scored models; if the lever's precondition matches fewer than all, treat a single-run flip as variance, require a repeat or a wider lever). (b) **gpt-5.5 base variance** is large enough (CI ±4 tasks at n=48, trials=1) to manufacture ±2 incidental flips per run independent of any lever — confirms the variance-caution lesson; single-trial fulls cannot distinguish a +1 real lever from noise. Next move: do **NOT** promote @baseline. E2/airbnb009 is a real, artifact-proven fix and is worth re-running ALONE (its own clean full, or trials>1) so its +1 is not masked by unrelated variance; airbnb007/E3 should be REJECTED as a target flip (variance on the unaddressed `listing_agg` model) unless re-scoped to a lever that addresses the per-listing model too.
+
 ## Verdict
+
+**REJECTED as a promote candidate (NO-PROMOTE).** Net = +0 on a clean strict audit; `stratified_pass_at_1 = 0.6458` = @baseline (no absolute lift); paired bootstrap 95% CI [-4, +4] tasks straddles 0 (does not exclude a regression); and one target flip (airbnb007/E3) reverted. Two passers regressed (`asana003`, `f1005`) — a do-no-harm tripwire violation — both via rule-independent gpt-5.5 non-determinism. The one real signal is **E2/airbnb009** (artifact-proven anti-cross-join calendar-range fix in `mom_agg_reviews.sql`); E3/airbnb007 is **variance, not a fix** (the rolling-window-copy reached `daily_agg` and passed, but the verdict is gated by the unaddressed `listing_agg` model — the h0012/f1006 multi-model pattern). Recommend to the FO/captain: do not promote; consider an E2-only re-confirmation (alone, or trials>1) to recover the real +1 without the offsetting noise.
 
 ## Stage Report: propose
 
@@ -118,3 +155,16 @@ Built the combined confirmation variant (h0034) by forking `codex-ade-dbt-minima
 ### Summary
 
 Launched the FULL 48-task confirmation run for the combined E2+E3 variant detached via `nohup` after a clean `--explain` sanity check. The run is in progress: run dir `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`, PID `2522572` (alive), log `/tmp/rk-h0034-full.log`. First cell (airbnb001) image is built and the codex agent bootstrap is underway in `job.log`. Per the assignment I did NOT poll/hold for the ~7 h duration and did NOT run audit/score — the FO adopts the completed run for the strict audit + score + paired `rk runs diff` + promote decision.
+
+## Stage Report: analyze
+
+- DONE: Strict audit + score on the COMPLETED run dir (tainted:0, captured>0 across all 48 cells) + absolute stratified_pass_at_1 vs @baseline 0.6458. Recorded in ## Run result.
+  `rk audit --policy strict` → `{clean:48, coverage_missing:0, tainted:0}`; `rk score --format json` → `stratified_pass_at_1 = 0.6458` (31/48, n_completed 48, n_errored 0) = @baseline exactly (no lift).
+- DONE: FULL per-task ledger vs @baseline (622bdedac572b479), paired by slug, BOTH directions; paired delta + 10k bootstrap; confirm airbnb009 HELD and airbnb007 REVERTED; name every changed verdict.
+  `rk runs diff` TypeErrors on `int(query_id=null)` (known issue) → slug-paired from per_trial_outcomes.json. Net +0: GAINS airbnb009 (E2, artifact-proven `mom_agg_reviews.sql` BETWEEN-spine), f1011 (incidental); REGRESSIONS asana003 (build error `asana__daily_metrics` cast('None')), f1005 (constructor-points QUALIFY rewrite off-by-2). 10k bootstrap 95% CI = [-4,+4] tasks, straddles 0. airbnb007 reverted: rolling-window-copy DID reach `daily_agg` (passed) but verdict gated by unaddressed `listing_agg` (off by 2) — h0012/f1006 multi-model pattern.
+- DONE: Answer the 5 required analyze questions + a clear PROMOTE/NO-PROMOTE recommendation.
+  All 5 answered in ## Behavioral analysis; ## Verdict = NO-PROMOTE / REJECTED as a promote candidate. Net non-positive, CI includes a regression, E3 target reverted, two passers regressed (do-no-harm violation). Both regressions rule-independent gpt-5.5 variance. Only real signal = E2/airbnb009 (artifact-proven); recommend E2-only re-confirmation (alone or trials>1) to recover the +1 without offsetting noise.
+
+### Summary
+
+Combined E2+E3 full 48-task confirmation: clean strict audit (0 tainted), but NET = +0 and `stratified_pass_at_1 = 0.6458` = @baseline exactly. airbnb009 (E2 anti-cross-join) HELD and is artifact-proven — the committed `mom_agg_reviews.sql` swaps the `IN(DISTINCT review dates)` spine filter for `BETWEEN MIN..MAX` (3,786→4,508 dates). airbnb007 (E3 rolling-window) REVERTED: the 28-day RANGE copy reached `daily_agg_nps_reviews` and that test passed, but airbnb007's verdict is gated by `listing_agg_nps_reviews` (a per-listing lifetime NPS model the E3 precondition never matches), which failed by 2 rows — variance on the unaddressed model, the h0012/f1006 multi-model pattern. Two passers regressed (`asana003` build error, `f1005` constructor-points rewrite), both rule-independent gpt-5.5 non-determinism. Paired bootstrap 95% CI [-4,+4] straddles 0. **Recommendation: NO-PROMOTE.** Note for the FO/taxonomy: encode the multi-model-target trap (a single-model lever must check ALL of a target's scored models before a flip is credited) and re-confirm whether the lesson belongs in the instruction-lever taxonomy note vs verification-without-oracle artifact.
