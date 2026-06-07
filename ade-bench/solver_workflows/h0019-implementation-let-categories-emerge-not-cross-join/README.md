@@ -71,6 +71,31 @@ you have added a cross join that should not be there. This is a check on the
 edit's shape against the model's own data, not a check against any external or
 expected count.
 
+Worked example — do NOT cross join the category dimension against the keys;
+let it emerge per key through the join the model already has:
+```sql
+-- BEFORE: every distinct category value is CROSS JOINed against every key, so
+--   each key is forced to carry exactly one row per category. rows-per-key is a
+--   CONSTANT = (number of distinct category values); total rows = keys x
+--   categories. This manufactures rows the data never had.
+select k.key_col, c.category_col, count(fct.id) as n
+from {{ ref('key_set') }} k
+cross join (select distinct category_col from {{ ref('fact_detail') }}) c
+left join {{ ref('fact_detail') }} fct
+  on fct.key_col = k.key_col and fct.category_col = c.category_col
+group by 1, 2
+
+-- AFTER: drop the cross join. The category comes only from the EXISTING LEFT
+--   JOIN onto the detail relation, then GROUP BY key + category. A key carries a
+--   category row only when its own joined rows produce that category, so
+--   rows-per-key VARIES with the data (some keys 0, some 1, some many) instead
+--   of a constant keys x categories product.
+select k.key_col, fct.category_col, count(fct.id) as n
+from {{ ref('key_set') }} k
+left join {{ ref('fact_detail') }} fct on fct.key_col = k.key_col
+group by 1, 2
+```
+
 Run basic confirmation as part of implementation. Use the cheapest command that
 proves the edited area compiles or builds: `dbt compile`, targeted `dbt run`,
 targeted `dbt test`, or selected `dbt build`. Fix build/compile errors caused by
