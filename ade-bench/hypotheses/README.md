@@ -169,8 +169,10 @@ by that recommendation.**
      is spec-side only. **If the instruction is generative** (fires on every task, not gated
      on a precondition that limits it to the targets), `benchmark.tasks` MUST also carry a
      **regression panel** — ≥1 currently-passing `@baseline` task from each family OTHER than
-     the targets (airbnb / ana-eng / asana / f1 / intercom / quickbooks) — as canaries (see
-     the `smoke` stage; enforced by gatekeeper G8).
+     the targets (airbnb / ana-eng / asana / f1 / intercom / quickbooks) — as canaries, plus
+     **≥2 _perturbable_ canaries** (passers the lever can actually fire on) from the family that
+     shares the targets' construct — one stable passer is blind (see the `smoke` stage; enforced
+     by gatekeeper G8/G10).
   4. Freeze both:
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.yaml` and
      `uv run --project ../razorback rk freeze --allow-missing specs/h<NNNN>-<slug>.smoke.yaml`.
@@ -236,6 +238,17 @@ deferred — this is a worthiness gate.)*
   blind to that: h0009 looked like a GO on its 7-task targeted smoke, then lost **−3** at full
   scale on f1/quickbooks passers the smoke never ran. **A canary dropping FAIL is a NO-GO
   regardless of how many targets flipped.**
+  - **One canary per family is necessary but NOT sufficient — carry ≥2 _perturbable_ canaries
+    per high-risk family.** A *perturbable* canary is a passer the lever can actually FIRE on; a
+    stable passer the lever never touches proves nothing. A generative rule can break a
+    *different* member of a family than your single canary: **h0012** held its one f1 canary
+    (f1001) at smoke, then lost **−4** at full when it broke four *other* f1 passers
+    (f1003-hard / f1005 / f1005-medium / f1006-hard) the smoke never ran. For the family(ies)
+    sharing the targets' construct, carry ≥2 canaries the lever will plausibly perturb.
+  - **A lone flip may be variance — don't bank a GO on it.** gpt-5.5 @ xhigh is not
+    deterministic: **h0012**'s f1006 flipped at smoke and *reverted* at full. A GO should rest on
+    flips you can prove reached the committed artifact (the deep-dive below) plus held
+    *perturbable* canaries — not a single unexplained flip.
 - **Outputs (from `ade-bench/`):**
   ```bash
   uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --explain   # $0, fast, foreground

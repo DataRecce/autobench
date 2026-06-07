@@ -307,3 +307,40 @@ or a dispatched worker, never a direct first-officer edit.
   `README.md`.
 - **Evidence:** autoresearch `README.md` (`### smoke` stage definition); MEMORY
   `ade-bench-instruction-lever-taxonomy`; this session's smoke-stage discussion.
+
+### Gate-rule + smoke-set refit — encode the h0012 self-correcting-lever lesson (G10, G8-perturbable, variance-caution) (captain decision, 2026-06-07)
+- **Layer:** autoresearch loop
+- **Refinement type:** gate-rule (propose gatekeeper) + smoke-set composition rule.
+- **What was decided:** after **h0012** (reconcile-to-raw) passed a clean 9-task smoke then lost
+  **−4** at full, encode three protections so the same failure is caught *before* a full run:
+  1. **New gatekeeper rule G10 — "Self-correcting lever false-positive risk"** (propose gate),
+     parallel to G9-for-selectors. Applies to any check / reconcile / validate-and-fix lever.
+     Three axes: (a) scope — generative vs figure-change-gated; (b) independence source —
+     separately-sourced raw `SELECT FROM source` vs a re-derived CTE that re-correlates;
+     (c) check-don't-replace — investigate disagreement, never mandate replacing a simple-correct
+     path. FAIL → REVISE (gate it) unless the *ungated, fix-on-disagreement, re-derived* check IS
+     the idea (→ back to `hypothesis`). Rubric + output-format table updated to ten rules.
+  2. **G8 strengthened** — one canary per family is *necessary but not sufficient*; for the
+     family(ies) sharing the targets' construct, require ≥2 **perturbable** canaries (passers the
+     lever can actually fire on). A stable passer the lever skips proves nothing.
+  3. **Smoke-set composition (README) + propose smoke-set guidance** mirror the perturbable-canary
+     rule, and add a **variance caution**: a lone flip with no artifact-proof may be variance
+     (h0012's f1006 flipped at smoke, reverted at full) — a GO rests on artifact-proven flips +
+     held perturbable canaries.
+- **Finding (what motivated it):** h0012's generative reconcile damaged 4 f1 passers — it pushed
+  them off a simple-correct `sum→max` onto a wrong "structurally different" path and false-green-
+  validated against a CTE sharing the model's own logic (correlated-error). The 9-task smoke
+  (single f1 canary f1001, a stable passer the rule never perturbed) was structurally blind to it.
+- **Learning:** the gate now screens the *whole self-correcting family* — not just h0012 but the
+  drafted reconcile pair h0029/h0030 — for the generative-false-positive / re-correlation /
+  replace-the-path failure mode at propose, and the smoke can no longer be fooled by a single
+  unperturbed-canary panel or a variance flip.
+- **Bears on:** **h0029** (column-set reconcile) and **h0030** (grain row-count reconcile) — both
+  will now trip G10 unless gated to figure-changes + repointed to a raw-source signal + softened
+  to check-don't-replace before dispatch; every future check/reconcile/validation lever; the
+  smoke-set composition for any generative lever.
+- **Evidence:** `_gatekeeper/propose-review-guideline.md` (G10 added; G8 + rubric + output-format
+  updated; `last-updated: 2026-06-07`); autoresearch `README.md` (`### smoke` Smoke-set
+  composition + `### propose` smoke-set guidance); `_archive/h0012-validation-independent-recompute.md`
+  (run `3d8294de42b726e1`); MEMORY `verification-without-oracle-real-world`,
+  `ade-bench-instruction-lever-taxonomy`.

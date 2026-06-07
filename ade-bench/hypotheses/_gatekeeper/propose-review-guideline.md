@@ -2,7 +2,7 @@
 title: Propose-stage gatekeeper review guideline
 applies-to-stage: propose
 maintained-by: the captain, on demand, by asking an agent to update it (NOT auto-updated by the workflow; the gatekeeper reads this file fresh on every run)
-last-updated: 2026-06-05
+last-updated: 2026-06-07
 ---
 
 # Propose-stage gatekeeper review guideline
@@ -153,11 +153,21 @@ sentinel held) then lost **−3** at full scale on f1/quickbooks passers the smo
 - **FAIL if:** the instruction is generative AND the smoke `benchmark.tasks` lists no
   currently-passing `@baseline` canary from families other than the targets. Recommend adding
   ≥1 passing canary per other family (REVISE-class — fixable in place, idea unchanged).
+- **WARN if:** the panel has ≥1 canary per family but they are all **inert stable passers** the
+  lever cannot fire on, OR the family most structurally similar to the targets carries only one
+  canary. One canary per family is *necessary but not sufficient*: a generative rule can break a
+  **different member** of a family than the single canary you picked. **h0012** passed a 9-task
+  smoke (its one f1 canary, f1001, held) then lost **−4** at full when it broke four *other* f1
+  passers (f1003-hard / f1005 / f1005-medium / f1006-hard) the smoke never ran. Recommend ≥2
+  **perturbable** canaries (passers the lever will actually *fire* on) from each family the
+  lever's mechanism is most likely to perturb — not only stable passers it skips.
 - **PASS if:** generative AND the smoke spec carries the canary panel (≥1 non-target
-  `@baseline` passer from each other family: airbnb / ana-eng / asana / f1 / intercom / quickbooks).
+  `@baseline` passer from each other family: airbnb / ana-eng / asana / f1 / intercom /
+  quickbooks) AND, for the family(ies) sharing the targets' construct, ≥2 **perturbable** canaries.
 - **Evidence to cite:** classify the instruction (generative vs gated/mechanical); if
-  generative, list the smoke `benchmark.tasks` canaries and confirm each is a `@baseline`
-  passer from a non-target family.
+  generative, list the smoke `benchmark.tasks` canaries, confirm each is a `@baseline` passer
+  from a non-target family, and flag whether the lever can plausibly *fire* on each (perturbable
+  vs inert).
 
 ### G9 — Selector independence (multi-candidate / selector protocol families)
 Applies only when the hypothesis declares a **multi-candidate / selector protocol** — it runs
@@ -196,20 +206,57 @@ light. Check both axes:
   (in-session vs isolated vs forced-divergence); table each scoring criterion → its anchor
   (candidate-own vs external).
 
+### G10 — Self-correcting lever false-positive risk (check / reconcile / validate-and-fix families)
+Applies only when the lever instructs the solver to **verify a result and act on disagreement**
+— a check, reconcile, validation, or "fix it if your number doesn't match" instruction; mark
+**N/A (PASS)** otherwise. Earned from **h0012** (REJECTED at full, **−4**): a Validation rule
+"reconcile a key figure against an INDEPENDENT raw-source derivation by a structurally different
+path" was *correct in theory* (it flipped airbnb007, asana002) yet lost net −4 because, applied
+generatively, it **damaged passers** — it pushed four f1 `constructor_points` passers off a
+simple-correct `sum→max` onto an elaborate wrong path, then "validated" against a CTE built with
+that *same* wrong logic (0 mismatches → false-green). A self-correcting lever is most dangerous on
+the tasks it should leave alone. Check three axes:
+
+- **(a) Scope — generative vs figure-change-gated.** A self-correcting lever that fires on
+  *every* task also fires on already-correct ones; when the model is right but the solver's
+  second derivation is wrong, the rule "fixes" the right answer to the wrong number. To be safe it
+  must be gated to a precondition (fire only when a numeric figure is actually being authored /
+  changed / is genuinely in question), not run on every task.
+- **(b) Independence source — separately-sourced vs re-derived.** The reconcile target must be a
+  **separately-sourced** signal — a plain `SELECT … FROM {{ source }}` with **no model logic** —
+  not an artifact the solver re-derives itself (a CTE sharing the model's window / grain / join).
+  A self-built "independent" check **re-correlates** with the model after a fix and gives a
+  false-green (h0012). Double-entry works only when the second entry comes from a different
+  *source*, not the same hand.
+- **(c) Check-don't-replace.** The instruction must trigger *investigation* of a disagreement,
+  not mandate replacing a simple-correct path with a "structurally different" (and possibly wrong)
+  one. "Use a different path" optimizes for *different*, not *correct*.
+- **FAIL if:** the lever is self-correcting AND (a) generative with no figure-change gate, **or**
+  (b) reconciles against a re-derived artifact rather than a separately-sourced raw signal,
+  **or** (c) mandates replacing/re-deriving instead of investigating.
+- **WARN if:** it is gated but the gate is weak or unverifiable from the README, or the
+  independence source is ambiguous.
+- **Evidence to cite:** classify the lever (self-correcting vs not); quote its scope gate
+  (generative vs figure-change); name what the reconcile compares against (raw source vs
+  re-derived CTE); quote any "different path" / "rewrite" mandate.
+
 ## Recommendation rubric
 
-After scoring all nine rules, the gatekeeper emits one overall recommendation. **WARNs never
+After scoring all ten rules, the gatekeeper emits one overall recommendation. **WARNs never
 drive the recommendation by themselves** — surface them in the "For the captain" note (G7 is
 WARN-only by design and always lands there). Only FAILs move it off APPROVE:
 
 - **APPROVE** — no FAILs (any number of WARNs allowed). Nothing blocks the gate; the captain
   can advance to `smoke`. Carry every WARN into the captain note.
-- **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules (G1/G4/G5/G8/G9)
-  the ensign can fix in place without changing the idea; no FAIL on G2/G3/G6. Recommend the
-  specific fix, then re-review. (G9 caveat: a G9 FAIL is REVISE-class only when independence
-  can be added without changing the single idea — e.g. adding forced-divergence stances or an
-  external falsifier criterion; if the self-anchored selection criterion *is* the idea, the
-  variant should go back to `hypothesis` instead.)
+- **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules
+  (G1/G4/G5/G8/G9/G10) the ensign can fix in place without changing the idea; no FAIL on
+  G2/G3/G6. Recommend the specific fix, then re-review. (G9 caveat: a G9 FAIL is REVISE-class
+  only when independence can be added without changing the single idea — e.g. adding
+  forced-divergence stances or an external falsifier criterion; if the self-anchored selection
+  criterion *is* the idea, the variant should go back to `hypothesis` instead. G10 caveat: same
+  shape — gating a self-correcting lever to figure-changes, repointing its reconcile to a raw
+  source, or softening "replace" to "investigate" is REVISE-class; but if an *ungated,
+  fix-on-disagreement, re-derived* check **is** the idea, send it back to `hypothesis`.)
 - **REJECT** — any FAIL on **G2 (leak-guard)**, **G3 (spec scope)**, or **G6 (fidelity)** —
   the integrity rules. The variant should go back to `hypothesis`.
 
@@ -237,6 +284,7 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated <date>). Revi
 | G7 actionability/inert-risk | PASS/WARN | <instruction class + inert-risk note> |
 | G8 regression-canary coverage | PASS/FAIL/N/A | <generative? + non-target passing canaries cited> |
 | G9 selector independence | PASS/WARN/FAIL/N/A | <substrate class + per-criterion anchors> |
+| G10 self-correcting false-positive | PASS/WARN/FAIL/N/A | <self-correcting? scope gate + reconcile source + replace-vs-check> |
 
 **For the captain:** <what to look at / what to decide, 1–3 lines.>
 ```
