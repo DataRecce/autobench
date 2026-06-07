@@ -32,16 +32,31 @@ difference. The anchor (schema.yml / instruction) is external to the solver's ow
 column-selection reasoning, so it does not share its blind spot.
 
 **Falsifiable claim (the single README change — Implementation stage only):** adding one
-Implementation instruction — *for each model you author, build the column contract from the
-DECLARED set: the columns listed for this model in `schema.yml` (if present) and any columns
-named explicitly in the task instruction. Compute the set-difference `declared − produced`; it
-must be empty. For every declared column missing from your output, ADD it, deriving its value
-from the appropriate source/analog relation (do not drop it because you judge it irrelevant — the
-declaration is the contract, not your judgment). Do NOT treat your own chosen subset as
-complete* — shipped with a concrete worked-example skeleton (enumerate declared columns; list
-produced columns; diff; add the missing ones) — will catch the width false-greens (ana-eng004,
-f1002, and the width legs of ana-eng006) and let the solver fix them, raising
-`stratified_pass_at_1` above the `@baseline` 0.6458.
+Implementation instruction — *when you author a model that has a DECLARED column list — its entry
+in `schema.yml` lists columns, or the task instruction names the columns it must expose —
+reconcile your output against that declared list. READ the declared column names from
+`schema.yml`/the instruction (do not re-derive or infer them from your own output), and compute
+the set-difference `declared − produced`. For every declared column missing from your output, ADD
+it, deriving its value from the appropriate source/analog relation — the declaration is the
+contract, not your judgment. This reconcile is **ADDITIVE ONLY**: add genuinely-missing declared
+columns; never DROP, RENAME, or rewrite a column you already produce, and never add a column that
+is not in the declared list. If a model has no declared column list, this rule does not apply — do
+not invent a contract* — shipped with a concrete worked-example skeleton (read the declared
+columns; list produced columns; diff; add only the missing declared ones) — will catch the width
+false-greens (ana-eng004, f1002, and the width legs of ana-eng006) and let the solver fix them,
+raising `stratified_pass_at_1` above the `@baseline` 0.6458.
+
+**G10 compliance (self-correcting-lever gating, from the h0012 −4 lesson).** This is a
+reconcile-and-fix lever, so it must survive G10's three axes: **(a) scope** — it is **gated** to
+models that carry a declared column list (no declared set → no-op), not run on every model; and
+on a task that already produces the full declared set the diff is empty, so the rule **cannot
+perturb a width-passer**. **(b) independence source** — it reconciles against the DECLARED
+`schema.yml`/instruction set, a **separately-sourced external artifact that is read, never
+re-derived** from the solver's own output (so it cannot re-correlate into a false-green the way
+h0012's self-built CTE did). **(c) check-don't-replace** — it is **additive only**: it adds
+genuinely-missing declared columns and is explicitly forbidden from dropping, renaming, or
+rewriting any column already produced, so it cannot push a simple-correct model onto a wrong
+"structurally different" path.
 
 This is NOT h0011 re-filed: h0011 was a construct-prose "include all columns" worked-example;
 this is an **independent set-difference reconciliation against a declared artifact**, the
@@ -63,12 +78,20 @@ Primary smoke targets (the width cluster, all `ade-bench-` prefixed):
 - `ade-bench-f1002` — `AUTO_most_podiums_equality` "has less columns".
 - `ade-bench-ana-eng006` — width legs (`AUTO_dim_products`, `AUTO_obt_product_inventory`).
 
-This rule fires whenever a model is authored (semi-generative; gated in effect to models that
-carry a declared schema.yml/instruction column list, but to be safe treat as generative per G8).
-Cross-family regression-canary panel (one `@baseline` passer per non-target family):
-`ade-bench-asana001`, `ade-bench-quickbooks002`, `ade-bench-f1001` (the h0009/h0023
-convention-bleed tripwire), `ade-bench-airbnb001`. No intercom canary exists (`intercom001/002/003`
-all fail @baseline).
+Scope classification (G10(a)): **gated** to models that carry a declared column list — but most
+dbt models ship a `schema.yml` entry, so for G8 canary purposes treat it as broad and carry a
+full regression panel, **doubling the families that share the targets' construct**. The targets
+span **ana-eng** (ana-eng004, ana-eng006) and **f1** (f1002), so those two families each need ≥2
+**perturbable** canaries (passers whose models carry declared column lists the reconcile can
+actually fire on), per G8:
+
+- **ana-eng (shared construct, ≥2 perturbable):** `ade-bench-ana-eng001`, `ade-bench-ana-eng003`.
+- **f1 (shared construct, ≥2 perturbable):** `ade-bench-f1001` (the h0009/h0023 convention-bleed
+  tripwire), `ade-bench-f1004`.
+- **One `@baseline` passer per other family:** `ade-bench-airbnb001`, `ade-bench-asana001`,
+  `ade-bench-quickbooks002`. No intercom canary exists (`intercom001/002/003` all fail @baseline).
+
+(All eight canaries are confirmed `@baseline` passers from the 31/48 outcomes.)
 
 ## Acceptance criteria
 
@@ -79,17 +102,26 @@ dependency/package/leak-guard prose untouched, and references no hidden
 `AUTO_*`/`solution__*`/"has less columns" verifier tokens. `agent.kind: spacedock_solver`,
 `runtime: codex` preserved.
 
-**AC-2 — G6 independence.** The inserted text reconciles against the DECLARED schema.yml /
-instruction set (external), not the solver's own re-run or judgment — not the dead
-self-verification family. G7: ships a worked-example set-difference skeleton, not abstract prose.
+**AC-2 — G6 independence + G10 self-correcting-lever gating + G7 actionability.** The inserted
+text reconciles against the DECLARED schema.yml / instruction set (external), not the solver's own
+re-run or judgment — not the dead self-verification family (G6). It satisfies **G10** on all three
+axes: **(a)** gated to declared-list models (no declared set → no-op; full declared set already
+produced → no-op, so width-passers are untouched); **(b)** the reconcile target is the
+separately-sourced declared list, READ not re-derived (no re-correlation false-green); **(c)**
+additive only — adds missing declared columns, never drops/renames/rewrites an existing column or
+adds an undeclared one. **G7:** ships a worked-example set-difference skeleton, not abstract prose.
 
 **AC-3 — Every recorded score is paired with a clean strict audit** (`rk audit --policy strict`,
 `tainted: 0`, `captured > 0`).
 
 **Smoke gate:** flip ≥1 of the width targets (the `has less columns` ERROR clears) with **zero**
-canary regressions (a canary dropping FAIL is NO-GO regardless of target movement, per the h0009
-−3 lesson). Inert-detector: if a target's compile-time column error is unchanged, the rule was
-inert.
+canary regressions across the full panel — and specifically zero regressions on the **≥2
+perturbable canaries per shared-construct family** (ana-eng001/003, f1001/f1004), since a
+generative reconcile can break a *different* family member than a single canary (the h0012 −4
+lesson, G8). A canary dropping FAIL is NO-GO regardless of target movement (h0009 −3 lesson).
+Inert-detector: if a target's compile-time column error is unchanged, the rule was inert. Variance
+caution: a lone target flip with no artifact-proof (the added column visible in the committed SQL)
+may be noise — bank a GO on artifact-proven flips, not a single reward change.
 
 ## Smoke result
 
