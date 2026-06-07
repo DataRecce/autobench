@@ -127,6 +127,24 @@ unchanged committed `ORDER BY` means the lever was inert.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — clean integrity rules (G1/G2/G3/G6 PASS), a concrete one-token in-place cast (G7 PASS), and a present-but-thin G8 panel (two WARNs, no FAIL): the construct-sharing family ana-eng carries only one canary and the whole panel is inert stable passers the lever cannot fire on.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-07). Reviewed 2026-06-07T04:54:54Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff is a pure addition `55a56,68` (one paragraph) falling under `## Stage: Implementation` (header at L50; inserted L56-67, after `…schema patterns.` L54, before `Run basic confirmation…` L69). Exactly one stage, exactly one idea (in-place ORDER-BY cast); no other stage or guardrail prose touched. |
+| G2 leak-guard intact | PASS | Lines 1-32 (leak-guard + dependency/package prose) byte-identical to parent (`diff` empty). Grep of inserted L56-67 for curl/wget/git-clone/ls-remote/AUTO_*/solution__*/check_option/verifier/equality-test/expected-output/`Got N`/http/download/fetch = NONE. Inserted text references only the model's OWN existing `order by`/`row_number()` window. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0021.yaml` shows only L2 `experiment:` and L11 `solver_workflow:`. `agent.kind: spacedock_solver` (L4), `runtime: codex` (L5), `trials: 1` (L24) all preserved/unchanged. |
+| G4 smoke tasks-only | PASS | `diff h0021.yaml h0021.smoke.yaml` = only an added `benchmark.tasks:` block. All 7 slugs `ade-bench-` prefixed. Includes the target `ana-eng007` plus a stable-@baseline-pass regression sentinel (5 passing canaries) — no WARN. |
+| G5 both frozen | PASS | Both `…frozen.yaml` and `…smoke.frozen.yaml` present (1759 / 1931 bytes). Each carries `kind: spacedock_solver` (L4) + `runtime: codex` (L5) + repointed `solver_workflow` (L11). |
+| G6 resolver fidelity | PASS | Fork parent resolves cleanly: `source:` = codex-ade-dbt-minimal; `@baseline` = run 622bdedac572b479 → solver_workflow codex-ade-dbt-minimal (agree). Inserted text matches the Falsifiable claim (Implementation stage; cast the re-typed key back inside an existing `order by` only). Generative-construction lever, not self-anchored verification — no dead-family ("re-run your own", "drive to zero", "verify matches") phrasing. |
+| G7 actionability/inert-risk | PASS | Mechanical substitution: a concrete one-token cast `order by cast(<key> as integer)` inside an expression already in the file (asana002-class). NOT a FROM/spine/join/grain restructure — none of the h0010 abstract-structural inert-risk phrasings. Residual inert-risk (the @baseline solver actively saw the string id and chose not to touch the ORDER BY) is real and self-flagged in the body; the worked literal mitigates it. |
+| G8 regression-canary coverage | WARN | Generative but no-op unless a type-changed key drives an existing dedup/ranking `order by` (narrow blast radius). Panel verified against run 622bdedac572b479: ana-eng001/asana001/quickbooks002/f1007/airbnb001 all reward=1.0 PASS — one passer per available non-target family (intercom001/002/003 all FAIL, so no intercom passer is possible — correctly excused). FAIL clause does NOT trigger (coverage present). Two WARN conditions DO: (1) the construct-sharing target family **ana-eng carries only ONE canary** (ana-eng001) though 6 ana-eng passers exist (001/002/002-medium/003/005/008) — a generative rule can break a different ana-eng member than the one picked (h0012 broke 4 other f1 passers its single canary never covered); (2) all 5 canaries are **inert stable passers** the lever cannot fire on (none re-types a key into a dedup `order by`). WARN, not FAIL. |
+| G9 selector independence | N/A | Not a multi-candidate / selector protocol; single in-place cast inside one solver session. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever; it is a build-time construction guard that changes the committed SQL, not a verify-and-act-on-disagreement rule. |
+
+**For the captain:** No FAILs → nothing blocks advancing to `smoke`. Two G8 WARNs to weigh: the panel proves the lever does not break the broad families, but it is structurally blind to a within-ana-eng regression (only ana-eng001 carries the family, and it is inert) — exactly the h0012 "broke a different family member" hole. Consider adding ≥2 *perturbable* ana-eng passers (ideally any that involve a sort/dedup the cast could perturb) before or alongside smoke. G7 inert-risk is the live question: the @baseline solver saw the string id and deliberately left the ORDER BY; the prose must overcome that prior choice — confirm at the smoke gate by reading the committed `dim_products.sql` for the landed `order by cast(...)` and the `Got N` distance, not the transcript.
+
 ## Smoke result
 
 ## Run result
