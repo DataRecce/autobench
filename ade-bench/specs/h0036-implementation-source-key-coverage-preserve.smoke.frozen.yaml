@@ -1,0 +1,71 @@
+version: 1
+experiment: ade-bench-h0036-implementation-source-key-coverage-preserve
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: solver_workflows/h0036-implementation-source-key-coverage-preserve
+  solver_workflow_content_hash: sha256:a676c49611ef9132993c467f74dae70fd71fda69385dd77c8736fb22e67821a9
+  max_turns: 200
+  max_budget_usd: null
+  override_timeout_sec: 2400.0
+  override_setup_timeout_sec: null
+  max_timeout_sec: 2400.0
+  tools_allowed: []
+  tools_denied: []
+  append_system_prompt: null
+  reasoning_effort: xhigh
+  reasoning_summary: null
+  resume_from_freeze: null
+  sealed_hash: 78ea0c7769c4c48347a13767309b19df
+  spacedock_skill_version: 1.0.0
+  prompt_content_hashes: {}
+benchmark:
+  kind: harbor
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+  tasks:
+  - ade-bench-ana-eng007
+  - ade-bench-ana-eng007-medium
+  - ade-bench-ana-eng001
+  - ade-bench-ana-eng002
+  - ade-bench-ana-eng003
+  - ade-bench-f1001
+  - ade-bench-asana001
+  - ade-bench-quickbooks002
+  - ade-bench-airbnb001
+  exclude_tasks: null
+  n_tasks: null
+  plugin: null
+  plugin_args: null
+trials: 1
+concurrency:
+  trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
+provenance:
+  pin_model_version: false
+  pin_image_digest: false
+  pin_agent_cli_hash: true
+  pin_git_sha: true
+  model_resolved_version: null
+  model_resolved_at: null
+  image_digest: null
+  agent_cli_hash: sha256:aa3c64b122c9d06bf48eaf988f5970aa69556d69506c3118cf07d10b2401b48a
+  harness_git_sha: 076792e4b3e07992a07ac64b8c8f3ecb3ae8f3e5
+  harbor_version: 0.6.6
+  prompt_file_hashes: {}
+  plugins: []
+  solver_workflow_hash: sha256:a676c49611ef9132993c467f74dae70fd71fda69385dd77c8736fb22e67821a9
+experiment_meta:
+  max_budget_usd: null
+  estimated_cost_usd: null
+  paper_baseline:
+    name: pass_rate
+    value: 0.1875
