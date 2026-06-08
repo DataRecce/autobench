@@ -178,8 +178,6 @@ N/A — REJECTED at smoke (inert). No full run.
 
 **Did the structural change alter committed behavior?** No — it could not, because it never fired its artifact. On the 5 held passers the committed behavior is byte-identical to baseline; on the 2 failers the Got-N is byte-identical to baseline. The new stage is observe-only AND inert, so it changed nothing — which is the *success direction for the no-harm axis*, but it also delivered *nothing*, which is the *failure direction for the deliverable axis*. Net: a clean, well-instrumented REJECTED-inert with a concrete, transferable root cause (the freeze-notes routing precondition is dead in this harbor layout).
 
-## Behavioral analysis
-
 ## Verdict
 
 **REJECTED — INERT (at smoke).** The observe-only lens produced no reasoning corpus: `plan_review.json`
@@ -241,3 +239,16 @@ Built the WORKFLOW-REFINE Opening #2 observe-only debug lens. Forked `codex-ade-
 ### Summary
 
 Smoke is a clean REJECTED-inert. The observe-only stage never wrote `plan_review.json` on any cell because it routes through the `/razorback-freeze` single-child precondition, which is structurally unmet in this harbor layout (the @baseline run never wrote freeze notes either — h0039 is the first hypothesis to depend on it and surface it). Strict audit clean 8/8; 5/6 passers held byte-unchanged; the lone passer drop (asana003, a `ref(tmp)`→`var()` refactor) is run-to-run variance, not contamination, because with no record written nothing could leak into the build, and both failers held Got-N byte-identical. The transferable learning (route durable artifacts to the session transcript or an unconditional path, NOT `/razorback-freeze`) is logged in WORKFLOW-REFINE and steers h0041/h0038.
+
+## Stage Report: conclude
+
+- DONE: Finalize the `_artifacts/WORKFLOW-REFINE.md` h0039 entry to a FINAL state — status set to the verdict, learning + bears-on lines sharp, next-step recorded.
+  Added a `**Status:** rejected-as-written` line (rejected via INERT, not contamination — the `/razorback-freeze` single-child routing precondition is structurally unmet) under the entry header, matching the h0031 entry pattern; the learning line ("the `/razorback-freeze` … notes precondition is dead in this harbor layout — do not route any required artifact through it") and bears-on (h0041 SAME routing dependency, h0038 depends-on-written-contract, h0017 sessions/*.jsonl is the only durable home) were already sharp and confirmed; added a `**Next step:**` line recording that the write-path fix folds into h0041's propose, no separate follow-up file.
+- DONE: Confirm the entity `## Verdict` states REJECTED-inert with the transferable finding, and DELETE the stray empty duplicate `## Behavioral analysis` heading (~line 181, the second one).
+  `## Verdict` already reads "REJECTED — INERT (at smoke)" with the transferable finding (freeze-notes routing precondition is dead here; durable reasoning has only ever survived in the ensign worker `sessions/*.jsonl`; steers h0041/h0038). Deleted the empty duplicate `## Behavioral analysis` heading; `grep -c "^## Behavioral analysis"` now returns 1 (the populated analysis at line 173 is preserved; `## Verdict` now directly follows it).
+- DONE: Confirm NO new hypothesis file is filed (the captain decided the write-path fix rides into h0041).
+  No follow-up filed; `ls h004[2-9]*.md h00[5-9]*.md` → none. Highest active hypothesis is h0041 (pre-existing from the R2 fan-out). The write-path fix is recorded in the WORKFLOW-REFINE next-step line as folding into h0041's propose.
+
+### Summary
+
+Documentation-finalization pass for a hypothesis terminally REJECTED-inert at smoke (no `rk` re-run; nothing to promote). Brought the `_artifacts/WORKFLOW-REFINE.md` h0039 entry to a final state (added an explicit `**Status:** rejected-as-written` line and a `**Next step:**` line recording that the write-path fix folds into h0041's propose, no separate follow-up); the learning + bears-on lines were already sharp and steer h0041/h0038. Confirmed the entity `## Verdict` states REJECTED-inert with the transferable finding and removed the stray empty duplicate `## Behavioral analysis` heading (now exactly one, the populated one). Filed NO new hypothesis — per the captain's decision the durable-artifact write-path fix rides into h0041. The FO will set the verdict frontmatter and archive after this report.

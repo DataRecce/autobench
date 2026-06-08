@@ -556,6 +556,10 @@ or a dispatched worker, never a direct first-officer edit.
   `ade-bench-single-trial-judge-by-artifact`.
 
 ### Observe-only debug lens: the freeze-notes routing precondition is DEAD in this harbor layout (h0039 REJECTED-inert, 2026-06-08)
+- **Status:** **rejected-as-written** — new-stage structural lever tested and cleanly falsified at smoke
+  (no full run); rejected via INERT, not contamination. The stage never wrote its `plan_review.json`
+  artifact because the `/razorback-freeze` "exactly one child directory" routing precondition is
+  structurally unmet in this harbor layout (the @baseline run never wrote freeze notes either). Terminal.
 - **Layer:** solver workflow
 - **Refinement type:** new stage — an observe-only `## Stage: Observe` between Exploration and
   Implementation that ALWAYS writes a machine-readable `plan_review.json` (grain/columns/types/
@@ -595,6 +599,11 @@ or a dispatched worker, never a direct first-officer edit.
   ensign worker `sessions/*.jsonl`, NOT a notes file — that is the only place reasoning has ever
   durably survived in this harness, so a debug lens should target the session transcript, not
   `/razorback-freeze`).
+- **Next step (captain decision, 2026-06-08):** NO separate follow-up hypothesis is filed for the
+  write-path fix. Routing durable debug-lens artifacts to an unconditional path (or the worker session
+  transcript) instead of `/razorback-freeze` folds into **h0041's propose** — h0041 (observe-only triage
+  ledger) carries the identical routing dependency and is the natural home to land the fix once and for
+  all. This entry is the structural record of *why* the fix is needed; h0041 is where it gets built.
 - **Evidence:** entity `hypotheses/h0039-observe-only-debug-lens.md`; run
   `runs/ade-bench-h0039-observe-only-debug-lens/e84f83324081c22d` (audit clean 8/8; score 0.625;
   asana003 `patch_apply_end` shows the `ref→var` repoint; airbnb001 worker session logs the
