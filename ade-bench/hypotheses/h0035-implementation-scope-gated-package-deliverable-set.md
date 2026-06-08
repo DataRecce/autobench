@@ -1,0 +1,211 @@
+---
+id: h0035
+title: Implementation — when the project's OWN ref-graph names staging models that are absent but provided as templates by an already-installed package, materialize exactly those referenced-but-absent models (scope-gated to the referenced set); never treat an installed package as a source or add a model the project does not reference
+status: hypothesis
+kind: hypothesis
+source: oracle-problem-systematic-program.md E5 (deliverable / ref-graph completion, scope-gated, MEASURED not counted); successor to archived h0015 (inert) / h0013 (inert) / h0009 (-3) / h0023 (f1001 convention-bleed NO-GO). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
+started: 2026-06-08T00:00:00Z
+completed:
+verdict:
+score:
+worktree:
+---
+## Hypothesis
+
+`quickbooks001` is the **incomplete-deliverable** bug. The @baseline solver ships a project
+that is missing three staging models — `stg_quickbooks__estimate`,
+`stg_quickbooks__refund_receipt`, `stg_quickbooks__sales_receipt` — and the hidden oracle
+fails it `Got 1` on **six** tests (read straight from the @baseline run-dir `622bdedac572b479`,
+`ade-bench-quickbooks001__5Y3hiLq/verifier/test-stdout.txt`): each of the three models fails
+BOTH its `_existence` and its `_equality` check (`actual_test_total=12, actual_pass=6,
+actual_fail=6`, reward 0). The three absent models are real `fivetran/quickbooks` package
+staging templates — the verifier's own build materializes all three OK — yet the solver did not
+produce them.
+
+**The decisive ground-truth fact (what the solver can see LOCALLY, and why this is reachable).**
+The deciding fact lives in the project's **own ref-graph**, not in the hidden oracle: the
+project's downstream models (`int_quickbooks__refund_receipt_transactions`,
+`int_quickbooks__sales_receipt_transactions`, and the `*_double_entry` siblings, all visible in
+the @baseline build manifest) and/or its schema declarations reference staging models named
+`stg_quickbooks__{estimate,refund_receipt,sales_receipt}` that **do not exist in `models/`**,
+while `packages.yml` / `dbt_packages/` already installs the `fivetran/quickbooks` package that
+ships templates with **exactly those names**. The missing-model set is therefore *named by the
+project itself* — a purely structural, content-independent fact derivable from the local
+`ref()` graph + the installed package, with no access to the hidden `AUTO_*` tests.
+
+**The lever (single Implementation rule, SCOPE-GATED).** Add one Implementation-stage rule:
+when the project's own models or schema declarations **reference** a staging model that is
+**absent** from `models/`, AND an already-installed dbt package (declared in `packages.yml` /
+present in `dbt_packages/`) provides a template of that exact name, materialize exactly those
+**referenced-but-absent** models from the package's templates, following the project's existing
+staging naming/materialization conventions. The completion set is the set-difference
+`(referenced staging models) − (existing staging models)`, resolved from the local ref-graph —
+nothing else.
+
+**The SCOPE-GATE is the load-bearing, net-new part (the h0023 fix).** The clause fires ONLY on
+models the project ALREADY references but that are absent. It MUST NOT: add any model the
+project does not reference; treat an installed package as a new *source*; invent `src_*` /
+source declarations; or "complete" a package's full model set on a project that does not use it.
+A project whose ref-graph names no missing package model gets **zero** new models. This is the
+exact discipline whose absence sank h0023 — its unscoped deliverable-set clause fired on f1001
+(an f1 project that references no missing package model), inventing `src_*` usage and crashing
+f1001 from 6/6 to 2/6 (`stg_models_use_src_models Got 11`) — the same convention-bleed that
+cost h0009 −3.
+
+**What is and is NOT locally derivable (stated plainly).** The missing-model *names* and the
+fact they exist as installed-package templates are fully locally derivable (the ref-graph + the
+installed package). The models' *correct contents* are NOT independently derivable beyond the
+package template — so this rule steers DELIVERABLE COMPLETENESS (build the named, referenced,
+absent models), not value correctness. It is therefore expected to clear the three `_existence`
+legs deterministically (the model exists and builds) and to clear the `_equality` legs only to
+the extent the package template's standard staging transform matches the expected output — which
+for a vanilla `fivetran/quickbooks` staging model is the canonical construction. This rule does
+**not** validate against any hidden count or expected seed; the acceptance signal it can observe
+locally is structural — the previously-dangling `ref()`s now resolve and the named models build.
+
+**Falsifiable claim (the single README change — Implementation stage only):** adding one
+Implementation rule that (a) computes the referenced-but-absent staging-model set from the
+project's own ref-graph, (b) materializes exactly that set from an already-installed package's
+templates following local conventions, and (c) is hard-scoped to the referenced-but-absent set
+(never add an unreferenced model, never treat a package as a source, never invent `src_*`) —
+will flip `quickbooks001` (`ade-bench-quickbooks001`) toward PASS by building the three named
+staging models, with **zero regression** on the convention-bleed canaries (`ade-bench-f1001`,
+`ade-bench-quickbooks003`, `ade-bench-quickbooks002`).
+
+**MEASURED, not portfolio-counted (per the program).** `quickbooks001` is the **highest
+convention-bleed-risk task in the benchmark** — h0009 (−3), h0013 (inert), h0015 (inert), and
+h0023 (f1001 6/6→2/6) all bled or died here across 4 attempts, 0 flips. E5 runs LAST among
+flip-seekers precisely because of this. Its flip is **measured for distance/learning, not
+counted toward the net**; the binding success criterion is **zero bleed** on the canary panel.
+A flip with bleed is a NET FAILURE; a no-flip with zero bleed is an honest negative that retires
+this family; a clean flip with zero bleed is a counted-only-on-retrospect upside.
+
+**Why this escapes the prior ceiling (and where it sits relative to it).** h0013 (Exploration
+"enumerate the complete deliverable set") and h0015 (Implementation "repair package model
+coverage") were INERT — the 3 model names never appeared in the committed project (0× build).
+This rule is shaped to land where they didn't: it pins the trigger to a concrete local artifact
+(the project's own dangling `ref()`s to package-template names) and prescribes a concrete
+mechanical action (materialize exactly the set-difference from the installed templates), the
+copyable-action shape that has landed (asana002 cast, h0019 anti-cross-join) where restructure-
+prose went inert. h0023 was NOT inert — it FIRED, but unscoped, and bled f1001. So the net-new
+contribution over the entire prior family is the **scope-gate**: fire on the referenced-but-
+absent set and *only* that set. Honest caveat: whether prose can make the solver actually
+materialize package templates (vs h0013/h0015's 0× inertness) is unproven; if smoke shows the
+three model names still absent from the committed project, this joins the inert ceiling and is
+REJECTED with no iteration (CAPPED one-shot per the program).
+
+**Distinct from prior entities.** Distinct from h0023 (a post-answer Output-Contract deliverable
+clause, unscoped → f1001 bleed): this is an in-stage Implementation rule hard-scoped to the
+project's own ref-graph set-difference, the explicit anti-bleed gate h0023 lacked. Distinct from
+h0013/h0015 (inert enumerate/repair prose with no concrete trigger or action): this names a
+concrete local trigger (dangling ref to a package-template name) and a concrete action
+(materialize the set-difference). Distinct from h0009 (Exploration "package fidelity", −3
+convention-bleed): this never asks the solver to mirror a package wholesale — only the
+referenced-but-absent models.
+
+Method/README change only. Forks the current `@baseline` solver
+(`solver_workflows/codex-ade-dbt-minimal`, runtime codex); no dataset, harness, or
+solver-runtime change. Leak-guard intact: the added text references only local artifacts (the
+project's own `ref()` graph, its `models/` directory, its `packages.yml` / `dbt_packages/`
+installed package templates, its schema declarations) and names no hidden
+`AUTO_*`/`solution__*`/`check_*`/verifier/`_existence`/`_equality` test, no `equality test`/`has
+less columns`/`expected output seed`, no `Got N` or hidden row count, and no
+`curl`/`wget`/`git clone`/web/published-solution fetch. The change touches exactly one
+`## Stage: Implementation` block (inserted after the "...schema patterns." paragraph and before
+"Run basic confirmation...") and leaves the leak-guard prose, Exploration, Validation, and
+Finalization byte-identical. The spec differs from `@baseline` only in `experiment:` +
+`solver_workflow:` (smoke may add only `benchmark.tasks`).
+
+Target dataset (smoke, `ade-bench-` prefixed): the incomplete-deliverable failure —
+`ade-bench-quickbooks001`. This rule is **generative** (it fires on any project with a
+referenced-but-absent package-template model), so per gatekeeper G8 the smoke set carries a
+convention-bleed canary panel of currently-passing @baseline tasks (verified `reward=1` in
+`622bdedac572b479`), weighted toward the perturbable bleed surface this lever can actually fire
+near:
+- `ade-bench-f1001` — **the load-bearing convention-bleed sentinel** (the exact task h0023/h0009
+  regressed; an f1 project with NO missing package model → the rule must stay silent on it).
+- `ade-bench-quickbooks003` — perturbable same-family canary (a quickbooks project with the
+  `fivetran/quickbooks` package installed that PASSES @baseline → the rule must not over-build it).
+- `ade-bench-quickbooks002` — same-family passer / stable sentinel.
+- `ade-bench-asana001`, `ade-bench-ana-eng001`, `ade-bench-airbnb001` — cross-family passers.
+
+## Acceptance criteria
+
+**AC-1 — Exactly the README change; spec differs only in `experiment:` + `solver_workflow:`.**
+Verified by: `diff specs/baseline.yaml specs/h0035-...yaml` shows only `experiment:` +
+`solver_workflow:`; the README diff vs `codex-ade-dbt-minimal/README.md` touches only
+`## Stage: Implementation` (the single scope-gated ref-graph deliverable-completion rule),
+leaves Exploration/Validation/Finalization and the leak-guard prose byte-identical, and does not
+reference hidden `AUTO_*`/`solution__*`/`_existence`/`_equality`/verifier tests or weaken the
+leak-guard. `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved.
+
+**AC-2 — Every recorded score is paired with a clean strict audit.**
+Verified by: each `rk score` cites a `rk audit --policy strict` on the SAME run-dir, clean
+(`tainted: 0`), `captured > 0`.
+
+**AC-3 — Verdict is MEASURED-not-counted; the binding criterion is ZERO bleed.**
+Verified by: the smoke deep-dive reads the committed project (the dispatched-ensign
+`apply_patch`/file payload) and confirms whether the three model names
+(`stg_quickbooks__{estimate,refund_receipt,sales_receipt}`) actually appear and build
+(distance vs @baseline `Got 1`×6), AND confirms the canaries f1001/quickbooks003/quickbooks002
+did NOT regress (no invented `src_*`, no over-built models). Promotion logic: a `quickbooks001`
+flip is recorded as MEASURED upside (not counted toward the +5 net); **any** canary regression
+(especially f1001 → the h0023/h0009 bleed signature) is an automatic NO-GO regardless of the
+target flip. The flip is artifact-proven (model names present in the committed project), not
+transcript chatter (the h0013/h0015 inertness lesson).
+
+**Smoke gate:** on the target `ade-bench-quickbooks001` + the canary panel (`ade-bench-f1001`,
+`ade-bench-quickbooks003`, `ade-bench-quickbooks002`, `ade-bench-asana001`,
+`ade-bench-ana-eng001`, `ade-bench-airbnb001`), the variant must **not regress any canary**
+(f1001 zero-bleed is mandatory) and should build the three named staging models — verified by
+the committed-project artifact read (the three model files present and resolving the previously-
+dangling refs), not by transcript chatter — before any promotion. CAPPED one-shot: if the
+committed project still lacks the three model names, the rule joins the h0013/h0015 inert ceiling
+and is REJECTED with no iteration.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — one Implementation-stage hunk; leak-guard byte-identical with no
+hidden-test tokens; full spec differs only in `experiment:`+`solver_workflow:`; both frozen;
+scope-gate matches the claim; the only WARNs are inherent (G7 build-rule inert-risk, G8 intercom
+has zero @baseline passers so no valid canary exists).
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-07). Reviewed 2026-06-08T00:00:00Z.
+Fork parent (resolved): `@baseline` = `runs/ade-bench-baseline/622bdedac572b479`, solver_workflow `solver_workflows/codex-ade-dbt-minimal` (matches `source:`).
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff vs parent is one addition hunk `55a56,90`, entirely inside `## Stage: Implementation`; one idea (scope-gated ref-graph deliverable completion); lines 1-49 + Validation/Finalization byte-identical. |
+| G2 leak-guard intact | PASS | Forbidden-token grep over added block (AUTO_/solution__/_existence/_equality/check_/verifier/equality test/has less columns/expected output seed/Got N/curl/wget/git clone/git ls-remote) returns nothing; leak-guard prose (lines 9-32) byte-identical; trigger is the project's own dangling `ref()` + installed package, not hidden tests. |
+| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0035-…yaml` = lines 2 (experiment) + 11 (solver_workflow) only; `kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff` full→smoke = only added `benchmark.tasks` (7 IDs, all `ade-bench-` prefixed); target `ade-bench-quickbooks001` present. |
+| G5 both frozen | PASS | `…frozen.yaml` + `…smoke.frozen.yaml` both written; both carry `kind: spacedock_solver` (L4) + `runtime: codex` (L5); smoke frozen lists all 7 tasks; trials:1. |
+| G6 resolver fidelity | PASS | Inserted text = exactly the claim: Implementation-stage, materialize the ref-graph set-difference from installed templates, hard scope-gate (never add unreferenced model / never treat package as source / never invent `src_*`/`source()`). Generative-but-scoped + derives names from the ref-graph generically (no hardcoded names) — not self-anchored verification. |
+| G7 actionability/inert-risk | WARN | Carries a copyable shape (`stg_x__foo` skeleton) + a concrete mechanical procedure (set-difference then materialize-from-template), the asana002/h0019 form. But it still asks the solver to CREATE model files (closer to creation than a one-token cast); h0013/h0015 went inert on exactly this surface. Inert-risk is real and is the hypothesis's own honest caveat — the smoke artifact read (three model files present) is the inertness check. |
+| G8 regression-canary coverage | PASS (with forced-gap WARN) | Generative (fires on any project with a referenced-but-absent installed-package staging template). Panel canaries: airbnb001, ana-eng001, asana001, f1001, quickbooks002/003 — all `@baseline` reward=1. Construct-sharing family (quickbooks) carries 2 perturbable canaries (003 + 002, both install `dbt_packages/quickbooks` so the lever can fire near them) plus f1001 as the zero-bleed sentinel (dbt_utils-only → lever must stay silent; the exact h0023/h0009 bleed surface). WARN: the **intercom** family has NO `@baseline` passer (intercom001/002/003 all reward=0), so no valid intercom canary exists — the gap is structurally forced, not a panel error. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol; single in-stage build rule. |
+| G10 self-correcting false-positive | N/A | Construct-side BUILD rule (materialize referenced-but-absent models), not a check/reconcile/validate-and-fix lever; nothing is re-derived and "validated" against itself. Confirmed N/A per assignment. |
+
+**For the captain:** APPROVE-class. The two WARNs are inherent, not fixable in place: G7 flags the build-rule inert-risk (the hypothesis already gates promotion on an artifact read, not chatter) and G8 flags the forced intercom gap (zero intercom passers exist to canary). The binding criterion is ZERO bleed — f1001 (scope-gate silence) is the load-bearing sentinel and quickbooks003/002 are the perturbable over-build canaries. A quickbooks001 flip is MEASURED upside, not counted toward the net.
+
+## Stage Report: propose
+
+- DONE: Fork the solver and insert ONE Implementation rule
+  `solver_workflows/h0035-implementation-scope-gated-package-deliverable-set/` forked from `codex-ade-dbt-minimal`; README diff is one addition hunk `55a56,90` inside `## Stage: Implementation`, after the "...schema patterns." sentence and before "Run basic confirmation"; Exploration/Validation/Finalization + leak-guard prose byte-identical.
+- DONE: Leak-guard self-check over the entire added block
+  Forbidden-token grep (AUTO_/solution__/_existence/_equality/check_/verifier/equality test/has less columns/expected output seed/Got N/curl/wget/git clone/git ls-remote) returns nothing; references only local artifacts (own `ref()` graph, `models/`, `dbt_project.yml` vars, `*.yml` schema, `int_*` bodies, `packages.yml`/`dbt_packages/`); no hardcoded target names — set derived generically from the ref-graph (skeleton uses `stg_x__foo`).
+- DONE: Verify the lever is sound against ground truth before freezing
+  From `622bdedac572b479/ade-bench-quickbooks001__5Y3hiLq`: (a) `dbt_project.yml` `vars:` + project `int_quickbooks__{refund_receipt,sales_receipt}_{transactions,double_entry}` models (`/app/models/...`) reference `{{ ref('stg_quickbooks__{estimate,refund_receipt,sales_receipt}') }}` while those files are absent from the project's own `models/` (templates live only under `dbt_packages/quickbooks_source/models/`); `fivetran/quickbooks` declared + `dbt_packages/quickbooks` present → locally-visible dangling-ref signal. (b) f1001's `packages.yml` declares ONLY `dbt-labs/dbt_utils` (no `stg_*` templates), so NO dangling ref maps to an installed-package template → scope-gate keeps the rule SILENT on f1001 (the h0023/h0009 bleed surface). Verifier confirms the 6 fails = 3 models × (_existence+_equality), `Got 1` each.
+- DONE: Full spec = baseline + exactly two fields
+  `diff specs/baseline.yaml specs/h0035-…yaml` = line 2 `experiment: ade-bench-h0035-…` + line 11 `solver_workflow: ./solver_workflows/h0035-…` only; `kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved.
+- DONE: Smoke spec adds only benchmark.tasks (7 tasks)
+  `diff` full→smoke = only the added `benchmark.tasks` block: quickbooks001 (TARGET), f1001 (SENTINEL), quickbooks003 + quickbooks002 (perturbable same-family canaries, both install `dbt_packages/quickbooks`), asana001, ana-eng001, airbnb001. trials not raised.
+- DONE: Freeze BOTH specs
+  `rk freeze --allow-missing` (with `RAZORBACK_SPACEDOCK_PLUGIN_DIR` exported) wrote `…frozen.yaml` + `…smoke.frozen.yaml`; both carry `kind: spacedock_solver`, `runtime: codex`, `trials: 1`; smoke frozen lists all 7 tasks (L31-37).
+- DONE: Run the gatekeeper subagent and write the review block
+  `## Gatekeeper review` appended: G1-G6 PASS, G7 WARN (build-rule inert-risk), G8 PASS with forced-intercom-gap WARN (no intercom @baseline passer exists), G9 N/A (not a selector), G10 N/A (construct-side build rule, not a check/reconcile lever — confirmed); overall **APPROVE**.
+- DONE: STOP at the gate
+  No `rk run` launched (propose is a gate stage). Stage report appended; ready for captain gate decision.
+
+### Summary
+
+Authored the h0035 variant: a single scope-gated Implementation rule that materializes exactly the project's referenced-but-absent staging models (the ref-graph set-difference) from already-installed package templates, hard-gated against adding unreferenced models / treating a package as a source / inventing `src_*`. Ground truth verified both directions before freezing — quickbooks001's own `dbt_project.yml` vars + `int_quickbooks__*` models dangle-ref the three absent staging names (the locally-visible trigger), and f1001 installs only `dbt_utils` (no staging templates → scope-gate stays silent, closing the h0023/h0009 bleed surface). Both specs frozen (2-field full diff, 7-task smoke); gatekeeper APPROVE with two inherent WARNs (G7 build-rule inert-risk, G8 forced intercom gap). Stopped at the gate.
