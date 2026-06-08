@@ -93,6 +93,49 @@ solver-native flip the lever rode for free. Corollary for the proposer: **a "mec
 lever is the wrong tool when the real bug is structural** — apply the independent-vs-correlated test
 to *checks*, and this artifact-attribution test to *generative edits*, before filing either.
 
+### Green-via-package-namespace masks the trigger — a new inertness mode + the scope-gate as validated anti-bleed (h0035, 2026-06-08)
+
+A second, sharper form of generative inertness than h0033's "the solver fixed it structurally." A
+**build-rule that asks the solver to materialize installed-package templates** (the project's own
+ref-graph names staging models that are absent but ship as package templates) can be **INERT because
+the trigger it keys on is MASKED by a clean build.** h0035 was the last untried shape against this
+family — a single Implementation rule, hard scope-gated to the project's own *referenced-but-absent*
+set (the set-difference `(referenced staging models) − (existing staging models)`), built to beat
+both h0013/h0015's total inertness AND h0023's over-fire. At smoke `quickbooks001` stayed reward=0 at
+**bit-identical distance** to @baseline (`Got 1`×6): the solver wrote ONE new model
+(`quickbooks__general_ledger.sql`, the schema-declared red signal) and the three
+`stg_quickbooks__{estimate,refund_receipt,sales_receipt}` staging models **never appeared as project
+files**. Why inert: the downstream `int_quickbooks__*` refs resolve against the installed package's
+**own `stg_quickbooks__*` namespace** at build time, so the project compiles and builds fully GREEN
+(`PASS=172 ERROR=0`) even with the three project-level staging models absent. The solver saw NO red
+build pointing at them, hit its "smallest task-relevant change → green build → done" stopping
+condition, and never reached the set-difference. **The rule's premise — that the dangling refs are a
+*locally visible* (red) trigger — does not hold: the dangle is masked by the package namespace.**
+Unlike h0013/h0015 (0× engagement, pure read-failure), the rule here was read and reasoned about
+(`dbt_packages/quickbooks` 99×, `referenced-but-absent` 2×) — it just did not convert to artifacts.
+
+**The two rules:**
+1. **Green-via-package-namespace is a named inertness mode.** A build-rule that depends on a
+   *locally-observable failure* (a dangling `ref()`, a red build) goes inert when an installed package
+   already satisfies that signal through its own namespace — the trigger is masked by a clean build,
+   and the solver stops at the smallest green-producing fix. Before filing a "materialize the missing
+   models" lever, check whether the project *already builds green* without them; if it does, the
+   locally-observable trigger the rule needs is absent.
+2. **The scope-gate (fire only on the project's own referenced-but-absent set) is a VALIDATED anti-
+   bleed design — even when the lever is inert.** h0035's binding criterion was ZERO bleed, and it
+   PASSED: all 6 canaries held reward=1; f1001 (the h0023/h0009 bleed sentinel, installs only
+   `dbt_utils`) held 1.0 with the rule firing 0× (its 14 `src_*` are @baseline-identical, f1001's own
+   fix), and the h0023 `stg_models_use_src_models Got 11` signature did NOT recur. The set-difference
+   scope-gate FIXED the h0023 over-fire (unscoped clause that invented `src_*` on f1001, 6/6→2/6).
+   This is the transferable design even though the construct side died: a generative rule keyed to the
+   project's *own* ref-graph set-difference is bleed-safe by construction.
+
+**Family verdict:** the package / incomplete-deliverable-completion family is **EXHAUSTED, 5-for-0**
+(h0009 −3 / h0013 inert / h0015 inert / h0023 f1001-bleed / h0035 inert), oracle/inertness-blocked at
+gpt-5.5 / `reasoning_effort: xhigh`. Run-dir
+`runs/ade-bench-h0035-implementation-scope-gated-package-deliverable-set/efa1b651f71941b4`. MEASURED-
+not-counted → @baseline unchanged 31/48.
+
 ## The sharp test for any proposed check
 
 > **Is this check _independent_ of the thing it checks, or _correlated_ with it?**
@@ -151,7 +194,7 @@ note is the **toolbox** (reconcile / invariant / differential / disconfirm) and 
 | #2 width (missing columns) | `schema.yml` / instruction → **local** | ✅ best plan-review target (mechanical completeness assertion) |
 | #1b date-spine | "row for every day" + data min/max → **local** | ✅ invariant: grain covers [min,max] |
 | #4 rolling-window/tolerance | the project's own existing rolling model → **local** | ✅ already flipped under h0017 (airbnb007) |
-| #6 incomplete deliverable | `schema.yml`/ref-graph *if enumerated* | ⚠️ partial (enumerable-only) |
+| #6 incomplete deliverable | `schema.yml`/ref-graph *if enumerated* | ❌ revised down — **family EXHAUSTED 5-for-0** (h0009 −3 / h0013 inert / h0015 inert / h0023 f1001-bleed / h0035 inert). h0035's scope-gated ref-graph set-difference rule was INERT: *green-via-package-namespace* masks the dangling-ref trigger (the project builds green through the installed package's own namespace, so the solver never sees a red signal pointing at the absent models). The scope-gate (fire only on the project's OWN referenced-but-absent set) is a **validated bleed-free design** — it fixed h0023's over-fire and held f1001 — but the construct side does not land. Oracle/inertness-blocked. |
 | #5 type/contract | type declared / derivable downstream | ❌ revised down — **asana002 RE-CLASSIFIED as structural** (h0033): not a representation mismatch but a package-migration (tags optional); a `::type` cast has no surface. The cast-lever family is EXHAUSTED for asana002 (h0009/h0020/h0033). No current task is a confirmed pure type/contract bug. |
 | #1a entity grain | intercom: ~~local parent ✓~~ → **parent is filter-correlated (h0030)** · asana004: oracle-only convention | ❌ revised down — construct/reconcile family REJECTED & oracle-blocked (h0030) |
 | #3 value divergence | the computed **value** itself → **oracle-only** for the number, but **reconcilable from raw source** | ⭐ reconciliation is the only shot; no plan-reviewer can |

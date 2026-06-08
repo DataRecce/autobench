@@ -168,6 +168,24 @@ Sequenced HIGH-control first. **E0 gates everything on a per-check basis** (each
 ---
 
 ### E5 — Deliverable / ref-graph completion (scope-gated, MEASURED not counted)
+
+> **STATUS 2026-06-08: RESOLVED — NO-GO / REJECTED (h0035).** The scope-gated ref-graph
+> deliverable-completion rule was **INERT** on `quickbooks001` (the only target it could flip): the
+> solver wrote ONE new model (`quickbooks__general_ledger.sql`, the schema-declared red signal) and
+> the three needed `stg_quickbooks__*` staging models never appeared as project files — `green-via-
+> package-namespace masks the dangling-ref trigger → inert` (the project builds fully GREEN through the
+> installed package's own namespace, so the solver hit "smallest fix → green → done" before reaching
+> the set-difference; a new, sharper inertness mode than h0013/h0015's total read-failure). Distance
+> bit-identical to @baseline (`Got 1`×6). **The scope-gate is VALIDATED bleed-free** — ZERO bleed on
+> all 6 canaries; f1001 held 1.0 at the artifact level (its 14 `src_*` are @baseline-identical, the
+> rule fired 0×) and the h0023 `stg_models_use_src_models Got 11` signature did NOT recur — so the
+> net-new contribution (fire only on the project's own referenced-but-absent set) fixed the h0023
+> over-fire even though the lever itself was inert. **5th package/incomplete-deliverable rejection
+> (h0009 −3 / h0013 inert / h0015 inert / h0023 f1001-bleed / h0035 inert); family EXHAUSTED, 5-for-0,
+> oracle/inertness-blocked.** MEASURED-not-counted: a REJECTED target flip does NOT lower @baseline —
+> it remains **31/48**. Transferable lesson recorded in `_artifacts/verification-without-oracle.md` +
+> `_artifacts/bug-type-taxonomy.md`. No follow-up filed (family dead; next direction is a captain
+> strategy call).
 - **What we test:** does ref-graph/package resolution, scoped to explicit `_existence` failures, build the 3 missing models without convention-bleed?
 - **The independent path & method:** resolve the `ref()` graph + installed `fivetran/quickbooks` package; the 3 absent `stg_quickbooks__{estimate,refund_receipt,sales_receipt}` models exist as package templates and are named exactly by the failing `_existence` tests (ref-graph independence passes the sharp test — it is independent of content). **Scope-gate the deliverable-set clause to tasks with an explicit missing-model `_existence` signal** (h0023 lesson: an unscoped clause regressed f1001 6/6→2/6 by treating any installed package as a source).
 - **What evidence we want:** the 3 model names appear and build (h0013/h0015 inertness was 0× appearance); `_existence` flips; zero f1001-style invented-`src_*` regression (≥2 perturbable canaries).
@@ -199,7 +217,7 @@ Sequenced HIGH-control first. **E0 gates everything on a per-check basis** (each
 | E2 | airbnb009 | +1 (clean, anti-cross-join) |
 | E3 | airbnb007 | +1 (demonstrated flip) |
 | E4 | asana002 | +1 (mini-confirmed) |
-| E5 | quickbooks001 | {0 or 1} — MEASURED, highest bleed risk |
+| E5 | quickbooks001 | **{0} landed (MEASURED, REJECTED/h0035 — INERT, zero bleed; family exhausted 5-for-0)** |
 | Track Z | the 9 LOW-control tasks | 0 — protects the net |
 
 - **Realistic mode if E1 stays inert:** E2+E3+E4 = **+3 → 34/48, short of 75%.**
