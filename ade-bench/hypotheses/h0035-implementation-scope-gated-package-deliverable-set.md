@@ -209,3 +209,61 @@ Fork parent (resolved): `@baseline` = `runs/ade-bench-baseline/622bdedac572b479`
 ### Summary
 
 Authored the h0035 variant: a single scope-gated Implementation rule that materializes exactly the project's referenced-but-absent staging models (the ref-graph set-difference) from already-installed package templates, hard-gated against adding unreferenced models / treating a package as a source / inventing `src_*`. Ground truth verified both directions before freezing — quickbooks001's own `dbt_project.yml` vars + `int_quickbooks__*` models dangle-ref the three absent staging names (the locally-visible trigger), and f1001 installs only `dbt_utils` (no staging templates → scope-gate stays silent, closing the h0023/h0009 bleed surface). Both specs frozen (2-field full diff, 7-task smoke); gatekeeper APPROVE with two inherent WARNs (G7 build-rule inert-risk, G8 forced intercom gap). Stopped at the gate.
+
+## Smoke result
+
+**Verdict: NO-GO — INERT on target, ZERO bleed on canaries. Joins the h0013/h0015 inert ceiling → REJECTED, no iteration (CAPPED one-shot).**
+
+Run dir: `runs/ade-bench-h0035-implementation-scope-gated-package-deliverable-set/efa1b651f71941b4` (single-trial, `trials:1`). Frozen `solver_workflow_content_hash: sha256:94ce42ec58a3b29b84cd254d5c0400edecbedec24c2b7287daeba6586a22318c`. Pre-flight `--explain` confirmed the 7-task plan, concurrency 1, `kind: spacedock_solver` / `runtime: codex` / `model: gpt-5.5` / `reasoning_effort: xhigh`.
+
+**Clean-audit attestation (AC-2).** `rk audit … --policy strict` → `summary: {clean: 7, coverage_missing: 0, tainted: 0}`; every cell `subagent-trace-manifest.json` `captured=1` (>0). `rk score …` → `stratified_pass_at_1 = 0.8571` (6/7), `n_errored: 0`, `wilson_ci [0.487, 0.974]`, verdict `above` the 0.1875 paper constant. The score is trusted because the audit is clean.
+
+| Task | Role | @baseline | h0035 smoke | Distance (Got N) | Rule fired? | Verdict |
+|------|------|-----------|-------------|------------------|-------------|---------|
+| `ade-bench-quickbooks001` | TARGET | 0 (`pass6/fail6`, `Got 1`×6) | **0** (`pass6/fail6`, `Got 1`×6) | **UNCHANGED** — 3 staging models' `_existence`+`_equality` all still FAIL | mentioned, but **0 model files built** | **INERT** |
+| `ade-bench-f1001` | SENTINEL (h0023/h0009 bleed surface) | 1 (`pass6/fail0`, `src_*`×14) | **1** (`pass6/fail0`, `src_*`×14, identical set) | held | **0 mentions** (scope-gate silent) | **HOLD — zero bleed** |
+| `ade-bench-quickbooks003` | perturbable same-family | 1 | **1** | held | 0 mentions, 0 new files | HOLD |
+| `ade-bench-quickbooks002` | same-family passer | 1 | **1** | held | 0 mentions, 0 new files | HOLD |
+| `ade-bench-asana001` | cross-family | 1 | **1** | held | 2 mentions, **0 new files** (read, did not over-build) | HOLD |
+| `ade-bench-ana-eng001` | cross-family | 1 | **1** | held | 0 mentions, 0 new files | HOLD |
+| `ade-bench-airbnb001` | cross-family | 1 | **1** | held | 0 mentions, 0 new files | HOLD |
+
+**Binding criterion (ZERO bleed): PASSED.** All 6 canaries held reward=1; f1001 — the load-bearing sentinel — held at the artifact level (its 14 `src_*` files are byte-for-set identical to @baseline `622bdedac572b479`'s f1001, i.e. f1001's OWN legitimate solution, NOT the h0035 rule; `referenced-but-absent` mentioned 0× in that cell). No invented `src_*`, no over-built models anywhere the lever could fire. The exact h0023 bleed signature (`stg_models_use_src_models Got 11`) did NOT recur — that test PASSES here.
+
+**MEASURED target (not counted toward +5 net): NO FLIP.** quickbooks001 stayed reward=0 at zero distance from @baseline — the lever was inert on the one task it was built to flip.
+
+**This lever is an IN-STAGE Implementation rule tweak, NOT a structural/protocol workflow change** (no new/removed/reordered stage, no `## Protocol-family declaration`; the rule is a single hunk inside the existing `## Stage: Implementation` block). Per the smoke stage-def's workflow-refinement clause and the entity's own framing, the `_artifacts/WORKFLOW-REFINE.md` step does NOT apply and was intentionally not performed.
+
+## Behavioral analysis
+
+**Decisive committed-artifact read for quickbooks001 (the inert-vs-landed test — h0013/h0015 went 0× here).**
+The README rule landed verbatim in the dispatched-ensign prompt ("Referenced-but-absent staging model rule: only if the project's own ref graph names a staging model that does not exist under `models/` …"). The ensign DID engage with it — `dbt_packages/quickbooks` is referenced 99× and `referenced-but-absent` 2× in its session (`…019ea4a6….jsonl`) — so this was NOT a pure read-failure like h0013/h0015. **But the three target staging-model names never appear as a file the solver created.** Across both the first-officer session and the ensign session, the ONLY `apply_patch … *** Add File:` op under `models/` is `models/quickbooks__general_ledger.sql` (file ops total = 1). The names `stg_quickbooks__{estimate,refund_receipt,sales_receipt}` appear ONLY inside `dbt build` STDOUT — that is the installed `quickbooks_source` package materializing its own `…_tmp` templates inside `dbt_packages/`, not project models the solver wrote. The verifier confirms the consequence: `actual_test_total=12, actual_pass=6, actual_fail=6`, all six target legs FAIL `Got 1` — **bit-identical distance to @baseline.** No flip, zero distance moved → INERT.
+
+**Why inert (the load-bearing finding).** The solver diagnosed the task's surface failure as a *different* missing model — the project's schema declares `quickbooks__general_ledger` with no model file — created exactly that one file, and got a fully GREEN local build (`dbt build … PASS=172 WARN=0 ERROR=0`). Because the downstream `int_quickbooks__*` refs resolve against the package's own `stg_quickbooks__*` namespace at build time, the project compiles and builds CLEAN even with the three project-level staging models absent. The solver therefore saw NO local compile/build error pointing at the three models, hit its "smallest task-relevant change → green build → done" stopping condition, and never reached the set-difference the rule describes. The rule's premise — that the dangling refs are a *locally visible* trigger — does not hold against this solver's stopping behavior: the dangle is masked by the package namespace, so the only locally-observable signal (a red build) is satisfied by the one-file general_ledger fix. The honest pre-registered caveat (whether prose can make the solver materialize package templates vs h0013/h0015 inertness) resolves NEGATIVE: the rule was read and reasoned about, but did not convert to the artifact.
+
+**f1001 zero-bleed confirmation (the h0023/h0009 sentinel).** f1001's `packages.yml` installs only `dbt-labs/dbt_utils` — no staging templates — so no dangling ref maps to an installed-package template, and the scope-gate kept the rule silent: `referenced-but-absent` mentioned 0× in the f1001 cell. The 14 `src_*` files the solver added (`models/staging/f1_dataset/src_*.sql`) are f1001's OWN expected repair (the task is "make `stg_models_use_src_models` pass") and are the identical set @baseline produces; that test PASSES (`6/6`), the exact opposite of the h0023 crash (`Got 11`, 6/6→2/6). Scope-gate verified working as designed. Cross-checked the same way on quickbooks002/003 (rule silent, 0 new files) and asana001 (rule read 2×, but 0 new files — read-without-over-build); none regressed.
+
+**Conclusion.** The scope-gate is sound and the binding criterion (zero bleed) is met — this lever does NOT have the h0023 over-fire problem. But on the construct side it is INERT on the only target it was built to flip, for the same structural reason that sank h0013/h0015: a build-rule asking the solver to CREATE staging models from package templates does not convert to committed artifacts when the project already builds green via the package namespace. Per the entity's CAPPED one-shot clause and the smoke gate, this REJECTS with no iteration and retires the package-deliverable-completion family (h0009 −3 / h0013 inert / h0015 inert / h0023 f1001-bleed / h0035 inert — 5 attempts, 0 flips).
+
+## Stage Report: smoke
+
+- DONE: Pre-flight `--explain` confirms the 7-task plan + frozen solver_workflow hash
+  `RAZORBACK_SPACEDOCK_PLUGIN_DIR` exported; `--explain` showed Tasks=7, Concurrency=1, `kind: spacedock_solver`/`runtime: codex`/`model: gpt-5.5`/`reasoning_effort: xhigh`, frozen `solver_workflow_content_hash sha256:94ce42ec…22318c`.
+- DONE: Launch the smoke run DETACHED (trials:1)
+  `nohup uv run … rk run …smoke.frozen.yaml --runs-dir runs > /tmp/rk-h0035-smoke.log` PID 2741734; spec confirmed `trials:1`/`concurrency.trials:1`; not raised.
+- DONE: POLL IN-TURN across this turn (no Monitor-then-yield)
+  Polled `kill -0 $(cat $LOG.pid)` + docker ps + per-cell reward.txt in-turn until PID exited (~63 min, 7 cells sequential).
+- DONE: After PID exits, strict audit + score
+  `rk audit --policy strict` → `{clean:7, coverage_missing:0, tainted:0}`, every cell `captured=1`; `rk score` → `stratified_pass_at_1 0.8571` (6/7), `n_errored:0`. Both recorded in `## Smoke result`.
+- DONE: DECISIVE artifact read for quickbooks001 (inert-vs-landed)
+  Committed project has ONE `*** Add File:` under `models/` = `quickbooks__general_ledger.sql`; the three `stg_quickbooks__{estimate,refund_receipt,sales_receipt}` names never appear as solver-written files (only in package-internal `dbt build` STDOUT). Distance UNCHANGED vs @baseline (`pass6/fail6`, `Got 1`×6) → INERT.
+- DONE: BINDING criterion — ZERO bleed vs @baseline (`622bdedac572b479`)
+  All 6 canaries held reward=1. f1001 held 1.0 at the artifact level — its 14 `src_*` files are identical to @baseline's (f1001's own solution, NOT the rule; `referenced-but-absent` 0×); the h0023 `stg_models_use_src_models Got 11` signature did NOT recur (PASS, 6/6). quickbooks003/002/asana001/ana-eng001/airbnb001 also held (no over-build).
+- DONE: Write `## Smoke result` (flip/distance/why table + clean-audit attestation) and `## Behavioral analysis`
+  Both sections appended; flip/distance/why table + clean-audit attestation in Smoke result; committed-artifact read + f1001 zero-bleed confirmation in Behavioral analysis. WORKFLOW-REFINE.md step explicitly N/A (in-stage Implementation rule tweak, not a structural/protocol change).
+- DONE: Plain-words go/no-go to the captain
+  NO-GO delivered: INERT on target (3 models never built, zero distance) + ZERO bleed (f1001 + all canaries hold). CAPPED one-shot → REJECTED, no iteration.
+
+### Summary
+
+h0035 smoke is a clean NO-GO of the honest-negative kind. The scope-gated Implementation rule met its BINDING criterion — ZERO bleed: all 6 canaries held reward=1 and the f1001 sentinel held at the artifact level (its `src_*` build is identical to @baseline and the h0023 `Got 11` signature never recurred), so the scope-gate works and this lever does NOT have the h0023 over-fire problem. But the MEASURED target quickbooks001 did NOT flip: the committed project contains exactly one new model (`quickbooks__general_ledger.sql`) and the three target staging models never appear as solver-written files — the rule was read and reasoned about (99× `dbt_packages/quickbooks`, 2× `referenced-but-absent`) but never converted to artifacts because the project builds green via the package namespace, masking the dangling-ref trigger. Verifier distance is bit-identical to @baseline (`Got 1`×6). Inert on the only target it was built for → joins the h0013/h0015 inert ceiling → REJECTED, no iteration (CAPPED one-shot), retiring the package-deliverable-completion family (5 attempts, 0 flips). Audit clean (tainted:0, captured>0 all cells); score 6/7 trusted.
