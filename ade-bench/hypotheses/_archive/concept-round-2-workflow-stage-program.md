@@ -1,11 +1,12 @@
 ---
 title: Round-2 workflow-stage program — fan the R2 proposal into its 5 pre-designed hypotheses
-status: ideate
+status: expanded
 kind: concept
 source: _proposal/round-2-workflow-stage-program.md (captain-approved 2026-06-08; full-five subset)
 started: 2026-06-08T07:37:52Z
-completed:
-verdict:
+completed: 2026-06-08T07:47:09Z
+verdict: PASSED
+archived: 2026-06-08T07:47:09Z
 ---
 
 ## Direction
