@@ -2,7 +2,7 @@
 title: Propose-stage gatekeeper review guideline
 applies-to-stage: propose
 maintained-by: the captain, on demand, by asking an agent to update it (NOT auto-updated by the workflow; the gatekeeper reads this file fresh on every run)
-last-updated: 2026-06-07
+last-updated: 2026-06-08
 ---
 
 # Propose-stage gatekeeper review guideline
@@ -129,12 +129,25 @@ concrete mechanical substitution (`due_at::timestamp`), not a rewrite it had to 
 This rule is **predictive, not an integrity check** — it never FAILs, only WARNs, so it never
 blocks the gate; it flags inert-risk in the captain note (it would have flagged h0010 here,
 before its smoke run).
+
+A second, sharper inertness mode (E5/h0035): a **build / deliverable-completion rule** — one
+that asks the solver to *materialize missing models* from a package's templates or resolve a
+`ref()` graph — goes **inert when the project already builds GREEN through the package's own
+namespace.** A clean build (`PASS=N, ERROR=0`) masks the deficiency, so there is no red trigger
+pointing at the missing models and the solver stops at "smallest fix → green → done." The whole
+**incomplete-deliverable / missing-models family is DEAD 5-for-0** (h0009 −3 / h0013 inert /
+h0015 inert / h0023 f1001-bleed / h0035 inert) — pre-flag any new build/deliverable-completion
+rule as inert-risk and surface it for the captain.
 - **WARN if:** the inserted instruction asks for a structural rewrite (FROM/spine/
   join-direction/grain restructuring; phrasings like "build one-row-per-entity", "select FROM
   X instead of Y", "make the entity the spine") stated as **abstract prose**, *without* a
   worked-example SQL skeleton or a named mechanical edit. Note the inert-risk and suggest the
   worked-example / few-shot form (show the literal before→after SQL skeleton to pattern-match,
   e.g. `from <entity> left join (<child agg>) …`).
+- **WARN if:** the inserted instruction is a **build / deliverable-completion rule** (materialize
+  missing models, resolve the `ref()` graph, copy package templates) AND the target project
+  compiles GREEN without that deliverable — green-via-package-namespace inertness: the rule has
+  no red trigger to fire on (E5/h0035; the family is dead 5-for-0). Note the inert-risk.
 - **PASS if:** the change is a concrete mechanical substitution (a cast, column add/rename,
   literal/default value, or filter token) **or** it carries a worked-example skeleton the
   solver can copy rather than re-derive.
@@ -240,11 +253,39 @@ the tasks it should leave alone. Check three axes:
   (generative vs figure-change); name what the reconcile compares against (raw source vs
   re-derived CTE); quote any "different path" / "rewrite" mandate.
 
+### G11 — Multi-model-target variance risk (advisory, WARN-only)
+A target task is often scored by **more than one model** (multiple `AUTO_*_equality` / `check_*`
+tests). A **single-model** lever — one whose precondition or mechanical edit touches exactly one
+of the target's scored models — cannot credit a flip on such a target even when its own
+mechanism lands artifact-proven: the verdict is gated by a model the lever never reaches, so a
+single-run FAIL→PASS is **variance on the unaddressed model**, not a fix. Earned from
+**h0034/E3** (airbnb007): the calendar-RANGE copy reached `daily_agg_nps_reviews` and that test
+PASSED, yet the task scored 0 because `listing_agg_nps_reviews` (a per-listing lifetime NPS with
+no rolling window — the lever's precondition never matches it) failed by 2 rows. The h0018
+smoke-GO was variance on that second model. Like G7, this rule is **predictive, not an integrity
+check** — it never FAILs, only WARNs, so it never blocks the gate; it flags variance-risk in the
+captain note (it would have flagged airbnb007's false smoke-GO at propose).
+- **How to enumerate the target's scored models:** consult the multi-model-target list in
+  `_artifacts/bug-type-taxonomy.md` ("The multi-model-target trap"); if the gatekeeper can read
+  the target dataset's verifier test set, count the distinct `*_equality` / `check_*` models the
+  task is graded on. The gatekeeper does NOT run `rk` — this is a static read.
+- **WARN if:** a named target is scored by ≥2 models AND the lever is single-model (its
+  precondition / mechanical edit matches fewer than all of them). Note that a single-run flip on
+  that target must be treated as variance — require a repeat or a wider lever before crediting
+  it, and judge the flip by the **committed artifact on every scored model**, not the aggregate
+  verdict.
+- **WARN (unverifiable) if:** the target's scored-model count cannot be determined from the
+  taxonomy or the dataset tests — surface it as unknown rather than assume single-model.
+- **N/A (PASS) if:** the lever is general / multi-model (touches all of the target's scored
+  models) or the target is scored by a single model.
+- **Evidence to cite:** name each target's scored models (source: taxonomy / dataset tests) and
+  classify the lever (single-model vs covers-all).
+
 ## Recommendation rubric
 
-After scoring all ten rules, the gatekeeper emits one overall recommendation. **WARNs never
-drive the recommendation by themselves** — surface them in the "For the captain" note (G7 is
-WARN-only by design and always lands there). Only FAILs move it off APPROVE:
+After scoring all eleven rules, the gatekeeper emits one overall recommendation. **WARNs never
+drive the recommendation by themselves** — surface them in the "For the captain" note (G7 and
+G11 are WARN-only by design and always land there). Only FAILs move it off APPROVE:
 
 - **APPROVE** — no FAILs (any number of WARNs allowed). Nothing blocks the gate; the captain
   can advance to `smoke`. Carry every WARN into the captain note.
@@ -285,6 +326,7 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated <date>). Revi
 | G8 regression-canary coverage | PASS/FAIL/N/A | <generative? + non-target passing canaries cited> |
 | G9 selector independence | PASS/WARN/FAIL/N/A | <substrate class + per-criterion anchors> |
 | G10 self-correcting false-positive | PASS/WARN/FAIL/N/A | <self-correcting? scope gate + reconcile source + replace-vs-check> |
+| G11 multi-model-target risk | PASS/WARN/N/A | <each target's scored-model count + lever single-vs-covers-all> |
 
 **For the captain:** <what to look at / what to decide, 1–3 lines.>
 ```
@@ -299,6 +341,13 @@ this propose gate, so they are deliberately NOT encoded here:
   cell — a cheap inertness flag before reading transcripts.
 - **Verify the artifact, not the chatter:** acknowledging an instruction ≠ executing it; check
   the final committed SQL, not the solver's reasoning, before crediting a flip.
+
+A third item for that same smoke gate is the **credit-time form of G11**: before a single-model
+lever is *credited* with a target flip, re-enumerate the target's scored models from the run's
+`verifier/test-stdout.txt` and confirm the lever's prescribed artifact landed on **every** scored
+model — a flip with an unaddressed scored model still red is variance, not a fix (the airbnb007 /
+h0034 lesson). G11 catches this predictively at propose; the smoke gate would confirm it against
+the actual run.
 
 If the gatekeeper is later extended to the smoke gate, capture these in a sibling
 `_gatekeeper/smoke-review-guideline.md`. They are recorded for now in the h0010 archive entry

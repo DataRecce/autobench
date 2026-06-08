@@ -517,3 +517,40 @@ or a dispatched worker, never a direct first-officer edit.
   `adversarial{}` correlated_error_trap / count_blind_spot); fixture = f1 DuckDB from the ade-bench
   `databases` GitHub release (raw source + canonical @baseline outputs ship together);
   baseline `runs/ade-bench-baseline/622bdedac572b479` (f1001 passing, model outputs canonical).
+
+### Gate-rule refit — encode the multi-model-target trap (G11) + green-via-package-namespace inertness (G7) (captain decision, 2026-06-08)
+- **Layer:** autoresearch loop
+- **Refinement type:** gate-rule (propose gatekeeper).
+- **What was decided:** after the two end-of-program retrospectives
+  (`_proposal/retrospective-2026-06-07.md` §5.4 + `…-06-08.md`), fold two post-G10 findings into
+  the propose gatekeeper so they screen before any future flip hypothesis spends a run:
+  1. **New rule G11 — "Multi-model-target variance risk"** (advisory, WARN-only, parallel to G7).
+     A single-model lever cannot credit a flip on a target scored by ≥2 models when its precondition
+     matches fewer than all of them; a single-run flip there is variance on the unaddressed model.
+     Earned from **h0034/E3** (airbnb007: calendar-RANGE copy passed `daily_agg_nps_reviews` but the
+     task scored 0 on `listing_agg_nps_reviews`, which the lever never touches). The rule tells the
+     gatekeeper to enumerate the target's scored models statically (taxonomy list + dataset tests, no
+     `rk`). Recommended in BOTH retrospectives but never previously encoded.
+  2. **G7 strengthened** — added the second inertness mode **green-via-package-namespace** (E5/h0035):
+     a build / deliverable-completion rule goes inert when the project already builds GREEN through the
+     package's own namespace, so there is no red trigger to fire on. Marked the **incomplete-deliverable
+     / missing-models family DEAD 5-for-0** (h0009/h0013/h0015/h0023/h0035) so any new build-rule is
+     pre-flagged.
+  3. **Future-scope note** — recorded the *credit-time* form of G11 (confirm the artifact landed on
+     every scored model from the run's `verifier/test-stdout.txt`) as a smoke-gate item for the
+     not-yet-built `smoke-review-guideline.md`, alongside the inert-detector + verify-the-artifact items.
+- **Finding (what motivated it):** the oracle-problem flip program CONCLUDED at net +0 — `@baseline`
+  still 31/48 (32 once airbnb009 is banked). The README/prompt lever space is exhausted; G11 + the G7
+  update are "bank the lesson so it is not relearned," and only unlock new flips if the program reopens
+  with a benchmark-design change (out of scope per program decision #4).
+- **Learning:** the propose gate now predicts the multi-model-target variance trap and the
+  green-via-package inertness mode at filing time — the two post-G10 failure modes that cost runs
+  (h0034, h0035) without being caught.
+- **Bears on:** any future flip hypothesis aimed at a multi-model target (airbnb007 and siblings) or
+  any build/deliverable-completion rule; the deferred airbnb009 banking run (single-model, single
+  scored model → G11 N/A, judge by artifact); a future `smoke-review-guideline.md`.
+- **Evidence:** `_gatekeeper/propose-review-guideline.md` (G11 added; G7 + rubric + output-format
+  updated; `last-updated: 2026-06-08`); `_proposal/retrospective-2026-06-07.md` (§5.4) +
+  `_proposal/retrospective-2026-06-08.md` (§2.1–2.2); `_archive/{h0034,h0035}`; MEMORY
+  `ade-bench-oracle-program-concluded`, `ade-bench-instruction-lever-taxonomy`,
+  `ade-bench-single-trial-judge-by-artifact`.
