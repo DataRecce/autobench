@@ -202,6 +202,41 @@ manufacture the cross join the `@baseline` produced unprompted. GATE: flip + zer
 
 ## Run result
 
+### E2-ALONE standalone full re-confirm (2026-06-08) — clean run accounting
+
+**Run dir:** `runs/ade-bench-h0019-implementation-let-categories-emerge-not-cross-join/8773355d65f92e1b`
+(48 tasks, `trials:1`, 6h 21m, gpt-5.5). Launched detached via nohup.
+
+**Strict audit CLEAN — score trustable.** `rk audit --policy strict` summary
+`{ "tainted": 0, "clean": 48, "coverage_missing": 0 }`; all 48 trials `taint_status: clean`,
+`findings: []`, none coverage-missing (captured>0 on every cell).
+
+**Methodology consistency CONFIRMED (no smoke→full drift).** The run's recorded
+`solver_workflow_content_hash = sha256:9394871ca43f2ec25d8f91ca3c95c057d17218b4b42358220f0a5a0448f4c7d6`
+(in `config.json`) is byte-for-byte the smoke's gatekeeper-confirmed frozen skeleton `sha256:9394871c…`.
+Same solver README as smoke; only the task set differs (smoke 6 → full 48).
+
+**HEADLINE: `stratified_pass_at_1 = 0.625` (30/48), `n_errored: 0` — NET −1 vs `@baseline` 0.6458 (31/48).**
+Even isolated and single-trial, this standalone full came in one below baseline.
+
+Slug-paired delta vs `@baseline` (`runs/ade-bench-baseline/622bdedac572b479`), 48/48 tasks paired:
+
+| Direction | Count | Tasks |
+|-----------|-------|-------|
+| GAIN (baseline FAIL → h0019 PASS) | 2 | `f1006`, `f1011` |
+| LOSS (baseline PASS → h0019 FAIL) | 3 | `f1005-medium`, `f1010-medium`, `quickbooks004` |
+| **Net** | **−1** | 30 vs 31 |
+
+- **TARGET `airbnb009` did NOT flip in this isolated full run: stayed `0.0` FAIL** (same `@baseline` `Got 1`).
+  This is the opposite of smoke (`d8bd75a0…`, flipped, artifact-proven) and the h0034-combined full
+  (flip held). All 5 G8 canaries held at 1.0 (`airbnb001`/`asana001`/`ana-eng001`/`f1007`/`quickbooks002`).
+- The 2 gains and 3 losses are all on OTHER models that carry no anti-cross-join precondition — the same
+  rule-independent single-trial gpt-5.5 non-determinism the Behavioral-analysis section predicted.
+  The per-task behavioral ledger (why airbnb009 reverted; whether the committed `mom_agg_reviews.sql`
+  made the subtractive edit this time) is the **analyze** stage, not done here.
+
+### FULL confirmation carried in the combined E2+E3 run (h0034)
+
 **FULL confirmation carried in the combined E2+E3 run (h0034).** E2/h0019 was confirmed at full inside
 `h0034-combined-e2-e3-full-confirmation` (run
 `runs/ade-bench-h0034-combined-e2-e3-full-confirmation/1880d6497bdd6303/`, clean strict audit `tainted:0`,
@@ -293,3 +328,14 @@ Applied the captain's REVISION: added a copyable BEFORE/AFTER SQL worked-example
 ### Summary
 
 The anti-cross-join Implementation rule with the copyable BEFORE/AFTER SQL skeleton LANDED. airbnb009 flipped FAIL(0,`Got 1`)→PASS(1,`actual_fail=0`), and the flip is artifact-proven from the dispatched-ensign apply_patch payload: the committed `mom_agg_reviews.sql` made exactly the predicted subtractive in-place edit — removed only the `dates_cte` narrowing filter, kept the existing `LEFT JOIN`/`GROUP BY` byte-intact, and added NO cross join — so sentiments emerge per day and rows-per-day vary (`mom_distinct_days=29220=dim_dates`), unlike the `@baseline` which built the spine unprompted but cross-joined all 3 sentiments (`13524=4508×3`, `Got 1`). All 5 cross-family canaries held at 1.0 (zero regression); strict audit clean (tainted:0), 6/6 pass. This is an in-stage Implementation rule tweak, NOT a structural/protocol change, so the workflow-refinement-log step does not apply. GATE: flip + zero canary regression → advance to full.
+
+## Stage Report: full
+
+- DONE: Full 48-task run on `specs/h0019-...full.frozen.yaml` completed (launched DETACHED via nohup, PID to <log>.pid, polled across turns)
+  Run dir `runs/ade-bench-h0019-implementation-let-categories-emerge-not-cross-join/8773355d65f92e1b` (48 tasks, `trials:1`, 6h 21m). Strict audit `--policy strict` CLEAN: `{tainted:0, clean:48, coverage_missing:0}`, every cell `findings:[]` + captured>0. `rk score --format json` → `stratified_pass_at_1=0.625` (30 PASS / 18 FAIL), `n_errored:0`. Recorded in `## Run result` → E2-ALONE sub-block.
+- DONE: Methodology consistency (no smoke→full drift) — full run's solver README content-hash matches the smoke's frozen skeleton `sha256:9394871c…`
+  Run `config.json` records `solver_workflow_content_hash = sha256:9394871ca43f2ec25d8f91ca3c95c057d17218b4b42358220f0a5a0448f4c7d6` — byte-identical to the smoke/gatekeeper-confirmed frozen skeleton. Same solver README; only the task set differs (6→48).
+
+### Summary
+
+E2-ALONE standalone full re-confirm of h0019. Strict audit CLEAN (`tainted:0`, 48/48 clean cells), so the score is trusted; solver README hash matches smoke (`sha256:9394871c…`), so no smoke→full drift. HEADLINE: `stratified_pass_at_1=0.625` (30/48) — NET −1 vs `@baseline` 0.6458 (31/48). Slug-paired delta: 2 gains (`f1006`,`f1011`), 3 losses (`f1005-medium`,`f1010-medium`,`quickbooks004`), net −1. Notably the TARGET `airbnb009` did NOT flip here — it stayed `0.0` FAIL (same `@baseline` `Got 1`), the opposite of smoke (flipped) and the h0034-combined full (flip held); all 5 G8 canaries held at 1.0. The gains/losses sit on other models with no anti-cross-join precondition (rule-independent single-trial gpt-5.5 non-determinism). This stage is the clean run accounting only; the per-task behavioral ledger (why airbnb009 reverted; whether the committed `mom_agg_reviews.sql` made the subtractive edit) is the analyze stage, not done here.
