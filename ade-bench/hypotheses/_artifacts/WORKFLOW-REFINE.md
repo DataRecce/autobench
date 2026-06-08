@@ -554,3 +554,50 @@ or a dispatched worker, never a direct first-officer edit.
   `_proposal/retrospective-2026-06-08.md` (§2.1–2.2); `_archive/{h0034,h0035}`; MEMORY
   `ade-bench-oracle-program-concluded`, `ade-bench-instruction-lever-taxonomy`,
   `ade-bench-single-trial-judge-by-artifact`.
+
+### Observe-only debug lens: the freeze-notes routing precondition is DEAD in this harbor layout (h0039 REJECTED-inert, 2026-06-08)
+- **Layer:** solver workflow
+- **Refinement type:** new stage — an observe-only `## Stage: Observe` between Exploration and
+  Implementation that ALWAYS writes a machine-readable `plan_review.json` (grain/columns/types/
+  divergence + a `dbt show` key-count per model) to the sanctioned non-graded notes location, then
+  builds EXACTLY as baseline (no gate, no build-to-satisfy mandate). This is the WORKFLOW-REFINE
+  *Opening #2 observe-only-lens*, finally built and run.
+- **What was tried:** fork @baseline (`codex-ade-dbt-minimal`), add exactly one observe-only stage;
+  8-task contamination smoke (6 cross-family Got-N tripwires + the fired-and-failed cells asana004 /
+  intercom001). Success was INVERTED: Got N unchanged on passers (gate-strip held) + record present on
+  the failers (lens not inert).
+- **Finding:** the Observe stage went **fully inert at the artifact level on all 8 cells** —
+  `plan_review.json` was never written anywhere. The stage routes its record to the notes location
+  *only* "if `/razorback-freeze` exists and has exactly one child directory" (the precondition the
+  baseline README already uses for `exploration.md`/`implementation.md`/`validation.md`). In every
+  cell the worker probed `/razorback-freeze`, found a **degenerate layout** (`find … -type d` returns
+  `/app` / `0` / dataset content, never a clean single child), logged *"zero child directories … not
+  applicable,"* and skipped the record. Crucially the **@baseline run ALSO never wrote any freeze
+  notes** — the precondition has been silently failing all along; h0039 is the first hypothesis to
+  depend on it and thereby surface it. Strict audit clean (8/8). The lone passer drop (asana003,
+  17/17 → 11/17, a `ref(tmp)`→`var()` refactor that broke 6 equality tests) is **variance, not
+  contamination**: with no record ever written, nothing could leak into the build; the failers held
+  Got-N byte-identical (Got 3 / Got 7), the signature of a fully-inert lens.
+- **Learning:** **the `/razorback-freeze` "exactly one child directory" notes precondition is dead in
+  this harbor task layout — do not route any required artifact through it.** Any future
+  observe/record/debug-lens stage that must produce a durable artifact has to (a) write to a location
+  that does NOT depend on that precondition (e.g. a fixed in-`/app` scratch path the verifier ignores,
+  or an unconditional notes file), and (b) be checked by mirroring the artifact OUT of the container
+  into the run-dir, because the committed dbt project state (and any in-container notes) is torn down
+  and never lands under `runs/<…>/<cell>/`. The G7-high inertness the propose gate flagged
+  materialized — but via the routing precondition short-circuiting, NOT via "an artifact told it
+  changes nothing"; the on-disk-`apply_patch` + `dbt show` mitigation never executed. Confirms the
+  WORKFLOW-REFINE Opening #2 hope ("guaranteed zero score impact, reasoning window on all 48") is
+  unreachable as specified: zero score impact held, but the corpus was empty.
+- **Bears on:** h0041 (observe-only triage ledger — SAME routing dependency; must fix the notes
+  location before it can deliver a corpus); h0038 (plan-review Method-B — depends on a written
+  contract existing); the archived h0017 Output Contract finding (its `Contract:` blocks lived in the
+  ensign worker `sessions/*.jsonl`, NOT a notes file — that is the only place reasoning has ever
+  durably survived in this harness, so a debug lens should target the session transcript, not
+  `/razorback-freeze`).
+- **Evidence:** entity `hypotheses/h0039-observe-only-debug-lens.md`; run
+  `runs/ade-bench-h0039-observe-only-debug-lens/e84f83324081c22d` (audit clean 8/8; score 0.625;
+  asana003 `patch_apply_end` shows the `ref→var` repoint; airbnb001 worker session logs the
+  "zero child directories … not applicable" decision verbatim); baseline
+  `runs/ade-bench-baseline/622bdedac572b479` (no freeze notes written — precondition unmet at baseline
+  too). MEMORY `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.

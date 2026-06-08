@@ -145,11 +145,55 @@ passers — accepted, not a coverage gap.
 
 ## Smoke result
 
+**Verdict: REJECTED — INERT (not contamination/NO-GO).** Run `runs/ade-bench-h0039-observe-only-debug-lens/e84f83324081c22d` (8 tasks, 1h 7m). Strict audit **clean** (`clean: 8, tainted: 0, coverage_missing: 0`); `captured=1` on every cell (`> 0`). Score `stratified_pass_at_1 = 0.625` (5/8). The Observe stage went **fully inert at the artifact level on all 8 cells** — `plan_review.json` was never written anywhere — because the `/razorback-freeze` "exactly one child directory" precondition (inherited verbatim from the baseline README lines 30–32) is **structurally unmet in this harbor task layout**. The lens delivered **no reasoning corpus** → the hypothesis's own kill-path (ii): "record absent/empty on the fired-and-failed cells = inert = REJECTED."
+
+The 5/8 (not the expected 6/8) is NOT contamination: the dropped passer is `asana003`, but `plan_review.json` was never produced on any cell, so there was no record to leak into the build. The drop is **solver run-to-run variance** on a refactor task (detail in `## Behavioral analysis`).
+
+### Per-cell flip / distance / record table
+
+| Cell | @baseline | smoke | Got N (smoke vs base) | plan_review.json written? | Read |
+|------|-----------|-------|------------------------|---------------------------|------|
+| airbnb001 (canary) | ✅ r=1 fail=0 | ✅ r=1 fail=0 | unchanged (no fails) | NO — "zero child directories, not applicable" | held; lens inert |
+| ana-eng001 (canary) | ✅ r=1 fail=0 | ✅ r=1 fail=0 | unchanged | NO | held; lens inert |
+| asana001 (canary) | ✅ r=1 fail=0 | ✅ r=1 fail=0 | unchanged | NO | held; lens inert |
+| f1007 (canary) | ✅ r=1 fail=0 | ✅ r=1 fail=0 | unchanged | NO | held; lens inert |
+| quickbooks002 (canary) | ✅ r=1 fail=0 | ✅ r=1 fail=0 | unchanged | NO | held; lens inert |
+| **asana003 (canary)** | ✅ r=1 fail=0 | ❌ **r=0 fail=6** | **moved 0→6 fails + 1 build ERROR** | NO | **DROPPED — variance, not leak** (no record existed to leak) |
+| asana004 (failer cell) | ❌ r=0 Got 3 | ❌ r=0 Got 3 | **byte-unchanged (Got 3)** | NO — record ABSENT | inertness kill confirmed |
+| intercom001 (failer cell) | ❌ r=0 Got 7 | ❌ r=0 Got 7 | **byte-unchanged (Got 7)** | NO — record ABSENT | inertness kill confirmed |
+
+**Decisive inverted reads:**
+- **(a) Got-N contamination tripwire:** 5/6 passers byte-unchanged. asana003 moved (fail 0→6), but `plan_review.json` was never written on ANY cell → no artifact could feed the build → the move is variance, not gate-strip leak. The two designed-failers held byte-identical (Got 3 / Got 7), the signature of a fully-inert lens.
+- **(b) Record presence (inertness kill):** `plan_review.json` is **ABSENT** on asana004 and intercom001 (and all 6 others). The worker explicitly logged on every cell: *"The freeze directory check found zero child directories, so the conditional freeze notes and `plan_review.json` are not applicable here."* Lens inert → REJECTED.
+
 ## Run result
+
+N/A — REJECTED at smoke (inert). No full run.
+
+## Behavioral analysis
+
+**Root cause of the inertness — the notes-location precondition is environmentally unmet.** The Observe stage routes its record to the sanctioned non-graded notes location *only* "if `/razorback-freeze` exists and has exactly one child directory" (the precondition the baseline README already uses for `exploration.md`/`implementation.md`/`validation.md`). In every cell of this harbor run the worker probed `/razorback-freeze` and found a **degenerate layout** — `find /razorback-freeze -mindepth 1 -maxdepth 1 -type d` returned either `/app`, `0`, or dataset-table content, never the clean single-child shape — and so concluded the conditional notes were "not applicable" and skipped `plan_review.json` entirely. This is **not** specific to h0039: the **@baseline run ALSO never wrote any freeze notes** (no `exploration.md`/`implementation.md`/`validation.md` exist anywhere under `runs/ade-bench-baseline/622bdedac572b479`, and its airbnb001 worker reached the identical "not applicable" conclusion). The precondition has been silently failing the whole time; h0039 is the first hypothesis to depend on it and thereby surface it. The G7-high inertness the propose gate flagged materialized — but via the **routing precondition**, not via "an artifact told it changes nothing." The on-disk-`apply_patch` + `dbt show` mitigation never got a chance to run because the gating `if` short-circuited first.
+
+**The asana003 passer drop is variance, not contamination.** asana003 ("remove the tmp models; have `stg_asana__[name].sql` reference the source tables directly") is a refactor. @baseline passed 17/17. The smoke worker committed (via `apply_patch`, `patch_apply_end` = success) a repoint of all `stg_asana__*` models from `from {{ ref('stg_asana__*_tmp') }}` to `from {{ var('<name>') }}` (and `get_columns_in_relation(var('<name>'))`) plus deletion of all `tmp/` models. That `var()` path changed values/types — 6 `AUTO_*_equality` tests failed (project Got 16, tag Got 17, task Got 1, project_task_metrics Got 17, project_user Got 13, task_tags Got 1) and `asana__daily_metrics` hit a build ERROR (`Conversion Error: invalid date field format: "None"`). The baseline worker had chosen a different, correct repoint. Because **no `plan_review.json` was ever written**, the Observe stage produced no artifact that could have influenced this build — the SQL choice is the solver's own, and the FAIL is gpt-5.5 @ xhigh run-to-run variance on a refactor (consistent with the standing "single-trial, judge by artifact" caveat; the lever is provably absent from the causal chain). Verifying the **artifact** (not the chatter) confirms: the committed SQL diff is a plain `ref→var` repoint with zero reference to any reasoning record.
+
+**Did the structural change alter committed behavior?** No — it could not, because it never fired its artifact. On the 5 held passers the committed behavior is byte-identical to baseline; on the 2 failers the Got-N is byte-identical to baseline. The new stage is observe-only AND inert, so it changed nothing — which is the *success direction for the no-harm axis*, but it also delivered *nothing*, which is the *failure direction for the deliverable axis*. Net: a clean, well-instrumented REJECTED-inert with a concrete, transferable root cause (the freeze-notes routing precondition is dead in this harbor layout).
 
 ## Behavioral analysis
 
 ## Verdict
+
+**REJECTED — INERT (at smoke).** The observe-only lens produced no reasoning corpus: `plan_review.json`
+was never written on any of the 8 cells because the `/razorback-freeze` "exactly one child directory"
+routing precondition is structurally unmet in this harbor layout (the @baseline run never wrote freeze
+notes either). This is the hypothesis's own kill-path (ii): record absent on the fired-and-failed cells
+= inert = REJECTED. It is NOT contamination: strict audit clean (8/8), 5/6 passers held byte-unchanged,
+and the lone passer drop (asana003) is run-to-run variance — with no record ever written, nothing could
+leak into the build, and the two failers held Got-N byte-identical (Got 3 / Got 7). Zero score impact
+held, but the deliverable (the 48-task belief corpus) was empty. **Transferable finding:** the
+freeze-notes routing precondition is dead here — the only place reasoning has ever durably survived in
+this harness is the ensign worker `agent/sessions/*.jsonl`, so any future debug-lens must target the
+session transcript or an unconditional path, not `/razorback-freeze` (steers h0041, h0038; logged in
+`_artifacts/WORKFLOW-REFINE.md`).
 
 ## Stage Report: propose
 
@@ -184,3 +228,16 @@ Net hoped for: **0 flips, 0 regressions** — every passer holds with Got N byte
 ### Summary
 
 Built the WORKFLOW-REFINE Opening #2 observe-only debug lens. Forked `codex-ade-dbt-minimal` → `h0039-observe-only-debug-lens`; the single change is one new observe-only `## Stage: Observe` between Exploration and Implementation that always writes a machine-readable `plan_review.json` (Contract/divergence: grain, columns, types, divergence + a `dbt show` key-count per model) to the sanctioned non-graded notes location via on-disk apply_patch, then explicitly builds EXACTLY as baseline — no gate, no build-to-satisfy mandate, changes no committed SQL. Full spec differs from baseline only in `experiment:` + `solver_workflow:`; smoke spec adds an 8-task contamination panel; both frozen with kind/runtime/trials preserved. Gatekeeper: APPROVE, sole WARN is the self-declared G7 inertness (mitigated). The decisive smoke reads are inverted from a flip-seeker: Got N unchanged on the 6 passers (contamination tripwire) + plan_review.json present/non-empty on asana004 + intercom001 (inertness kill).
+
+## Stage Report: smoke
+
+- DONE: Smoke run on `specs/h0039-observe-only-debug-lens.smoke.frozen.yaml` completed (detached nohup, polled across turns; 1h 7m). Strict audit clean and `captured > 0` on every cell BEFORE the score; recorded in `## Smoke result`.
+  `rk audit … --policy strict` → `clean: 8, tainted: 0, coverage_missing: 0`; `captured=1` on all 8 cells; `rk score` → `stratified_pass_at_1 = 0.625` (5/8). Run `runs/ade-bench-h0039-observe-only-debug-lens/e84f83324081c22d`.
+- DONE: The two decisive INVERTED reads recorded with per-cell evidence.
+  (a) Got-N: 5/6 passers byte-unchanged; asana003 moved (fail 0→6) but is variance not leak (no record was ever written, so nothing could feed the build); the 2 failers held Got 3 / Got 7 byte-identical. (b) Record presence: `plan_review.json` ABSENT on asana004 + intercom001 (and all 6 others) — inert = REJECTED.
+- DONE: Workflow-refinement evaluation done (new-stage structural lever); entry appended to `_artifacts/WORKFLOW-REFINE.md` as part of the smoke commit.
+  The Observe stage fired its probe on all 8 cells but wrote its artifact on ZERO — the `/razorback-freeze` "exactly one child directory" precondition is environmentally unmet (baseline never wrote freeze notes either). Committed behavior byte-unchanged on the 5 held passers + 2 failers. Entry: "the freeze-notes routing precondition is DEAD in this harbor layout."
+
+### Summary
+
+Smoke is a clean REJECTED-inert. The observe-only stage never wrote `plan_review.json` on any cell because it routes through the `/razorback-freeze` single-child precondition, which is structurally unmet in this harbor layout (the @baseline run never wrote freeze notes either — h0039 is the first hypothesis to depend on it and surface it). Strict audit clean 8/8; 5/6 passers held byte-unchanged; the lone passer drop (asana003, a `ref(tmp)`→`var()` refactor) is run-to-run variance, not contamination, because with no record written nothing could leak into the build, and both failers held Got-N byte-identical. The transferable learning (route durable artifacts to the session transcript or an unconditional path, NOT `/razorback-freeze`) is logged in WORKFLOW-REFINE and steers h0041/h0038.
