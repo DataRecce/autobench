@@ -1,12 +1,12 @@
 ---
 id: h0014
 title: Implementation — for analysis/answer deliverables, back each component of the answer with its own direct query (include/exclude only on confirmation)
-status: propose
+status: conclude
 kind: hypothesis
 source: concept-resolve-uncovered-false-greens fan-out; evidence re-audit of @baseline (622bdedac572b479, 31/48). Lone tail — f1011: the analysis answer model emitted "ABDE" but the correct answer was "ABE"; option D was included on plausibility, never verified, and check_option_b failed (1/6). Isolated task type (answer-style deliverable). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-04T13:40:51Z
-completed:
-verdict:
+completed: 2026-06-08T00:00:00Z
+verdict: REJECTED
 score:
 worktree:
 ---
@@ -118,3 +118,15 @@ Single README change is the only independent variable; full spec differs only in
 1.0). Both specs frozen. Lever is GATED to answer-style tasks (not generative) so no cross-family
 canary panel is required. Gatekeeper review applied per guideline: APPROVE, no FAILs, G8 N/A. Smoke
 NOT run per assignment.
+
+
+## Re-triage verdict (2026-06-08) — REJECTED without running (doomed by LOW/Track-Z re-triage)
+
+REJECTED. h0014 is built on a wrong ground truth: it states the f1011 answer is "ABE" with option D
+the unverified inclusion. The `check_option_*` tests show the truth is **"ADE"** — the wrong letter
+is **B** (included, must be excluded), and **D is correctly included**. f1011's deciding signals are
+oracle-only: option B is a misleading-but-locally-TRUE signal (a naive lap-completeness probe says
+"B is a problem" while the oracle says it is not — h0031 reproduced the exact wrong ABDE with a
+genuinely independent two-route arbitrator), and option D has NO local column to confirm. A
+per-claim-evidence rule would KEEP B (a confirming local probe exists) and DROP D — pushing toward
+the wrong answer. Oracle-only; retired without a run.

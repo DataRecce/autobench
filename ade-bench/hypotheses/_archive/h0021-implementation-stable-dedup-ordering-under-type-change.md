@@ -1,12 +1,12 @@
 ---
 id: h0021
 title: Implementation — when a fix re-types a key, keep the dedup/ranking window deterministic under the original type via an in-place cast in the ORDER BY
-status: propose
+status: conclude
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type Value divergence (shape right, numbers wrong) — type-dependent dedup/ranking ORDER BY ordering sub-bug (ana-eng007 dim_products). f1006 residual excluded (not locally derivable). ana-eng007-medium demoted to sentinel per the critique (h0013 1->3 regression risk under its vague 'fix everything' instruction).); in-stage lever (Implementation). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-08T00:00:00Z
+verdict: REJECTED
 score:
 worktree:
 ---
@@ -166,3 +166,14 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-07). 
 
 ### Summary
 Forked `codex-ade-dbt-minimal` -> `solver_workflows/h0021-implementation-stable-dedup-ordering-under-type-change` and inserted a single surgical Implementation-stage paragraph: when a fix re-types a key, keep an existing dedup/ranking `order by` deterministic under the key's ORIGINAL type via an in-place `cast(<key> as integer)` inside that same window — referencing only the model's own existing `row_number()`/`order by`, no new derivation. Full + smoke specs created and frozen (only experiment+solver_workflow differ from baseline; smoke adds 7-task selector). @baseline rewards resolved from run 622bdedac572b479: target ana-eng007 FAIL (0.0), within-family sentinel ana-eng007-medium also FAIL (0.0 — it shares the dim_products bug but under a vague broad-scope instruction; "must not regress" = must not drop below its current 5-fail state, NOT a flip target), all 5 cross-family canaries PASS (1.0). Generative-but-narrow lever (no-op unless a type-changed key drives an existing dedup `order by`), so G8 canary panel is carried; G10 does not apply (this is a construction guard, not a check/reconcile/validate-and-fix lever). Did Outputs 1-4 only; gatekeeper deferred to the FO's independent dispatch.
+
+
+## Re-triage verdict (2026-06-08) — REJECTED without running (doomed by LOW/Track-Z re-triage)
+
+REJECTED. The 2026-06-08 target-hunt re-triage of ana-eng007 established this hypothesis targets a
+bug that does not exist. `dim_products` has ZERO duplicate product_ids, so there is no dedup
+tie-break to stabilize (its `ORDER BY` sits inside its own `PARTITION BY` — constant within
+partition). Worse, the prescribed `ORDER BY CAST(product_id AS INTEGER)` would crash/NULL the 5
+non-numeric md5-hashed source ids that `setup.sh` injects — actively breaking the very rows that
+must be preserved. The real ana-eng007 bug is source-key COVERAGE (5 hashed rows dropped on a
+string-id type change), now carried by the successor **h0036**. Retired without a run.

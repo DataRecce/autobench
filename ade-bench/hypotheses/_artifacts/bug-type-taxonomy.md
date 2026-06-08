@@ -269,3 +269,34 @@ Ground every row in the actual oracle output
 (`…/ade-bench-<task>__*/verifier/test-stdout.txt`, the post-self-check section) — never invent
 task slugs, `AUTO_*` names, or `Got N`. The `explain-hypotheses` skill reads this file as its
 taxonomy source.
+
+
+## Re-triage corrections (2026-06-08 — LOW/Track-Z target hunt)
+
+A forensic re-triage of the 9 LOW/Track-Z failures against primary evidence corrected two factual
+errors in this file and retired four filed-but-unrun hypotheses:
+
+1. **ana-eng007 / ana-eng007-medium are COVERAGE, not "value divergence" (#3) or "incomplete
+   deliverable" (#6).** `setup.sh` casts `products.id` to string and inserts 5 `md5(id)` rows; the
+   solver's `dim_products` DROPS those 5 non-numeric-id rows on a mishandled type change (the oracle's
+   one-directional `Got 5` = 5 MISSING rows, not wrong values). The independent arbitrator is a
+   RAW-SOURCE coverage anti-join (every distinct source id must survive into `dim_products`) — the
+   f1007-hard shape. Carried by **h0036** (Impl: source-key coverage preservation). **h0021 REJECTED**
+   (targets a non-existent dedup tie-break; its `CAST(... AS INTEGER)` would crash the md5 ids).
+
+2. **f1011 truth is "ADE", not "ABE".** The wrong letter is **B** (must be excluded), and **D is
+   correctly included** — the inverse of the prior note. B is a misleading-but-locally-TRUE signal;
+   D has no local column. Oracle-only (h0031-proven). **h0014 and h0022 REJECTED** — both built on the
+   wrong truth / inverted mechanics; they would manufacture a different wrong answer.
+
+3. **Width (ana-eng004, f1002) confirmed oracle-only; h0029 REJECTED.** f1002's schema.yml LIES
+   (over-declares 6 vs 3 true); ana-eng004's target isn't declared at all. h0029's additive reconcile
+   against the declared set would reinforce the bug / no-op, and cannot perform the required column DROPs.
+
+4. **asana004/005/005-hard, f1006 confirmed oracle-only** (no local raw-source/contract relation pins
+   the answer; for the asana cluster the intermediate's grain is erased downstream by a
+   `LEFT JOIN…coalesce`, invisible to every local check).
+
+Net: the hunt produced exactly one new sharp-test-passing target (**h0036**, ana-eng007 coverage);
+everything else is informationally blocked, and four queued hypotheses (h0021/h0029/h0014/h0022) were
+retired as doomed-by-re-triage.

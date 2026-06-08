@@ -1,12 +1,12 @@
 ---
 id: h0029
 title: Implementation — reconcile the output column set against the DECLARED set (schema.yml + instruction) as a mechanical set-difference, never against your own judgment of which columns matter
-status: propose
+status: conclude
 kind: hypothesis
 source: verification-without-oracle synthesis (_artifacts/verification-without-oracle.md) — width (#2) is a bug class whose deciding fact lives in a DECLARED local artifact (schema.yml / instruction), so it is reachable by an INDEPENDENT check (accounting "footing/cross-footing": the declared set must equal the produced set). Prior width attempts h0011 (worked-example "include the full column set", REJECTED 0/3) and h0023 (Output-Contract deliverable/columns, NO-GO — f1001 convention-bleed) used construct-prose, not a reconciliation against the declared contract. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-06T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-08T00:00:00Z
+verdict: REJECTED
 score:
 worktree:
 ---
@@ -165,3 +165,15 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-07). 
 ### Summary
 
 Forked the @baseline seed (codex-ade-dbt-minimal) into h0029 and inserted one Implementation-stage instruction: a mechanical `declared − produced` column-set reconcile against the DECLARED schema.yml/instruction list (READ not re-derived), gated to models that carry a declared column list, ADDITIVE-only (add missing declared columns; never drop/rename/rewrite an existing column or add an undeclared one), shipped with a worked-example set-difference skeleton. The leak-guard / no-external-reference / dependency prose is byte-identical to the parent — the diff is a pure 37-line addition inside `## Stage: Implementation`. Full spec differs from baseline only in experiment + solver_workflow; smoke spec adds a 10-task benchmark.tasks panel (3 width targets + G8/G10 perturbable doubling on the ana-eng and f1 construct-sharing families + one passer per other family). Both specs frozen, kind/runtime preserved. Did Outputs 1–4 only; the independent gatekeeper (Output 5) is the FO's to dispatch.
+
+
+## Re-triage verdict (2026-06-08) — REJECTED without running (doomed by LOW/Track-Z re-triage)
+
+REJECTED. The 2026-06-08 re-triage of the width tasks found h0029's arbitrator (reconcile the output
+column set against the DECLARED schema.yml + instruction) rests on a MISLEADING declaration for both
+targets. f1002's schema.yml OVER-declares (6 columns vs 3 true) — an additive reconcile against it
+would re-add the exact wrong columns (p1/p2/p3) the baseline already produced, REINFORCING the bug
+(correlated false-green). ana-eng004's target model is not declared in schema.yml at all, so h0029
+no-ops there. The true column sets (drop p1/p2/p3; drop `attachments`, add the `ipd` alias) live only
+in the hidden solution — width is oracle-only for these tasks, and h0029's additive-only design cannot
+perform the required DROPs. Retired without a run.

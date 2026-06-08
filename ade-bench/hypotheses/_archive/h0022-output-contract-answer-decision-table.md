@@ -1,12 +1,12 @@
 ---
 id: h0022
 title: Output Contract — for an analysis/answer-style deliverable, write a per-option option->local-check->IN/OUT decision table before authoring the answer SQL, default every option OUT, and transcribe the answer string mechanically from the IN rows
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type Analytical-answer guess (categorical/multi-select answer with an unverified option included on plausibility)); realizes the new Output Contract stage. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-08T00:00:00Z
+verdict: REJECTED
 score:
 worktree:
 ---
@@ -140,3 +140,12 @@ from an unverified re-guess.
 ## Behavioral analysis
 
 ## Verdict
+
+
+## Re-triage verdict (2026-06-08) — REJECTED without running (doomed by LOW/Track-Z re-triage)
+
+REJECTED. Same f1011 oracle-only wall as h0014, with inverted mechanics: h0022's decision-table rules
+("a status-backed option stays IN" / "no-local-column => OUT") would KEEP the wrong B (status columns
+exist locally) and DROP the correct D (no caution-flag column exists) — the exact opposite of the
+oracle (truth ADE: B-OUT, D-IN). It manufactures a different wrong answer. f1011's local evidence is
+misleading (h0031-proven); no local arbitrator exists. Retired without a run.

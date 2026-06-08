@@ -1,13 +1,13 @@
 ---
 id: h0035
 title: Implementation — when the project's OWN ref-graph names staging models that are absent but provided as templates by an already-installed package, materialize exactly those referenced-but-absent models (scope-gated to the referenced set); never treat an installed package as a source or add a model the project does not reference
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: oracle-problem-systematic-program.md E5 (deliverable / ref-graph completion, scope-gated, MEASURED not counted); successor to archived h0015 (inert) / h0013 (inert) / h0009 (-3) / h0023 (f1001 convention-bleed NO-GO). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-08T00:00:00Z
-completed:
-verdict:
-score:
+completed: 2026-06-08T00:00:00Z
+verdict: REJECTED
+score: MEASURED-not-counted; @baseline unchanged 31/48
 worktree:
 ---
 ## Hypothesis
@@ -245,6 +245,65 @@ The README rule landed verbatim in the dispatched-ensign prompt ("Referenced-but
 
 **Conclusion.** The scope-gate is sound and the binding criterion (zero bleed) is met — this lever does NOT have the h0023 over-fire problem. But on the construct side it is INERT on the only target it was built to flip, for the same structural reason that sank h0013/h0015: a build-rule asking the solver to CREATE staging models from package templates does not convert to committed artifacts when the project already builds green via the package namespace. Per the entity's CAPPED one-shot clause and the smoke gate, this REJECTS with no iteration and retires the package-deliverable-completion family (h0009 −3 / h0013 inert / h0015 inert / h0023 f1001-bleed / h0035 inert — 5 attempts, 0 flips).
 
+## Verdict
+
+**REJECTED — smoke NO-GO, CAPPED one-shot (no iteration).** Smoke run dir
+`runs/ade-bench-h0035-implementation-scope-gated-package-deliverable-set/efa1b651f71941b4`. The
+falsifiable claim required the scope-gated ref-graph deliverable-completion rule to flip
+`quickbooks001` by materializing the three referenced-but-absent staging models. It is **falsified
+on the "inert" disjunct**: the lever did NOT convert to artifacts on the one target it could flip.
+
+**Mechanism (precise).** The solver wrote exactly **ONE** new model
+(`models/quickbooks__general_ledger.sql`) — the project's `schema.yml` declares
+`quickbooks__general_ledger` with no model file, that produced a red local signal, the solver fixed
+exactly it, and the local build went fully GREEN (`dbt build … PASS=172 WARN=0 ERROR=0`). The three
+needed staging models (`stg_quickbooks__estimate` / `_refund_receipt` / `_sales_receipt`) **never
+appeared as project files** — across both sessions the only `apply_patch *** Add File:` under
+`models/` is `quickbooks__general_ledger.sql` (file ops total = 1); the three names appear ONLY in
+`dbt build` STDOUT, where the installed `quickbooks_source` package materializes its own `…_tmp`
+templates inside `dbt_packages/`. `quickbooks001` therefore held at the **same distance as
+@baseline** (`actual_test_total=12, actual_pass=6, actual_fail=6`, all six legs `Got 1` — bit-
+identical). **Distinct from h0013/h0015 TOTAL inertness:** here the rule was READ and REASONED about
+(`dbt_packages/quickbooks` referenced 99×, `referenced-but-absent` 2× in the ensign session) — it
+did NOT convert to artifacts because the project already built fully GREEN via the installed
+package's own namespace, so the dangling-ref trigger the rule depends on was **MASKED**, and the
+solver stopped at "smallest fix → green build → done" before reaching the set-difference. h0013/h0015
+were pure read-failures (0× appearance, 0× engagement); h0035 is a new, sharper inertness mode — the
+trigger is masked by a clean build, the *green-via-package-namespace* mode.
+
+**POSITIVE finding — ZERO bleed (the binding criterion, PASSED).** All 6 canaries held reward=1.
+`f1001` held 1.0 at the artifact level — its 14 `src_*` models are byte-for-set identical to
+@baseline `622bdedac572b479`'s f1001, i.e. **f1001's OWN normal fix, NOT our rule firing**
+(`referenced-but-absent` mentioned 0× in that cell because f1001 installs only `dbt-labs/dbt_utils`,
+no staging templates → scope-gate stayed silent). The h0023 crash signature
+(`stg_models_use_src_models Got 11`) did **NOT** recur — that test PASSES here (6/6), the exact
+opposite of the h0023 over-fire (6/6→2/6). quickbooks003/002 (rule silent, 0 new files) and asana001
+(rule read 2×, 0 new files — read-without-over-build) also held. The **scope-gate DESIGN is validated
+as bleed-free**: the net-new contribution over the prior family (fire on the project's own
+referenced-but-absent set and *only* that set) worked exactly as designed — even though the lever was
+inert, it did not over-fire. Strict audit clean (`tainted: 0`, `captured > 0` on all 7 cells);
+focused smoke score **6/7** (only the target failed). `@baseline` unchanged at 31/48.
+
+**MEASURED-not-counted → @baseline unchanged.** Per the program, `quickbooks001` is MEASURED for
+distance/learning, not counted toward the net. A REJECTED target flip therefore does **NOT** lower
+`@baseline` — it stays **31/48**. The experiment's real result is the ZERO-bleed proof (scope-gate
+works) plus the family-exhaustion knowledge gain.
+
+**Family retirement (explicit).** The **package / incomplete-deliverable-completion family is now
+EXHAUSTED**: h0009 (−3 convention-bleed) / h0013 (inert) / h0015 (inert) / h0023 (f1001 bleed) /
+h0035 (inert) = **5 attempts, 0 flips**. Transferable rule: (a) a build-rule that asks the solver to
+materialize installed-package templates does **not** land when the project already compiles/builds
+green through the package namespace — the dangling-ref signal the rule depends on is **masked** by
+the clean build; and (b) a **scope-gate keyed to the project's own ref-graph set-difference is a
+VALIDATED bleed-free design** even when the lever itself is inert (it fixed the h0023 over-fire). The
+next-direction decision (this family is dead; where to spend next) is a captain strategy call — no
+follow-up is auto-filed (the conclude "do not reflexively file when the family is exhausted" rule).
+
+**This lever is an IN-STAGE Implementation rule tweak, NOT a structural/protocol workflow change**
+(no new/removed/reordered stage, no `## Protocol-family declaration`; the rule is a single hunk inside
+the existing `## Stage: Implementation` block). The `_artifacts/WORKFLOW-REFINE.md` finalization step
+therefore does NOT apply and was intentionally not performed.
+
 ## Stage Report: smoke
 
 - DONE: Pre-flight `--explain` confirms the 7-task plan + frozen solver_workflow hash
@@ -267,3 +326,26 @@ The README rule landed verbatim in the dispatched-ensign prompt ("Referenced-but
 ### Summary
 
 h0035 smoke is a clean NO-GO of the honest-negative kind. The scope-gated Implementation rule met its BINDING criterion — ZERO bleed: all 6 canaries held reward=1 and the f1001 sentinel held at the artifact level (its `src_*` build is identical to @baseline and the h0023 `Got 11` signature never recurred), so the scope-gate works and this lever does NOT have the h0023 over-fire problem. But the MEASURED target quickbooks001 did NOT flip: the committed project contains exactly one new model (`quickbooks__general_ledger.sql`) and the three target staging models never appear as solver-written files — the rule was read and reasoned about (99× `dbt_packages/quickbooks`, 2× `referenced-but-absent`) but never converted to artifacts because the project builds green via the package namespace, masking the dangling-ref trigger. Verifier distance is bit-identical to @baseline (`Got 1`×6). Inert on the only target it was built for → joins the h0013/h0015 inert ceiling → REJECTED, no iteration (CAPPED one-shot), retiring the package-deliverable-completion family (5 attempts, 0 flips). Audit clean (tainted:0, captured>0 all cells); score 6/7 trusted.
+
+## Stage Report: conclude
+
+- DONE: Write the ## Verdict section — REJECTED, smoke NO-GO, CAPPED one-shot
+  `## Verdict` appended (before `## Stage Report: smoke`): mechanism precise — solver wrote ONE new model (`quickbooks__general_ledger.sql`), the three `stg_quickbooks__*` staging models never appeared as files; quickbooks001 held at @baseline distance (6/12 fail, `Got 1`×6); distinct from h0013/h0015 TOTAL inertness — here READ/reasoned (99×/2×) but masked by green-via-package-namespace.
+- DONE: Record the POSITIVE finding — ZERO bleed
+  In `## Verdict`: f1001 held 1.0 (14 `src_*` byte-identical to @baseline = f1001's own fix, rule fired 0×); h0023 `stg_models_use_src_models Got 11` did NOT recur; all 6 canaries held; scope-gate DESIGN validated bleed-free; strict audit clean (tainted:0, captured>0 all 7 cells); focused score 6/7; @baseline unchanged 31/48.
+- DONE: State the family retirement explicitly — 5-for-0
+  `## Verdict` records package/incomplete-deliverable-completion EXHAUSTED (h0009 −3 / h0013 inert / h0015 inert / h0023 f1001-bleed / h0035 inert) + the transferable rule (green-via-package-namespace masks the trigger; scope-gate keyed to the project's own ref-graph set-difference is a validated bleed-free design even when the lever is inert).
+- DONE: Update the program doc E5 section (RESOLVED block, E1-style) + honest portfolio math
+  `_proposal/oracle-problem-systematic-program.md`: added `STATUS 2026-06-08: RESOLVED — NO-GO / REJECTED (h0035)` block to E5 (one-line mechanism: green-via-package-namespace masks the dangling-ref trigger → inert; scope-gate validated bleed-free); portfolio-math E5 row updated to `{0} landed (MEASURED, REJECTED — INERT, zero bleed; family exhausted 5-for-0)`; @baseline remains 31/48.
+- DONE: Update doctrine — verification-without-oracle.md + bug-type-taxonomy.md
+  `verification-without-oracle.md`: new subsection "Green-via-package-namespace masks the trigger" (new named inertness mode + scope-gate as validated anti-bleed; family EXHAUSTED 5-for-0) + reach-map #6 revised down. `bug-type-taxonomy.md`: row #6 + per-task quickbooks001 row + the #6 "Read the bug type straight" note + Meta-pattern scoreboard all updated with h0035 INERT / 5-for-0 / green-via-package-namespace.
+- DONE: WORKFLOW-REFINE.md finalization step does NOT apply (in-stage Implementation rule tweak)
+  Stated explicitly in `## Verdict` and here: no new/removed/reordered stage and no `## Protocol-family declaration` — a single hunk inside the existing `## Stage: Implementation` block; the structural-workflow test fails, so the WORKFLOW-REFINE.md step was intentionally not performed.
+- DONE: Do NOT auto-file a follow-up — family exhausted (5-for-0 meta-pattern)
+  No new `h<NNNN>` entity filed; per the conclude "do not reflexively file when the family is exhausted" rule, the next-direction decision is surfaced as a captain strategy call (the FO will raise it).
+- DONE: Set terminal frontmatter + archive
+  Frontmatter set `verdict: REJECTED`, `completed: 2026-06-08T00:00:00Z`, `score: MEASURED-not-counted; @baseline unchanged 31/48` (status stays `conclude`); entity `git mv`'d to `hypotheses/_archive/` (entity .md only; the `solver_workflows/h0035-...` fork left in place per the h0030/h0033 archive pattern); committed.
+
+### Summary
+
+Concluded h0035 as a clean REJECTED of the honest-negative kind. The scope-gated Implementation rule met its BINDING criterion — ZERO bleed (all 6 canaries held reward=1, f1001 held 1.0 at the artifact level, the h0023 `Got 11` over-fire signature never recurred), so the scope-gate keyed to the project's own ref-graph set-difference is a VALIDATED bleed-free design that fixed h0023's over-fire. But the MEASURED target quickbooks001 did NOT flip: the solver wrote only `quickbooks__general_ledger.sql` and the three `stg_quickbooks__*` staging models never appeared as files — INERT for a new, sharper reason than h0013/h0015 (green-via-package-namespace: the project builds fully GREEN through the installed package's own namespace, masking the dangling-ref trigger the rule depends on). Because the experiment is MEASURED-not-counted, the REJECTED target does NOT lower @baseline (stays 31/48); the real results are the zero-bleed proof + the family-exhaustion knowledge gain. The package/incomplete-deliverable-completion family is now EXHAUSTED 5-for-0. Program doc E5 RESOLVED-block + portfolio math + both doctrine files updated; WORKFLOW-REFINE.md N/A (in-stage rule tweak); no follow-up filed (family dead → captain strategy call). Frontmatter set terminal and entity archived.
