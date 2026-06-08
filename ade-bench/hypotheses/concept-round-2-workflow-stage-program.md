@@ -64,3 +64,30 @@ captain decides per entity whether it ever runs.
 
 Each entity must cite its proposal section, name target datasets, and write AC-1/2/3 per the
 hypothesis template. Cross-ref the dead-family map (proposal §6) so none re-treads a dead family.
+
+## Stage Report: ideate
+
+- DONE: Five entities created at status:hypothesis with the exact ids/slugs — faithful transcription of the 5 proposal items, none invented/merged/dropped/renumbered
+  `h0037-reference-mining-stage` (§3 E-RMS rank 1), `h0038-plan-review-method-b` (§3 E-PRMB rank 2), `h0039-observe-only-debug-lens` (§4 M1), `h0040-enforced-abstention-rail` (§4 M2), `h0041-observe-only-triage-ledger` (§4 M3); ids h0037–h0041 confirmed collision-free (no existing main/_archive entity). Each frontmatter: `status: hypothesis`, `kind: hypothesis`, `source:` cites the proposal §+ this concept; started/completed/verdict/score/worktree blank.
+- DONE: Each body has a single-README-change falsifiable ## Hypothesis + named target datasets + AC-1/2/3 per the template, cites its proposal § and the dead-family (§6) it must avoid; NO solver fork or spec files created
+  Body headers in exact template order (## Hypothesis → ## Acceptance criteria → empty ## Gatekeeper review / ## Smoke result / ## Run result / ## Behavioral analysis / ## Verdict) in all five. Each ## Hypothesis names the SINGLE solver-README change (which `## Stage:` is added/changed + the one idea), names targets (h0037: ana-eng004 primary, intercom001/003 reach; h0038: infrastructure/regression-rail; h0039/h0041: infrastructure/all-48 method instruments; h0040: net-protection/all-48), transcribes mechanism + independent non-oracle signal + leading indicator (Got N) + kill-path + dead-family-avoided (§6 D1–D9) + expected gatekeeper verdict, with honest {0}-flip / method-value framing. Verified NO `specs/h003[7-9]*` / `specs/h004[01]*` and NO `solver_workflows/h003[7-9]*` / `solver_workflows/h004[01]*` exist — fork + spec authoring is the propose stage, not ideate.
+- DONE: Strict scope bound on all five (workflow-stage + prompt levers only, benchmark FIXED, no expanded solver access, no oracle leak, trials:1)
+  Every entity's Scope paragraph states: workflow-stage/prompt lever only; benchmark FIXED; no expanded solver access; leak-guard intact (names no `AUTO_*`/`solution__*`/`check_*`/`tests/AUTO_*`/`Got N`/row-count/web-fetch tokens); full spec differs from @baseline only in `experiment:`+`solver_workflow:`; smoke adds only `benchmark.tasks`; `trials:1`; judge by committed-artifact proof. Generative entities (h0037 E-RMS, h0040 M2) explicitly require the G8 ≥2-perturbable-canary panel.
+- DONE: Concept frontmatter left untouched (first officer owns frontmatter on main)
+  Edited body only; appended this report after the Direction body. No frontmatter change.
+- DONE: All new files committed before signaling completion
+  See commit SHA in the ideate commit (the five h0037–h0041 entities + this concept-body report).
+
+### Summary
+
+Fanned the captain-approved Round-2 workflow-stage proposal into its five pre-designed hypothesis
+entities (h0037–h0041) as a faithful transcription, not a re-ideation: each is a single-README-change,
+falsifiable `## Hypothesis` naming the one `## Stage:` it adds/changes, its target datasets, the
+independent non-oracle signal, the `Got N` leading indicator, the kill-path, the §6 dead family it must
+avoid, and the expected METHOD-ONLY gatekeeper verdict — with the honest {0}-flip / method-value framing
+the proposal pre-registers. Two are run-worthy experiments (h0037 Reference-Mining targeting ana-eng004 +
+intercom reach; h0038 Plan-Review Method B as a regression rail) and three are method/net-protection
+instruments (h0039 observe-only debug lens, h0040 enforced abstention rail carrying the live G10
+inverted-false-green risk, h0041 observe-only triage ledger de-risking h0040). No solver fork and no
+spec file were created — that is the propose stage; ideate authored only the entity files. Strict scope
+(workflow-stage + prompt levers, fixed benchmark, no oracle leak, trials:1) binds all five.
