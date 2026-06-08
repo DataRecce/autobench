@@ -1,10 +1,10 @@
 ---
 id: h0039
 title: Observe-only debug lens — a NEW observe-only stage that ALWAYS writes a machine-readable reasoning record then builds EXACTLY as baseline; success = Got N UNCHANGED on all 48 (any movement = gate-strip failed = contamination = NO-GO)
-status: hypothesis
+status: propose
 kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §4 M1 (captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 3. The un-built WORKFLOW-REFINE Opening #2 (_artifacts/WORKFLOW-REFINE.md observe-only-lens lines). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
-started:
+started: 2026-06-08T12:23:23Z
 completed:
 verdict:
 score:
