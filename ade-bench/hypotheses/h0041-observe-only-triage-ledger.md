@@ -112,6 +112,33 @@ absent/empty `triage.json` = inert = REJECTED.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — exactly one new observe-only `## Stage:` added; leak-guard +
+the four existing stages byte-identical; full spec differs only in `experiment:` +
+`solver_workflow:`; smoke spec adds only `benchmark.tasks`; both frozen; routing fixes the
+h0039 dead-precondition failure (unconditional write + `cat` to the durable session transcript).
+No FAILs. The single WARN (G7) is the by-design inertness watch-item the entity already names.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-08). Reviewed 2026-06-08T14:36Z.
+
+Fork parent resolved: `source:` says `solver_workflows/codex-ade-dbt-minimal`; `@baseline`
+(run `622bdedac572b479`) config `agent.kwargs.solver_workflow = solver_workflows/codex-ade-dbt-minimal`
+— agree. G1/G6 diffed against `codex-ade-dbt-minimal`.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff` is purely additive (`49a50,117`): one new `## Stage: Triage ledger (observe-only …)`; stage count 4→5; no other stage or guardrail prose touched. |
+| G2 leak-guard intact | PASS | Leak-guard prose (lines 1–32) byte-identical; forbidden-token grep over the 67 added lines (AUTO_/solution__/check_*/verifier/equality test/Got N/row count/curl/wget/git clone/web) returns CLEAN after rewording "the verifier ignores it" → "is not part of the final project source state that is scored". |
+| G3 spec two fields | PASS | `diff specs/baseline.yaml specs/h0041-….yaml` shows only `experiment:` + `solver_workflow:`; `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff` full→smoke adds only the `benchmark.tasks:` block (+ comments); all 8 slugs `ade-bench-` prefixed. Observe-only has no flippable target by construction; the panel carries the discovery reads the `## Hypothesis` names (airbnb009 non-flag read + intercom001/ana-eng007 present/non-empty reads). |
+| G5 both frozen | PASS | `…frozen.yaml` + `…smoke.frozen.yaml` both exist; both carry `kind: spacedock_solver` + `runtime: codex`; smoke frozen carries all 8 tasks. |
+| G6 resolver fidelity | PASS | Inserted text is the h0040 three-clause trigger (instruction / existing `schema.yml` / raw `{{ source() }}` count + key-level anti-join) in OBSERVE-ONLY mode emitting only `triage.json {claim, clause_results, would_abstain}`. It is independent (reconciles against the immutable raw source), NOT self-anchored: it never re-runs/compares-to its own model and explicitly forbids reverting/rewriting/re-selecting. Matches the Falsifiable claim; no scope creep. |
+| G7 actionability/inert-risk | WARN | Observe-only record-emission with an unconditional on-disk write + a `cat`-to-stdout durability step is mechanical (not abstract restructure prose). Inert-risk is the *named* kill-path: this is the sibling of h0039, which went inert because its record routed through the dead `/razorback-freeze` "exactly one child directory" precondition. **This variant fixes that** — write is unconditional and the authoritative copy is the stdout/session-transcript record (the only home reasoning has durably survived per the h0039 WORKFLOW-REFINE finding; cf. h0017 `Contract:` blocks). Residual inert-risk is only if the solver skips the stage entirely — the smoke present/non-empty read on intercom001/ana-eng007 is the kill check. |
+| G8 regression-canary coverage | PASS | The stage is **generative** (fires on every task). Smoke panel carries one `@baseline` passer per family as a Got-N contamination tripwire — airbnb001 / ana-eng001 / asana001 / f1007 / quickbooks002 (intercom has no @baseline passer, so intercom001 is its representative + a fired-and-failed read). Because the stage touches NO SQL/config/files (observe-only), the *only* regression surface is a gate-strip leak, which a single Got-N tripwire per family catches; no construct-family perturbable-doublet is required (the lever cannot perturb any model). |
+| G9 selector independence | N/A | No multi-candidate / selector protocol — single observe-only record, no N candidates, no selection. |
+| G10 self-correcting false-positive | N/A | Not self-correcting — the stage records `would_abstain` and explicitly **acts on nothing** (no revert, no fix-on-disagreement); the build proceeds exactly as baseline. The only contamination path is a gate-strip leak (caught by the Got-N tripwires), not a self-correcting overwrite. |
+| G11 multi-model-target risk | N/A | No flippable target by construction; expected flips {0}. Nothing is credited as a flip, so the multi-model variance trap does not apply. |
+
+**For the captain:** APPROVE-class. The decisive de-risk vs h0039 is the routing fix — `triage.json` is written unconditionally and `cat`-ed to stdout so it lands durably in the worker session transcript (`agent/sessions/*.jsonl`), the one location that survived even the notes-free @baseline run; it does NOT depend on the dead `/razorback-freeze` single-child precondition. Smoke success is INVERTED: (a) Got N byte-unchanged on all 5 passer tripwires (contamination kill), (b) `triage.json` record present & non-empty on intercom001/ana-eng007 (inertness kill), (c) airbnb009 NOT flagged `would_abstain` (the survivor must be found decidable). The single WARN (G7 inert-risk) is the hypothesis's own named kill-path, already mitigated by the routing change and checked at smoke.
+
 ## Smoke result
 
 ## Run result
@@ -119,3 +146,41 @@ absent/empty `triage.json` = inert = REJECTED.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: DURABLE ARTIFACT ROUTING (the make-or-break h0039 fix)
+  The new stage writes `triage.json` to a fixed `/tmp/triage.json` **unconditionally** (no
+  single-child `if`) and then `cat`s it to stdout so the full record lands durably in the worker
+  session transcript (`agent/sessions/*.jsonl`) — the only home reasoning survived in this harness
+  (h0017 `Contract:` blocks; cf. h0039 WORKFLOW-REFINE). Confirmed host-side `_razorback/freeze` is
+  empty in @baseline `622bdedac572b479`, so the `/razorback-freeze` precondition is structurally
+  dead; the stage explicitly does NOT depend on it.
+- DONE: README change is EXACTLY ONE new observe-only `## Stage:`
+  `diff codex-ade-dbt-minimal/README.md → fork` is purely additive (`49a50,117`, 68 lines): one new
+  `## Stage: Triage ledger (observe-only …)` running the h0040 three-clause trigger (instruction /
+  existing `schema.yml` / raw `{{ source() }}` count + key-level anti-join) emitting only
+  `triage.json {claim, clause_results, would_abstain}`; reverts/alters/gates nothing. Leak-guard
+  prose (lines 1–32) + the four existing stages (Exploration/Implementation/Validation/Finalization)
+  byte-identical; forbidden-token grep over added lines CLEAN (reworded the one "verifier" hit).
+- DONE: Smoke spec `benchmark.tasks` is a CONTAMINATION panel + discovery reads
+  8 tasks: 5 cross-family @baseline passers as Got-N tripwires (airbnb001/ana-eng001/asana001/f1007/
+  quickbooks002), the survivor ade-bench-airbnb009 (would_abstain NON-flag read), and the
+  fired-and-failed cells ade-bench-intercom001 + ade-bench-ana-eng007 (triage.json present/non-empty).
+  G4 diff = only `benchmark.tasks`; all slugs `ade-bench-` prefixed; both specs frozen.
+- DONE: Run the gatekeeper; record per-rule table + recommendation
+  `## Gatekeeper review` written: APPROVE, no FAILs, one by-design WARN (G7 inert-risk, mitigated by
+  the routing fix); G9/G10/G11 N/A (observe-only, no candidates, no flippable target).
+
+### Summary
+
+Forked `codex-ade-dbt-minimal` → `h0041-observe-only-triage-ledger` and added exactly one
+observe-only `## Stage: Triage ledger` running the h0040 three-clause trigger but emitting only
+`triage.json` and acting on nothing — build proceeds exactly as baseline. The decisive change vs the
+just-rejected sibling h0039 is the routing: the write is unconditional and the authoritative copy is
+`cat`-ed to stdout so it survives in the durable session transcript, not the dead `/razorback-freeze`
+single-child precondition (verified empty in the @baseline run-dir). Full spec differs from baseline
+only in `experiment:` + `solver_workflow:`; smoke spec adds only the 8-task panel; both frozen with
+`kind: spacedock_solver` / `runtime: codex` / `trials: 1` preserved. Gatekeeper: APPROVE. Smoke
+success is INVERTED — Got N unchanged on the 5 passers (contamination kill), triage.json present on
+the two failers (inertness kill), airbnb009 NOT flagged would_abstain (survivor decidable).
