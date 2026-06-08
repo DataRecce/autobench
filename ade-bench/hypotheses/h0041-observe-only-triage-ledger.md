@@ -141,9 +141,119 @@ Fork parent resolved: `source:` says `solver_workflows/codex-ade-dbt-minimal`; `
 
 ## Smoke result
 
+**Verdict: GO → full.** One-line reason: the observe-only stage fired and durably emitted a
+triage record on all 8 cells (the h0039 routing fix WORKED), `Got N` is byte-unchanged on every
+passer (zero contamination), and the survivor airbnb009 is NOT flagged `would_abstain` — all three
+inverted success conditions met.
+
+Run dir: `runs/ade-bench-h0041-observe-only-triage-ledger/45c2ba6667a47a60`
+(frozen spec `specs/h0041-observe-only-triage-ledger.smoke.frozen.yaml`,
+README hash `sha256:812509727c4459ad98a237e49e3f3da9adf5bd0dc47d4147e8fbf4759b4738bf`).
+
+**AC-2 — clean strict audit paired with the score (same run-dir):**
+`rk audit --policy strict` → `summary: {clean: 8, coverage_missing: 0, tainted: 0}` (8/8 cells
+`taint_status: clean`). `captured = 1` (>0) on all 8 `subagent-trace-manifest.json`.
+`rk score` → `stratified_pass_at_1 = 0.625` (5/8), `n_errored = 0`, verdict `above` the 0.1875 anchor.
+
+**Verdict split (the clean expected outcome — zero score impact by construction):**
+5 reward=1.0 (the @baseline passers held) / 3 reward=0.0 (the @baseline failers held). No flips, no
+regressions — exactly as predicted for an observe-only instrument.
+
+**Inverted read (a) — `Got N` byte-unchanged on all 5 passers (contamination tripwire):** PASS.
+Final verifier tallies (smoke vs @baseline `622bdedac572b479`) are byte-identical on every passer,
+and the 3 failers held identical distances:
+
+| Task | Reward | @baseline final tally | Smoke final tally | Got N |
+|------|--------|------------------------|-------------------|-------|
+| airbnb001 | 1.0 | 12/5/10 PASS, ERR=0 | 12/5/10 PASS, ERR=0 | unchanged |
+| ana-eng001 | 1.0 | PASS=1, ERR=0 | PASS=1, ERR=0 | unchanged |
+| asana001 | 1.0 | 38/1/2 PASS, ERR=0 | 38/1/2 PASS, ERR=0 | unchanged |
+| f1007 | 1.0 | 3/3/6 PASS, ERR=0 | 3/3/6 PASS, ERR=0 | unchanged |
+| quickbooks002 | 1.0 | 100/3/8 PASS, ERR=0 | 100/3/8 PASS, ERR=0 | unchanged |
+| airbnb009 | 0.0 | Got 1, ERR=1 | Got 1, ERR=1 | unchanged |
+| intercom001 | 0.0 | Got 7, ERR=1 | Got 7, ERR=1 | unchanged |
+| ana-eng007 | 0.0 | Got 5, ERR=1 | Got 5, ERR=1 | unchanged |
+
+The observe-only gate-strip held: the stage reverted/altered nothing. NO contamination.
+
+**Inverted read (b) — triage record present & non-empty in the SESSION TRANSCRIPT on all 8 cells
+(inertness kill — the make-or-break test of the h0039 routing fix):** PASS. The record was written
+to `/tmp/triage.json` (torn-down container scratch, NOT in the run-dir — the h0039 trap) and the
+authoritative copy survives as the `sed`/`cat`/`tee` stdout in each cell's
+`agent/sessions/2026/06/08/*.jsonl`. A filled, non-empty record was recovered for **all 8** cells —
+the routing fix decisively beat h0039's inert/absent record.
+
+**Inverted read (c) — survivor airbnb009 NOT flagged `would_abstain`:** PASS. airbnb009's record has
+all three clauses `supports_*` (decidable from instruction + schema.yml + raw-source probe);
+`would_abstain` is false (the enforced rail would NOT suppress the one real fix).
+
+**Full `would_abstain` distribution across the panel — 0 of 8 flagged `would_abstain: true`:**
+
+| Task | Reward | Record schema | clauses (instr/schema/raw) | would_abstain |
+|------|--------|----------------|-----------------------------|---------------|
+| airbnb001 | 1.0 | bool, no `would_abstain` key | T / T / F | false (2 true) |
+| ana-eng001 | 1.0 | `three_clause_check` + `classification:no-op` | T / F / F | false (instr) |
+| asana001 | 1.0 | spec schema (explicit) | F / T / F | **false** |
+| f1007 | 1.0 | narrative `status` (`supports`) | supports×3 | false |
+| quickbooks002 | 1.0 | spec schema (explicit) | T / T / F | **false** |
+| airbnb009 | 0.0 | narrative `status` (`supports_*`) | supports×3 | false |
+| intercom001 | 0.0 | spec schema (explicit) | T / T / F | **false** |
+| ana-eng007 | 0.0 | spec schema (explicit) | T / T / F | **false** |
+
+`grep '"would_abstain": true'` over every cell transcript returns EMPTY. No revert/hold-back behavior:
+all 8 cells ran Implementation normally (4–9 `apply_patch` calls each); the only "revert/abstain"
+grep hits are the README guardrail prose echoed in the dispatch prompt, not solver action.
+
 ## Run result
 
 ## Behavioral analysis
+
+**The stage was exercised on every cell, and the build proceeded exactly as baseline.** Each of the
+8 cells (a) stated a load-bearing claim, (b) ran a three-clause-style check, (c) wrote a record to
+`/tmp/triage.json`, (d) printed it to stdout (durable in the session transcript), and (e) continued
+to Implementation and committed model edits unchanged (`apply_patch` 4–9× per cell). The verdict and
+`Got N` held byte-for-byte vs @baseline on all 8, so the observe-only contract was honored — the
+record was emitted and acted-on-nothing.
+
+**Decisive contrast with h0039 (the routing fix worked).** h0039 went inert: its record routed
+through the dead `/razorback-freeze` "exactly one child" precondition and nothing durable was
+emitted, so it could not even be tested. h0041's unconditional write-to-`/tmp` + print-to-stdout put
+a filled, non-empty record into the durable session transcript on 8/8 cells. This is the first
+positive demonstration in this loop that an observe-only stage can durably emit a substantive record
+without contaminating the build. The `/tmp` scratch is correctly absent from the run-dir (so a naive
+`test -f` in the run-dir would falsely read inert — the h0039 trap); the stdout capture is what makes
+it durable, and that is the verified home.
+
+**Schema drift — the substantive caveat for h0040.** The solver did NOT adhere to the spec's fixed
+record shape. Three distinct shapes appeared: (i) the exact spec schema with boolean `clause_results`
++ explicit `would_abstain` (asana001, quickbooks002, intercom001, ana-eng007); (ii) a boolean
+variant with renamed keys / extra fields and NO `would_abstain` key (airbnb001 `instruction/schema_yml/
+raw_source_probe` bare booleans; ana-eng001 `three_clause_check` + `classification:"no-op"`);
+(iii) a narrative `status`+`evidence` shape with no boolean and no `would_abstain` at all (airbnb009
+`supports_*`, f1007 `supports` + `classification`/`minimum_fix`). The semantic decision is recoverable
+in every case (at least one clause supports ⇒ decidable ⇒ would_abstain false), and the distribution
+read is robust to the drift — but a downstream enforced rail (h0040) that *parses* `would_abstain` as
+a literal field would mis-parse 4 of 8 cells (the field is absent), and on those it must NOT silently
+default to "abstain." This is a concrete spec-hardening requirement for h0040: either pin the schema
+hard (refuse to proceed without a literal boolean) or make the enforced rail derive abstain from the
+clause results, not from a possibly-absent `would_abstain` key.
+
+**`would_abstain` distribution interpreted for h0040 revert-mode risk.** 0/8 flagged `would_abstain:
+true`. The most important read: **no passer was flagged would_abstain** ⇒ on this panel h0040 would
+have predicted ZERO false-reverts (it would not have suppressed any of the 5 real passers). And the
+survivor airbnb009 was found decidable ⇒ h0040 would not have suppressed the one real fix. BUT the
+Round-1 mis-discrimination wall is still visible in the clause pattern: `raw_source_probe` came back
+NOT-deciding (false / not the deciding clause) on 8/8 cells — the tier-3 raw-source/coverage probe is
+the weakest clause and never independently decided a claim here; every "decidable" verdict rested on
+the instruction or schema.yml clause (the self-anchored / instruction-echo sources). So this panel does
+NOT certify the trigger as a clean oracle-only detector; it confirms the trigger leans on the
+non-independent clauses, exactly the h0030 false-negative / h0036 coverage-masks-value failure mode.
+The ledger is a useful MAP (the trigger would not over-abstain on this panel) but not a certification.
+
+**Distance-to-pass on the 3 still-failing cells (unchanged from @baseline, as required):** airbnb009
+`Got 1` (mom_agg_review_date_range), intercom001 `Got 7` (AUTO_intercom__threads_equality), ana-eng007
+`Got 5` (AUTO_dim_products_equality). These are the @baseline distances byte-for-byte — the observe-only
+stage moved nothing, confirming inertness-on-the-artifact (the desired property for THIS instrument).
 
 ## Verdict
 
@@ -184,3 +294,16 @@ only in `experiment:` + `solver_workflow:`; smoke spec adds only the 8-task pane
 `kind: spacedock_solver` / `runtime: codex` / `trials: 1` preserved. Gatekeeper: APPROVE. Smoke
 success is INVERTED — Got N unchanged on the 5 passers (contamination kill), triage.json present on
 the two failers (inertness kill), airbnb009 NOT flagged would_abstain (survivor decidable).
+
+## Stage Report: smoke
+
+- DONE: Smoke run on `specs/h0041-observe-only-triage-ledger.smoke.frozen.yaml` completed; strict audit clean + captured>0; focused score + attestation recorded.
+  Launched detached (nohup, PID 2932921, polled across turns); run `45c2ba6667a47a60` finished 8/8, 0 errored (1h11m). `rk audit --policy strict` → `{clean:8, coverage_missing:0, tainted:0}`; `captured=1` on all 8 `subagent-trace-manifest.json`; `rk score` → `stratified_pass_at_1=0.625` (5/8, verdict `above`). Recorded in `## Smoke result`.
+- DONE: The three INVERTED reads with per-cell evidence.
+  (a) `Got N` byte-unchanged vs @baseline on all 5 passers — confirmed (final verifier tallies byte-identical; the 3 failers held Got 1 / Got 7 / Got 5). No contamination. (b) triage record present & non-empty on intercom001 + ana-eng007 (and all 8) — recovered the `cat`/`sed`/`tee`-ed JSON from each cell's `agent/sessions/2026/06/08/*.jsonl`; NOT inert (the h0039 routing fix worked). (c) airbnb009 `would_abstain` = false (all 3 clauses `supports_*`, decidable). Full distribution: 0/8 flagged `would_abstain:true`.
+- DONE: Workflow-refinement evaluation (new-stage structural lever); `_artifacts/WORKFLOW-REFINE.md` entry appended as part of the smoke commit.
+  Routing fix WORKED (8/8 durable records vs h0039's zero); committed behavior byte-unchanged (Got N held); `would_abstain` map implies LOW over-abstention risk for h0040 (no passer flagged, survivor decidable) but with a sharp caveat — the independent `raw_source_probe` clause never decided on 8/8 cells, so decidability rests on the non-independent instruction/schema clauses. New entry: "Observe-only triage ledger: the stdout/session-transcript routing FIX works …".
+
+### Summary
+
+Smoke is a clean GO → full. The decisive result: the h0039 routing fix WORKED — an observe-only stage durably emitted a filled, non-empty triage record on all 8 cells (recovered from the session transcript, the `/tmp` scratch being correctly torn-down/absent from the run-dir), with ZERO build contamination (Got N byte-unchanged on every passer and failer; strict audit tainted:0; score 0.625 = the baseline 5/8 split). The `would_abstain` deliverable: 0/8 flagged abstain, the survivor airbnb009 found decidable — so on this panel h0040 would predict zero false-reverts. Two caveats for h0040: (1) the record schema DRIFTED into 3 incompatible shapes (4 of 8 cells lack a literal `would_abstain` field) so an enforced consumer must derive abstain from the clause results, not parse the field; (2) the only independent clause (raw_source_probe) decided nothing on 8/8 — the trigger's "decidable" verdicts lean on the non-independent instruction/schema clauses, inheriting the Round-1 mis-discrimination wall.

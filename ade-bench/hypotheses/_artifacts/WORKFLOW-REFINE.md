@@ -610,3 +610,79 @@ or a dispatched worker, never a direct first-officer edit.
   "zero child directories … not applicable" decision verbatim); baseline
   `runs/ade-bench-baseline/622bdedac572b479` (no freeze notes written — precondition unmet at baseline
   too). MEMORY `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.
+
+### Observe-only triage ledger: the stdout/session-transcript routing FIX works — an observe-only stage CAN durably emit a substantive record with zero build contamination (h0041 smoke GO, 2026-06-08)
+- **Status:** **smoke GO → full** — new-stage structural lever; the h0039 routing fix is VALIDATED. First
+  positive demonstration in this loop that an observe-only stage durably emits a substantive record
+  without contaminating the build. (Expected flips {0} by construction — this is a method instrument, not
+  a flip-seeker; the deliverable is the `would_abstain` map that de-risks h0040.)
+- **Layer:** solver workflow (`solver_workflows/h0041-observe-only-triage-ledger/README.md`).
+- **Refinement type:** new stage — exactly one observe-only `## Stage: Triage ledger` running the h0040
+  three-clause trigger (instruction / existing `schema.yml` / raw `{{ source() }}` count + key-level
+  anti-join) but emitting ONLY `triage.json {claim, clause_results, would_abstain}` to a FIXED `/tmp`
+  scratch path UNCONDITIONALLY and then `cat`-ing it to stdout. Reverts/alters/gates nothing; build
+  proceeds exactly as baseline.
+- **What was tried:** fork @baseline (`codex-ade-dbt-minimal`), add exactly one observe-only stage with
+  the **h0039-fix routing** (unconditional write to `/tmp/triage.json` + print-to-stdout so the record
+  lands in the durable session transcript, NOT through the dead `/razorback-freeze` precondition). 8-task
+  contamination smoke (5 cross-family Got-N tripwires airbnb001/ana-eng001/asana001/f1007/quickbooks002 +
+  the survivor airbnb009 + the fired-and-failed cells intercom001/ana-eng007). Run
+  `runs/ade-bench-h0041-observe-only-triage-ledger/45c2ba6667a47a60`, clean strict audit (`tainted:0`,
+  8/8, captured=1 all 8), score 0.625 (5/8 = the baseline split, zero score impact).
+- **Finding — THE ROUTING FIX WORKED (the make-or-break vs h0039).** Where h0039 wrote NOTHING (its
+  `plan_review.json` routed through the dead `/razorback-freeze` "exactly one child" precondition), h0041
+  produced a **filled, non-empty triage record on 8/8 cells**, recovered from the `sed`/`cat`/`tee` stdout
+  in each cell's `agent/sessions/2026/06/08/*.jsonl`. The `/tmp/triage.json` scratch is correctly ABSENT
+  from the run-dir (torn down) — a naive `test -f` in the run-dir would falsely read inert (the h0039
+  trap); the stdout/session-transcript capture is the verified durable home (matches the h0017 finding
+  that reasoning only survives in the worker `sessions/*.jsonl`). `Got N` was byte-unchanged on all 5
+  passers and all 3 failers vs @baseline — the observe-only gate-strip held, ZERO contamination. No
+  `would_abstain: true` anywhere; all 8 cells ran Implementation normally (4–9 `apply_patch` each); the
+  only "revert/abstain" grep hits are the README guardrail prose echoed in the dispatch prompt, not action.
+- **Finding — SCHEMA DRIFT (the substantive caveat for h0040).** The solver did NOT adhere to the spec's
+  fixed record shape. THREE shapes appeared across 8 cells: (i) exact spec schema with boolean
+  `clause_results` + explicit `would_abstain` (asana001/quickbooks002/intercom001/ana-eng007 — all
+  `would_abstain:false`); (ii) boolean variant with renamed keys / no `would_abstain` key (airbnb001 bare
+  booleans T/T/F; ana-eng001 `three_clause_check` + `classification:"no-op"` T/F/F); (iii) narrative
+  `status`+`evidence` shape, NO boolean, NO `would_abstain` (airbnb009 `supports_*`, f1007 `supports` +
+  `classification`/`minimum_fix`). The semantic decision (≥1 clause supports ⇒ decidable ⇒ no-abstain) is
+  recoverable in every case and the distribution read is robust to the drift, but a downstream enforced
+  rail (h0040) that PARSES `would_abstain` as a literal field would mis-parse 4 of 8 cells (field absent)
+  and must NOT default those to "abstain."
+- **Finding — `would_abstain` DISTRIBUTION = 0/8 flagged true.** Every cell found its load-bearing claim
+  decidable. Most important: NO passer flagged ⇒ h0040 would have predicted ZERO false-reverts on this
+  panel (would not suppress any of the 5 real passers), and the survivor airbnb009 was found decidable ⇒
+  h0040 would not suppress the one real fix. BUT `raw_source_probe` came back NOT-deciding on 8/8 cells —
+  the tier-3 raw-source/coverage probe (the only independent clause) never independently decided a claim;
+  every "decidable" verdict rested on the instruction or schema.yml clause (the self-anchored / instruction-
+  echo sources). So this panel does NOT certify the trigger as a clean oracle-only detector — it confirms
+  the trigger leans on the non-independent clauses, exactly the Round-1 h0030 false-negative / h0036
+  coverage-masks-value mode. The ledger is a useful MAP (no over-abstention on this panel), not a
+  certification.
+- **Learning:** (1) **An observe-only stage CAN durably emit a substantive record with zero build
+  contamination** — route the record via an UNCONDITIONAL write + print-to-stdout (the session transcript),
+  NEVER via `/razorback-freeze`. This is the reusable write-path for any future debug-lens / observe-only
+  stage (closes the h0039 Opening-#2 gap). (2) **A free-form record schema drifts under gpt-5.5** — three
+  incompatible shapes emerged from one fixed spec; an enforced consumer must derive its decision from the
+  clause results, not from a possibly-absent literal field, OR hard-pin the schema and refuse to proceed
+  without the literal boolean. (3) **For h0040 revert-mode: the over-abstention risk is LOW on this panel
+  (0/8 flagged, survivor decidable), but the trigger's "decidable" verdicts rest on the non-independent
+  clauses** — the independent raw-source probe never decided, so h0040 inherits the Round-1
+  mis-discrimination wall and would be deciding reverts on instruction/schema echo, not on an independent
+  oracle-only signal. Green-light precondition for h0040 = MET (no false-reverts predicted here) but with
+  a sharp caveat (the abstain decision is not resting on the independent clause).
+- **Bears on:** **h0040** (the M2 enforced abstention rail — this de-risk says the over-abstention risk is
+  low on this panel, but flags two must-fixes: hard-pin/derive the `would_abstain` schema, and recognize
+  that the trigger's decidability rests on non-independent clauses so an enforced revert inherits the
+  Round-1 wall); **h0039** (this is its named routing fix, now VALIDATED — the `/razorback-freeze`
+  dependency was the whole problem, and stdout/session-transcript routing solves it); any future
+  observe-only / debug-lens stage (use the unconditional-write + print-to-stdout pattern); the
+  solver-blind-to-oracle / verification-without-oracle family (the raw-source probe never independently
+  deciding is the same wall, now visible in the clause-level data).
+- **Evidence:** entity `hypotheses/h0041-observe-only-triage-ledger.md` (`## Smoke result`,
+  `## Behavioral analysis`); run `runs/ade-bench-h0041-observe-only-triage-ledger/45c2ba6667a47a60` (audit
+  clean 8/8 tainted:0, captured=1; score 0.625; the 8 triage records recovered from
+  `agent/sessions/2026/06/08/*.jsonl`); baseline `runs/ade-bench-baseline/622bdedac572b479` (5 passers /
+  3 failers, byte-identical Got N). MEMORY `ade-bench-solver-blind-to-oracle`,
+  `verification-without-oracle-real-world`, `ade-bench-single-trial-judge-by-artifact`,
+  `ade-bench-instruction-lever-taxonomy`.
