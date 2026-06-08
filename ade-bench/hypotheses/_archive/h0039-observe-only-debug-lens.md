@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §4 M1 (captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 3. The un-built WORKFLOW-REFINE Opening #2 (_artifacts/WORKFLOW-REFINE.md observe-only-lens lines). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-08T12:23:23Z
-completed:
-verdict:
+completed: 2026-06-08T14:27:41Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-08T14:28:18Z
 ---
 
 ## Hypothesis
