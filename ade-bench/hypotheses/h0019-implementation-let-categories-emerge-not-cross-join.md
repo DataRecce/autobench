@@ -232,8 +232,17 @@ Slug-paired delta vs `@baseline` (`runs/ade-bench-baseline/622bdedac572b479`), 4
   (flip held). All 5 G8 canaries held at 1.0 (`airbnb001`/`asana001`/`ana-eng001`/`f1007`/`quickbooks002`).
 - The 2 gains and 3 losses are all on OTHER models that carry no anti-cross-join precondition — the same
   rule-independent single-trial gpt-5.5 non-determinism the Behavioral-analysis section predicted.
-  The per-task behavioral ledger (why airbnb009 reverted; whether the committed `mom_agg_reviews.sql`
-  made the subtractive edit this time) is the **analyze** stage, not done here.
+
+**Quantitative paired delta (analyze stage).** `rk runs diff` is unusable on ade-bench run-dirs
+(`query_id: null` → TypeError, MEMORY `ade-bench-runs-diff-query-id-null`), so the paired delta was
+computed directly from the two `per_trial_outcomes.json` (slug-paired, 10 000-iteration bootstrap on the
+per-task paired deltas, seed 42):
+
+- `@baseline` 31/48 = 0.6458 → variant 30/48 = 0.6250; **mean paired delta = −0.0208/task = −1.0 task net.**
+- **95% bootstrap CI = [−5, +3] tasks** (per-task mean [−0.1042, +0.0625]); **two-sided p ≈ 0.82.**
+- The −1 is **statistically indistinguishable from zero** and sits well inside the noise band: at
+  `trials:1` over n=48 the do-no-harm tripwire (CI must exclude a regression) is unsatisfiable, and here
+  the CI straddles 0 by ±4 tasks either way. This run neither confirms a gain nor a real regression.
 
 ### FULL confirmation carried in the combined E2+E3 run (h0034)
 
@@ -254,10 +263,89 @@ Slug-paired delta vs `@baseline` (`runs/ade-bench-baseline/622bdedac572b479`), 4
 
 ## Behavioral analysis
 
+### E2-ALONE standalone full (2026-06-08, run `8773355d65f92e1b`) — the decisive read
+
+This is the noise-robust E2-alone re-confirm the entity itself recommended (isolate the +1 from E3's
+unrelated regressions). It revises the "real, repeatable" framing below: the +1 is **real but
+NON-REPRODUCED at trials:1**, and the reason is a within-lever degree of freedom the rule does not pin.
+
+**(1) THE DECISIVE READ — airbnb009 did NOT flip; the lever FIRED but landed a DIFFERENT subtractive edit
+that the hidden oracle rejects.** Verifier distance (cell `ade-bench-airbnb009__pwN5vFZ`): the model
+**builds OK** (`PASS=1`), but the hidden singular test `mom_agg_review_date_range` returns
+`Got 1 result, configured to fail if != 0` → `actual_fail=1`, reward 0 — same distance-1 FAIL as `@baseline`.
+The committed `models/agg/mom_agg_reviews.sql` (read from the dispatched-ensign `apply_patch` payload,
+call_id `call_vWdprEnbd3nwCwRAUigqJSCS`, NOT narration) made exactly ONE edit to `dates_cte`:
+
+```
+- WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)
++ WHERE DATE_ACTUAL::DATE BETWEEN (SELECT MIN(REVIEW_DATE::DATE) FROM review_cte)
++                         AND (SELECT MAX(REVIEW_DATE::DATE) FROM review_cte)
+```
+
+(plus `COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)`). This IS the lever's intended shape — a **subtractive
+in-place edit, NO cross join added**, existing `LEFT JOIN`+`GROUP BY` byte-intact, categories emergent
+(zero-review days show `REVIEW_TOTALS=0`, NULL sentiment — not a forced 3-per-day product). The solver's
+own validation probe confirms it believes it is complete: `expected_days=4508, actual_days=4508,
+missing_days=0`. **So the lever FIRED (executed-but-did-not-help), it is NOT inert.**
+
+**Why it still failed — the smoke-vs-full difference, decoded against the hidden test.** The hidden test
+(`/home/kent/.cache/.../ade-bench-airbnb009/tests/mom_agg_review_date_range.sql`, NOT shipped to the solver)
+fails unless, within `aggregation_date ∈ ['2009-06-20','2021-10-22']`: `review_days = 12278` AND
+`review_totals = 12196400` (`min/max_date` also pinned). The smoke run that PASSED deleted the filter
+ENTIRELY, leaving `dates_cte = SELECT DATE_ACTUAL FROM dim_dates` (the FULL ~29 220-row dimension); the
+test's own `BETWEEN` clause then windows it and the emergent (day × actual-sentiment) join yields exactly
+`review_days=12278`. THIS run instead REPLACED the filter with a **self-derived `BETWEEN min(review)..max(review)`
+bound** (4508 days) — a row count the oracle rejects (`Got 1`). Both edits are legitimate readings of the
+same rule ("drop the narrowing filter, no cross join"); the rule **does not pin the resulting row count**
+(it deliberately cannot — the correct count `12278` is oracle-only, not locally derivable, per the
+Hypothesis), so the solver is free to choose a self-bounded span that misses it. **The flip's
+reproducibility is a coin-flip on which of two rule-compliant edits the solver writes — and the correct
+one is unobservable to the solver.** This is the oracle-problem wall (MEMORY `verification-without-oracle-real-world`):
+the structural acceptance signal the rule gives (rows-per-key vary, no cross join) was SATISFIED, yet the
+answer is wrong on a count only the hidden check knows.
+
+**(2) Full per-task ledger, both directions, with mechanism.** Net −1 (CI [−5,+3], p≈0.82 — noise).
+
+| Task | @baseline | h0019 | Class | Mechanism |
+|------|-----------|-------|-------|-----------|
+| **airbnb009** (target) | 0.0 `Got 1` | 0.0 `Got 1` | **executed-but-did-not-help** | Lever fired (subtractive, no cross join) but solver chose a self-derived `BETWEEN min..max(review)` bound → 4508-day span ≠ oracle's `review_days=12278`. Rule cannot pin the oracle-only count. |
+| `f1006` | 0.0 (3/4) | 1.0 (4/4) | GAIN — incidental | f1 model, no anti-cross-join precondition; 1 failing check cleared. Rule-independent single-trial win. |
+| `f1011` | 0.0 (5/6) | 1.0 (6/6) | GAIN — incidental | f1 model, no precondition; 1 failing check cleared. Rule-independent single-trial win. |
+| `f1005-medium` | 1.0 (4/4) | 0.0 (3/4) | REGRESSION — unrelated | Damage to a passer. Single edit to `constructor_points.sql` (points aggregation, no completeness-repair / secondary-grouping precondition). Same rule-independent `constructor_points` rewrite seen in the h0034 combined full. |
+| `f1010-medium` | 1.0 (2/2) | 0.0 (1/2) | REGRESSION — unrelated | Damage to a passer. **Build-NEW** task (`Add File analysis__lap_times.sql`, 4 iterations) — a construction task, not a repair; the repair-shape lever has no precondition. Construction non-determinism. |
+| `quickbooks004` | 1.0 (48/48) | 0.0 (43/48) | REGRESSION — unrelated | Damage to a passer. A 30-model double-entry refactor; 5/48 checks broke. No narrow completeness-repair/secondary-grouping precondition; the suite's most variance-prone task (48 checks). Large-refactor non-determinism. |
+
+**(3) Already-correct-and-broken.** All three regressions were PASSING at `@baseline` (damage to passers),
+and all three are on models with NO anti-cross-join precondition the lever could fire on → **none is
+lever-attributable**; all three are rule-independent gpt-5.5 single-trial non-determinism. Both gains are
+likewise incidental (f1 models the rule never touches). So on its OWN surface the lever did no harm and no
+incidental help — the entire ±5 swing is background noise, and the target itself did not bank.
+
+**(4) Was the change executed?** YES — `executed-but-did-not-help` on the target (committed SQL made the
+subtractive no-cross-join edit, verifier still failed on the oracle-only row count). NOT inert, NOT
+premise-falsified. The premise ("a subtractive no-cross-join edit is the right shape") held; the gap is
+that the rule cannot specify WHICH subtractive bound yields the oracle count, and that count is not locally
+observable.
+
+**(5) Prevention + next move.** Prevention is bounded by the oracle problem: to make the flip reproducible
+the rule would have to pin the span to the FULL date dimension (drop the filter entirely, as smoke did)
+rather than a self-derived review-bounded `BETWEEN` — i.e. "delete the narrowing predicate; do NOT
+re-introduce ANY date bound on the dimension" — but that edges toward instructing a specific construction
+the solver should derive, and still cannot guarantee the count. The honest read: this is a
+real-but-UNPROMOTABLE lever. Recommend the **conclude** verdict below; do NOT file a follow-up lever and
+do NOT pursue the multi-trial / freeze-repo path (standing decision MEMORY `ade-bench-single-trial-judge-by-artifact`).
+This run also retires the prior recommendation's premise — the E2-alone re-confirm was RUN and did not bank
+the +1, so there is nothing left to re-confirm.
+
+### Prior framing (h0034 combined full) — superseded by the E2-alone read above
+
 **E2/h0019 is the program's one genuine fix.** The anti-cross-join + copyable BEFORE/AFTER worked-example
 Implementation rule flipped airbnb009 at smoke (run `d8bd75a0189bda65`, artifact-proven) AND held at full
 (via h0034, artifact-proven) — the asana002-shape mechanical-copyable-edit landing where the prose grain
 levers (h0010/h0016/h0017) went inert. It is a real, repeatable, single-model, lever-attributable +1.
+[CORRECTION 2026-06-08: "repeatable" is overstated — the E2-alone full above shows the flip did NOT
+reproduce; the lever fires but the solver's choice of subtractive bound is a coin-flip and the
+correct row count is oracle-only.]
 
 **Why it is not promoted (the binding constraint is VARIANCE, not lever quality).** In the combined full,
 airbnb009's clean +1 was masked by ±2 unrelated single-trial flips (incidental gain f1011; rule-independent
@@ -268,23 +356,31 @@ than the +1 signal. At `trials:1` over n=48 the do-no-harm tripwire is structura
 
 ## RECOMMENDATION (conclude — NOT a terminal verdict; FO/captain decides)
 
-**airbnb009 / h0019 is a REAL, VALIDATED fix — smoke-GO + held at full, artifact-proven both times — but
-do NOT auto-promote on the combined single-trial run.** The combined full (h0034) netted +0 because
-unrelated single-trial variance (±4-task CI) masked this clean +1. The recommendation is a **NOISE-ROBUST
-re-confirm to bank the +1**, by one of:
+**[UPDATED 2026-06-08 after the E2-alone standalone full `8773355d65f92e1b`.] h0019 is a REAL-but-UNPROMOTABLE
+lever — do NOT promote `@baseline`; recommend CONCLUDE as a knowledge gain.** The E2-alone re-confirm the
+prior recommendation called for has now been RUN, isolated, single-trial, clean audit. Result: **net −1
+(CI [−5,+3], p≈0.82 — noise), and the target airbnb009 did NOT reproduce the flip** (stayed `Got 1`).
 
-1. **(preferred) Fix the freeze-repo race** (MEMORY `ade-bench-freeze-repo-concurrency-race` — make the
-   freeze repo per-task/per-trial in razorback: `benchmark_task_id` into `compute_sealed_hash`, or unique
-   `RAZORBACK_FREEZE_DIR` per trial), then run a **multi-trial paired re-confirm of E2 ALONE** (h0019, no E3)
-   so the +1 separates from noise. This also unblocks multi-trial confirmation for the whole program.
-2. **(stopgap, no razorback change) An E2-only paired re-confirm across several trials run sequentially**
-   (airbnb009 + the G8 canary panel), isolating E2 from E3's unrelated regressions and averaging trials.
+The decisive finding (full detail in `## Behavioral analysis`): the lever **FIRED but did not help** —
+the committed SQL made exactly the prescribed subtractive, no-cross-join edit, yet the solver chose a
+**self-derived `BETWEEN min..max(review_date)` bound** (4508 days) instead of dropping the date predicate
+entirely (the full-dimension shape the smoke pass used), and that produced a row count the hidden oracle
+rejects (`review_days≠12278`). Both edits comply with the rule; the rule **cannot pin the oracle-only row
+count** (it is not locally derivable, by design), so the flip is a coin-flip on which rule-compliant edit
+the solver writes. This is the oracle-problem wall, not a fixable lever defect — the structural acceptance
+signal the rule gives (rows-per-key vary, no cross join) was satisfied while the answer stayed wrong.
 
-Do NOT auto-promote `@baseline` on the strength of the combined run alone. Once E2 alone clears a noise-robust
-paired delta (CI excludes a regression), promote. Cross-refs: `_proposal/retrospective-2026-06-07.md` §5.1;
-`bug-type-taxonomy.md` (#1b airbnb009 FIXED). Status note: this entity remains a smoke-GO with a held full
-(via h0034) — the FO performs any terminal frontmatter; this block is the conclude-stage recommendation, not
-a self-set verdict.
+**Why not promote and not iterate:** the +1 is not bankable at `trials:1` (standing decision MEMORY
+`ade-bench-single-trial-judge-by-artifact`: do NOT pursue multi-trial / freeze-repo), and the three
+regressions are all unrelated single-trial variance on passers with no anti-cross-join precondition (no
+lever-attributable harm). There is nothing left to re-confirm — the recommended re-confirm was run and the
+flip did not hold. **Knowledge gain (MEMORY `knowledge-gains-are-small-successes`):** confirms the
+copyable-skeleton anti-cross-join rule REACHES the SQL (executed, not inert — the h0030 ingredient works),
+but a repair lever that constrains EDIT SHAPE without an oracle-pinned target cannot deterministically land
+a flip whose correctness lives in a hidden count. Aligns with the program's `oracle-problem flip program
+CONCLUDED` close (net +0, box closed at 31/48). Cross-refs: `bug-type-taxonomy.md` (#1b airbnb009 —
+revise FIXED→fix-shape-reached-but-non-reproducible); `_artifacts/WORKFLOW-REFINE.md`. The FO performs any
+terminal frontmatter; this block is the conclude-stage recommendation, not a self-set verdict.
 
 ## Verdict
 
@@ -339,3 +435,20 @@ The anti-cross-join Implementation rule with the copyable BEFORE/AFTER SQL skele
 ### Summary
 
 E2-ALONE standalone full re-confirm of h0019. Strict audit CLEAN (`tainted:0`, 48/48 clean cells), so the score is trusted; solver README hash matches smoke (`sha256:9394871c…`), so no smoke→full drift. HEADLINE: `stratified_pass_at_1=0.625` (30/48) — NET −1 vs `@baseline` 0.6458 (31/48). Slug-paired delta: 2 gains (`f1006`,`f1011`), 3 losses (`f1005-medium`,`f1010-medium`,`quickbooks004`), net −1. Notably the TARGET `airbnb009` did NOT flip here — it stayed `0.0` FAIL (same `@baseline` `Got 1`), the opposite of smoke (flipped) and the h0034-combined full (flip held); all 5 G8 canaries held at 1.0. The gains/losses sit on other models with no anti-cross-join precondition (rule-independent single-trial gpt-5.5 non-determinism). This stage is the clean run accounting only; the per-task behavioral ledger (why airbnb009 reverted; whether the committed `mom_agg_reviews.sql` made the subtractive edit) is the analyze stage, not done here.
+
+## Stage Report: analyze
+
+- DONE: THE DECISIVE READ — airbnb009 committed SQL classified from the apply_patch payload
+  Cell `ade-bench-airbnb009__pwN5vFZ`: verifier `Got 1` (`actual_fail=1`, model builds `PASS=1`) — distance-1 FAIL, same as @baseline. Committed `mom_agg_reviews.sql` (apply_patch call_id `call_vWdprEnbd3nwCwRAUigqJSCS`) made the prescribed SUBTRACTIVE no-cross-join edit (replaced the `WHERE … IN (DISTINCT REVIEW_DATE)` filter with `BETWEEN min..max(review_date)`, existing LEFT JOIN+GROUP BY intact, sentiments emergent). Classification: **executed-but-did-not-help (lever FIRED, NOT inert)** — failed because the solver's self-derived `BETWEEN` bound (4508 days) yields a row count the hidden test rejects (`review_days≠12278`); smoke PASSED by dropping the filter entirely (full dimension). Rule cannot pin the oracle-only count.
+- DONE: Full per-task ledger both directions with mechanism; each regression confirmed a @baseline passer + classified lever-attributable vs unrelated
+  Net −1. GAINS f1006 (3/4→4/4), f1011 (5/6→6/6) — both incidental f1 wins, no precondition. REGRESSIONS f1005-medium (constructor_points rewrite), f1010-medium (build-NEW analysis model), quickbooks004 (30-model double-entry refactor, 48-check task) — all three were @baseline PASSES (damage to passers), all on models with NO anti-cross-join precondition → all unrelated single-trial gpt-5.5 non-determinism, none lever-attributable. Edited-file lists confirmed via apply_patch targets.
+- DONE: All 5 required questions answered in `## Run result` + `## Behavioral analysis`, incl. smoke-vs-full + prevention/next-move
+  (1) ledger above; (2) smoke-vs-full decoded against the hidden test SQL (full-dimension drop → 12278 PASS vs self-bounded BETWEEN → wrong count FAIL); (3) all regressions damage-to-passer + unrelated; (4) executed-but-did-not-help; (5) prevention bounded by the oracle problem → recommend CONCLUDE, do NOT iterate / no multi-trial / no freeze-repo (standing decision).
+- DONE: Quantitative paired delta + absolute score recorded
+  `rk runs diff` skipped (query_id:null TypeError); computed slug-paired 10k bootstrap (seed 42) from per_trial_outcomes.json: mean delta −0.0208/task = −1.0 net, 95% CI [−5,+3] tasks, p≈0.82 (noise). `stratified_pass_at_1=0.625` (30/48) vs @baseline 0.6458.
+- DONE: Bankable-or-not + conclude recommendation stated plainly
+  NOT bankable / real-but-UNPROMOTABLE. RECOMMENDATION block updated to CONCLUDE (knowledge gain): copyable-skeleton rule REACHES the SQL (executed), but a no-oracle edit-shape repair lever cannot deterministically land a flip whose correctness is a hidden count. Captain decides promotion.
+
+### Summary
+
+The E2-alone standalone full — the noise-robust re-confirm the entity itself recommended — was run, isolated, single-trial, clean audit, and did NOT bank h0019's +1: net −1 (CI [−5,+3], p≈0.82, pure noise) and the target airbnb009 did NOT reproduce the smoke/h0034 flip. The decisive read: the lever FIRED (committed SQL made the exact subtractive, no-cross-join edit — executed, not inert) but the solver chose a self-derived `BETWEEN min..max(review_date)` bound rather than dropping the date predicate entirely as the smoke pass did; that produced a row count the hidden oracle test rejects (`review_days≠12278` vs the smoke pass's full-dimension 12278). Both edits comply with the rule, which deliberately cannot pin the oracle-only count, so the flip is a coin-flip on which rule-compliant edit the solver writes — the oracle-problem wall, not a fixable lever defect. All 5 verdict changes (2 incidental gains, 3 regressions on passers) are rule-independent single-trial variance with no anti-cross-join precondition. Recommendation: CONCLUDE as a real-but-unpromotable lever / knowledge gain — do NOT promote, do NOT iterate, no multi-trial or freeze-repo (standing decision). In-stage analysis, not a structural workflow change.
