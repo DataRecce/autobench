@@ -37,8 +37,8 @@ cross-model note below the table.
 | ana-eng004 | `AUTO_obt_product_inventory_equality` | "has less columns" | width | ❌ also fails |
 | f1002 | `AUTO_most_podiums_equality` | "has less columns" | width | ❌ also fails |
 | ana-eng006 | `AUTO_dim_products` + `AUTO_obt_product_inventory` (width) **and** `AUTO_fact_inventory_equality` `Got 204` | mixed | width ×2 **+** value divergence | ❌ also fails |
-| ana-eng007 | `AUTO_dim_products_equality` | `Got 5` | value divergence | ❌ also fails |
-| ana-eng007-medium | `AUTO_dim_products_equality` | `Got 5` | value divergence | ❌ also fails |
+| ana-eng007 | `AUTO_dim_products_equality` | `Got 5` | ~~value divergence~~ → **coverage drop that MASKS an oracle-only value bug** (h0036 REJECTED: anti-join fired, `Got 5 → Got 10`) — **ORACLE-BLOCKED**, see Corrections #1 | ❌ also fails |
+| ana-eng007-medium | `AUTO_dim_products_equality` | `Got 5` | ~~value divergence~~ → same as ana-eng007 — **ORACLE-BLOCKED** (h0036) | ❌ also fails |
 | f1006 | `AUTO_constructor_points_equality` | `Got 2` | value divergence | ✅ **flips** |
 | airbnb007 | **TWO scored models:** `daily_agg_nps_reviews_equality_with_tolerance` (rolling-window) **+** `listing_agg_nps_reviews_equality_with_tolerance` (per-listing lifetime NPS, no window) | `Got 4` (baseline) | tolerance-band divergence — **MULTI-MODEL target** (h0018/h0034): single-model rolling-window lever insufficient | ❌ also fails |
 | asana002 | `AUTO_asana__task_equality` | `Got 2` — **NOT a `::type` cast** (h0033): structural package-migration (Fivetran made tags optional); fixed by a `{% if using_task_tags %}` conditional-inclusion rewrite | ~~type/contract mismatch~~ → **structural package-migration** (re-classified, h0033) | ✅ **flips** (solver-native) |
@@ -283,6 +283,19 @@ errors in this file and retired four filed-but-unrun hypotheses:
    RAW-SOURCE coverage anti-join (every distinct source id must survive into `dim_products`) — the
    f1007-hard shape. Carried by **h0036** (Impl: source-key coverage preservation). **h0021 REJECTED**
    (targets a non-existent dedup tie-break; its `CAST(... AS INTEGER)` would crash the md5 ids).
+   **CORRECTION (2026-06-08, post-smoke / h0036 REJECTED): ana-eng007 is NOT a clean coverage win —
+   it is ULTIMATELY ORACLE-BLOCKED.** h0036 fired and recovered coverage exactly as framed: the solver
+   found and removed the hidden filter `WHERE supplier_ids NOT LIKE '%;%'` in `stg_products.sql`,
+   `dim_products` grew 40→45, and the RAW-SOURCE anti-join went EMPTY (its own
+   `raw_distinct=45 | rows=45 | distinct=45`). But the 5 recovered rows came back with the WRONG
+   attribute values (correct values live ONLY in the hidden solution seed; no local relation
+   recomputes them), so the equality distance got WORSE: `Got 5 → Got 10` (5 absent + 5 present-but-
+   wrong), and two downstream OBT models broke. New pattern: **a coverage drop MASKS an oracle-only
+   value bug — fixing coverage surfaces the masked rows as wrong-valued and distance DOUBLES
+   (`Got N → Got 2N`).** The coverage half is locally fixable, but ana-eng007 / ana-eng007-medium
+   join the ORACLE-ONLY set on the value half. The raw-source coverage anti-join IS a genuine
+   independent check (it fired) — but coverage-alone is insufficient when the masked rows also need
+   oracle-only values. The coverage framing was the *visible* half of the bug, not the whole bug.
 
 2. **f1011 truth is "ADE", not "ABE".** The wrong letter is **B** (must be excluded), and **D is
    correctly included** — the inverse of the prior note. B is a misleading-but-locally-TRUE signal;
@@ -299,4 +312,7 @@ errors in this file and retired four filed-but-unrun hypotheses:
 
 Net: the hunt produced exactly one new sharp-test-passing target (**h0036**, ana-eng007 coverage);
 everything else is informationally blocked, and four queued hypotheses (h0021/h0029/h0014/h0022) were
-retired as doomed-by-re-triage.
+retired as doomed-by-re-triage. **UPDATE (2026-06-08, post-smoke): h0036 REJECTED** — the coverage
+fix LANDED (anti-join went empty) but unmasked oracle-only values (`Got 5 → Got 10`), so even the one
+candidate the hunt produced is ultimately oracle-blocked. The LOW/Track-Z target hunt is now
+**EXHAUSTED** — zero new visible-arbitrator flip targets remain. @baseline stays 31/48.

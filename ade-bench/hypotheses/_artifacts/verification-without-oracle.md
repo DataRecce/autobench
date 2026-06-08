@@ -197,7 +197,7 @@ note is the **toolbox** (reconcile / invariant / differential / disconfirm) and 
 | #6 incomplete deliverable | `schema.yml`/ref-graph *if enumerated* | ❌ revised down — **family EXHAUSTED 5-for-0** (h0009 −3 / h0013 inert / h0015 inert / h0023 f1001-bleed / h0035 inert). h0035's scope-gated ref-graph set-difference rule was INERT: *green-via-package-namespace* masks the dangling-ref trigger (the project builds green through the installed package's own namespace, so the solver never sees a red signal pointing at the absent models). The scope-gate (fire only on the project's OWN referenced-but-absent set) is a **validated bleed-free design** — it fixed h0023's over-fire and held f1001 — but the construct side does not land. Oracle/inertness-blocked. |
 | #5 type/contract | type declared / derivable downstream | ❌ revised down — **asana002 RE-CLASSIFIED as structural** (h0033): not a representation mismatch but a package-migration (tags optional); a `::type` cast has no surface. The cast-lever family is EXHAUSTED for asana002 (h0009/h0020/h0033). No current task is a confirmed pure type/contract bug. |
 | #1a entity grain | intercom: ~~local parent ✓~~ → **parent is filter-correlated (h0030)** · asana004: oracle-only convention | ❌ revised down — construct/reconcile family REJECTED & oracle-blocked (h0030) |
-| #3 value divergence | the computed **value** itself → **oracle-only** for the number, but **reconcilable from raw source** | ⭐ reconciliation is the only shot; no plan-reviewer can |
+| #3 value divergence | the computed **value** itself → **oracle-only** for the number; raw-source reconciliation recovers COVERAGE only, not VALUES | ⭐ reconciliation is the only shot for coverage — but ❌ revised down for ana-eng007 (h0036): the anti-join fired and recovered coverage (40→45) yet the recovered rows need oracle-only values → `Got 5 → Got 10`. **A coverage drop can MASK an oracle-only value bug; fixing coverage doubles the distance (`Got N → Got 2N`).** ana-eng007/medium are ORACLE-BLOCKED on the value half. |
 | #7 analytical guess | which options are true → needs independent **recompute** | ❌ for plan-review; needs per-claim evidence (h0014) |
 
 ## Bears on
@@ -206,9 +206,19 @@ note is the **toolbox** (reconcile / invariant / differential / disconfirm) and 
   local-fact bugs; must *disconfirm*, not *confirm*.
 - The **candidate-selector** siblings h0024/h0025/h0027: each needs an *independent* IN-decision
   falsifier (the test above), not self/internal consistency.
-- The next concrete lever: an **independent-reconciliation check** on a value-divergence target
+- ~~The next concrete lever: an **independent-reconciliation check** on a value-divergence target
   (e.g. ana-eng007) where a raw-source recompute is locally derivable — the highest-transfer
-  import here.
+  import here.~~ **CORRECTED 2026-06-08 (post-smoke / h0036 REJECTED): ana-eng007 is NOT a clean
+  raw-source-recompute target — it is ORACLE-BLOCKED.** A raw-source coverage anti-join IS a genuine
+  independent check (h0036 fired it: the solver removed a hidden `WHERE supplier_ids NOT LIKE '%;%'`
+  filter, `dim_products` grew 40→45, the anti-join went empty). But the recovered rows need
+  oracle-only VALUES no local relation can recompute, so coverage-recovery surfaced 5 wrong-valued
+  rows and the equality distance DOUBLED (`Got 5 → Got 10`). **New named failure mode: a coverage
+  drop can MASK an oracle-only value bug — fixing coverage surfaces the masked rows as wrong-valued
+  and distance doubles (`Got N → Got 2N`).** The independent check is real and fires; it is simply
+  *insufficient* when the masked rows also carry hidden-seed values. ana-eng007 / ana-eng007-medium
+  join the oracle-only set. (This was the one candidate the 2026-06-08 LOW/Track-Z target hunt
+  produced — now exhausted.)
 - **E0/h0032 harness method refinement (h0030 finding).** E0's controlled 2×2
   (`_artifacts/h0032-e0-harness/result_2x2.json`) CLEARED the count+anti-join reconcile two-sided
   on its injected-error fixtures — but those fixtures were **CLEAN**: they lacked a *shared upstream

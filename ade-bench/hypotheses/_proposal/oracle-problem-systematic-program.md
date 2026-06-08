@@ -14,6 +14,21 @@ The four debate questions in §7 are resolved:
 4. **Benchmark is fixed — the five out-of-reach tasks (ana-eng004, f1002, f1006, asana004, f1011) are out of scope** for this pass-rate push. (f1006/f1011 still get a free attempt per #3, but are not portfolio-counted.)
 5. **(2026-06-07, post-E1) Accept 34/48 as the landing; execute the ENTIRE plan, then retrospect — do NOT chase the 2-task gap mid-flight.** E1's NO-GO fixes the realistic ceiling at +3 → 34/48 (0.7083), 2 short of 75%. Decision: do **not** open target-sourcing in parallel. Run the full filed portfolio — E2 (h0019, full-run confirm) / E3 (h0018, airbnb007) / E4 (asana002 cast) / E5 (h0015-successor, measured) + Track Z as the safety rail — to completion as filed. **Then run an end-of-program RETROSPECTIVE** that figures out how to close the final 2-task gap to 75%: re-triage the 9 LOW/Track-Z tasks by the E1 **value/shape-to-match vs population-canonical tractability rule**, promote E5 to *counted* if it flips bleed-safe, and source a 6th/7th visible-arbitrator target. The banked **method** (the E0 instrument-gate, the tractability rule, the dead-family map) is treated as a first-class deliverable alongside the pass-rate number — small successes compounding toward the goal, not just flips.
 
+   > **STATUS 2026-06-08 — the LOW/Track-Z target hunt is EXHAUSTED.** The re-triage produced exactly
+   > ONE new visible-arbitrator candidate (`ana-eng007` coverage, carried by **h0036**); the other
+   > eight LOW/Track-Z tasks were confirmed informationally blocked (four queued hypotheses
+   > h0021/h0029/h0014/h0022 retired as doomed-by-re-triage). **h0036 REJECTED at smoke**
+   > (`runs/.../c51545c270b51f6d`): the coverage rule LANDED — the solver found and removed a hidden
+   > `WHERE supplier_ids NOT LIKE '%;%'` filter in `stg_products.sql`, `dim_products` grew 40→45, and
+   > the RAW-SOURCE coverage anti-join went EMPTY — but the recovered rows need oracle-only VALUES, so
+   > distance got WORSE (`Got 5 → Got 10`) and two downstream OBT models broke; neither target flipped.
+   > **New named pattern: a coverage drop can MASK an oracle-only value bug — fixing coverage surfaces
+   > the masked rows as wrong-valued and the distance doubles (`Got N → Got 2N`).** ana-eng007 /
+   > ana-eng007-medium are therefore ORACLE-BLOCKED on the value half. **No new flip target found; the
+   > hunt is exhausted, @baseline remains 31/48.** The only remaining bankable flip is **airbnb009**
+   > (E2 anti-cross-join `Got 1`); surfacing that as a captain strategy call. Doctrine corrected in
+   > `_artifacts/bug-type-taxonomy.md` + `_artifacts/verification-without-oracle.md`.
+
 ---
 
 ## 1. The problem we face

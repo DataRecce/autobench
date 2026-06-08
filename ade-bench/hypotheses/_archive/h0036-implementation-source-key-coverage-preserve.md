@@ -1,13 +1,13 @@
 ---
 id: h0036
 title: Implementation — when a model must carry one row per raw-source key, a type change / dedup / join must NOT silently drop source rows; preserve full source-key coverage (never narrow a key to a type that drops non-conforming values), with a RAW-SOURCE coverage anti-join as the local acceptance signal
-status: smoke
+status: conclude
 kind: hypothesis
 source: oracle-problem-systematic-program.md target-hunt (2026-06-08 LOW/Track-Z re-triage). SUPERSEDES the doomed h0021 (dedup tie-break that does not exist). The one new sharp-test-passing arbitrator the hunt produced. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-08T00:00:00Z
-completed:
-verdict:
-score:
+completed: 2026-06-08T00:00:00Z
+verdict: REJECTED
+score: 'MEASURED/COUNTED target but NO-GO; @baseline unchanged 31/48'
 worktree:
 ---
 ## Hypothesis
@@ -289,6 +289,85 @@ workflow-refinement-evaluation gate and the assignment, the
 fires, recovers coverage, but cannot supply hidden-seed VALUES → `Got 5 → Got 10`) is recorded
 here and belongs to the instruction-lever taxonomy, not the structural log.
 
+## Verdict
+
+**REJECTED — smoke NO-GO, CAPPED one-shot (no iteration).** Smoke run dir
+`runs/ade-bench-h0036-implementation-source-key-coverage-preserve/c51545c270b51f6d` (9 tasks,
+trials:1, 0 exceptions, 1h06m). The falsifiable claim required the source-key COVERAGE rule (never
+narrow a key to a type that drops non-conforming values; reconcile via a RAW-SOURCE coverage
+anti-join) to flip `ana-eng007` by recovering the dropped md5-hashed source rows, raising
+`stratified_pass_at_1` above the @baseline 0.6458. It is falsified on the **"recovered coverage but
+net worse"** disjunct: the lever LANDED, recovered coverage exactly as predicted, and that unmasked
+an oracle-only VALUE bug — distance got WORSE, not better.
+
+**Mechanism (precise) — the lever LANDED; this is NOT inert (distinct from h0013/h0015/h0035).**
+Primed by the coverage rule, the solver located the real defect: a hidden filter
+`WHERE supplier_ids NOT LIKE '%;%'` in `models/staging/stg_products.sql` that was dropping the 5
+md5-hashed product rows (those products carry multi-supplier ids containing `;`). The solver
+**removed that filter** and switched `CAST(supplier_ids AS integer) → TRY_CAST(...)` +
+`CAST(id AS {{ dbt.type_string() }})`. Its own materialization proves coverage was recovered:
+`raw_distinct_products=45 | dim_products_rows=45 | dim_distinct_products=45` — `dim_products` grew
+**40 → 45 rows** and **the RAW-SOURCE coverage anti-join went EMPTY** (all 5 previously-missing
+hashed source rows APPEAR). The construction-edit-shape + raw-source-signal lever fired correctly on
+its own terms; this is categorically unlike the dead self-anchored verify family (h0006/7/8/12) and
+unlike the artifact-inert h0013/h0015/h0035 — it reached and changed the committed artifact, and the
+independent check fired.
+
+**The DECISIVE learning — recovering coverage UNMASKED an oracle-only VALUE problem.** The 5
+recovered rows came back with the WRONG attribute values: removing the
+`supplier_ids NOT LIKE '%;%'` filter and switching to `TRY_CAST` changed the supplier-id handling on
+the multi-supplier rows, and the correct values for those rows live ONLY in the hidden
+`solution__dim_products` seed — no local relation recomputes them. `dbt_utils` equality is a
+symmetric set-difference, so 5 expected-rows-absent + 5 present-but-wrong = **`Got 5 → Got 10`**: the
+distance DOUBLED. Two downstream OBT models that join these products inherited the wrong values and
+broke (`obt_product_inventory Got 32`, `obt_sales_overview Got 18`, both PASS at @baseline). Neither
+target flipped (`ana-eng007-medium` identical shape, also FAIL). **New named pattern: a coverage drop
+can MASK an oracle-only value bug — fixing coverage surfaces the masked rows as wrong-valued and the
+equality distance doubles (`Got N → Got 2N`).** A RAW-SOURCE coverage anti-join is a GENUINE
+independent check (it fired, unlike the dead self-anchored verify family), but coverage-alone is
+insufficient when the masked rows ALSO need oracle-only values. ana-eng007 is therefore ULTIMATELY
+ORACLE-BLOCKED: the coverage framing is locally fixable, but it unmasks a value the answer needs and
+no local route can supply.
+
+**Earlier re-triage CORRECTED (2026-06-08, post-smoke).** My own 2026-06-08 LOW/Track-Z re-triage
+note called ana-eng007 "the one new sharp-test-passing arbitrator / coverage win." That is now
+corrected in `_artifacts/bug-type-taxonomy.md` and `_artifacts/verification-without-oracle.md`:
+ana-eng007 / ana-eng007-medium are NOT a clean coverage win — the coverage half is locally fixable
+but unmasks oracle-only VALUES, so both join the oracle-only set. The `Got 5` was the *visible* half
+of the bug, not the whole bug.
+
+**quickbooks002 canary regressed PASS → FAIL — LEVER-INDEPENDENT.** It dropped 3 graded models below
+their solution column count ("has less columns than solution__…", Compilation Error on the
+union/ap_ar_enhanced equality tests) via the `using_department` removal (the solver deleted the
+`department_name` column the solution keeps) — the known quickbooks "has-less-columns" hidden-column
+fix-it-completeness trap (MEMORY: AUTO_*_equality tests are hidden; quickbooks needs a completeness
+lever). The coverage rule made **zero id-key edits** in the quickbooks session and never fired
+(quickbooks002 has no per-source-key id model with a type change). Single-trial gpt-5.5@xhigh
+variance on a brittle task — another single-trial-variance data point. Per the smoke gate it is still
+a NO-GO ("a canary dropping FAIL is a NO-GO regardless"), but the verdict is over-determined: even
+setting quickbooks002 aside, **zero target flips + worsened primary-target distance is itself a clean
+falsification.**
+
+**Clean-audit attestation (AC-2).** `rk audit --policy strict` on `c51545c270b51f6d`:
+`{clean: 9, tainted: 0, coverage_missing: 0}`, every cell `captured=1`. `rk score` =
+`stratified_pass_at_1 0.6667` over the 9-task smoke panel (6 PASS / 3 FAIL) — NOT comparable to the
+48-task @baseline 0.6458, and moot given the canary regression + worsened target distance. **@baseline
+unchanged at 31/48** (no promotion; no flip lowers or raises it).
+
+**This lever is an IN-STAGE Implementation rule tweak, NOT a structural/protocol workflow change**
+(one additive hunk inside the existing `## Stage: Implementation` block; no new/removed/reordered
+stage, no `## Protocol-family declaration`). The `_artifacts/WORKFLOW-REFINE.md` finalization step
+therefore does NOT apply and was intentionally not performed; the in-stage learning belongs to the
+instruction-lever taxonomy (`_artifacts/bug-type-taxonomy.md`) and the oracle doctrine
+(`_artifacts/verification-without-oracle.md`).
+
+**No follow-up filed — hunt exhausted.** ana-eng007 is now oracle-blocked. The 2026-06-08
+LOW/Track-Z target hunt produced exactly ONE candidate (this one), which REJECTED at smoke — the hunt
+is EXHAUSTED, no new visible-arbitrator flip target found. Per the conclude "do not reflexively file
+when the family is exhausted" rule, no `h<NNNN>` is auto-filed; the strategy state (only **airbnb009**
+remains to bank — the E2 anti-cross-join `Got 1` target) is surfaced as a captain decision for the FO
+to raise.
+
 ## Stage Report: smoke
 
 - DONE: Pre-flight `rk run --explain` confirms 9-task plan + frozen solver_workflow hash
@@ -319,3 +398,26 @@ Got 10`) and two downstream OBT models regressed. Neither target flipped. Indepe
 quickbooks002 regressed PASS→FAIL via the unrelated `using_department` hidden-column trap
 (the lever never fired there). NO-GO on both grounds; CAPPED one-shot, no iteration → conclude
 (REJECTED). Audit clean (tainted:0, captured>0 every cell) before the score was trusted.
+
+## Stage Report: conclude
+
+- DONE: Write the ## Verdict: REJECTED — smoke NO-GO, CAPPED one-shot; mechanism precise (lever LANDED, NOT inert)
+  `## Verdict` appended (before `## Stage Report: smoke`): distinct from h0013/h0015/h0035 — the solver, primed by the coverage rule, found and removed the hidden filter `WHERE supplier_ids NOT LIKE '%;%'` in `stg_products.sql`; `dim_products` 40→45; the RAW-SOURCE anti-join went EMPTY (solver's own `raw_distinct=45 | rows=45 | distinct=45`). The construction-edit-shape + raw-source-signal lever fired correctly on its own terms.
+- DONE: Record the DECISIVE learning — coverage recovery UNMASKED an oracle-only VALUE bug
+  `## Verdict`: 5 recovered rows carry WRONG values (live only in the hidden seed; no local relation recomputes them) → `Got 5 → Got 10` + downstream OBT `Got 32`/`Got 18`; neither target flipped. New named pattern recorded: a coverage drop can MASK an oracle-only value bug — fixing coverage surfaces masked rows as wrong-valued and distance DOUBLES (`Got N → Got 2N`); the anti-join is a GENUINE independent check (it fired) but coverage-alone is insufficient when masked rows need oracle-only values.
+- DONE: CORRECT the earlier 2026-06-08 re-triage note (which I authored) in BOTH doctrine files
+  `_artifacts/bug-type-taxonomy.md`: Corrections #1 + the "Net:" line + the per-task ana-eng007 / ana-eng007-medium table rows all carry a dated 2026-06-08 post-smoke correction — ana-eng007 is NOT a clean coverage win, it is ULTIMATELY ORACLE-BLOCKED; ana-eng007/medium join the oracle-only set. `_artifacts/verification-without-oracle.md`: the "next concrete lever" bears-on bullet + reach-map row #3 both corrected (anti-join fires but coverage-recovery is insufficient → `Got N → Got 2N`).
+- DONE: Note quickbooks002 canary PASS→FAIL but LEVER-INDEPENDENT
+  `## Verdict`: `using_department` hidden-column "has-less-columns" trap; coverage rule made zero id-key edits in the quickbooks session (never fired). Single-trial-variance data point; did NOT change the over-determined verdict (zero target flips + worsened primary distance is itself a clean falsification).
+- DONE: Update the program doc — 2026-06-08 hunt produced exactly ONE candidate (h0036), REJECTED → hunt EXHAUSTED
+  `_proposal/oracle-problem-systematic-program.md` decision #5: added a `STATUS 2026-06-08` block — one candidate (ana-eng007 coverage/h0036), REJECTED at smoke (coverage fix unmasked oracle-only values, `Got 5 → Got 10`); LOW/Track-Z target hunt EXHAUSTED, no new flip target found, @baseline remains 31/48; only airbnb009 (E2) remains bankable.
+- DONE: WORKFLOW-REFINE.md step does NOT apply (IN-STAGE Implementation rule tweak) — stated explicitly
+  In `## Verdict` and `## Behavioral analysis`: one additive hunk inside the existing `## Stage: Implementation` block; no new/removed/reordered stage and no `## Protocol-family declaration`; the structural-workflow test fails, so the `_artifacts/WORKFLOW-REFINE.md` finalization step was intentionally NOT performed (no h0036 entry exists there).
+- DONE: Do NOT file a follow-up — ana-eng007 oracle-blocked + hunt exhausted
+  No new `h<NNNN>` filed; per the conclude "do not reflexively file when the family is exhausted" rule, the strategy state (only airbnb009 remains to bank) is surfaced as a captain decision for the FO to raise.
+- DONE: Set terminal frontmatter + archive + commit
+  Frontmatter set `verdict: REJECTED`, `completed: 2026-06-08T00:00:00Z`, `score: 'MEASURED/COUNTED target but NO-GO; @baseline unchanged 31/48'` (status stays `conclude`); entity `git mv`'d to `hypotheses/_archive/` (entity .md only; the `solver_workflows/h0036-...` fork left in place per the h0030/h0033/h0035 pattern); committed.
+
+### Summary
+
+Concluded h0036 as a clean REJECTED. Unlike the artifact-inert h0013/h0015/h0035, this lever LANDED: primed by the coverage rule, the solver found and removed the hidden `WHERE supplier_ids NOT LIKE '%;%'` filter in `stg_products.sql`, `dim_products` grew 40→45, and the RAW-SOURCE coverage anti-join went empty (its own `dbt show`: raw_distinct=45 | rows=45 | distinct=45). But recovering coverage UNMASKED an oracle-only VALUE bug — the 5 recovered rows carry wrong attribute values that live only in the hidden seed, so the equality distance DOUBLED (`Got 5 → Got 10`) and two downstream OBT models broke; neither target flipped. The decisive new pattern: a coverage drop can MASK an oracle-only value bug, and fixing coverage surfaces the masked rows as wrong-valued (`Got N → Got 2N`); the raw-source anti-join is a GENUINE independent check (it fired), but coverage-alone is insufficient when the masked rows also need oracle-only values. I corrected my own 2026-06-08 re-triage note in both doctrine files — ana-eng007/medium are NOT a clean coverage win, they are ultimately ORACLE-BLOCKED. quickbooks002 regressed PASS→FAIL but is lever-independent (`using_department` trap, zero id-key edits; single-trial variance) and did not change the over-determined verdict. The 2026-06-08 LOW/Track-Z target hunt produced exactly ONE candidate (h0036), now REJECTED — the hunt is EXHAUSTED, @baseline remains 31/48, only airbnb009 remains bankable (surfaced as a captain strategy call). WORKFLOW-REFINE.md N/A (in-stage Implementation rule tweak); no follow-up filed.
