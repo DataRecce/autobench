@@ -1,7 +1,7 @@
 ---
 id: h0036
 title: Implementation — when a model must carry one row per raw-source key, a type change / dedup / join must NOT silently drop source rows; preserve full source-key coverage (never narrow a key to a type that drops non-conforming values), with a RAW-SOURCE coverage anti-join as the local acceptance signal
-status: propose
+status: smoke
 kind: hypothesis
 source: oracle-problem-systematic-program.md target-hunt (2026-06-08 LOW/Track-Z re-triage). SUPERSEDES the doomed h0021 (dedup tie-break that does not exist). The one new sharp-test-passing arbitrator the hunt produced. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-08T00:00:00Z
@@ -189,3 +189,133 @@ Fork parent resolved: `solver_workflows/codex-ade-dbt-minimal` (hypothesis `sour
 ### Summary
 
 Authored the h0036 variant: a single additive Implementation rule (source-key COVERAGE preservation — never narrow a key to a type that drops non-conforming values; reconcile via a RAW-SOURCE coverage anti-join) plus a copyable BEFORE/AFTER skeleton, mirroring the LANDED h0019 shape. Ground truth confirmed from the @baseline run-dir: ana-eng007 fails `Got 5` = 5 MISSING md5-hashed source rows (one-directional coverage drop), and the @baseline solver's "row preservation 5/5" was a self-anchored false-green that never compared dim_products to the raw products source. Both specs frozen (full diff = 2 fields; smoke adds only the 9-task panel with 3 perturbable ana-eng canaries); gatekeeper recommends APPROVE with no FAILs. Stopped at the gate — no run launched.
+
+## Smoke result
+
+**Verdict: NO-GO → conclude/REJECTED.** Run-dir
+`runs/ade-bench-h0036-implementation-source-key-coverage-preserve/c51545c270b51f6d`
+(9 tasks, trials:1, 0 exceptions, 1h06m). Two independent NO-GO grounds: (1) **neither
+target flipped** and the primary target's distance got *worse* (ana-eng007 `Got 5 → Got 10`,
+plus two new downstream failures); (2) a **canary regressed** (quickbooks002 PASS → FAIL),
+which the smoke gate treats as a NO-GO "regardless of how many targets flipped."
+
+**Clean-audit attestation (AC-2).** `rk audit --policy strict` on `c51545c270b51f6d`:
+`{clean: 9, tainted: 0, coverage_missing: 0}`; every cell `subagent-trace-manifest.json`
+`captured=1`. `rk score` = `stratified_pass_at_1 = 0.6667` over the 9-task smoke set
+(6 PASS / 3 FAIL), against_constant verdict "above" — but this is the smoke panel, NOT
+comparable to the 48-task @baseline 0.6458, and it is moot given the canary regression.
+
+| Task | Role | Baseline | Smoke | Distance (dim_products `Got N`) | Verdict |
+|------|------|----------|-------|----------------------------------|---------|
+| ana-eng007 | PRIMARY target | FAIL | FAIL | `Got 5` → **`Got 10`** (+ obt_product_inventory `Got 32`, obt_sales_overview `Got 18`) | **NO FLIP — distance WORSE** |
+| ana-eng007-medium | upside target | FAIL | FAIL | `Got 5` → `Got 10` (same shape) | NO FLIP |
+| ana-eng001 | perturbable canary | PASS | PASS | — | hold ✅ |
+| ana-eng002 | perturbable canary | PASS | PASS | — | hold ✅ |
+| ana-eng003 | perturbable canary | PASS | PASS | — | hold ✅ |
+| f1001 | sentinel | PASS | PASS | — | hold ✅ |
+| asana001 | cross-family canary | PASS | PASS | — | hold ✅ |
+| quickbooks002 | cross-family canary | PASS | **FAIL** | 3 equality tests Compilation-Error ("has less columns than solution") | **REGRESSION ❌** |
+| airbnb001 | cross-family canary | PASS | PASS | — | hold ✅ |
+
+Net: 0 target flips; +1 canary regression. CAPPED one-shot — no iteration on this result.
+
+## Behavioral analysis
+
+**The lever was NOT inert — it reached the committed artifact and recovered coverage exactly
+as the hypothesis predicted, yet that was insufficient to flip the target and it introduced a
+new value-level error.** This is the decisive, artifact-proven read (AC-3), not narration.
+
+**ana-eng007 — committed `dim_products` artifact read (the dispatched-solver apply_patch
+payload + the solver's own `dbt show` materialization, NOT transcript chatter).**
+- Root cause located: the baseline dropped the 5 md5-hashed ids via a **filter**
+  `WHERE supplier_ids NOT LIKE '%;%'` in `models/staging/stg_products.sql` (the 5 hashed-id
+  products carry multi-supplier ids containing `;`), leaving `dim_products` = **40 rows / VARCHAR**
+  (5 short of the 45-row solution). Baseline `Got 5` = one-directional coverage drop, confirmed.
+- The h0036 solver, primed by the coverage rule, found and **removed that filter** and switched
+  `CAST(supplier_ids AS integer)` → `TRY_CAST(...)` + `CAST(id AS {{ dbt.type_string() }})`.
+  Its own validation query proves coverage was recovered:
+  `raw_distinct_products=45 | dim_products_rows=45 | dim_distinct_products=45`
+  → **the RAW-SOURCE coverage anti-join is now EMPTY; all 5 previously-missing hashed source
+  rows APPEAR.** Coverage `Got 5 → 0` on the coverage axis. The lever did precisely what it set
+  out to do.
+- **But the task still FAILED, and got farther from passing: `Got 5 → Got 10`.** `dbt_utils`
+  equality is a symmetric set-difference. The 5 recovered rows now carry **wrong attribute
+  values** — removing the `supplier_ids NOT LIKE '%;%'` filter and switching to `TRY_CAST`
+  changes the `supplier_id`/supplier handling for the multi-supplier rows, which disagrees with
+  the hidden solution seed. Result: 5 expected-rows-absent + 5 present-but-wrong = `Got 10`. The
+  two downstream OBT models that join these products inherited the wrong values
+  (`obt_product_inventory Got 32`, `obt_sales_overview Got 18`) — both PASS at baseline.
+- **Classification: NOT inert / NOT a flip — "closer on coverage, but net worse."** The coverage
+  arbitrator is correct *as far as it goes* (it forced the dropped keys back in), but the real
+  ana-eng007 answer also requires the *correct VALUES* for those rows — a quantity the local
+  raw-source anti-join cannot supply, and which lives only in the hidden seed. The rule moved the
+  edit shape but could not steer the value-level transform; recovering coverage alone surfaced 5
+  wrong-valued rows that the coverage drop had been hiding.
+
+**Canary holds (AC-3, over-preservation check).** All 3 perturbable ana-eng canaries
+(ana-eng001/002/003) + f1001 + asana001 + airbnb001 held PASS — the coverage rule did **not**
+over-preserve rows on models that legitimately filter/dedup. The "does not force ADD rows; a
+legitimate business-rule filter is fine" caveat in the rule held on those cells.
+
+**quickbooks002 regression — diagnosed, and NOT caused by the lever.** quickbooks002 dropped 3
+graded models below their solution column-count ("has less columns than solution__…",
+Compilation Error on the union/ap_ar_enhanced equality tests). The committed patch shows the
+cause is the `using_department` removal (the solver deleted the `department_name` column the
+solution keeps) — the known quickbooks fix-it-completeness "has-less-columns" hidden-test trap
+(MEMORY: AUTO_*_equality tests are hidden; quickbooks needs a completeness lever). The h0036
+coverage rule **never fired** on quickbooks002: grep of the solver session for the rule's
+signature (id→integer narrowing cast, coverage anti-join, raw-source reconcile) found **zero**
+id-key edits; quickbooks002 has no per-source-key id model with a type change. This is
+single-trial gpt-5.5@xhigh variance on a brittle quickbooks task, independent of the lever.
+**Per the smoke gate it is still a NO-GO** ("a canary dropping FAIL is a NO-GO regardless"),
+and the verdict is over-determined: even with quickbooks002 set aside, zero target flips +
+worsened primary-target distance is a clean falsification.
+
+**Why it joins the dead-prose / oracle ceiling.** This was shaped like the LANDED h0019
+(concrete edit-shape rule + local structural signal), and unlike the dead self-anchored verify
+family it *did* fire and *did* change the artifact correctly on its own terms. The wall it hit
+is the deeper one (MEMORY: verification-without-an-oracle): the local raw-source anti-join is a
+genuine independent coverage check, but ana-eng007's answer needs both coverage AND the correct
+per-row VALUES, and the value target is the hidden-seed quantity no local relation can recompute.
+Recovering coverage with locally-derivable-but-wrong values moved `Got 5 → Got 10`. The lever
+falsifies the coverage-framing-suffices claim: coverage was the *visible* half of the bug, not
+the whole bug.
+
+**WORKFLOW-REFINE note (step 7, explicit).** This lever is an IN-STAGE Implementation rule
+tweak (one additive hunk inside `## Stage: Implementation`), NOT a structural/protocol change
+(no new/removed/reordered stage, no protocol-family). Per the README's
+workflow-refinement-evaluation gate and the assignment, the
+`_artifacts/WORKFLOW-REFINE.md` step does **NOT** apply. The in-stage learning (coverage rule
+fires, recovers coverage, but cannot supply hidden-seed VALUES → `Got 5 → Got 10`) is recorded
+here and belongs to the instruction-lever taxonomy, not the structural log.
+
+## Stage Report: smoke
+
+- DONE: Pre-flight `rk run --explain` confirms 9-task plan + frozen solver_workflow hash
+  9 tasks, concurrency 1, `spacedock_solver`/`codex`/gpt-5.5/xhigh, frozen hash `sha256:a676c49611ef9132993c467f74dae70fd71fda69385dd77c8736fb22e67821a9`; the inserted coverage rule + BEFORE/AFTER skeleton present in the composed prompt; `trials: 1` (both blocks).
+- DONE: Launch the smoke run DETACHED (trials:1, NOT raised)
+  nohup PID 2785465 → run-dir `c51545c270b51f6d`; log `/tmp/rk-h0036-smoke.log`.
+- DONE: POLL IN-TURN across this turn until the run exits
+  Polled `kill -0`/`result.json` per cell in-turn (no Monitor-then-yield); PID exited after 1h06m; 9/9 cells produced `result.json`.
+- DONE: `rk audit --policy strict` (tainted:0, captured>0) + `rk score`
+  Audit `{clean: 9, tainted: 0, coverage_missing: 0}`, every cell `captured=1`; score `stratified_pass_at_1 = 0.6667` (smoke panel; not the 48-task baseline). Both recorded in ## Smoke result.
+- DONE: DECISIVE artifact read (inert-vs-landed) for ana-eng007 (+ medium)
+  Committed `dim_products` (apply_patch + solver's own `dbt show`): coverage recovered (45 rows / 45 distinct = raw-source 45; anti-join empty; the 5 md5-hashed rows APPEAR). NOT inert. But target still FAIL — distance `Got 5 → Got 10` (5 recovered rows carry WRONG values) + obt models `Got 32`/`Got 18`. ana-eng007-medium identical shape, still FAIL.
+- DONE: ZERO regression check vs @baseline (622bdedac572b479)
+  ana-eng001/002/003, f1001, asana001, airbnb001 all HOLD PASS (coverage rule did not over-preserve). quickbooks002 PASS → FAIL (3 equality tests Compilation-Error "has less columns"); diagnosed as the `using_department`-removal hidden-column trap, lever NEVER fired on quickbooks (zero id-key edits) — single-trial variance, but a canary regression = NO-GO regardless.
+- DONE: Write ## Smoke result (flip/distance/why table + clean-audit attestation) and ## Behavioral analysis (committed dim_products coverage read + canary holds); state WORKFLOW-REFINE does NOT apply
+  Both sections written; WORKFLOW-REFINE explicitly N/A (in-stage Implementation rule tweak, not structural/protocol).
+- DONE: Plain-words go/no-go to the captain, leading with verdict + one-line reason
+  Delivered below as the completion message context: NO-GO / REJECTED.
+
+### Summary
+
+Smoke is a clean falsification. The lever was NOT inert — it reached the committed
+`dim_products` and recovered full source-key coverage exactly as the hypothesis predicted
+(40 → 45 rows; anti-join empty; the 5 md5-hashed source rows recovered). But coverage was only
+the *visible* half of the ana-eng007 bug: the 5 recovered rows carry wrong VALUES (the hidden
+seed quantity no local relation can recompute), so the equality distance got WORSE (`Got 5 →
+Got 10`) and two downstream OBT models regressed. Neither target flipped. Independently,
+quickbooks002 regressed PASS→FAIL via the unrelated `using_department` hidden-column trap
+(the lever never fired there). NO-GO on both grounds; CAPPED one-shot, no iteration → conclude
+(REJECTED). Audit clean (tainted:0, captured>0 every cell) before the score was trusted.
