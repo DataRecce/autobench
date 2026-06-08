@@ -112,6 +112,37 @@ fired-and-failed cells = inert = REJECTED.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — exactly one new observe-only `## Stage:` added; leak-guard byte-identical;
+specs differ only in the two allowed fields (+ smoke `benchmark.tasks`); no integrity FAIL. Only WARN is
+the self-declared G7 inertness risk (a process artifact told it changes nothing), mitigated by on-disk
+`apply_patch` + a `dbt show` key-count probe per model + `test -f` presence check on the failers.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-08). Reviewed 2026-06-08T12:30Z.
+
+Fork parent resolved & cross-checked: `source:` names `solver_workflows/codex-ade-dbt-minimal`; `@baseline`
+= `runs/ade-bench-baseline/622bdedac572b479` whose `spec.frozen.yaml` `solver_workflow:` is
+`solver_workflows/codex-ade-dbt-minimal` — agree, so G1/G6 evaluable against the right parent.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff codex-ade-dbt-minimal/README.md h0039/README.md` = `49a50,99` — pure insertion of exactly one `## Stage: Observe (debug lens — observe-only, changes nothing)`; no line removed/modified; falls between Exploration and Implementation as claimed. |
+| G2 leak-guard intact | PASS | Lines 1–32 (no-fetch + dependency/package guardrails) byte-identical to parent. Grep over the 50 added lines for `AUTO_ \| solution__ \| check_ \| verifier \| equality test \| Got N \| row count \| curl \| wget \| git clone \| git ls-remote \| web fetch \| published solution` → the only hit is `no "build to satisfy" mandate` (a negation/disclaimer, not a directive). Record target is the sanctioned non-graded notes location only. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0039.yaml` shows only `experiment:` (→`ade-bench-h0039-observe-only-debug-lens`) and `solver_workflow:` (→`./solver_workflows/h0039-observe-only-debug-lens`). `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0039.yaml h0039.smoke.yaml` shows only an added `benchmark.tasks:` block (`23a24,35`); all 8 slugs `ade-bench-`-prefixed; includes both record-presence cells the `## Hypothesis` names (asana004, intercom001) + the cross-family Got-N tripwires. |
+| G5 both frozen | PASS | `h0039-observe-only-debug-lens.frozen.yaml` + `…smoke.frozen.yaml` both written; both carry `kind: spacedock_solver`, `runtime: codex`, `trials: 1`; smoke frozen lists 8 tasks. |
+| G6 resolver fidelity | PASS | Inserted text matches the claim: observe-only stage, writes a `Contract:`/`divergence` reasoning record to the non-graded notes location, then "build EXACTLY as you would without this stage… not a gate… no build-to-satisfy mandate… must not rewrite, re-select, or hold back any committed model." NOT self-anchored verification (it records belief; it does not re-run/compare/drive-to-zero the solver's own derivation) — the dead h0006/h0007/h0008 phrasings are absent. No scope creep. |
+| G7 actionability/inert-risk | WARN | Process artifact the solver is told changes nothing → G7-high inertness in the data-quality sense (the kill-path the hypothesis itself names). Mitigated: written via on-disk `apply_patch` (artifact must exist, not just be discussed) + ≥1 `dbt show` key-count probe per model + smoke `test -f` non-empty check on the fired-and-failed cells. Class: process-record (not a SQL restructure, not a build/deliverable-completion rule). Surfaced for the captain; never blocks the gate. |
+| G8 regression-canary coverage | PASS | Generative (fires on every author/restructure/repair task). Smoke panel carries a Got-N tripwire from every family that HAS an `@baseline` passer: airbnb001 / ana-eng001 / asana001 / f1007 / quickbooks002 (all reward=1.0). intercom has **no** `@baseline` passer (all 3 FAIL, 31/48) so no intercom tripwire is possible — recorded in the spec comment, not an omission. For asana (the family sharing the targets' authoring construct) a 2nd perturbable passer asana003 (reward=1.0) is carried per the ≥2 rule. Because the lever is observe-only by construction (changes no committed SQL), the success criterion is **Got N UNCHANGED**, not a flip — the panel is a contamination tripwire, exactly what G8 exists to protect. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol — single session, one build, no candidate set. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever. The stage explicitly does NOT act on disagreement ("must not rewrite, re-select, or hold back any committed model to make it agree with the record") — there is no fix-on-disagreement path to false-green. |
+| G11 multi-model-target risk | N/A | No flip target by construction — this is a method instrument expected to flip 0 tasks; the verdict is inverted (Got N unchanged = success). No single-model-flip-as-variance hazard. |
+
+**For the captain:** No integrity FAIL — APPROVE-class. The single live concern is the self-declared G7
+inertness (an artifact told it changes nothing has weak production pressure; h0031 already skipped
+process artifacts on easy passers). The smoke `test -f` non-empty check on asana004 + intercom001 is the
+inertness kill (absent/empty record there = REJECTED); any Got-N movement on a sampled passer is the
+contamination kill (= NO-GO). intercom carries no Got-N tripwire because the family has zero `@baseline`
+passers — accepted, not a coverage gap.
+
 ## Smoke result
 
 ## Run result
@@ -119,3 +150,37 @@ fired-and-failed cells = inert = REJECTED.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: README change is EXACTLY ONE new observe-only `## Stage:` header inserted between Exploration and Implementation — NO build-to-satisfy mandate, NO gate; the leak-guard prose (~lines 1-32) and the four existing stages byte-identical to codex-ade-dbt-minimal/README.md (AC-1).
+  `diff codex-ade-dbt-minimal/README.md h0039/README.md` = `49a50,99` (pure insertion, nothing removed/modified). New stage states "build EXACTLY as you would without this stage… not a gate… no build-to-satisfy mandate… must not rewrite, re-select, or hold back any committed model." Spec diff = only `experiment:` + `solver_workflow:`.
+- DONE: Smoke spec `benchmark.tasks` is a CONTAMINATION panel (generative stage) — ≥1 currently-passing @baseline task from each family with a passer as Got-N tripwires, PLUS the fired-and-failed record-presence cells ade-bench-asana004 and ade-bench-intercom001.
+  8 tasks: airbnb001 / ana-eng001 / asana001 / asana003 / f1007 / quickbooks002 (all reward=1.0 → Got-N tripwires) + asana004 / intercom001 (reward=0.0 → `test -f` record-presence cells). intercom has NO @baseline passer (all 3 FAIL) so no intercom tripwire is possible — recorded in the spec comment.
+- DONE: Gatekeeper run; a `## Gatekeeper review` block with a per-rule PASS/WARN/FAIL table + overall APPROVE/REVISE/REJECT recommendation written into the hypothesis file.
+  Recommendation **APPROVE** (no integrity FAIL); one WARN = self-declared G7 inertness, mitigated by on-disk apply_patch + dbt show key-count probe per model + smoke `test -f`. Gatekeeper run in-process (ensign cannot spawn a further subagent), applying `_gatekeeper/propose-review-guideline.md` to the diffs/frozen artifacts; fork parent cross-checked (source == @baseline solver_workflow == codex-ade-dbt-minimal).
+
+### Smoke-set table (for the captain — gate presentation)
+
+This is an **observe-only / generative** lever expected to flip **0** tasks by construction; SUCCESS = **Got N UNCHANGED** on every sampled passer (contamination tripwire), AND the `plan_review.json` record present & non-empty on the fired-and-failed cells (inertness kill). The "Should pass in smoke?" column reads "must stay PASS / Got N unchanged" for tripwires (movement = contamination = NO-GO) and "record present (still FAIL)" for the two failer cells.
+
+```
+┌─────────────────────────┬──────────┬──────────────────────────────┬──────────────────────────────────────────────────────────┐
+│          Task           │ Baseline │     Should pass in smoke?    │                  Role / why we picked it                   │
+├─────────────────────────┼──────────┼──────────────────────────────┼──────────────────────────────────────────────────────────┤
+│ ade-bench-airbnb001     │ ✅ PASS  │ ✅ stay PASS, Got N unchanged │ Canary (airbnb) — Got-N contamination tripwire.            │
+│ ade-bench-ana-eng001    │ ✅ PASS  │ ✅ stay PASS, Got N unchanged │ Canary (ana-eng) — Got-N contamination tripwire.          │
+│ ade-bench-asana001      │ ✅ PASS  │ ✅ stay PASS, Got N unchanged │ Canary (asana) — Got-N contamination tripwire.            │
+│ ade-bench-asana003      │ ✅ PASS  │ ✅ stay PASS, Got N unchanged │ 2nd asana perturbable canary (construct family) per G8.   │
+│ ade-bench-f1007         │ ✅ PASS  │ ✅ stay PASS, Got N unchanged │ Canary (f1) — Got-N contamination tripwire.               │
+│ ade-bench-quickbooks002 │ ✅ PASS  │ ✅ stay PASS, Got N unchanged │ Canary (quickbooks) — Got-N contamination tripwire.       │
+│ ade-bench-asana004      │ ❌ FAIL  │ ❌ stay FAIL; record present  │ Fired-and-failed cell — `test -f plan_review.json` (asana).│
+│ ade-bench-intercom001   │ ❌ FAIL  │ ❌ stay FAIL; record present  │ Fired-and-failed cell + only intercom coverage (no passer).│
+└─────────────────────────┴──────────┴──────────────────────────────┴──────────────────────────────────────────────────────────┘
+```
+
+Net hoped for: **0 flips, 0 regressions** — every passer holds with Got N byte-unchanged (gate-strip held), and `plan_review.json` is present & non-empty on asana004 + intercom001 (lens did not go inert). Any Got-N movement on a passer = contamination = NO-GO; absent/empty record on the failers = inert = REJECTED. intercom has no @baseline passer, so it contributes only the failer cell. ETA ≈ 8 tasks × ~9 min ≈ **~70–75 min**, detached (nohup) — no need to wait on-screen.
+
+### Summary
+
+Built the WORKFLOW-REFINE Opening #2 observe-only debug lens. Forked `codex-ade-dbt-minimal` → `h0039-observe-only-debug-lens`; the single change is one new observe-only `## Stage: Observe` between Exploration and Implementation that always writes a machine-readable `plan_review.json` (Contract/divergence: grain, columns, types, divergence + a `dbt show` key-count per model) to the sanctioned non-graded notes location via on-disk apply_patch, then explicitly builds EXACTLY as baseline — no gate, no build-to-satisfy mandate, changes no committed SQL. Full spec differs from baseline only in `experiment:` + `solver_workflow:`; smoke spec adds an 8-task contamination panel; both frozen with kind/runtime/trials preserved. Gatekeeper: APPROVE, sole WARN is the self-declared G7 inertness (mitigated). The decisive smoke reads are inverted from a flip-seeker: Got N unchanged on the 6 passers (contamination tripwire) + plan_review.json present/non-empty on asana004 + intercom001 (inertness kill).
