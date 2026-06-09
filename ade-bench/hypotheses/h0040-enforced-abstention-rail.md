@@ -215,22 +215,48 @@ an explicit "derived, not free-form" instruction — downstream readers must be 
 
 ## Verdict
 
-**REJECTED-inert (route to conclude).** The decisive G7 read fails: the enforced revert **never fired** on
-any of the 5 oracle-only cells (well-formed triage, `abstain=false` everywhere, zero `reverted_files`) — the
-gate is inert on exactly the cells it was designed for, the same wall as h0031, reached through
-solver-self-graded trigger clauses rather than an empty abstention list. The G10 read is clean (0 wrong
-reverts, 0 passer regressions across 8 passers incl. 4 perturbable canaries), and net flips = 0 by
-construction (`stratified_pass_at_1 0.6154 = 8/13`, strict-audit clean, captured>0 on all 13). So M2 is
-**provably bleed-free but its protective value is unobservable standalone** — the minimal @baseline does not
-bleed, so there is nothing for the rail to guard or to wrong-revert. **Learning for M2 as an enforcement
-primitive:** an "enforced revert" expressed as README prose is structurally inert against an oracle gap in
-the same way the read-only checking levers are, because the AND-of-NOTs is only as independent as its
-clauses — and clause-1/clause-3 are solver-self-graded. For the revert to fire usefully, at least one clause
-must be evaluated by something the solver cannot talk itself out of (independent redundancy). **Disposition:**
-bank the spec; do NOT re-run standalone on the minimal baseline; M2's only real test is bolted onto a future
-flip-seeking generative lever that actually bleeds (it would there guard a live regression or wrong-revert —
-the minimal baseline can show neither). Full structural learning + the 4th schema-drift observation recorded
-in `_artifacts/WORKFLOW-REFINE.md`.
+**REJECTED-inert — knowledge gain. Terminal; no follow-up filed.** The decisive G7 read fails: the enforced
+revert **NEVER FIRED**. On all 5 oracle-only Panel-A cells (asana004, intercom001, ana-eng004, f1002,
+ana-eng007) `abstain=false` on every claim → zero `reverted_files`, reward unchanged at 0.0 — the gate is
+inert on exactly the cells it was designed for. The cause is precise: the solver **self-credits clause-1
+(instruction-names-it)** as `true` wherever the task surface-names a column/grain/target (asana004 4/4;
+f1002 5/5 instr + schema via `__stats.yml`) and **self-credits clause-3 (raw-probe-decided-it)** as `true`
+(intercom001 4/6, ana-eng004 2/3, ana-eng007 1 claim on raw alone), so the mechanical `abstain = NOT instr
+AND NOT schema AND NOT raw` is never all-true. This is **NOT h0031's empty `abstained_claims:[]`**
+(permission-not-fired) — it is a fully-instantiated AND-of-NOTs that evaluates to NO-abstain because the
+clause EVALUATION is itself model-discretionary and self-credited. **It is h0031's discretionary wall in a
+NEW place:** not permitted-vs-enforced, but the trigger booleans the enforcement derives from are themselves
+discretionary self-reads, so deriving `abstain` mechanically buys nothing when its inputs are not
+independent.
+
+**The revert primitive is BLEED-FREE (the banked result).** The G10 read is clean: all **8/8 Panel-B passers
+held reward 1.0 with zero wrong reverts**, including the **4 perturbable canaries** (ana-eng002 +
+ana-eng002-medium on `AUTO_obt_product_inventory`; asana003 on the asana004 target intermediate
+`AUTO_int_asana__project_user`; plus the f1007/f1001 convention-bleed tripwires) — zero passer regressed. The
+`abstain==true`-gated revert scoping held trivially (nothing was ever reverted). **Audit clean 13/13**
+(strict, `tainted 0/13`), captured>0 on all 13, `stratified_pass_at_1 = 0.6154` (8/13), net flips vs
+@baseline = **0 by construction**. **@baseline is UNCHANGED at runs/ade-bench-baseline/622bdedac572b479
+(31/48); NOTHING promoted.**
+
+**Learning for M2 as an enforcement primitive:** an "enforced revert" written as README prose is structurally
+inert against an oracle gap the same way the read-only checking levers are, because the AND-of-NOTs is only
+as independent as its clauses — and clause-1/clause-3 are solver-self-graded. For the revert to fire
+usefully, at least one clause must be evaluated by something the solver cannot talk itself out of
+(independent redundancy — the standing `verification-without-oracle` requirement). **Disposition:** the
+bleed-free spec is **BANKED**; do NOT re-run standalone on the minimal @baseline (its protective value is
+unobservable there — the minimal baseline does not bleed, so there is nothing to guard or to wrong-revert).
+M2's only real test is bolted onto a future flip-seeking generative lever that actually bleeds — there it
+would either guard a live regression (value) or wrong-revert (inverted false-green); the minimal baseline can
+show neither. Full structural learning + the 4th schema-drift observation recorded in
+`_artifacts/WORKFLOW-REFINE.md`.
+
+**Program-level close.** h0040 is the LAST of the Round-2 workflow-stage set (h0037–h0041); all five ran
+through smoke with **0 flips**. The oracle/discretionary wall held across every R2 lens — reference-mining
+(h0037), plan-review/Method-B (h0038), observe-only (h0039 routing-dead / h0041 routing-fixed), and the
+enforced rail (h0040). The durable yield is method/safety knowledge: the stdout/session-transcript routing
+fix (h0041, held 4× through h0040), the pinned-schema necessity (4th schema-drift sighting here), the
+anti-bleed proof (h0040 G10, h0037 own-sibling gate), and this enforcement-inert finding. No 6th hypothesis
+is reflexively filed — the next-direction strategy decision is escalated to the captain.
 
 ## Stage Report: propose
 
@@ -302,3 +328,41 @@ strict-audit clean, captured>0 on all 13, net flips 0 by construction (`stratifi
 is provably bleed-free but its protective value is unobservable on the non-bleeding minimal @baseline — its
 real home is bolted onto a future flip-seeking generative lever. Bank the spec; do not re-run standalone.
 Routing reused from h0041 worked on all 13; the pinned record shape drifted (4th schema-drift instance).
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict`: REJECTED-inert — knowledge gain.
+  States plainly the enforced revert NEVER FIRED — `abstain=false` on all 5 oracle-only cells because the
+  solver self-credits clause-1 (instruction-names-it) and clause-3 (raw-probe-decided-it) as true, so the
+  AND-of-NOTs is never all-true; h0031's discretionary wall in a NEW place (clause EVALUATION is itself
+  model-discretionary + self-credited, not permitted-vs-enforced). Revert primitive BLEED-FREE (G10 clean:
+  8/8 passers held, 0 wrong reverts incl. 4 perturbable canaries). Audit clean 13/13, score 0.6154 (net 0).
+  @baseline UNCHANGED 31/48 (NOT promoted). Bleed-free spec BANKED for a future flip-seeking pairing.
+- DONE: Finalize the `_artifacts/WORKFLOW-REFINE.md` h0040 entry to a FINAL state (h0040 IS a NEW-STAGE structural lever — mandatory).
+  Added the leading `**Status:** rejected-as-written` line (enforcement inert via self-credited clauses;
+  revert primitive bleed-free + bankable). Sharpened the Learning line (an enforced-abstain trigger as
+  README prose cannot compel abstention because the clause evaluation is model-discretionary and the solver
+  self-credits a clause true → same discretionary wall as h0031, NEW mechanism). Bears-on now records: the
+  bleed-free revert primitive is reusable for a future flip-seeking-lever pairing; 4th schema-drift sighting
+  → pinned-schema necessity reconfirmed; routing held a 4th time; the program-level close.
+- DONE: Confirm @baseline NOT promoted (registry untouched) + NO new follow-up hypothesis filed + record the PROGRAM-LEVEL close.
+  @baseline run-dir `runs/ade-bench-baseline/622bdedac572b479` (31/48) intact; baseline specs untouched (my
+  only diffs are this entity file + WORKFLOW-REFINE.md). Highest active hypothesis is h0041 — no h0042
+  exists. Program-level close recorded in both the `## Verdict` and the ledger Bears-on: h0040 is the LAST
+  of the R2 workflow-stage set (h0037–h0041); all five smoked with 0 flips; the oracle/discretionary wall
+  held across reference-mining / plan-review-Method-B / observe-only / enforced-rail; durable yield is
+  method/safety knowledge (routing fix, schema-drift, anti-bleed proof, enforcement-inert finding). No 6th
+  filed; next-direction decision escalated to the captain.
+
+### Summary
+
+Terminal conclude for h0040 (captain-decided REJECTED). Wrote the terminal `## Verdict` (REJECTED-inert —
+knowledge gain): the enforced revert never fired because the AND-of-NOTs trigger booleans are themselves
+model-discretionary and self-credited true (clause-1 instruction + clause-3 raw-probe) — h0031's
+discretionary wall via a new mechanism — while the revert primitive is provably bleed-free (G10 clean, 8/8
+passers incl. 4 perturbable canaries) and is BANKED for a future flip-seeking pairing. @baseline unchanged at
+31/48; nothing promoted; no follow-up filed. Finalized the mandatory WORKFLOW-REFINE.md new-stage entry to a
+FINAL `rejected-as-written` state with sharpened Learning + Bears-on (4th schema-drift / pinned-schema
+reconfirmed; routing held 4×; program-level close). h0040 is the last of the R2 set h0037–h0041 — all five
+0-flip; the next-direction strategy decision is escalated to the captain. Pure documentation finalization; no
+`rk` command re-run; the FO sets verdict frontmatter + archives after this report.

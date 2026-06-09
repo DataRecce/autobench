@@ -865,6 +865,12 @@ or a dispatched worker, never a direct first-officer edit.
 
 
 ### Enforced abstention rail (Track Z / M2): the REVERT never fires — clause-1/clause-3 self-credit collapses the AND-of-NOTs, so the gate is inert on every oracle-only cell (h0040 smoke REJECTED-inert, 2026-06-09)
+- **Status:** **rejected-as-written** — new-stage structural lever (the 5th `## Stage:`, a pre-commit
+  enforced-abstention triage gate, the ONLY R2 lever that ACTS) tested and cleanly falsified at smoke
+  (no full run). Terminal. REJECTED-inert: the enforcement is inert on every oracle-only cell (the named
+  G7 kill-path fired) while the revert primitive is provably **bleed-free** (G10 clean) and therefore
+  **bankable** for a future flip-seeking-lever pairing. @baseline UNCHANGED at 31/48
+  (`runs/ade-bench-baseline/622bdedac572b479`); NOTHING promoted; no follow-up filed.
 - **Layer:** solver workflow
 - **Refinement type:** new stage (a 5th `## Stage: Pre-commit abstention triage (enforced)` between
   Validation and Finalization — the ONLY R2 lever that ACTS: it mechanically reverts edits when a fixed
@@ -899,27 +905,39 @@ or a dispatched worker, never a direct first-officer edit.
   FLATTENED to `{formula, claims:[{name, instruction, schema_yml, raw_source_probe, abstain}]}` (no
   `reverted_files`, added `formula`/`name`); ana-eng002 emitted `{"claims":[]}`. The durable stdout/
   session-transcript ROUTING worked on all 13 (the h0041 fix holds); it is the record SHAPE that drifts.
-- **Learning:** an "enforced revert" written as README prose is **structurally inert against an oracle gap
-  the same way the read-only levers are** — because the gate's own trigger is solver-self-graded. The two
-  clauses that are *not* independent (clause-1 instruction, clause-2 schema) are read generously
-  (surface column-naming counts as "names the deciding quantity"), and the one independent clause
-  (clause-3 raw-source probe) gets self-credited as "decides it," so abstain≈never. The h0031 wall is not
-  beaten by *deriving* abstain from booleans when the booleans themselves are discretionary self-reads.
-  **For the AND-of-NOTs to fire, at least one clause must be evaluated by something the solver cannot
-  talk itself out of** — i.e. the same independent-redundancy requirement as every checking lever
-  ([[verification-without-oracle-real-world]]). On the safety side this is the *good* failure: M2 is
-  PROVABLY bleed-free (0 wrong reverts across 8 passers incl. 4 perturbable canaries) — but its protective
-  value is **unobservable** standalone (the minimal @baseline does not bleed, nothing to revert), exactly
-  the entity's honest framing. **M2's only real test is bolted onto a future flip-seeking generative lever
-  that actually bleeds** — there it would either guard a live regression (value) or wrong-revert
-  (inverted false-green); the minimal baseline can show neither. Banking the spec is correct; running it
-  again standalone is not.
-- **Bears on:** the R2 enforcement-primitive question — do NOT file another standalone enforced-revert
-  on the minimal baseline (it cannot fire usefully and cannot show protective value). Pair M2 with a
-  bleeding generative lever, or first make clause evaluation non-self-graded. Same wall as h0031
-  (abstention permitted-not-fired) and the whole blind-to-oracle family. The schema-drift recurrence
-  (4th instance) says: a PINNED record shape in prose is NOT reliably honored by gpt-5.5@xhigh even with
-  an explicit "derived, not free-form" instruction — readers must be schema-tolerant.
+- **Learning:** an "enforced-abstain trigger as README prose cannot compel abstention because the clause
+  evaluation is itself model-discretionary and the solver self-credits a clause true** — so the enforced
+  revert is **structurally inert against an oracle gap the same way the read-only levers are.** This is the
+  **same discretionary wall as h0031, reached through a NEW mechanism:** h0031 died at
+  *permission-not-fired* (`abstained_claims:[]`); h0040 dies at *the clause booleans the enforcement derives
+  from are themselves discretionary self-reads* — the two non-independent clauses (clause-1 instruction,
+  clause-2 schema) are read generously (surface column-naming counts as "names the deciding quantity") and
+  the one independent clause (clause-3 raw-source probe) is self-credited as "decides it," so abstain≈never.
+  The h0031 wall is NOT beaten by *deriving* abstain from booleans when the booleans are discretionary.
+  **For the AND-of-NOTs to fire, at least one clause must be evaluated by something the solver cannot talk
+  itself out of** — the same independent-redundancy requirement as every checking lever
+  ([[verification-without-oracle-real-world]]). On the safety side this is the *good* failure: the revert
+  PRIMITIVE is PROVABLY bleed-free (0 wrong reverts across 8 passers incl. 4 perturbable canaries; G10
+  clean) — but its protective value is **unobservable** standalone (the minimal @baseline does not bleed,
+  nothing to revert), exactly the entity's honest framing. **M2's only real test is bolted onto a future
+  flip-seeking generative lever that actually bleeds** — there it would either guard a live regression
+  (value) or wrong-revert (inverted false-green); the minimal baseline can show neither. Banking the spec
+  is correct; running it again standalone is not.
+- **Bears on:** the R2 enforcement-primitive question — do NOT file another standalone enforced-revert on
+  the minimal baseline (it cannot fire usefully and cannot show protective value). **The bleed-free revert
+  primitive is REUSABLE for a future flip-seeking-lever pairing** (pair M2 with a bleeding generative lever,
+  or first make clause evaluation non-self-graded); same wall as h0031 (abstention permitted-not-fired) and
+  the whole blind-to-oracle family. **4th schema-drift sighting → pinned-schema necessity reconfirmed:** a
+  PINNED record shape in prose is NOT reliably honored by gpt-5.5@xhigh even with an explicit "derived, not
+  free-form" instruction (after h0041 / h0038 / h0037), so an enforced consumer must derive its decision
+  from clause content, not a literal field — readers must be schema-tolerant. **Routing held a 4th time:**
+  the h0041 stdout/session-transcript write-path delivered the record on all 13 cells; it is the standing
+  durable write-path. **Program-level close:** h0040 is the LAST of the R2 workflow-stage set
+  (h0037–h0041); all five ran through smoke with 0 flips — the oracle/discretionary wall held across
+  reference-mining (h0037), plan-review/Method-B (h0038), observe-only (h0039/h0041), and the enforced rail
+  (h0040). The durable yield is method/safety knowledge (routing fix, schema-drift, anti-bleed proof,
+  enforcement-inert finding), not a pass-rate flip. The next-direction strategy decision is escalated to the
+  captain; no 6th hypothesis is reflexively filed.
 - **Evidence:** entity `hypotheses/h0040-enforced-abstention-rail.md`; run
   `runs/ade-bench-h0040-enforced-abstention-rail/41c556510ff753a7` (strict audit clean, 8/13);
   @baseline `runs/ade-bench-baseline/622bdedac572b479` (Panel A all 0.0, Panel B all 1.0). MEMORY:
