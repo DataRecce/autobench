@@ -148,9 +148,106 @@ target); a single canary dropping FAIL is a NO-GO regardless of any target flip.
 
 ## Smoke result
 
+**Go/No-Go: GO → full (reach finding, not a flip).** The Reference-Mining stage is NOT inert and
+NOT a green-but-inert false positive: on the target ana-eng004 it produced a filled, concrete
+`Analog:` citation AND that analog's construction (the OBT fact-spine + left-join-dim skeleton)
+REACHED the committed `obt_product_inventory.sql`. **0 flips, 0 regressions** — the target stayed
+FAIL at the byte-identical width wall (predicted), all 7 passers held including f1001, and the
+own-sibling-first gate is artifact-proven to avoid the h0023 convention-bleed. The decision rests on
+attribution (the analog reached the SQL), not the score.
+
+Run: `runs/ade-bench-h0037-reference-mining-stage/6671b5e449bd0975`.
+Strict audit: **clean — `tainted: 0` across all 10 cells**; `captured = 1` on all 10.
+Score: `stratified_pass_at_1 = 0.70` (7/10) = the baseline split of this panel (paper-baseline
+`above`). Every smoke cell matched its `@baseline` reward exactly (paired, slug-for-slug):
+
+| Task | Baseline | Smoke | Δ | RM stage fired? | Distance (smoke vs @baseline) |
+|------|----------|-------|---|-----------------|-------------------------------|
+| ade-bench-ana-eng004 (target) | ❌ 0 | ❌ 0 | no flip | **YES — cited `obt_sales_overview.sql:1-78` (own_sibling), construction reached SQL** | "has less columns" — **byte-identical** to @baseline (width oracle wall) |
+| ade-bench-ana-eng002 | ✅ 1 | ✅ 1 | hold | no (repair: "fix the syntax error") — gate correctly skipped | 2/2 PASS |
+| ade-bench-ana-eng002-medium | ✅ 1 | ✅ 1 | hold | no (repair: "fix the error") — gate correctly skipped | 2/2 PASS |
+| ade-bench-ana-eng005 | ✅ 1 | ✅ 1 | hold | no (repair: dedup `fact_inventory` to one row/inventory_id) — gate correctly skipped | 3/3 PASS |
+| ade-bench-airbnb001 | ✅ 1 | ✅ 1 | hold | no (repair: compilation-error fix) — gate correctly skipped | held |
+| ade-bench-asana001 | ✅ 1 | ✅ 1 | hold | no (config repair: Fivetran package; 0 SQL changed) | held |
+| ade-bench-f1001 | ✅ 1 | ✅ 1 | hold | **YES — found NO own sibling, did NOT bleed a package; cited the project's own `source('f1_dataset',…)` convention** | **6/6 PASS** (incl. the 3 tests h0023 bled) |
+| ade-bench-quickbooks002 | ✅ 1 | ✅ 1 | hold | no (config repair: remove `using_department` var) | held |
+| ade-bench-intercom001 (reach) | ❌ 0 | ❌ 0 | no flip | (reach read) | `Got 7` — byte-identical to @baseline |
+| ade-bench-intercom003 (reach) | ❌ 0 | ❌ 0 | no flip | (reach read) | `Got 7` — byte-identical to @baseline |
+
+**Routing (3rd validation after h0041/h0038): HELD.** On both cells that authored a model
+(ana-eng004 target, f1001 creation/mixed), the stage wrote `/tmp/reference_mining.json` via
+`apply_patch` AND `cat`-ed it to stdout, recovered from `agent/sessions/2026/06/09/*.jsonl`. The
+`/tmp` scratch is correctly absent from the run-dir (torn down); the durable copy is the stdout in
+the session transcript — the standing observe-only write-path, re-confirmed a third time. The
+free-form record **schema DRIFTED** under gpt-5.5 (3rd sighting after h0041/h0038): ana-eng004 used
+the spec keys (`analog`/`from_relation`/`join_ladder`/`spine_key_source`); f1001 used a different
+shape (`records[]`/`task_classification`/`closest_own_same_layer_sibling`/`construction_skeleton`).
+The semantic content (cited analog + construction facts) is recoverable in both.
+
 ## Run result
 
 ## Behavioral analysis
+
+**(a) ATTRIBUTION — the decisive read (the analog construction REACHED the committed SQL; NOT
+green-but-inert, NOT inert-prose).** On ade-bench-ana-eng004 the stage fired fully and concretely:
+
+- The cited record (recovered from the `apply_patch` + `cat`-to-stdout in the session transcript):
+  `analog: "models/analytics_obt/obt_sales_overview.sql:1-78"`, `analog_source: "own_sibling"`,
+  `grain: "one row per inventory item … key column inventory_id"`,
+  `from_relation: "{{ ref('fact_sales') }} s"`, `join_ladder` = dim_customer/dim_employees/dim_products,
+  `spine_key_source: "{{ ref('fact_sales') }}"`, `window_group_by: "none"`. The solver's own
+  commentary: *"Reference mining will use `obt_sales_overview.sql` as the own-sibling analog. The new
+  model will stay at the inventory fact grain, with `fact_inventory` as the spine and a left join to
+  product details."*
+- The committed `obt_product_inventory.sql` (`apply_patch` payload):
+  `WITH source AS (SELECT i.inventory_id, …, p.product_code…p.category, p.attachments, …
+  FROM {{ ref('fact_inventory') }} i LEFT JOIN {{ ref('dim_products') }} p ON p.product_id =
+  i.product_id) SELECT * FROM source`. The analog's **construction shape** (OBT fact-spine + LEFT
+  JOIN dim, `SELECT *` from a single `source` CTE) reached the SQL, and the solver correctly adapted
+  the spine to the target's own `fact_inventory` (NOT a verbatim `fact_sales` copy) — the
+  "same-layer, same-shape only / copy shape not contents" guards worked as written. It even adopted
+  one analog column convention (`p.attachments`, present in `obt_sales_overview`, absent in the
+  baseline target). **This clears the two failure bars that sank prior levers: it is not h0010/h0016
+  inert-prose (committed SQL changed and carries the cited construction), and not h0033
+  green-but-inert (the artifact, not just a score, carries the analog).**
+
+**(b) DISTANCE — the D6 width oracle wall, confirmed exactly as predicted ({0} flips).** Smoke
+ana-eng004 still fails `AUTO_obt_product_inventory_equality` with *"obt_product_inventory has less
+columns than solution__obt_product_inventory"* — **byte-identical to `@baseline`**. The honest
+prediction held: the sibling `obt_sales_overview` is WIDER (≈60 cols, a 3-fact-join) than the target,
+and the target already followed the analog's fact-spine OBT skeleton, so copying the analog's *shape*
+added nothing decision-relevant and copying its *column ladder* would only widen — while the width
+oracle requires a specific column set that lives ONLY in the hidden `solution__obt_product_inventory`.
+The deciding DROP/ADD is oracle-only; no leak-clean analog encodes it. intercom001/003 reach reads
+flat at `Got 7`.
+
+**(c) REGRESSION SAFETY — the own-sibling-first gate avoids the h0023 convention-bleed (decisive,
+artifact-proven on f1001).** f1001 is the passer h0023's deliverable-set clause broke 6/6→2/6 via
+convention-bleed (it created package-style staging models on a project that doesn't use them). Here
+the Reference-Mining stage **FIRED on f1001** (it is a creation/mixed `src_*` task), and its record
+shows it **correctly found `closest_own_same_layer_sibling: "none found … there were no existing
+src_* dbt models"` and did NOT fall to a package template** — its `required_new_pattern` is the
+project's OWN `select * from source('f1_dataset', '<table>')` convention. f1001 held **6/6 PASS**,
+including the exact three tests h0023 bled (`stg_models_use_src_models`, `stg_races_uses_correct_sources`,
+`stg_results_uses_correct_sources`). **This is real evidence the own-siblings-FIRST / package-fallback
+gate removes the h0023 bleed vector — the stage fired and held, it did not hold by skipping.**
+
+**Whole-panel firing map (workflow-level read).** The stage fired (wrote a concrete record + reached
+SQL) on the **2 model-authoring cells**: ana-eng004 (target, own-sibling analog) and f1001 (creation,
+no-own-sibling → own-convention). It **correctly did NOT fire on the 8 repair/config/no-op cells**
+(ana-eng002 / ana-eng002-medium "fix the error"; ana-eng005 dedup repair; airbnb001 compile-fix;
+asana001 Fivetran config; quickbooks002 var-removal; the two intercom reach reads were graded but are
+themselves authoring tasks at `Got 7`). **Caveat on the smoke panel:** the intended "perturbable OBT
+canaries" ana-eng002 / ana-eng002-medium turned out to be REPAIR tasks (their instructions are "fix
+the syntax error" / "fix the error"), so the author/restructure gate correctly skips them and they
+could NOT exercise the analog-copy regression mechanism. The only cells that genuinely fired the
+generative copy were ana-eng004 and f1001; f1001 is the load-bearing regression-safety datum.
+
+**Net behavioral read.** Mechanism WORKS and REACHES the artifact (reach-systematization of the h0019
+lone-survivor engine — achieved); the own-sibling-first gate is SAFE and artifact-proven anti-bleed;
+the lever is EFFICACY-zero on the width family because the deciding column set is oracle-only (D6
+width wall, same `solver-blind-to-oracle` ceiling). A reach + safety + distance finding at {0} flips —
+worthwhile per the smoke gate ("analog construction reached committed SQL AND no passer regressed").
 
 ## Verdict
 
@@ -199,3 +296,32 @@ Net hoped-for: flip the 1 target (ana-eng004) while losing **zero** canaries/sen
 is **{0} flips** (width-oracle wall), so the real win is the attribution read + distance, and a single
 canary dropping FAIL is a NO-GO. ETA ≈ 10 tasks × ~9 min ≈ **90 min** (serial, `n_concurrent_trials=1`,
 detached/nohup — no need to wait on-screen).
+
+## Stage Report: smoke
+
+- DONE: Smoke run on `specs/h0037-reference-mining-stage.smoke.frozen.yaml`; strict audit clean + captured>0 before score trusted
+  Run `runs/ade-bench-h0037-reference-mining-stage/6671b5e449bd0975` (detached nohup, ~1h45m). `rk audit --policy strict` = `tainted: 0` across all 10 cells; `captured = 1` on all 10; `rk score` `stratified_pass_at_1 = 0.70` (7/10 = baseline split). Recorded in `## Smoke result`.
+- DONE: ATTRIBUTION (decisive) — analog construction reached committed SQL on the target
+  ana-eng004: stage fired, wrote filled `reference_mining.json` (`analog: obt_sales_overview.sql:1-78`, own_sibling) recovered from `agent/sessions/2026/06/09/*.jsonl` (apply_patch + cat-to-stdout); committed `obt_product_inventory.sql` carries the analog's OBT fact-spine + LEFT JOIN dim construction (spine correctly adapted to own `fact_inventory`). NOT inert, NOT green-but-inert.
+- DONE: DISTANCE — ana-eng004 `Got N` vs @baseline
+  ana-eng004 still fails "has less columns than solution__obt_product_inventory" — byte-identical to @baseline = the D6 width oracle wall (honest {0}-flip prediction held). intercom001/003 flat at `Got 7`.
+- DONE: REGRESSION SAFETY — all 7 passers held; own-sibling-first gate artifact-proven on f1001
+  All 7 baseline passers held PASS, distances byte-unchanged. f1001 (h0023's 6/6→2/6 bleed victim) FIRED the stage, correctly found `closest_own_same_layer_sibling: none` and cited the project's OWN `source('f1_dataset',…)` convention (NOT a package template) → held 6/6 PASS incl. the 3 tests h0023 bled. The gate avoids the bleed; f1001 held by firing-correctly, not by skipping.
+- DONE: panel firing map + /tmp+stdout routing (3rd test)
+  Stage fired on the 2 model-authoring cells (ana-eng004, f1001); correctly gate-skipped the 8 repair/config cells. Routing held a 3rd time (after h0041/h0038); free-form record schema drifted a 3rd time (ana-eng004 spec keys vs f1001 `records[]` shape). CAVEAT: the intended OBT perturbable canaries ana-eng002/002-medium were REPAIRS, so the author-gate skipped them — f1001 is the real regression datum.
+- DONE: Workflow-refinement evaluation + `_artifacts/WORKFLOW-REFINE.md` entry
+  Appended the h0037 ledger entry (new-stage structural lever): REACH ✓ (clears h0010/h0016/h0033), SAFETY ✓ (own-sibling-first gate artifact-proven anti-bleed on f1001), EFFICACY {0} (D6 width oracle wall), routing 3rd-validated, schema-drift 3rd-sighting, author-gate-invisible-to-repairs lesson.
+
+### Summary
+
+Smoke is a **GO → full as a reach finding, not a flip**: the Reference-Mining stage is artifact-proven
+to REACH the committed SQL (the cited `obt_sales_overview` analog's OBT fact-spine construction landed in
+`obt_product_inventory.sql`) — clearing the h0010/h0016 inert-prose and h0033 green-but-inert bars and
+systematizing the h0019 lone-survivor engine into a generative stage. **0 flips, 0 regressions:** the
+target stayed FAIL at the byte-identical width oracle wall (the honest prediction held — the deciding
+column set is oracle-only), and the own-siblings-FIRST gate is artifact-proven to avoid the h0023
+convention-bleed (f1001 fired, found no own sibling, cited its own source convention, held 6/6). Key
+caveats for the captain: the intended OBT perturbable canaries were repairs the author-gate correctly
+skips (f1001 is the load-bearing regression datum), and the free-form record schema drifted a 3rd time.
+The full run's value is reach-systematization + a confirmed distance read across all 48, at single-trial
+judge-by-artifact economy — not a pass-rate flip.

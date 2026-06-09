@@ -776,3 +776,89 @@ or a dispatched worker, never a direct first-officer edit.
   intercom001 Got 7; 6 panel passers held). MEMORY `ade-bench-solver-blind-to-oracle`,
   `verification-without-oracle-real-world`, `ade-bench-oracle-program-concluded`,
   `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.
+
+### Reference Mining: a generative copy-the-analog stage REACHES the committed SQL and the own-sibling-first gate is artifact-proven anti-bleed — but {0} flips on the width oracle (h0037 smoke GO-as-reach-finding, 2026-06-09)
+- **Status:** **smoke GO → full** (reach finding, NOT a flip) — new-stage structural lever; the
+  E-RMS systematization of the h0019 lone-survivor engine. @baseline UNCHANGED at 31/48 on this
+  panel (0 flips, 0 regressions); advanced because the mechanism is artifact-proven to reach the
+  committed SQL AND no passer regressed. Forked the @baseline solver `codex-ade-dbt-minimal`.
+- **Layer:** solver workflow (`solver_workflows/h0037-reference-mining-stage/README.md`).
+- **Refinement type:** NEW stage — exactly one `## Stage: Reference Mining` between Exploration and
+  Implementation (generative on model-authoring tasks, gated-skip on repairs/no-ops). It (a) names
+  the target's layer+grain, (b) finds the closest already-passing IN-PROJECT sibling (own siblings
+  FIRST, installed-package template ONLY as fallback — the deliberate anti-h0023-bleed gate), (c)
+  records `Analog: <file>:<line-range>` + FROM/join/spine/window to an UNCONDITIONAL
+  `/tmp/reference_mining.json` + `cat`-to-stdout (the h0041-validated routing, NOT the dead
+  `/razorback-freeze` precondition), (d) copies that construction VERBATIM as the Implementation
+  skeleton, adapting only leaf columns/source. Carries a worked-example SQL skeleton (h0019 form) to
+  clear the G7 abstract-prose inertness bar.
+- **What was tried:** 10-task G8 panel: target ana-eng004 (obt_product_inventory width) + 3 intended
+  OBT/wide canaries (ana-eng002 / ana-eng002-medium / ana-eng005) + one passer per other family
+  (airbnb001 / asana001 / f1001 / quickbooks002) + reach reads intercom001/003. Run
+  `runs/ade-bench-h0037-reference-mining-stage/6671b5e449bd0975`, clean strict audit (`tainted:0`,
+  10/10, captured=1 all 10), score 0.70 (7/10 = the baseline split).
+- **Finding — REACH (the headline; clears the h0010/h0016 + h0033 bars).** On ana-eng004 the stage
+  fired fully and CONCRETELY: it wrote a filled record (`analog: obt_sales_overview.sql:1-78`,
+  `own_sibling`, `from_relation/spine_key_source: fact_sales`, grain = one row per inventory_id) and
+  the analog's construction SHAPE (OBT fact-spine + LEFT JOIN dim, single `source` CTE, `SELECT *`)
+  REACHED the committed `obt_product_inventory.sql` — with the spine correctly adapted to the target's
+  own `fact_inventory` (not a verbatim `fact_sales` copy) and one analog column convention adopted
+  (`p.attachments`). NOT inert-prose (committed SQL carries the cited construction) and NOT
+  green-but-inert (attribution proven on the artifact, not the score). The h0019 lone-survivor engine
+  generalizes into a generative stage that reaches the artifact.
+- **Finding — EFFICACY {0} (the D6 width oracle wall, exactly as predicted).** ana-eng004 still fails
+  `AUTO_obt_product_inventory_equality` "has less columns than solution__obt_product_inventory" —
+  **byte-identical to @baseline**. The sibling `obt_sales_overview` is WIDER (≈60 cols / 3-fact-join)
+  than the target, the target already followed the analog's fact-spine skeleton, so copying the
+  analog's shape adds nothing decision-relevant and copying its column ladder only widens — while the
+  width oracle's exact column set lives ONLY in the hidden `solution__*`. The deciding DROP/ADD is
+  oracle-only; no leak-clean analog encodes it. Same `solver-blind-to-oracle` ceiling as D6
+  (h0011/h0023/h0029). intercom001/003 reach flat at `Got 7`.
+- **Finding — SAFETY (the own-sibling-first gate is ARTIFACT-PROVEN anti-bleed; the decisive workflow
+  result).** f1001 — the passer h0023's deliverable-set clause broke 6/6→2/6 via convention-bleed —
+  **FIRED the stage here (creation/mixed `src_*` task) and held 6/6 PASS**, including the exact three
+  tests h0023 bled. Its record shows it correctly found `closest_own_same_layer_sibling: "none found …
+  no existing src_* models"` and did NOT fall to a package template — it cited the project's OWN
+  `source('f1_dataset',…)` convention. So the own-siblings-FIRST / package-only-as-fallback gate
+  removes the h0023 convention-bleed vector: the stage fired and held, it did not hold by skipping.
+  The Output-Contract deliverable-set clause that caused the h0023 bleed is absent here by design.
+- **Finding — the intended OBT perturbable canaries were REPAIRS (smoke-panel caveat for next time).**
+  ana-eng002 / ana-eng002-medium are scored on the SAME `obt_product_inventory` model as the target,
+  but their instructions are "fix the syntax error" / "fix the error" — pure repairs, so the
+  author/restructure gate correctly SKIPPED them (no record written) and they could NOT exercise the
+  generative copy. ana-eng005 is a dedup repair (also skipped). The only cells that genuinely fired
+  the generative copy were ana-eng004 (target) and f1001 (creation); **f1001 is the load-bearing
+  regression-safety datum, not the OBT doublet.** Lesson for G8 panel design: verify a "perturbable"
+  canary is an AUTHORING task (creation/restructure), not a same-model REPAIR — a repair on the
+  target's model is invisible to an author-gated generative stage.
+- **Finding — routing held a 3rd time; schema drifted a 3rd time.** `/tmp`+stdout routing recovered
+  the record on both firing cells (after h0041 8/8, h0038 7/8) — the standing observe-only write-path.
+  But the free-form record SCHEMA DRIFTED again (3rd sighting): ana-eng004 used the spec keys, f1001
+  used `records[]`/`task_classification`/`construction_skeleton`. Semantic content recoverable both
+  ways; any enforced consumer must derive its decision from content, not a literal field.
+- **Learning:** (1) **A generative copy-the-analog stage CAN reach the committed SQL** (clears the
+  h0010/h0016 inert-prose bar) when it carries a worked-example skeleton and cites a named local
+  analog — reach-systematization of the h0019 survivor engine is achieved. (2) **Own-siblings-FIRST /
+  package-only-as-fallback is the correct anti-bleed gate** — artifact-proven on f1001 (fired,
+  found-no-sibling, cited own convention, held 6/6), unlike h0023's deliverable-set clause which bled
+  packages. Re-use this gate shape for any future copy/template lever. (3) **Copying a CONSTRUCTION
+  ANALOG does not beat the width oracle** — on a width target the deciding column set is oracle-only,
+  and the closest sibling encodes a DIFFERENT (wider) convention, so a faithful analog copy is
+  efficacy-zero exactly where it reaches. The D6 width family stays dead; copying shape ≠ the hidden
+  DROP/ADD. (4) **An author-gated generative stage is invisible to same-model REPAIRS** — pick
+  AUTHORING canaries to test regression risk.
+- **Bears on:** the D6 width family (h0011/h0023/h0029 — confirms copying a construction analog does
+  NOT supply the oracle-only column set; do not re-file width-flip levers); the h0017/h0023 Output
+  Contract family (the own-sibling-first COPY gate is the safe version of the deliverable-set clause
+  that bled f1001 — this is the gate to carry forward, not the deliverable-set clause); the
+  `solver-blind-to-oracle` / `verification-without-oracle` family (the width oracle is the same wall);
+  any future generative copy/template/convention lever (use own-siblings-first + worked-example +
+  /tmp+stdout routing; pick authoring canaries); the standing observe-only write-path (3rd validation).
+- **Evidence:** entity `hypotheses/h0037-reference-mining-stage.md` (`## Smoke result`,
+  `## Behavioral analysis`); run `runs/ade-bench-h0037-reference-mining-stage/6671b5e449bd0975` (audit
+  clean 10/10 tainted:0, captured=1; score 0.70; ana-eng004 committed `obt_product_inventory.sql` +
+  filled `reference_mining.json` recovered from `agent/sessions/2026/06/09/*.jsonl`; f1001 6/6 PASS +
+  its no-own-sibling record); baseline `runs/ade-bench-baseline/622bdedac572b479` (ana-eng004 "has
+  less columns" byte-identical; f1001 6/6; intercom001/003 Got 7). MEMORY
+  `ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`,
+  `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.
