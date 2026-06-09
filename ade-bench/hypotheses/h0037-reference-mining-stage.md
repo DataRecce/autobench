@@ -110,6 +110,42 @@ INERT/ceiling-bound → REJECTED.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — exactly one new `## Stage: Reference Mining` between
+Exploration and Implementation; leak-guard byte-identical; both specs differ only in the
+sanctioned fields; generative lever carries a full G8 panel (target + 3 perturbable OBT/wide
+canaries + one passer per other family). No FAIL. Two WARN-only inert-risk notes (G7 structural
+copy at xhigh; the kill-path width-oracle prediction).
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-08). Reviewed 2026-06-09T07:10Z.
+Fork parent: `solver_workflows/codex-ade-dbt-minimal` (= `@baseline` run
+`runs/ade-bench-baseline/622bdedac572b479`, 31/48; `source:` and registry agree).
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff vs parent = one hunk `49a50,154`, all additions, zero deletions; the only new `## Stage:` header is `## Stage: Reference Mining`, inserted between Exploration and Implementation; no other stage touched. |
+| G2 leak-guard intact | PASS | `sed -n '1,49p'` of fork == parent byte-for-byte (leak-guard + Exploration unchanged); grep over added lines 50-154 finds no `AUTO_*`/`solution__*`/`check_*`/`tests/AUTO`/`verifier`/`equality test`/`has less columns`/`Got N`/`row count`/`curl`/`wget`/`git clone`/`hf://`/web-fetch token (all hits are in the unchanged parent prose). |
+| G3 spec two fields | PASS | `diff baseline.yaml h0037….yaml` = only `experiment:` + `solver_workflow:`; `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1`, `reasoning_effort: xhigh` preserved. |
+| G4 smoke tasks-only | PASS | `diff full smoke` adds only the `benchmark.tasks` block (+ comments); every target the `## Hypothesis` names is present (`ade-bench-ana-eng004`, plus reach `ade-bench-intercom001`/`003`); all slugs `ade-bench-`-prefixed; ≥1 stable-pass sentinel present. |
+| G5 both frozen | PASS | `…frozen.yaml` and `…smoke.frozen.yaml` both written; both carry `kind: spacedock_solver` (l.4) + `runtime: codex` (l.5) + `trials: 1`; smoke frozen lists all 10 panel tasks. |
+| G6 resolver fidelity | PASS | Inserted text = the claim verbatim: a pre-Implementation stage that (a) names layer+grain, (b) finds the closest already-passing **in-project** sibling (own siblings FIRST, package fallback), (c) records `Analog: <file>:<line-range>` + FROM/join/spine/window, (d) copies that construction verbatim in Implementation. NOT self-anchored (h0006/7/8 family): it reconciles against an INDEPENDENT local signal — a GREEN sibling the project already builds — not the solver's own re-run/old output. No scope creep. |
+| G7 actionability/inert-risk | WARN | Structural-copy lever (FROM/spine/join reuse) — the family the baseline proved behaviorally inert at gpt-5.5/`xhigh` (h0010 0/4, h0016, h0008 0/7: "talks but doesn't do"). MITIGATED by a worked-example SQL skeleton (the analog is the AFTER skeleton the solver copies, h0019-form) rather than abstract prose, which is the form the rule says to prefer. Residual inert-risk: the hypothesis itself predicts {0} flips on the width oracle. Inert-risk noted for the captain; never blocks. |
+| G8 regression-canary coverage | PASS | Generative (fires on every model-authoring task, not gated to the target). Smoke panel: target `ana-eng004` (FAIL) + **3 perturbable OBT/wide canaries** — `ana-eng002` & `ana-eng002-medium` (scored on the **SAME** model `AUTO_obt_product_inventory_equality` the target is, so the stage fires on the identical OBT construct) and `ana-eng005` (`fact_inventory`, wide warehouse model) — + **one `@baseline` passer per other family**: `airbnb001`, `asana001`, `f1001` (the passer h0023's convention-bleed broke 6/6→2/6), `quickbooks002`. ≥2 perturbable canaries on the targets' construct family satisfied; one canary per other family satisfied. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol — single solver session authors one model per task; no N-candidate scoring. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever — it copies a construction skeleton BEFORE the edit; it does not verify a result and act on disagreement, names no figure to reconcile, and mandates no re-derivation against a self-built CTE. |
+| G11 multi-model-target risk | N/A | Primary target `ade-bench-ana-eng004` is scored by a single model (`AUTO_obt_product_inventory_equality` + `_existence`, both on `obt_product_inventory`) — confirmed from its `verifier/test-stdout.txt`. The lever fires on whatever model the task builds, so it reaches that one scored model. Single-model target ⇒ no unaddressed-second-model variance trap. |
+
+**For the captain:** No integrity FAIL — clean to advance to `smoke`. The two WARNs are
+predictive, not blocking: **(G7)** this is a structural FROM/spine/join-copy lever, the exact
+family that has been behaviorally inert at gpt-5.5/`xhigh` (talks-but-doesn't-do); the worked-example
+skeleton is the recommended mitigation but the hypothesis honestly predicts {0} flips because the
+sibling `obt_sales_overview` is WIDER than the target and the width oracle requires DROPs that live
+only in the hidden solution. The decisive smoke read is **attribution, not the green score**: read
+the committed `obt_product_inventory.sql` and confirm the cited `Analog:` construction actually
+reached the SQL (recoverable from `/tmp/reference_mining.json` echoed to stdout). **(regression
+risk — highest of the R2 set)** this is the only R2 lever that both fires generatively AND copies
+construction INTO committed SQL on every model, so it can break a passer by copying a wrong/wider
+analog — `ana-eng002` / `ana-eng002-medium` are the decisive canaries (same OBT model as the
+target); a single canary dropping FAIL is a NO-GO regardless of any target flip.
+
 ## Smoke result
 
 ## Run result
@@ -117,3 +153,49 @@ INERT/ceiling-bound → REJECTED.
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: README change = EXACTLY ONE new `## Stage: Reference Mining` inserted between Exploration and Implementation
+  `diff codex-ade-dbt-minimal/README.md h0037…/README.md` = single hunk `49a50,154`, all additions; (a) names target layer+grain, (b) own-siblings-FIRST / package-fallback gate, (c) records `Analog: <file>:<line-range>` + FROM/join/spine/window, (d) Implementation copies it verbatim. Leak-guard + four existing stages byte-identical (lines 1-49 == parent); grep over added lines finds no hidden `AUTO_*`/`solution__*`/`check_*`/verifier/`has less columns`/equality/`Got N`/row-count/`curl`/`wget`/`git clone`/web token.
+- DONE: DURABLE ARTIFACT ROUTING — the h0041-VALIDATED fix is MANDATORY
+  Stage records the `Analog:` citation + construction UNCONDITIONALLY to `/tmp/reference_mining.json` and `cat`s it to stdout (h0041 form); does NOT route through the dead `/razorback-freeze` single-child precondition. JSON schema carries `analog`, `from_relation`, `join_ladder`, `spine_key_source`, `window_group_by` so the smoke read can recover the cited analog from the transcript and verify it reached the committed SQL.
+- DONE: Smoke spec `benchmark.tasks` — generative stage panel per G8
+  10 tasks: target `ade-bench-ana-eng004` + 3 perturbable OBT/wide canaries (`ana-eng002`, `ana-eng002-medium` — both scored on the SAME model `obt_product_inventory` as the target; `ana-eng005` = wide `fact_inventory`) + one passer per other family (`airbnb001`/`asana001`/`f1001`/`quickbooks002`) + reach-only `intercom001`/`intercom003`. Gatekeeper run; per-rule table + APPROVE recorded in `## Gatekeeper review`.
+
+### Summary
+
+Forked the `@baseline` solver into `solver_workflows/h0037-reference-mining-stage` and added exactly one
+`## Stage: Reference Mining` between Exploration and Implementation that systematizes the h0019
+lone-survivor engine: cite the closest already-passing IN-PROJECT sibling (own siblings first, package
+fallback) as `Analog: <file>:<line-range>`, record its FROM/join/spine/window, and copy that construction
+verbatim in Implementation. Artifact routing uses the h0041-validated unconditional `/tmp` + cat-to-stdout
+form (NOT the dead `/razorback-freeze` precondition) so the smoke read can attribute the analog to the
+committed SQL. Specs differ from baseline only in `experiment:`+`solver_workflow:` (full) and the added
+`benchmark.tasks` (smoke); both frozen with kind/runtime/trials preserved. Gatekeeper recommendation:
+**APPROVE** (no FAIL; two WARN-only inert/regression-risk notes). NOT YET RUN — this is the propose gate;
+the captain decides whether it advances to smoke.
+
+### Smoke-set presentation (for the captain — baseline rewards from `622bdedac572b479/per_trial_outcomes.json`)
+
+```
+┌───────────────────────────┬──────────┬──────────────────────┬─────────────────────────────────────────────────────┐
+│           Task            │ Baseline │ Should pass in smoke?│                Role / why we picked it                │
+├───────────────────────────┼──────────┼──────────────────────┼─────────────────────────────────────────────────────┤
+│ ade-bench-ana-eng004      │ ❌ FAIL  │ 🎯 want it to flip   │ Target — obt_product_inventory width flip attempt.    │
+│ ade-bench-ana-eng002      │ ✅ PASS  │ ✅ must stay PASS    │ Perturbable OBT canary — SAME model as the target.    │
+│ ade-bench-ana-eng002-med..│ ✅ PASS  │ ✅ must stay PASS    │ Perturbable OBT canary — SAME model as the target.    │
+│ ade-bench-ana-eng005      │ ✅ PASS  │ ✅ must stay PASS    │ Perturbable OBT/wide canary — fact_inventory.         │
+│ ade-bench-intercom001     │ ❌ FAIL  │ (reach-only read)    │ Secondary reach read — distance signal, not credited. │
+│ ade-bench-intercom003     │ ❌ FAIL  │ (reach-only read)    │ Secondary reach read — distance signal, not credited. │
+│ ade-bench-airbnb001       │ ✅ PASS  │ ✅ must stay PASS    │ Canary (airbnb family) — cross-family tripwire.       │
+│ ade-bench-asana001        │ ✅ PASS  │ ✅ must stay PASS    │ Canary (asana family) — cross-family tripwire.        │
+│ ade-bench-f1001           │ ✅ PASS  │ ✅ must stay PASS    │ Canary (f1 family) — h0023 bled this 6/6->2/6.        │
+│ ade-bench-quickbooks002   │ ✅ PASS  │ ✅ must stay PASS    │ Canary (quickbooks family) — cross-family tripwire.   │
+└───────────────────────────┴──────────┴──────────────────────┴─────────────────────────────────────────────────────┘
+```
+
+Net hoped-for: flip the 1 target (ana-eng004) while losing **zero** canaries/sentinels — honest prediction
+is **{0} flips** (width-oracle wall), so the real win is the attribution read + distance, and a single
+canary dropping FAIL is a NO-GO. ETA ≈ 10 tasks × ~9 min ≈ **90 min** (serial, `n_concurrent_trials=1`,
+detached/nohup — no need to wait on-screen).
