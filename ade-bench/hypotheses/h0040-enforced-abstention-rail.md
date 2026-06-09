@@ -1,7 +1,7 @@
 ---
 id: h0040
 title: Enforced abstention rail (Track Z) — a NEW pre-commit triage stage with a fixed three-clause trigger that mechanically emits ABSTAIN and REVERTS edits made only to satisfy an undecidable load-bearing claim, recording triage.json
-status: propose
+status: smoke
 kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §4 M2 (captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 4. The Track Z / h00Z enforcement primitive h0031 named as missing. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-09T12:19:47Z
