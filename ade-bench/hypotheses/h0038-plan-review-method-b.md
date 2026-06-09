@@ -1,7 +1,7 @@
 ---
 id: h0038
 title: Plan Review — a NEW pre-Implementation stage running the never-run Method B (independent re-derivation + a generic leak-clean grain invariant; REJECT only on a locally-visible code-contradicts-contract bug, else PROCEED_UNDETERMINED and build as baseline)
-status: propose
+status: smoke
 kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §3 E-PRMB (rank 2, captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 2. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-09T03:00:10Z
