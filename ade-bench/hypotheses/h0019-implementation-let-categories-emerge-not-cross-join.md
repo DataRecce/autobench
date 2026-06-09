@@ -461,6 +461,62 @@ satisfied in all three runs, yet correctness turns on a count only the hidden ch
 
 ## Verdict
 
+**REJECTED — real-but-unpromotable knowledge gain. `@baseline` stays
+`runs/ade-bench-baseline/622bdedac572b479` (31/48 = 0.6458), NOT promoted.** The captain decided
+REJECT after the E2-alone standalone full re-confirm. This is a genuine knowledge gain (MEMORY
+`knowledge-gains-are-small-successes`), not a dead-end: the lever is the program's clearest
+demonstration that a correctly-shaped, copyable-skeleton repair rule REACHES the committed SQL yet
+still cannot bank a flip whose correctness lives in a hidden count.
+
+**The lever FIRES reliably — it is NOT inert.** The identical subtractive no-cross-join edit landed
+in ALL THREE airbnb009 runs (smoke `d8bd75a0…`, h0034-combined `1880d649…`, standalone full
+`8773355d…`): every committed `models/agg/mom_agg_reviews.sql` made exactly ONE `apply_patch` to
+exactly ONE file, removing the `dates_cte` narrowing filter (`WHERE DATE_ACTUAL IN (SELECT DISTINCT
+REVIEW_DATE…)`), keeping the existing `LEFT JOIN` + `GROUP BY` byte-intact, and adding NO cross join
+— so categories emerge per key and rows-per-key vary with the data. The h0030 copyable-skeleton
+ingredient that prose-only h0010/h0016 lacked WORKS for execution: the rule's prescribed artifact is
+present in the committed patch in every run (artifact-attribution, not transcript chatter).
+
+**The sole verdict discriminator is a NON-DETERMINISTIC oracle-only aggregate choice the rule cannot
+pin.** Within the identical, rule-compliant subtractive edit, the verdict turns entirely on the
+`final_cte` aggregate: keeping `COUNT(*)` (oracle-matching → PASS) vs the solver's unprompted
+"tidy-up" rewrite to `COUNT(review_cte.REVIEW_DATE)` (zeros the 722 no-review days' `REVIEW_TOTALS`,
+so `sum(REVIEW_TOTALS) ≠ 12196400` → `Got 1` FAIL). That choice flipped 2/3 runs PASS (smoke +
+h0034, both kept `COUNT(*)`) and 1/3 FAIL (standalone full, rewrote the count). The standalone
+single-trial full netted **−1 (30/48)** vs `@baseline` 31/48 (paired bootstrap CI [−5,+3], p≈0.82 —
+pure noise; the 2 gains + 3 regressions are all rule-independent gpt-5.5 variance on models with no
+anti-cross-join precondition, none lever-attributable).
+
+**The CORRECTED smoke-vs-full discriminator: it is the `COUNT()` treatment, NOT the date span.** The
+prior (now-superseded) read blamed the span — smoke dropped the filter entirely (full 29220-day
+dimension) while the full run used a self-derived `BETWEEN min..max(review_date)` 4508-day bound. The
+third data point REFUTES that: **h0034 used the IDENTICAL self-bounded 4508-day span and still
+PASSED** — because within the hidden test's own window `['2009-06-20','2021-10-22']` the full-
+dimension and the min..max-review spans produce the identical rows (same rolling `LEFT JOIN`, same
+`COUNT(*)`); the full dimension only adds rows outside the window that the test's `WHERE` discards.
+The span is exonerated; the discriminator is `COUNT(*)` (correct) vs `COUNT(review_cte.REVIEW_DATE)`
+(the unprompted count "improvement"). Full forensics in `## Smoke-vs-full divergence`.
+
+**Transferable lesson (the closing finding).** A structural Implementation rule that pins JOIN SHAPE
+(drop the narrowing filter, no cross join, categories emerge per key) cannot pin an oracle-only
+aggregate/count choice — the correct totals (`review_days=12278`, `review_totals=12196400`) live only
+in the hidden test and are not locally derivable by design. The structural acceptance signal the rule
+gives (rows-per-key vary, no cross join) was SATISFIED in all three runs, yet correctness turns on a
+count only the hidden check knows. This is the oracle-problem wall (MEMORY
+`verification-without-oracle-real-world`, `ade-bench-solver-blind-to-oracle`), not a fixable lever
+defect: which rule-compliant edit the solver writes is a coin-flip, and the solver cannot tell its
+own choice is wrong. Aligns with the program close (MEMORY `ade-bench-oracle-program-concluded`,
+net +0, box closed at 31/48) — `edit-shape-without-oracle-target`.
+
+**No promotion, no follow-up.** `@baseline` is UNCHANGED at 31/48 — I did NOT run `rk baseline
+promote` or touch the registry. NO follow-up hypothesis is filed: the oracle-problem wall is the
+closing finding, the flip portfolio is exhausted (no 6th target), and the standing decision (MEMORY
+`ade-bench-single-trial-judge-by-artifact`) forecloses the multi-trial / freeze-repo path. h0019 is
+an IN-STAGE Implementation instruction lever (constrains edit shape at build time), NOT a workflow-
+structural change, so there is no `_artifacts/WORKFLOW-REFINE.md` structural-entry requirement; the
+learning lives here and in MEMORY (`ade-bench-oracle-program-concluded`,
+`ade-bench-instruction-lever-taxonomy`). The FO performs the terminal frontmatter and archive.
+
 ## Stage Report: propose
 
 - DONE: Forked solver README adds EXACTLY the anti-cross-join Implementation rule
@@ -544,3 +600,16 @@ The E2-alone standalone full — the noise-robust re-confirm the entity itself r
 ### Summary (cycle 2)
 
 Pure artifact forensics, no re-run. The make-sure read MATERIALLY CORRECTS the prior analyze's smoke-vs-full explanation: the divergence is NOT the date span. All three airbnb009 runs made one subtractive, no-cross-join filter edit (the lever fired in every run); two passed and one failed. The single SQL line that decides the verdict is `final_cte`'s aggregate — the two PASSes (smoke full-dim, h0034 4508-span) kept the shipped/oracle `COUNT(*)`, while the lone FAIL kept the same span as h0034 but rewrote `COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)` to "count empty windows as 0" (its own stated reasoning), zeroing the 722 no-review days and breaking the oracle's `review_totals=12196400`. The oracle solution itself uses the self-bounded `min..max(review)` span, so the span the full run chose was correct; only the count "tidy-up" was wrong, and the rule cannot pin it because the correct count lives only in the hidden test. So the flip's 2/3 reproducibility is a non-deterministic coin-flip on whether the solver leaves the existing `COUNT(*)` alone — the oracle-problem wall, not a smoke-specific cause. Terminal verdict unchanged: REAL-but-UNPROMOTABLE → conclude. FO performs conclude+archive.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict` — REJECTED, real-but-unpromotable knowledge gain
+  `## Verdict` written: REJECTED. States plainly the lever FIRES reliably (identical subtractive no-cross-join edit landed in ALL 3 airbnb009 runs — smoke `d8bd75a0…`, h0034 `1880d649…`, full `8773355d…`); the sole verdict discriminator is the NON-DETERMINISTIC oracle-only aggregate the rule cannot pin — `COUNT(*)` (PASS) vs `COUNT(review_cte.REVIEW_DATE)` which zeros the 722 no-review days (FAIL), flipped 2/3 runs PASS / 1/3 FAIL; standalone full netted −1 (30/48); `@baseline` UNCHANGED 31/48 (NOT promoted). Cites the CORRECTED COUNT-not-span finding (h0034 used the identical self-bounded span and PASSED) + the transferable lesson (a JOIN-shape Implementation rule cannot pin an oracle-only aggregate/count → oracle-problem wall).
+- DONE: Confirm `@baseline` NOT promoted and NO follow-up filed
+  Did NOT run `rk baseline promote`; registry untouched (`@baseline` = `runs/ade-bench-baseline/622bdedac572b479`, 31/48). NO follow-up hypothesis filed — oracle-problem wall is the closing finding, flip portfolio exhausted (no 6th target), captain decided REJECT. Both stated explicitly in the `## Verdict`.
+- DONE: Confirm closing learnings durably recorded; refine MEMORY if it still says span
+  Entity `## Verdict` + `## Smoke-vs-full divergence` carry the COUNT()-discriminator finding. Refined MEMORY `ade-bench-oracle-program-concluded`: the prior note attributed the non-reproduction to the self-bounded SPAN; corrected it to the `COUNT()` treatment (h0034 used the identical span and PASSED), with the `edit-shape-without-oracle-target` closing lesson generalized to "hidden count/aggregate."
+
+### Summary
+
+Terminal conclude for h0019: REJECTED — real-but-unpromotable knowledge gain. The captain's decision is recorded as the `## Verdict`. The lever is NOT inert: the prescribed subtractive no-cross-join filter-drop edit reached the committed `mom_agg_reviews.sql` in all three airbnb009 runs (artifact-attribution from the `apply_patch` payloads). The verdict turns solely on a within-rule, oracle-only aggregate choice the rule deliberately cannot pin — `COUNT(*)` (oracle-matching, 2/3 PASS) vs the solver's unprompted `COUNT(review_cte.REVIEW_DATE)` "tidy-up" that zeros the 722 no-review days (1/3 FAIL). The standalone single-trial full came in −1 (30/48, CI [−5,+3], p≈0.82 noise); `@baseline` stays 31/48 — NOT promoted, registry untouched, NO follow-up filed. This is an in-stage Implementation lever, not a workflow-structural change, so no WORKFLOW-REFINE entry is required; learnings live in the entity Verdict and MEMORY (`ade-bench-oracle-program-concluded` corrected to the COUNT-not-span discriminator, `ade-bench-instruction-lever-taxonomy`). Pure documentation finalization — no `rk` command run. FO performs the terminal frontmatter + archive.
