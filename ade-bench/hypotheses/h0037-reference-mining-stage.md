@@ -1,7 +1,7 @@
 ---
 id: h0037
 title: Reference Mining — a NEW pre-Implementation stage that cites the closest already-passing in-project analog and copies its FROM/join/spine/window construction verbatim before any model edit
-status: smoke
+status: full
 kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §3 E-RMS (rank 1, captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 1. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-09T07:01:21Z
