@@ -862,3 +862,68 @@ or a dispatched worker, never a direct first-officer edit.
   less columns" byte-identical; f1001 6/6; intercom001/003 Got 7). MEMORY
   `ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`,
   `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.
+
+
+### Enforced abstention rail (Track Z / M2): the REVERT never fires — clause-1/clause-3 self-credit collapses the AND-of-NOTs, so the gate is inert on every oracle-only cell (h0040 smoke REJECTED-inert, 2026-06-09)
+- **Layer:** solver workflow
+- **Refinement type:** new stage (a 5th `## Stage: Pre-commit abstention triage (enforced)` between
+  Validation and Finalization — the ONLY R2 lever that ACTS: it mechanically reverts edits when a fixed
+  three-clause trigger (instruction / existing `schema.yml` / raw `{{ source() }}` count + key-level
+  anti-join) is all-NO, with `abstain` DERIVED by AND-of-NOTs and `triage.json` routed to `/tmp` +
+  `cat`-to-stdout). The enforcement primitive h0031 named as missing.
+- **What was tried:** fork @baseline (`codex-ade-dbt-minimal`) + one new enforced-revert stage; smoke on
+  13 cells — Panel A (5 oracle-only @baseline failers: asana004, intercom001, ana-eng004, f1002,
+  ana-eng007) where the revert SHOULD fire, + Panel B (8 passers incl. perturbable doublets ana-eng002 /
+  ana-eng002-medium and asana003/asana001, f1 convention-bleed tripwire f1007/f1001) where it must NOT.
+- **Finding (two decisive reads, from the SESSION TRANSCRIPT — triage.json is written by the spawned
+  ensign sub-agent and `cat`-ed to stdout, landing in `agent/sessions/**/rollout-*.jsonl`, NOT the
+  run-dir; the orchestrator `codex.txt` carries the prose summary):**
+  **(A) G7 enforcement INERT on all 5 Panel-A cells.** Every Panel-A cell produced a well-formed,
+  populated `triage.json` (3-6 explicit claims, derived `abstain`), but **`abstain=false` on every claim
+  → ZERO `reverted_files` everywhere.** Reward stayed 0.0 (== baseline) on all 5 — the gate never fired
+  where it was supposed to. Mechanism: the solver self-credits **clause-1 (instruction)** as `true`
+  because the task instruction names the columns/grain/target at the surface (asana004: 4/4 instr=true;
+  f1002: 5/5 instr=true AND schema=true via `__stats.yml`), and/or **clause-3 (raw_source_probe)** as
+  `true` claiming the raw probe "decides" the claim (intercom001 4/6, ana-eng004 2/3, ana-eng007 1 claim
+  on raw alone) — so the AND-of-NOTs never reaches abstain. This is NOT h0031's empty
+  `abstained_claims:[]` (permission-not-fired); it is a **fully-instantiated trigger that evaluates to
+  NO-abstain** because the cells are oracle-blocked on *aggregation semantics / value mapping*, not on
+  whether a column is named — and clause-1 reads surface naming as "deciding the quantity."
+  **(B) G10 PASS — zero wrong revert.** All 8 Panel-B passers held reward 1.0 with zero real
+  `reverted_files`; zero passer regressed. The gate-to-`abstain==true` scoping held: nothing was ever
+  reverted, so the inverted-false-green could not arise. (ana-eng002 even classified its task a "pure
+  syntax fix" → `{"claims":[]}`.) Strict audit clean (tainted 0/13), captured>0 on all 13,
+  `stratified_pass_at_1=0.6154` (8/13), net flips vs @baseline = **0** (by construction).
+  **Schema drift returned (4th routing test after h0041/h0038/h0037):** the PINNED nested schema did NOT
+  hold uniformly — asana004 used the pinned `clause_results:{...}` + `reverted_files`; intercom001
+  FLATTENED to `{formula, claims:[{name, instruction, schema_yml, raw_source_probe, abstain}]}` (no
+  `reverted_files`, added `formula`/`name`); ana-eng002 emitted `{"claims":[]}`. The durable stdout/
+  session-transcript ROUTING worked on all 13 (the h0041 fix holds); it is the record SHAPE that drifts.
+- **Learning:** an "enforced revert" written as README prose is **structurally inert against an oracle gap
+  the same way the read-only levers are** — because the gate's own trigger is solver-self-graded. The two
+  clauses that are *not* independent (clause-1 instruction, clause-2 schema) are read generously
+  (surface column-naming counts as "names the deciding quantity"), and the one independent clause
+  (clause-3 raw-source probe) gets self-credited as "decides it," so abstain≈never. The h0031 wall is not
+  beaten by *deriving* abstain from booleans when the booleans themselves are discretionary self-reads.
+  **For the AND-of-NOTs to fire, at least one clause must be evaluated by something the solver cannot
+  talk itself out of** — i.e. the same independent-redundancy requirement as every checking lever
+  ([[verification-without-oracle-real-world]]). On the safety side this is the *good* failure: M2 is
+  PROVABLY bleed-free (0 wrong reverts across 8 passers incl. 4 perturbable canaries) — but its protective
+  value is **unobservable** standalone (the minimal @baseline does not bleed, nothing to revert), exactly
+  the entity's honest framing. **M2's only real test is bolted onto a future flip-seeking generative lever
+  that actually bleeds** — there it would either guard a live regression (value) or wrong-revert
+  (inverted false-green); the minimal baseline can show neither. Banking the spec is correct; running it
+  again standalone is not.
+- **Bears on:** the R2 enforcement-primitive question — do NOT file another standalone enforced-revert
+  on the minimal baseline (it cannot fire usefully and cannot show protective value). Pair M2 with a
+  bleeding generative lever, or first make clause evaluation non-self-graded. Same wall as h0031
+  (abstention permitted-not-fired) and the whole blind-to-oracle family. The schema-drift recurrence
+  (4th instance) says: a PINNED record shape in prose is NOT reliably honored by gpt-5.5@xhigh even with
+  an explicit "derived, not free-form" instruction — readers must be schema-tolerant.
+- **Evidence:** entity `hypotheses/h0040-enforced-abstention-rail.md`; run
+  `runs/ade-bench-h0040-enforced-abstention-rail/41c556510ff753a7` (strict audit clean, 8/13);
+  @baseline `runs/ade-bench-baseline/622bdedac572b479` (Panel A all 0.0, Panel B all 1.0). MEMORY:
+  `ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`,
+  `ade-bench-oracle-problem-concluded`, `workflow-synth-slug-mismatch-skips-files`,
+  `ade-bench-single-trial-judge-by-artifact`. Sibling routing tests: h0041 (8/8 durable), h0038 (7/8),
+  h0037, h0039 (the /tmp + stdout route this entity reused).

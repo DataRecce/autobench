@@ -153,11 +153,84 @@ agree. G1/G6 diffed against `codex-ade-dbt-minimal`.
 
 ## Smoke result
 
+**Focused score (attested clean).** Run `runs/ade-bench-h0040-enforced-abstention-rail/41c556510ff753a7`,
+13 cells, `trials: 1`. `rk audit --policy strict` = **clean (tainted 0/13, all `taint_status: clean`)**;
+`captured > 0` on all 13 (`subagent-trace-manifest.json` = 1 each) — verified BEFORE the score is trusted.
+`rk score`: **`stratified_pass_at_1 = 0.6154` (8/13)**, `n_completed=13`, `n_errored=0`, verdict `above` the
+0.1875 paper baseline. This equals the by-construction expectation exactly: the 8 Panel-B passers all stay
+1.0, the 5 Panel-A oracle-only failers all stay 0.0 → **net flips vs @baseline = 0**. (`@baseline`
+`622bdedac572b479`: Panel A all 0.0, Panel B all 1.0; slug-paired delta is 0 on every cell, so no
+bootstrap is needed.)
+
 ## Run result
+
+| cell | role | base | now | Δ | triage abstain / reverted_files | read |
+|------|------|------|-----|---|---------------------------------|------|
+| asana004 | A | 0.0 | 0.0 | 0 | 4 claims, **all abstain=false**, reverted [] (instr=true on all) | inert |
+| intercom001 | A | 0.0 | 0.0 | 0 | 6 claims, **all abstain=false**, reverted [] (instr=true; raw=true 4/6) | inert |
+| ana-eng004 | A | 0.0 | 0.0 | 0 | 3 claims, **all abstain=false**, reverted [] (instr=true; raw=true 2/3) | inert |
+| f1002 | A | 0.0 | 0.0 | 0 | 5 claims, **all abstain=false**, reverted [] (instr=true AND schema=true) | inert |
+| ana-eng007 | A | 0.0 | 0.0 | 0 | 4 claims, **all abstain=false**, reverted [] (1 claim raw=true alone) | inert |
+| ana-eng002 | B | 1.0 | 1.0 | 0 | `{"claims":[]}` ("pure syntax fix"), no revert | HELD |
+| ana-eng002-medium | B | 1.0 | 1.0 | 0 | reverted [] | HELD |
+| asana003 | B | 1.0 | 1.0 | 0 | reverted [] | HELD |
+| asana001 | B | 1.0 | 1.0 | 0 | reverted [] | HELD |
+| airbnb001 | B | 1.0 | 1.0 | 0 | reverted [] | HELD |
+| f1007 | B | 1.0 | 1.0 | 0 | reverted [] | HELD |
+| f1001 | B | 1.0 | 1.0 | 0 | reverted [] | HELD |
+| quickbooks002 | B | 1.0 | 1.0 | 0 | reverted [] | HELD |
+
+**triage.json route.** The record is written by the spawned **ensign sub-agent** and `cat`-ed to stdout,
+landing in `<cell>/agent/sessions/**/rollout-*.jsonl` (the orchestrator `codex.txt` carries the prose
+summary). Reads taken from the transcript, NOT `test -f` the run-dir (the `/tmp` scratch is torn down — the
+h0039 trap). All `reverted_files` non-empty matches across the panel were the prompt-template echo
+(`"reverted_files":["..."]`); the real records are empty on every cell.
 
 ## Behavioral analysis
 
+**(A) G7 enforcement — INERT on all 5 Panel-A oracle-only cells (the named kill-path fired).** Every
+Panel-A cell emitted a *fully populated, well-formed* `triage.json` (3-6 explicit claims, `abstain` derived),
+but the derived `abstain` came out **`false` on every single claim → zero `reverted_files`**. So the revert
+**never fired** on the cells where it was supposed to. This is NOT h0031's empty `abstained_claims:[]`
+(permission-not-fired); it is a fully-instantiated AND-of-NOTs that evaluates to NO-abstain because the
+solver **self-credits the trigger clauses**: clause-1 (instruction) reads `true` wherever the task names a
+column/grain/target at the surface (asana004 4/4; f1002 5/5 instr=true and schema=true via the existing
+`__stats.yml`), and clause-3 (raw_source_probe) reads `true` claiming the raw probe "decides" the claim
+(intercom001 4/6, ana-eng004 2/3, ana-eng007 one claim on raw alone). These cells are oracle-blocked on
+**aggregation semantics / value mapping**, not on whether a column is *named* — and clause-1 conflates
+surface naming with "names the deciding quantity," so abstain ≈ never.
+
+**(B) G10 wrong-revert — PASS (decisive safety read).** All 8 Panel-B passers held reward 1.0 with zero
+real reverts; **zero passer regressed**, including the 4 perturbable canaries (ana-eng002 + ana-eng002-medium
+on `AUTO_obt_product_inventory`; asana003 on the asana004 target intermediate `AUTO_int_asana__project_user`;
+plus the f1007/f1001 convention-bleed tripwires). The `abstain==true`-gated revert scoping held trivially:
+nothing was ever reverted, so the inverted-false-green could not arise.
+
+**Schema drift (4th routing test after h0041/h0038/h0037).** The durable stdout/session-transcript ROUTING
+worked on all 13 (the h0041 fix holds), but the PINNED record SHAPE did NOT hold uniformly: asana004 used the
+pinned nested `clause_results:{...}` + `reverted_files`; intercom001 FLATTENED to
+`{formula, claims:[{name, instruction, schema_yml, raw_source_probe, abstain}]}` (no `reverted_files`); 
+ana-eng002 emitted `{"claims":[]}`. A pinned shape in prose is not reliably honored by gpt-5.5@xhigh even with
+an explicit "derived, not free-form" instruction — downstream readers must be schema-tolerant.
+
 ## Verdict
+
+**REJECTED-inert (route to conclude).** The decisive G7 read fails: the enforced revert **never fired** on
+any of the 5 oracle-only cells (well-formed triage, `abstain=false` everywhere, zero `reverted_files`) — the
+gate is inert on exactly the cells it was designed for, the same wall as h0031, reached through
+solver-self-graded trigger clauses rather than an empty abstention list. The G10 read is clean (0 wrong
+reverts, 0 passer regressions across 8 passers incl. 4 perturbable canaries), and net flips = 0 by
+construction (`stratified_pass_at_1 0.6154 = 8/13`, strict-audit clean, captured>0 on all 13). So M2 is
+**provably bleed-free but its protective value is unobservable standalone** — the minimal @baseline does not
+bleed, so there is nothing for the rail to guard or to wrong-revert. **Learning for M2 as an enforcement
+primitive:** an "enforced revert" expressed as README prose is structurally inert against an oracle gap in
+the same way the read-only checking levers are, because the AND-of-NOTs is only as independent as its
+clauses — and clause-1/clause-3 are solver-self-graded. For the revert to fire usefully, at least one clause
+must be evaluated by something the solver cannot talk itself out of (independent redundancy). **Disposition:**
+bank the spec; do NOT re-run standalone on the minimal baseline; M2's only real test is bolted onto a future
+flip-seeking generative lever that actually bleeds (it would there guard a live regression or wrong-revert —
+the minimal baseline can show neither). Full structural learning + the 4th schema-drift observation recorded
+in `_artifacts/WORKFLOW-REFINE.md`.
 
 ## Stage Report: propose
 
@@ -207,3 +280,25 @@ the two decisive smoke reads, NOT blockers. HONEST FRAMING: {0} flips by constru
 non-bleeding minimal `@baseline` its protective value is unobservable — its real home is bolted onto a future
 flip-seeking generative lever. So this smoke is a BLEED-FREENESS + enforcement-fires check. Propose stops at
 the gate; no `rk run` launched.
+
+## Stage Report: smoke
+
+- DONE: Smoke run on `specs/h0040-enforced-abstention-rail.smoke.frozen.yaml` completed (launched DETACHED via nohup, polled across turns). Strict audit clean + captured>0 on every cell BEFORE the score; focused score + clean-audit attestation in `## Smoke result`.
+  Run `runs/.../41c556510ff753a7`, 13/13 cells, `trials:1`. `rk audit --policy strict` clean (tainted 0/13, all `taint_status: clean`); `captured>0` on all 13. `rk score`: `stratified_pass_at_1 = 0.6154` (8/13), `n_errored=0`, verdict `above` 0.1875. Net flips vs @baseline = 0 (slug-paired Δ = 0 every cell).
+- DONE: The TWO decisive reads — (A) G7 enforcement-fires (read triage.json from the session transcript, not test -f the run-dir) and (B) G10 no-wrong-revert.
+  (A) **INERT, not fired** — on all 5 Panel-A oracle-only cells (asana004, intercom001, ana-eng004, f1002, ana-eng007) triage.json is well-formed and populated but `abstain=false` on EVERY claim → ZERO `reverted_files`, reward stays 0.0. NOT h0031's empty `abstained_claims:[]`; the AND-of-NOTs evaluates to NO-abstain because clause-1 (instruction) and clause-3 (raw_source_probe) are self-credited `true`. (B) **NO WRONG REVERT** — all 8 Panel-B passers held reward 1.0, zero real reverts, zero regression (incl. the 4 perturbable canaries). triage.json read from `agent/sessions/**/rollout-*.jsonl` (cat-to-stdout route; the run-dir `/tmp` scratch is torn down — h0039 trap avoided).
+- DONE: Workflow-refinement evaluation (new-stage structural lever) + `_artifacts/WORKFLOW-REFINE.md` entry.
+  Did NOT fire on the oracle cells (G7 inert, like h0031 via a different route); did NOT wrong-revert any passer (G10 clean). Pinned-schema + derived-abstain held the ROUTING (4th test after h0041/h0038/h0037) but the record SHAPE drifted (asana004 pinned-nested / intercom001 flattened / ana-eng002 empty-claims). Ledger entry appended: "Enforced abstention rail (Track Z / M2): the REVERT never fires …" — M2 is provably bleed-free but unobservable standalone; its only real test is bolted onto a future flip-seeking generative lever that bleeds. Don't re-run standalone on the minimal baseline.
+
+### Summary
+
+M2 / Track Z enforced abstention rail smoke is a clean **REJECTED-inert**. The decisive G7 read fails the
+way the kill-path named: the enforced revert never fired on any of the 5 oracle-only Panel-A cells — each
+produced a fully-instantiated `triage.json`, but the AND-of-NOTs computed `abstain=false` on every claim
+(clause-1 instruction and clause-3 raw-source-probe self-credited `true`), so zero `reverted_files`. This is
+the h0031 wall reached through self-graded trigger clauses rather than an empty abstention list. The G10
+safety read is clean — all 8 Panel-B passers held 1.0 with zero wrong reverts (incl. 4 perturbable canaries),
+strict-audit clean, captured>0 on all 13, net flips 0 by construction (`stratified_pass_at_1 0.6154`). So M2
+is provably bleed-free but its protective value is unobservable on the non-bleeding minimal @baseline — its
+real home is bolted onto a future flip-seeking generative lever. Bank the spec; do not re-run standalone.
+Routing reused from h0041 worked on all 13; the pinned record shape drifted (4th schema-drift instance).
