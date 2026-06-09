@@ -927,3 +927,38 @@ or a dispatched worker, never a direct first-officer edit.
   `ade-bench-oracle-problem-concluded`, `workflow-synth-slug-mismatch-skips-files`,
   `ade-bench-single-trial-judge-by-artifact`. Sibling routing tests: h0041 (8/8 durable), h0038 (7/8),
   h0037, h0039 (the /tmp + stdout route this entity reused).
+
+### Detached-run launch + completion-notify protocol: sentinel-scanned-every-turn + ntfy push, NOT a live poller (captain decision, 2026-06-09)
+- **Layer:** autoresearch loop
+- **Refinement type:** new protocol (how the FO/ensign launch a long `rk run` and learn it finished)
+- **What was decided:** every `rk run`/`matrix.sh` launches through a single audited launcher
+  `drivers/rk-run-detached.sh <key> <spec> [run|matrix]`. It `nohup`s the run (mandatory — plain
+  `run_in_background` is reaped at turn-end; nohup survives the 7 hr+ duration), writes a handle
+  `runs/.rk-handles/<key>-<ts>/` (`pid` · `log` · atomic `done` sentinel = `rc`/`end`/`rundir`), and
+  fires an **ntfy** push on completion. The **ensign launches and returns the handle immediately — it
+  never waits** (subagents are synchronous); the **FO owns the wait by scanning `runs/.rk-handles/*/`
+  at the top of EVERY turn** (4-state read; on no-`done` + pid-dead, check harbor `result.json`/
+  `summary.json` before crying crash; ~9 h wall-clock backstop). Replaces the old "nohup + tmp log +
+  poll across turns" pattern and consolidates 3 inline copies (README smoke + full + matrix.sh).
+- **Finding:** smoke-tested the launcher end-to-end (cmd mode): `rc` captured correctly (0 / 7), atomic
+  same-fs sentinel written, the crash branch (worker SIGKILLed pre-sentinel) detected as no-`done` +
+  pid-dead, and **ntfy delivery confirmed server-side** (both OK + FAIL messages landed). Real-plumbing
+  proof, not an unprovable lifetime claim.
+- **Learning:** for untrackable detached work, the wake mechanism is an *accelerator, never the
+  correctness guarantee*. A live poller (`Monitor`) was REJECTED in design: its multi-hour lifetime is
+  asserted-from-docs, not observed — the same claim class that already failed for background Bash — and
+  a short Step-0 test cannot distinguish "survives the session" from "survives 90 s", so a green probe
+  would be a **self-anchored false-green** (the project's recurring wall: cf. `validation-self-anchored-
+  false-green`, the oracle-problem program). Invert it: the **sentinel + scan-every-turn is the floor**;
+  the **nohup wrapper's own ntfy push is the autonomous notification** (survives anything, no agent
+  awake needed) — strictly more robust than the poller, and it sidesteps the arming race, FO
+  context-bloat, and the false-green entirely. General rule for any "notify me when the detached thing
+  finishes": let the detached thing emit its OWN push; make the agent's check idempotent + every-turn.
+- **Bears on:** every `smoke`/`full` run going forward; any future FO-autonomy work (the
+  scan-every-turn rule is the re-attach/recovery hook). Hardened by an adversarial design review
+  (general-purpose subagent) that surfaced the cross-fs `mv` non-atomicity, harbor-output-as-authority,
+  and `rc`-capture-ordering fixes now baked into the launcher.
+- **Evidence:** `ade-bench/drivers/rk-run-detached.sh`; contract in repo-root `AGENTS.md` → *Detached
+  runs*; call sites `hypotheses/README.md` `smoke`/`full` + Repo conventions; MEMORY
+  `rk-run-detached-nohup` (rewritten). Smoke test: handles under `runs/.rk-handles/` (cleaned); ntfy
+  topic `ade-bench/.ntfy-topic` (gitignored).

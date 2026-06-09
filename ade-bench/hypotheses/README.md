@@ -75,13 +75,16 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
 - Run `rk` from `ade-bench/`: `uv run --project ../razorback rk <args>`.
 - Always pass `--runs-dir runs`; prefer `rk run --explain` before a full run.
 - Before any `rk run`, export `RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(git rev-parse --show-toplevel)/spacedock"`.
-- **`rk run … --runs-dir` is long-running (30 min–5 hr) and exceeds the Bash-tool timeout —
-  never run it in the foreground.** Launch it detached with `nohup`, redirect stdout+stderr
-  to a tmp log file, and record the PID to a tmp file, so the FO or ensign can trace liveness
-  (`kill -0 $(cat <pidfile>)`) and progress (`tail -f <log>`) across turns without blocking.
-  The fast `--explain` / `rk audit` / `rk score` calls stay in the foreground. `drivers/matrix.sh`
-  invokes `rk run` internally — background it the same way. See the `smoke`/`full` stages for
-  the exact pattern.
+- **`rk run … --runs-dir` is long-running (30 min–7 hr+) and exceeds the Bash-tool timeout —
+  never run it in the foreground.** Launch it through `drivers/rk-run-detached.sh <key> <spec>
+  [run|matrix]`, which `nohup`s the run, writes a handle under `runs/.rk-handles/<key>-<ts>/`
+  (`pid` · `log` · atomic `done` sentinel with `rc`/`end`/`rundir`), and fires an **ntfy** push
+  on completion. The **ensign launches and returns the handle immediately — it never waits**;
+  the **FO owns the wait by scanning `runs/.rk-handles/*/` at the top of every turn** (4-state
+  model + harbor-output crash check + ~9 h backstop — full contract in the repo-root `AGENTS.md`
+  → *Detached runs*). No live poller / no `Monitor`. The fast `--explain` / `rk audit` / `rk score`
+  calls stay foreground, after the sentinel lands. `drivers/matrix.sh` launches the same way
+  (`matrix` mode). See the `smoke`/`full` stages for the exact call.
 - The independent variable is ONLY the solver README. A variant spec differs from
   `specs/baseline.yaml` only in `experiment:` + `solver_workflow:`. `trials: 1` always.
 
@@ -252,11 +255,11 @@ deferred — this is a worthiness gate.)*
 - **Outputs (from `ade-bench/`):**
   ```bash
   uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --explain   # $0, fast, foreground
-  # rk run is long (30 min–5 hr) > Bash-tool timeout — launch detached, log to tmp, record PID:
-  LOG=/tmp/rk-h<NNNN>-smoke.log
-  nohup uv run --project ../razorback rk run specs/h<NNNN>-<slug>.smoke.frozen.yaml --runs-dir runs > "$LOG" 2>&1 &
-  echo $! > "$LOG.pid"   # trace: kill -0 $(cat "$LOG.pid") => alive ; tail -f "$LOG" => progress
-  # Poll until the PID exits (across turns — do NOT block a single Bash call on it), THEN:
+  # rk run is long (30 min–7 hr+) > Bash-tool timeout — launch DETACHED via the audited launcher
+  # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
+  drivers/rk-run-detached.sh h<NNNN>-smoke specs/h<NNNN>-<slug>.smoke.frozen.yaml run
+  #   -> handle: runs/.rk-handles/h<NNNN>-smoke-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
+  # When `done` appears with rc=0 (or harbor output confirms — see AGENTS "Detached runs"), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir>
   ```
@@ -320,18 +323,18 @@ The full 48-task run on the FULL frozen spec (`h<NNNN>-<slug>.frozen.yaml`, no t
 
 - **Outputs (from `ade-bench/`):**
   ```bash
-  # rk run is long (30 min–5 hr) > Bash-tool timeout — launch detached, log to tmp, record PID:
-  LOG=/tmp/rk-h<NNNN>-full.log
-  nohup uv run --project ../razorback rk run specs/h<NNNN>-<slug>.frozen.yaml --runs-dir runs > "$LOG" 2>&1 &   # all 48
-  echo $! > "$LOG.pid"   # trace: kill -0 $(cat "$LOG.pid") => alive ; tail -f "$LOG" => progress
-  # Poll until the PID exits (across turns — do NOT block a single Bash call on it), THEN:
+  # rk run is long (30 min–7 hr+) > Bash-tool timeout — launch DETACHED via the audited launcher
+  # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
+  drivers/rk-run-detached.sh h<NNNN>-full specs/h<NNNN>-<slug>.frozen.yaml run   # all 48
+  #   -> handle: runs/.rk-handles/h<NNNN>-full-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
+  # When `done` appears with rc=0 (or harbor output confirms — see AGENTS "Detached runs"), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir> --format json
   ```
-  (Or background `bash drivers/matrix.sh --specs 'specs/h<NNNN>-<slug>.frozen.yaml'` the same
-  nohup+PID way — it invokes `rk run` internally and is equally long — to chain
-  run + `captured>0` + audit + score + ledger.) Record the run-dir path + headline in
-  `## Run result`.
+  (Or run the full per-cell pipeline detached:
+  `drivers/rk-run-detached.sh h<NNNN>-full specs/h<NNNN>-<slug>.frozen.yaml matrix` — `matrix.sh`
+  chains run + `captured>0` + audit + score + ledger internally, equally long, same handle/ntfy.)
+  Record the run-dir path + headline in `## Run result`.
 - **Good:** the full spec uses the SAME solver README as the smoke spec (only the task
   set differs); audit clean before the score is recorded.
 - **Bad:** methodology drift between smoke and full.

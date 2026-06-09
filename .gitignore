@@ -22,3 +22,6 @@ ade-bench/specs/provenance.yaml
 # Detached rk-run PID files — operational, not source.
 .pid
 *.pid
+
+# ntfy topic for detached-run completion pushes — public-by-name = a shared secret, not source.
+.ntfy-topic
