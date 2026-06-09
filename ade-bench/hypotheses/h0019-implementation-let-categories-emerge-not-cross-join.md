@@ -382,6 +382,83 @@ CONCLUDED` close (net +0, box closed at 31/48). Cross-refs: `bug-type-taxonomy.m
 revise FIXED→fix-shape-reached-but-non-reproducible); `_artifacts/WORKFLOW-REFINE.md`. The FO performs any
 terminal frontmatter; this block is the conclude-stage recommendation, not a self-set verdict.
 
+## Smoke-vs-full divergence
+
+**Make-sure forensics (2026-06-09, pure artifact-level, no re-run).** Side-by-side of the
+committed `models/agg/mom_agg_reviews.sql` from all three airbnb009 runs, read from the
+dispatched-ensign `apply_patch` payloads (NOT narration), each paired with its verifier
+outcome. **This section CORRECTS the prior smoke-vs-full read: the date-span is NOT the
+discriminator — the `COUNT()` treatment is.**
+
+**The single shipped bug.** `environment/.../mom_agg_reviews.sql` already has the rolling
+30-day `LEFT JOIN` (`ON review_cte.REVIEW_DATE BETWEEN dates_cte.DATE_ACTUAL - 29 AND
+dates_cte.DATE_ACTUAL`) and `GROUP BY REVIEW_SENTIMENT, AGGREGATION_DATE`. The ONLY defect is
+the `dates_cte` narrowing filter `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE FROM
+review_cte)` which keeps only the 3786 same-day-review days, dropping 722 calendar days that
+have no same-day review but DO fall inside a later day's rolling window. The **oracle fix**
+(`solution/solutions/mom_agg_reviews.sql`) changes exactly that filter to
+`WHERE DATE_ACTUAL >= min(REVIEW_DATE) AND DATE_ACTUAL <= max(REVIEW_DATE)` (the 4508-day
+review span) and leaves `final_cte`'s `COUNT(*) AS REVIEW_TOTALS` untouched.
+
+**Hidden oracle (`tests/mom_agg_review_date_range.sql`, NOT shipped).** Windows
+`mom_agg_reviews` to `aggregation_date ∈ ['2009-06-20','2021-10-22']` and FAILS (returns 1
+row → `Got 1`) unless, in that window: `min_date='2009-06-20'`, `max_date='2021-10-22'`,
+**`review_days = count(*) = 12278`** (total mom ROWS, not distinct days) AND
+**`review_totals = sum(REVIEW_TOTALS) = 12196400`**.
+
+**Side-by-side of the committed SQL — the two edits that matter:**
+
+| Run (dir / cell) | `dates_cte` predicate (committed) | `final_cte` aggregate (committed) | Verifier | reward |
+|---|---|---|---|---|
+| SMOKE `d8bd75a0…` / `__seMJkJN` (call `call_7Kc5SIAi4kSZSDdX5hmRUu6Z`) | filter **DROPPED ENTIRELY** → `SELECT DATE_ACTUAL FROM dim_dates` (full **29220**-day calendar; non-incremental branch carries no bound) | **`COUNT(*)`** (byte-intact) | `mom_agg_review_date_range` **PASS**, `actual_fail=0` | **1** |
+| h0034 `1880d649…` / `__7oRD9LE` (call `call_ft9tWgUE6V5kdgnhhBiqGPIR`) | `WHERE DATE_ACTUAL BETWEEN min(REVIEW)..max(REVIEW)` (self-bounded **4508**-day span) | **`COUNT(*)`** (byte-intact) | `mom_agg_review_date_range` **PASS**, `actual_fail=0` | **1** |
+| FULL `8773355d…` / `__pwN5vFZ` (call `call_vWdprEnbd3nwCwRAUigqJSCS`) | `WHERE DATE_ACTUAL::DATE BETWEEN min(REVIEW)..max(REVIEW)` (self-bounded **4508**-day span — IDENTICAL to h0034 & to the oracle) | **`COUNT(review_cte.REVIEW_DATE)`** (CHANGED — the one differing line) | `mom_agg_review_date_range` **FAIL 1**, `Got 1`, `actual_fail=1` | **0** |
+
+All three made exactly ONE `apply_patch` to exactly ONE file (`mom_agg_reviews.sql`); no other
+model touched in any run (verified across both sessions per run). All three BUILD fine
+(`PASS=1` on the incremental). The verdict split is entirely in the singular date-range test.
+
+**ROOT CAUSE — read from the solver's OWN stated reasoning, not inferred.**
+- FULL (FAIL) final agent_message: *"I changed that to use the full review date range and
+  **changed the count to `COUNT(review_cte.REVIEW_DATE)` so empty rolling windows count as 0**."*
+  That is the failing edit: the 722 zero-review days then carry `REVIEW_TOTALS=0` instead of
+  the oracle's `1`, so `sum(REVIEW_TOTALS) ≠ 12196400` (and the NULL-sentiment row interaction
+  shifts the windowed `count(*)` off `12278`). The solver's own post-edit probe
+  (`zero_count_null_sentiment_sample`) confirms it produced `REVIEW_TOTALS=0` NULL-sentiment
+  rows for no-review days — exactly the deviation from the oracle's `COUNT(*)=1`.
+- SMOKE (PASS) final agent_message: *"removed the `dates_cte` filter that limited dates to
+  days with direct reviews"* — touched ONLY the filter, left `COUNT(*)` alone. h0034 (PASS)
+  likewise touched ONLY the filter (its `final_cte` is byte-identical to the shipped/oracle
+  `COUNT(*)`).
+
+**The decisive correction to the prior read.** The prior analyze attributed pass-vs-fail to the
+DATE SPAN (smoke dropped the predicate → full 29220-dim → 12278; full self-bounded → 4508 →
+miss). The third data point REFUTES that: **h0034 used the IDENTICAL self-bounded
+`BETWEEN min..max(review)` 4508-day span and PASSED.** Two of three runs (smoke full-dim,
+h0034 4508-span) PASS; both kept `COUNT(*)`. The one FAIL kept the same span as a passer but
+"improved" the count. The span (full-dimension vs self-bounded) is exonerated — within the
+test window `['2009-06-20','2021-10-22']` the full-dimension and the min..max-review spans
+produce the IDENTICAL rows (same rolling join, same `COUNT(*)`); the full dimension only adds
+rows OUTSIDE the window that the test's own `WHERE` discards. The real discriminator is
+`COUNT(*)` (correct, oracle-matching) vs `COUNT(review_cte.REVIEW_DATE)` (the solver's
+unprompted "tidy-up" that zeroes empty windows).
+
+**3-run tally and the answer to the captain's WHY.** Flipped 2/3 (smoke + h0034), failed 1/3
+(standalone full). It is a NON-DETERMINISTIC coin-flip between two rule-compliant edits, NOT a
+systematic smoke-vs-full artifact (no prompt/context/leak difference — the smoke and full ran
+the same frozen solver hash `sha256:9394871c…`; the only thing that varied was the task batch
+size, which does not touch this single model). The anti-cross-join rule pins "drop the
+narrowing filter / no cross join / categories emerge per key" — and ALL THREE runs satisfied
+it (subtractive filter edit, no cross join, rolling join + group-by intact). The rule does
+**not** pin the `COUNT()` semantics, and the correct totals (`12196400`/`12278`) live only in
+the hidden test, which does not ship. So when the solver, reasoning locally, decides empty
+rolling windows "should" count 0 and rewrites `COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)`, the
+rule cannot stop it and the solver cannot tell the choice is wrong. **The smoke PASS was a
+lucky rule-compliant edit (it happened to leave `COUNT(*)` alone), not a smoke-specific
+artifact.** This is precisely the oracle-problem wall (MEMORY `verification-without-oracle-real-world`):
+the structural acceptance signal the rule gives (rows-per-key vary, no cross join) was
+satisfied in all three runs, yet correctness turns on a count only the hidden check knows.
+
 ## Verdict
 
 ## Stage Report: propose
@@ -452,3 +529,18 @@ E2-ALONE standalone full re-confirm of h0019. Strict audit CLEAN (`tainted:0`, 4
 ### Summary
 
 The E2-alone standalone full — the noise-robust re-confirm the entity itself recommended — was run, isolated, single-trial, clean audit, and did NOT bank h0019's +1: net −1 (CI [−5,+3], p≈0.82, pure noise) and the target airbnb009 did NOT reproduce the smoke/h0034 flip. The decisive read: the lever FIRED (committed SQL made the exact subtractive, no-cross-join edit — executed, not inert) but the solver chose a self-derived `BETWEEN min..max(review_date)` bound rather than dropping the date predicate entirely as the smoke pass did; that produced a row count the hidden oracle test rejects (`review_days≠12278` vs the smoke pass's full-dimension 12278). Both edits comply with the rule, which deliberately cannot pin the oracle-only count, so the flip is a coin-flip on which rule-compliant edit the solver writes — the oracle-problem wall, not a fixable lever defect. All 5 verdict changes (2 incidental gains, 3 regressions on passers) are rule-independent single-trial variance with no anti-cross-join precondition. Recommendation: CONCLUDE as a real-but-unpromotable lever / knowledge gain — do NOT promote, do NOT iterate, no multi-trial or freeze-repo (standing decision). In-stage analysis, not a structural workflow change.
+
+## Stage Report: analyze (cycle 2 — make-sure smoke-vs-full forensics)
+
+- DONE: SIDE-BY-SIDE of committed `mom_agg_reviews.sql` for airbnb009 from BOTH runs (smoke PASS vs standalone-full FAIL), from apply_patch payloads, diffed, each paired with verifier distance
+  Written as the new `## Smoke-vs-full divergence` section (3-run table). SMOKE `d8bd75a0…/__seMJkJN` (call `call_7Kc5SIAi4kSZSDdX5hmRUu6Z`): dropped the `dates_cte` filter ENTIRELY (full 29220-day dim), kept `COUNT(*)`; verifier PASS, reward 1. FULL `8773355d…/__pwN5vFZ` (call `call_vWdprEnbd3nwCwRAUigqJSCS`): self-bounded `BETWEEN min..max(review)` (4508-day span) AND changed `COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)`; verifier FAIL 1 `Got 1`, reward 0. The one differing SQL line that flips the verdict is the `final_cte` aggregate, not the span.
+- DONE: ROOT CAUSE from the solver's STATED reasoning in BOTH runs (agent_message/sessions), classified deterministic-coin-flip vs systematic
+  FULL solver explicitly stated it "changed the count to `COUNT(review_cte.REVIEW_DATE)` so empty rolling windows count as 0" — that zeroes the 722 no-review days (oracle keeps `COUNT(*)=1`), breaking `review_totals=12196400`. SMOKE solver stated it "removed the `dates_cte` filter" only, leaving `COUNT(*)`. Classification: **(a) NON-DETERMINISTIC coin-flip between two rule-compliant edits** — same frozen solver hash `sha256:9394871c…` in both, only task-batch size differs (does not touch this model); NOT a systematic smoke-vs-full prompt/context/leak difference.
+- DONE: Cross-check the 3rd data point (h0034-combined full) to confirm/refute the coin-flip and the span theory
+  h0034 `1880d649…/__7oRD9LE` (call `call_ft9tWgUE6V5kdgnhhBiqGPIR`) PASSED with the IDENTICAL self-bounded `BETWEEN min..max(review)` 4508-day span as the FAILING full run, but kept `COUNT(*)` byte-intact. This REFUTES the prior "span coin-flip" read: span is exonerated (within the test window the full-dim and min..max spans yield identical rows); the true discriminator is `COUNT(*)` (oracle-matching, 2 PASS) vs `COUNT(review_cte.REVIEW_DATE)` (1 FAIL). Tally: flipped 2/3 (smoke + h0034), failed 1/3 (standalone full).
+- DONE: Dedicated `## Smoke-vs-full divergence` written with plain-words WHY + side-by-side SQL + 3-run tally; smoke PASS classified
+  The smoke PASS was a **lucky rule-compliant edit** (it happened to leave `COUNT(*)` alone), NOT a smoke-specific artifact. The rule pins "drop the narrowing filter / no cross join / categories emerge" — all 3 runs satisfied it — but does NOT pin the `COUNT()` semantics, and the correct totals are oracle-only/not locally derivable. Oracle-problem wall confirmed.
+
+### Summary (cycle 2)
+
+Pure artifact forensics, no re-run. The make-sure read MATERIALLY CORRECTS the prior analyze's smoke-vs-full explanation: the divergence is NOT the date span. All three airbnb009 runs made one subtractive, no-cross-join filter edit (the lever fired in every run); two passed and one failed. The single SQL line that decides the verdict is `final_cte`'s aggregate — the two PASSes (smoke full-dim, h0034 4508-span) kept the shipped/oracle `COUNT(*)`, while the lone FAIL kept the same span as h0034 but rewrote `COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)` to "count empty windows as 0" (its own stated reasoning), zeroing the 722 no-review days and breaking the oracle's `review_totals=12196400`. The oracle solution itself uses the self-bounded `min..max(review)` span, so the span the full run chose was correct; only the count "tidy-up" was wrong, and the rule cannot pin it because the correct count lives only in the hidden test. So the flip's 2/3 reproducibility is a non-deterministic coin-flip on whether the solver leaves the existing `COUNT(*)` alone — the oracle-problem wall, not a smoke-specific cause. Terminal verdict unchanged: REAL-but-UNPROMOTABLE → conclude. FO performs conclude+archive.
