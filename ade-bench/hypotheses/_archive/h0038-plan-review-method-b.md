@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §3 E-PRMB (rank 2, captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 2. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-09T03:00:10Z
-completed:
-verdict:
+completed: 2026-06-09T06:34:35Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-09T06:34:35Z
 ---
 
 ## Hypothesis
