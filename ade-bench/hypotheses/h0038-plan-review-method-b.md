@@ -254,6 +254,44 @@ schema-drift h0041 already flagged), so the "standing reasoning probe" value is 
 
 ## Verdict
 
+**REJECTED — rejected-as-written (NO-GO at smoke; knowledge gain). @baseline UNCHANGED at
+31/48 (`runs/ade-bench-baseline/622bdedac572b479`); NOT promoted.**
+
+The FIRST LIVE run of Method B FALSE-REJECTS on the oracle wall. The stage emitted
+`verdict:REJECT` on its own abstention target `asana004` — the exact cell the spec said MUST
+record `PROCEED_UNDETERMINED` — citing `contradicting_line: "from project_user"`. That is a
+guess pattern-matched onto a FROM clause from the invariant's "never grain from a pre-filtered
+child" template, NOT a locally-grounded contradiction: whether the canonical grain is `project`
+or `project_user` is fixed by the hidden expected output (taxonomy Track Z, oracle-only `int_`
+convention). The single "correct" abstention on a target (`intercom001` →
+`PROCEED_UNDETERMINED`) was an **accident of empty SQL** ("no existing intercom__threads SQL
+present" — a creation task), not the predicted `_fivetran_active` re-correlation. So Method B is
+**empirically NO better than Method A** on the wall: an independent re-derivation against a
+generic leak-clean invariant, applied as a *pattern*, false-rejects exactly where the deciding
+fact is correlated-out of every local relation. The detector is falsified.
+
+**The record-only rail kept it HARMLESS — the one thing that worked.** Of the 7 cells that
+emitted a concrete record, 3 drew a REJECT (`asana004`, plus the PASSERS `asana001` and `f1007`),
+but the "record, not a gate or build mandate" design held: both REJECTed passers kept
+byte-unchanged committed SQL with ERROR=0 and held PASS. No passer reward regressed (G8 panel
+clean); the single real build delta was `asana004` Got 3→6, variance on a CREATE task neither
+version can ground. Strict audit clean (8/8, `tainted:0`, `coverage_missing:0`); score
+`stratified_pass_at_1 = 0.75` (6/8). So the stage is **safe but non-discriminating** — its only
+non-trivial signal (REJECT) is a guess it correctly refuses to act on. Safe-but-useless = no live
+lever. A full run would only spread ~20 ungrounded REJECTs across 48 cells (~43% REJECT rate) with
+zero upside, harmless only by the record-only rail → do NOT promote to full.
+
+**Residual value = two knowledge gains.** (1) Method B is now *empirically* shown to false-reject
+live (not just simulated), closing the standing "is the never-run Method B different from Method
+A?" question — it is not; both hit `ade-bench-solver-blind-to-oracle` /
+`verification-without-oracle-real-world`. (2) The h0041 `/tmp`+stdout observe-only write-path is
+re-validated a second time as the durable record route (recovered on 7/8 cells). A secondary
+defect compounds the negative: `ana-eng001` emitted only the README template, no concrete record —
+the free-form schema drifts under gpt-5.5 (a 2nd sighting after h0041), so any ENFORCED downstream
+consumer must hard-pin the schema rather than trust this emit. The WORKFLOW-REFINE.md structural
+entry is finalized to its terminal state. No follow-up hypothesis is filed — the oracle-wall
+finding closes the Method-B question, and h0037 (E-RMS) is the remaining queued run-worthy bet.
+
 ## Stage Report: propose
 
 - DONE: README change = EXACTLY ONE new `## Stage: Plan Review` inserted between Exploration and Implementation implementing Method B (re-derive grain/keys from instruction+existing SQL+stated invariant → compare → `verdict:REJECT` only on locally-visible code-contradicts-contract bug with `reason`+`contradicting_line`, else `verdict:PROCEED_UNDETERMINED` and build EXACTLY as baseline; never reverse-inference). Leak-guard prose (lines 1–32) + four existing stages byte-identical; AC-1 satisfied.
@@ -305,3 +343,16 @@ Net hoped-for: **{0} flips** (honest expectation — no known failure is a clean
 First LIVE run of Method B. Infrastructure mostly worked: stage fired and the h0041 `/tmp`+stdout routing recovered a concrete `plan_review.json` on 7/8 cells (ana-eng001 emitted only the template — schema drift, second confirmation of the h0041 free-form-drift finding). The CONTENT falsifies the value claim: the stage emitted REJECT on the abstention target asana004 (a guess pattern-matched onto `from project_user`, not a locally-grounded contradiction — the canonical grain is oracle-only) and on 2 passers; the only "correct" abstention on a target (intercom001) was an accident of empty SQL. Audit clean (8/8, tainted:0), score 0.75 (6/8), no passer reward regressed because the record-only rail held — but the verdict layer is non-discriminating. **Go/no-go = NO-GO → conclude/REJECTED.** Method B is empirically no different from Method A on the oracle wall; do not promote to full (would spread ungrounded REJECTs across 48 cells with zero upside, kept harmless only by the record-only design).
 
 **Verdict distribution (authoritative):** among the 7 cells with a concrete record, **4 PROCEED_UNDETERMINED** (airbnb001, asana003, intercom001, quickbooks002) **/ 3 REJECT** (asana004, asana001, f1007); **ana-eng001 emitted no concrete record**. (Recovered by reading the final emitted record per cell from the transcript — raw `verdict` token counts are noisy because the README prose itself contains "verdict:REJECT … else verdict:PROCEED_UNDETERMINED".)
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict`: REJECTED — knowledge gain.
+  `## Verdict` states REJECTED / rejected-as-written: the first LIVE Method B FALSE-REJECTS on the oracle wall (asana004 → `verdict:REJECT` on its own abstention target, a guess pattern-matched on `from project_user`; intercom001 abstained only by accident of empty-SQL); record-only kept it HARMLESS (2 passers drew spurious REJECTs but committed SQL byte-identical, no passer regressed; audit clean 8/8, score 0.75); Method B empirically no better than Method A; @baseline UNCHANGED 31/48, NOT promoted.
+- DONE: Finalize the `_artifacts/WORKFLOW-REFINE.md` h0038 entry to a FINAL state (h0038 IS a NEW-STAGE structural lever — mandatory).
+  Status → **rejected-as-written** (detector falsified / record-only rail safe but useless); learning line sharpened to "an independent JOIN-shape re-derivation cannot distinguish a locally-decidable contradiction from an oracle-only grain convention → guesses REJECT on the wall"; bears-on flags the free-form record SCHEMA-DRIFT as a 2nd sighting after h0041 (any ENFORCED consumer like h0040/M2 needs a PINNED schema and must NOT trust this trigger to revert); /tmp+stdout routing re-validated noted (durable 7/8, after 8/8 at h0041).
+- DONE: Confirm @baseline NOT promoted and NO new follow-up hypothesis filed.
+  No `rk baseline promote` / `rk registry add run` issued — @baseline stays `runs/ade-bench-baseline/622bdedac572b479` (31/48); no new `h<NNNN>-<slug>.md` filed — the Method-B/oracle-wall finding closes the re-derive-without-oracle family and h0037 (E-RMS) is the queued remaining run-worthy bet, so no new flip-seeking lever is warranted (escalated to captain by conclude rather than reflexively filing).
+
+### Summary
+
+Terminal conclude for h0038 (NO-GO at smoke, captain-decided REJECTED). Wrote the `## Verdict`: REJECTED — knowledge gain. The first LIVE run of Method B FALSE-REJECTS on the oracle wall — it cannot distinguish a locally-decidable contradiction from an oracle-only grain convention, so it guessed REJECT on its own abstention target asana004 (`from project_user`) and on 2 passers, while the only "correct" abstention (intercom001) was an accident of empty SQL. The record-only rail kept it HARMLESS (no passer reward regressed; committed SQL byte-identical; audit clean 8/8; score 0.75), but the detector is useless — Method B is empirically no different from Method A on the wall. Finalized the WORKFLOW-REFINE.md new-stage entry to **rejected-as-written** with a sharpened learning line and a bears-on flag for h0040/M2 (the schema-drift is a 2nd sighting after h0041 → enforced consumers need a pinned schema). @baseline NOT promoted (stays 31/48); NO follow-up hypothesis filed (h0037/E-RMS is the queued bet; the oracle-wall finding closes the Method-B question). Pure documentation finalization — no `rk` command re-run.
