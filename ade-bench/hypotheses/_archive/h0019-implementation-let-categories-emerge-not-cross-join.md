@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: innovate-bugtype-fixes workflow (bug type 1b - Grain - date/calendar spine (missing days)); in-stage lever (Implementation). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-05T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-09T02:44:13Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-09T02:44:13Z
 ---
 ## Hypothesis
 
