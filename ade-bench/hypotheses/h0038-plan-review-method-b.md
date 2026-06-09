@@ -147,9 +147,110 @@ Fork parent resolved: `source:` = `solver_workflows/codex-ade-dbt-minimal`; `rk 
 
 ## Smoke result
 
+**Go/no-go: NO-GO (cleanly falsified → conclude/REJECTED).** Method B FALSE-REJECTED the very
+abstention cell it was designed to abstain on (`asana004` → `verdict:REJECT`, not the predicted
+`PROCEED_UNDETERMINED`), confirming the oracle-problem wall: the stage cannot distinguish a
+locally-decidable contradiction from an oracle-only grain convention, so its REJECTs are guesses.
+The reasoning probe runs and routes durably, but it does not discriminate.
+
+**Run:** `runs/ade-bench-h0038-plan-review-method-b/ee924fbc9d3b0b20` (smoke, 8 cells, ~1h15m).
+**Audit (strict):** `clean: 8, tainted: 0, coverage_missing: 0` — fully clean. **Score:**
+`stratified_pass_at_1 = 0.75` (6/8), `stratified_n_completed = 8`, `n_errored = 0`,
+verdict `above` the 0.1875 paper constant. **Captured:** all 8 cells have substantive
+transcripts (`codex.txt` 60–83 KB, `sessions/*.jsonl` 268–664 KB) → `captured > 0` on every cell.
+
+**`plan_review.json` recovered on 7/8** (routing fix HELD where it fired — durable in the session
+transcript via the h0041 `/tmp/plan_review.json` + `cat`-to-stdout pattern; recovered from the
+`apply_patch`/`printf` `arguments` + `cat` stdout in `agent/sessions/*.jsonl` / `agent/codex.txt`).
+**ana-eng001 emitted NO concrete record** — only the README template (`<the re-derived…>`,
+`<REJECT | PROCEED_UNDETERMINED>`) appears; 0 concrete `intended_grain` lines vs 3–4 on every
+other cell. This is the h0041-flagged schema/execution-drift mode (gpt-5.5 sometimes skips the
+free-form emit). Verdict distribution among the 7 that emitted: **4 PROCEED_UNDETERMINED /
+3 REJECT** (+1 missing record on ana-eng001).
+
+| Cell | @base | h0038 | Got N (base→h0038) | plan_review verdict | Read |
+|------|-------|-------|--------------------|---------------------|------|
+| asana004 (abstention target) | ❌ FAIL | ❌ FAIL | **3 → 6** | **REJECT** (`from project_user`) | ❌ **FALSE-REJECT** — predicted PROCEED_UNDETERMINED; the grain is oracle-only (taxonomy Track Z) yet the stage emitted a REJECT it could not locally ground; build got *worse* (3→6, variance). |
+| intercom001 (abstention target) | ❌ FAIL | ❌ FAIL | 7 → 7 (unchanged) | PROCEED_UNDETERMINED | ⚠️ correct verdict, **wrong reason** — abstained because "no existing intercom__threads SQL" (a creation task), NOT the predicted `_fivetran_active` re-correlation. Abstains by accident of empty-SQL, not by seeing the contradiction. |
+| asana001 (perturbable canary) | ✅ PASS | ✅ PASS | unchanged (PASS=2/2, ERROR=0) | **REJECT** | ⚠️ REJECT on a PASSER — but record-only held: committed SQL unchanged, passed cleanly. Inert reasoning, no damage. |
+| asana003 (perturbable canary) | ✅ PASS | ✅ PASS | unchanged | PROCEED_UNDETERMINED | ✅ held PASS, abstained. |
+| f1007 (canary) | ✅ PASS | ✅ PASS | unchanged (PASS=6/6, ERROR=0) | **REJECT** | ⚠️ REJECT on a PASSER — record-only held: committed SQL unchanged, passed cleanly. Inert reasoning, no damage. |
+| airbnb001 (canary) | ✅ PASS | ✅ PASS | unchanged | PROCEED_UNDETERMINED | ✅ held PASS, abstained. |
+| ana-eng001 (canary) | ✅ PASS | ✅ PASS | unchanged | **(no concrete record)** | ⚠️ held PASS, but the stage emitted no recoverable plan_review.json — record-emit skipped (schema drift). |
+| quickbooks002 (canary) | ✅ PASS | ✅ PASS | unchanged | PROCEED_UNDETERMINED | ✅ held PASS, abstained. |
+
+**Per-checklist:**
+- (a) ABSTENTION (decisive): **FAILED.** asana004 emitted **REJECT**, not the required
+  `PROCEED_UNDETERMINED`. intercom001 emitted `PROCEED_UNDETERMINED` but for the wrong (empty-SQL
+  creation-task) reason, not the `_fivetran_active` re-correlation. The stage does not see why
+  the contradiction is non-locally-decidable; it abstained on intercom001 only because there was
+  no SQL to review at all.
+- (b) NO FALSE-REJECT on passers: **PASS on rewards, but the verdict probe REJECTed 2 of 6
+  passers** (asana001, f1007). Those held PASS — the "record-only / build EXACTLY as baseline"
+  rule HELD (committed SQL byte-equivalent, ERROR=0, Got N unchanged). So no passer reward
+  regressed (G8 panel clean), but the verdict layer itself emitted false-positives it simply
+  could not act on. The single REAL build delta is asana004 (a non-passer): Got 3→6, variance on
+  a CREATE task neither version can ground locally.
+- (c) `plan_review.json` present & non-empty on all 8: **7/8** — the routing fix held where the
+  stage fired (durable, recoverable from the transcript), but **ana-eng001 emitted no concrete
+  record** (template-only; the h0041 schema/execution-drift mode). So the record-emit is not
+  reliably universal under gpt-5.5 — a second confirmation of the h0041 free-form-drift finding.
+
 ## Run result
 
 ## Behavioral analysis
+
+**The first LIVE Method B run characterizes the stage as a non-discriminating reasoning probe.**
+The infrastructure worked end-to-end: the stage fired on all 8 cells, emitted a substantive
+`plan_review.json` on every one, and the `/tmp` + stdout routing recovered cleanly (the
+h0041 fix held a second time — confirming it as the reusable observe-only write-path). But the
+*content* falsifies the value claim.
+
+**1. The REJECT verdict is a guess, not a locally-grounded contradiction (the oracle wall).**
+The hypothesis predicted {0} flips and *abstention* on the oracle-blocked failures. Instead the
+stage REJECTed 3 of the 7 cells that emitted a record (asana004, asana001, f1007) — including
+asana004, the exact cell the dispatch said MUST abstain.
+asana004's REJECT cited `contradicting_line: from project_user` with `reason` "derives project_id
+from a child relation." That is the **right-sounding grain story**, but it is *not locally
+decidable*: whether the canonical grain is `project` or `project_user` is fixed by the hidden
+expected output (taxonomy Track Z, "oracle-only `int_` convention"). The stage pattern-matched
+the invariant's "never grain from a pre-filtered child" template onto a FROM clause and fired —
+exactly the false-reject the hypothesis's own kill-path warned about, and exactly the
+solver-blind-to-oracle / correlated-error wall. Method A (reverse-inference) provably
+false-rejects; this run shows Method B *also* false-rejects when the invariant is applied as a
+pattern rather than a locally-verified anti-join. The Got 3→6 worsening on asana004 is build
+variance (a CREATE task neither version can ground), not a benefit of the REJECT.
+
+**2. The "abstain" that did fire was an accident of empty SQL, not contradiction-blindness.**
+intercom001 correctly emitted `PROCEED_UNDETERMINED`, but its `reason` is "no existing
+intercom__threads SQL is present" — it abstained because there was nothing to review, not because
+it saw the `_fivetran_active` re-correlation that makes the grain non-decidable. So the one
+"correct" abstention on a target does not demonstrate the discrimination the stage claims; it
+demonstrates the stage is silent when handed an empty input.
+
+**3. Record-only HELD — the G10 design distinction is the one thing that protected the panel.**
+Two passers (asana001, f1007) drew a REJECT verdict yet held PASS with byte-unchanged committed
+SQL and ERROR=0. This confirms the "record, not a gate or build mandate" framing prevented the
+h0012 false-green / damage-the-passer failure: a REJECT that *acted* would have rewritten f1007's
+correct `sum` path or asana001's join. So the stage is *safe* (no passer reward regressed, G8
+panel clean) but *useless* for flips (its only non-trivial signal — REJECT — is a guess it
+correctly refuses to act on). Safe-but-non-discriminating = no live lever.
+
+**4. Net for the program.** This is the predicted {0}-flips outcome reached by a *different and
+sharper* mechanism than expected: not "abstains everywhere" but "REJECTs half the panel on
+ungrounded guesses, then correctly declines to act." It re-confirms the standing wall
+(`ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`): an independent
+re-derivation against a generic invariant cannot beat the oracle, because the invariant is a
+*pattern* and the deciding fact is *correlated-out* of every local relation. The honest residual
+value is exactly two knowledge gains: (a) Method B is now **empirically** shown to false-reject
+live (not just simulated), closing the "is the never-run Method B different?" question — it is
+not; and (b) the observe-only `/tmp`+stdout routing is re-validated as the durable write-path. No
+6th live lever emerges. Recommend **conclude/REJECTED** — do NOT promote to full (a full run
+would only spread the same ungrounded-REJECT behavior across 48 cells; the 3-of-7 REJECT rate
+(~43%) predicts ~20 ungrounded REJECTs at scale, and the only thing keeping them harmless is the
+record-only rail, which delivers no upside). A secondary defect compounds it: the record-emit is
+not even reliable (ana-eng001 emitted no concrete `plan_review.json` — the same free-form
+schema-drift h0041 already flagged), so the "standing reasoning probe" value is itself leaky.
 
 ## Verdict
 
@@ -187,3 +288,20 @@ Authored h0038 (first LIVE run of Method B) by forking the registry-confirmed `@
 ```
 
 Net hoped-for: **{0} flips** (honest expectation — no known failure is a clean code-contradicts-contract case); the SUCCESS condition is the *committed `plan_review.json`* on asana004 + intercom001 recording `PROCEED_UNDETERMINED` (correct abstention) AND zero false-rejects on the 6 passers (Got N byte-unchanged on every canary). Unchanged Got N on the abstention reads is the win, not inertness-failure. ETA: 8 tasks × ~9 min/task ≈ **~72 min** (serial, `n_concurrent_trials=1`), detached via nohup.
+
+## Stage Report: smoke
+
+- DONE: Smoke run completed (detached nohup, polled via Monitor across turns ~1h15m). Strict audit clean + captured>0 on all 8; focused score + clean-audit attestation recorded in `## Smoke result`.
+  `rk audit ee924fbc9d3b0b20 --policy strict` → `clean: 8, tainted: 0, coverage_missing: 0`; `rk score` → `stratified_pass_at_1=0.75` (6/8), n_completed=8, n_errored=0; captured: all 8 cells codex.txt 60–83KB + jsonl 268–664KB.
+- DONE: Decisive Method-B reads (plan_review.json recovered from session transcript on 7/8). (a) ABSTENTION FAILED — asana004 emitted REJECT (predicted PROCEED_UNDETERMINED; Got 3→6); intercom001 PROCEED_UNDETERMINED but for the wrong empty-SQL reason. (b) NO passer reward regressed (G8 clean) BUT the verdict probe REJECTed 2 passers (asana001, f1007) — record-only held, committed SQL byte-unchanged, ERROR=0. (c) plan_review.json present & non-empty on 7/8 — ana-eng001 emitted no concrete record (schema drift).
+  Per-cell table in `## Smoke result`.
+- DONE: Per-cell verdict distribution reported (the live-rail characterization): among the 7 cells that emitted a concrete record, **4 PROCEED_UNDETERMINED** (airbnb001, asana003, intercom001, quickbooks002) **/ 3 REJECT** (asana004, asana001, f1007); **+1 missing** (ana-eng001 — no concrete record).
+  See `## Behavioral analysis`.
+- DONE: Workflow-refinement evaluation + `_artifacts/WORKFLOW-REFINE.md` entry appended (new-stage structural lever; first LIVE Method B). Conclusion: Method B empirically false-rejects live (same oracle wall as Method A); routing fix re-validated; record-only rail is the sole safety.
+  Entry: "Plan Review (Method B): the FIRST LIVE run … (h0038 smoke NO-GO, 2026-06-09)".
+
+### Summary
+
+First LIVE run of Method B. Infrastructure mostly worked: stage fired and the h0041 `/tmp`+stdout routing recovered a concrete `plan_review.json` on 7/8 cells (ana-eng001 emitted only the template — schema drift, second confirmation of the h0041 free-form-drift finding). The CONTENT falsifies the value claim: the stage emitted REJECT on the abstention target asana004 (a guess pattern-matched onto `from project_user`, not a locally-grounded contradiction — the canonical grain is oracle-only) and on 2 passers; the only "correct" abstention on a target (intercom001) was an accident of empty SQL. Audit clean (8/8, tainted:0), score 0.75 (6/8), no passer reward regressed because the record-only rail held — but the verdict layer is non-discriminating. **Go/no-go = NO-GO → conclude/REJECTED.** Method B is empirically no different from Method A on the oracle wall; do not promote to full (would spread ungrounded REJECTs across 48 cells with zero upside, kept harmless only by the record-only design).
+
+**Verdict distribution (authoritative):** among the 7 cells with a concrete record, **4 PROCEED_UNDETERMINED** (airbnb001, asana003, intercom001, quickbooks002) **/ 3 REJECT** (asana004, asana001, f1007); **ana-eng001 emitted no concrete record**. (Recovered by reading the final emitted record per cell from the transcript — raw `verdict` token counts are noisy because the README prose itself contains "verdict:REJECT … else verdict:PROCEED_UNDETERMINED".)

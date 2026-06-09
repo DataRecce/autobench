@@ -686,3 +686,76 @@ or a dispatched worker, never a direct first-officer edit.
   3 failers, byte-identical Got N). MEMORY `ade-bench-solver-blind-to-oracle`,
   `verification-without-oracle-real-world`, `ade-bench-single-trial-judge-by-artifact`,
   `ade-bench-instruction-lever-taxonomy`.
+
+### Plan Review (Method B): the FIRST LIVE run of independent re-derivation — Method B ALSO false-rejects; the REJECT verdict is a guess, not a locally-grounded contradiction (h0038 smoke NO-GO, 2026-06-09)
+- **Status:** **smoke NO-GO → conclude/REJECTED** — new-stage structural lever (a pre-Implementation
+  `## Stage: Plan Review` between Exploration and Implementation, generative-but-record-only). The
+  never-run Method B (Round 1 only *simulated* it) is now run LIVE for the first time. Forked the
+  @baseline solver `codex-ade-dbt-minimal`.
+- **Idea:** from (task instruction + the EXISTING model SQL + a stated generic leak-clean grain
+  invariant — "a model's grain entity comes from its canonical source relation, never from a
+  pre-filtered child; a completeness/repair output must keep every key the consumer relies on") RE-DERIVE
+  the intended grain/keys INDEPENDENTLY, COMPARE to what the code does, emit `verdict:REJECT` ONLY on a
+  LOCALLY-VISIBLE code-contradicts-contract bug (with `reason` + `contradicting_line`), else
+  `PROCEED_UNDETERMINED` and build EXACTLY as baseline. NEVER reverse-inference (Method A). Single-path
+  (one build reviewed once against an external invariant; selects nothing) — distinct from the
+  G9-exhausted candidate-arbitration family.
+- **Routing:** REUSED the h0041-VALIDATED unconditional `/tmp/plan_review.json` + `cat`-to-stdout
+  write-path (NOT the dead `/razorback-freeze` single-child precondition that made h0039 inert). **It
+  held a second time** — `plan_review.json` recovered on 8/8 cells from `agent/sessions/*.jsonl` +
+  `agent/codex.txt`. This re-confirms the observe-only write-path as the standing pattern for any
+  record-emitting stage.
+- **Finding — verdict distribution (of the 7 cells that emitted a concrete record) 4 PROCEED_UNDETERMINED
+  / 3 REJECT, +1 missing record (ana-eng001 emitted template-only — h0041 schema drift); Method B
+  FALSE-REJECTS LIVE.**
+  The decisive result: asana004 — the cell the proposal said MUST abstain (`PROCEED_UNDETERMINED`,
+  oracle-only grain per Track Z) — instead emitted **REJECT** with `contradicting_line: "from
+  project_user"`. The stage pattern-matched the invariant's "never grain from a pre-filtered child"
+  template onto a FROM clause and fired, but it could NOT locally verify the contradiction (whether the
+  canonical grain is `project` vs `project_user` is fixed by hidden expected output). The REJECT is a
+  **guess shaped like a contradiction**, not a locally-grounded one. asana001 + f1007 (PASSERS) also
+  drew REJECT verdicts. So Method B does NOT escape the Method-A false-reject failure — applied as a
+  generic *pattern* against a generic *invariant*, it false-rejects exactly where the deciding fact is
+  correlated-out of every local relation. The one "correct" abstention on a target (intercom001) was an
+  **accident of empty SQL** ("no existing intercom__threads SQL present" — a creation task), not the
+  predicted `_fivetran_active`-re-correlation discrimination.
+- **Finding — record-only HELD and is the ONLY thing that kept the panel safe (G10 distinction
+  earned its keep).** The two REJECTed passers held PASS with byte-unchanged committed SQL and
+  ERROR=0; the "record, not a gate or build mandate" rule prevented the h0012 damage-the-passer
+  false-green. Net: G8 panel clean (no passer reward regressed; the single real build delta is
+  asana004 Got 3→6, variance on a non-passer CREATE task). So the stage is SAFE but
+  NON-DISCRIMINATING — its only non-trivial signal (REJECT) is a guess it correctly refuses to act
+  on. Safe-but-useless = no live lever.
+- **Finding — the record-emit is not even reliable (a second h0041-drift confirmation).** ana-eng001
+  emitted NO concrete `plan_review.json` — only the README template (`<the re-derived…>`,
+  `<REJECT | PROCEED_UNDETERMINED>`) survives in its transcript (0 concrete `intended_grain` lines vs
+  3–4 on every other cell). So the free-form record schema drifts under gpt-5.5 and a cell can skip
+  the emit entirely; the "standing reasoning probe" value is itself leaky (7/8 here), reinforcing the
+  h0041 rule that an enforced consumer must hard-pin the schema / refuse to proceed without the literal
+  field rather than trust a free-form emit.
+- **Learning:** (1) **Method B is empirically NO different from Method A on the oracle wall** — both
+  false-reject; a generic leak-clean invariant applied as a pattern fires on plausible-but-correct FROM
+  clauses because the canonical-grain fact is oracle-only. This closes the standing "is the never-run
+  Method B worth running?" question: NO, the re-derivation cannot beat the oracle (same wall as
+  `solver-blind-to-oracle` / `verification-without-oracle-real-world`; the invariant is a pattern, the
+  deciding fact is the correlated-out residual). (2) **An emit-a-verdict stage is only as safe as its
+  record-only rail** — at a ~3-of-7 (~43%) REJECT rate, a full run would spread ~20 ungrounded REJECTs
+  across 48 cells; the record-only design is the sole reason that is harmless, and it delivers zero
+  upside. (3) The `/tmp`+stdout routing is twice-validated as a write-path, BUT the free-form record
+  schema drifts (1/8 cells, ana-eng001, skipped the emit) — reuse the routing for any future
+  record-emitting stage, but hard-pin / enforce the record schema rather than trust a free-form emit.
+- **Bears on:** the verify/re-derive-without-oracle family (Method B now empirically dead alongside
+  Method A — do NOT file further "re-derive the grain and compare" levers, single-path or otherwise);
+  h0017 (Output Contract, which DID build-to-a-contract and inverted joins — this confirms the safer
+  record-only framing avoids that damage but at the cost of any flip); any future verdict/REJECT-emitting
+  stage (must keep the record-only rail; a fix-on-REJECT variant would damage passers). The
+  candidate-arbitration family (G9) remains separately exhausted (h0026).
+- **Evidence:** entity `hypotheses/h0038-plan-review-method-b.md` (`## Smoke result`,
+  `## Behavioral analysis`); run `runs/ade-bench-h0038-plan-review-method-b/ee924fbc9d3b0b20` (audit
+  strict clean 8/8 tainted:0 coverage_missing:0, captured>0 all 8; score
+  `stratified_pass_at_1=0.75` 6/8; 7/8 concrete plan_review records recovered, distribution 4
+  PROCEED_UNDETERMINED / 3 REJECT, ana-eng001 emitted template-only); baseline
+  `runs/ade-bench-baseline/622bdedac572b479` (asana004 Got 3,
+  intercom001 Got 7; 6 panel passers held). MEMORY `ade-bench-solver-blind-to-oracle`,
+  `verification-without-oracle-real-world`, `ade-bench-oracle-program-concluded`,
+  `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.
