@@ -1,7 +1,7 @@
 ---
 id: h0042
 title: Coverage repair preserves metric semantics -- when fixing missing rows/date spines, do not change COUNT/SUM/AVG/window definitions unless visible project evidence says the metric itself is wrong
-status: hypothesis
+status: propose
 kind: hypothesis
 source: Captain request 2026-06-10 after Round 2 airbnb009 COUNT(*) vs COUNT(review_date) decision-fork analysis; follows h0019 banking failure and the Round 1 + Round 2 flipped-task choice map. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-10T06:32:33Z
