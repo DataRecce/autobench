@@ -2,7 +2,7 @@
 title: Propose-stage gatekeeper review guideline
 applies-to-stage: propose
 maintained-by: the captain, on demand, by asking an agent to update it (NOT auto-updated by the workflow; the gatekeeper reads this file fresh on every run)
-last-updated: 2026-06-08
+last-updated: 2026-06-10
 ---
 
 # Propose-stage gatekeeper review guideline
@@ -281,16 +281,37 @@ captain note (it would have flagged airbnb007's false smoke-GO at propose).
 - **Evidence to cite:** name each target's scored models (source: taxonomy / dataset tests) and
   classify the lever (single-model vs covers-all).
 
+### G12 — Decision-fork probe quality (flipped-task follow-ups)
+For hypotheses derived from a flipped-task smoke/full rejection, the pre-smoke subagent probe is
+a **cost-control gate**, not pass-rate evidence. It is useful only if it tests the same local
+decision fork the real solver must face, with solver-visible context and the exact README wording
+that will be proposed.
+- **N/A (PASS) if:** the hypothesis is not a flipped-task follow-up, or it explicitly states why
+  a probe was skipped (infrastructure fix, no visible local fork, or oracle-blocked).
+- **PASS if:** the hypothesis has `## Pre-smoke Decision-Fork Probe` and it includes: the fork
+  being tested, prompt context, a weak control A, proposed B/C result, exact README wording tested,
+  expected committed-artifact signature, and a caveat that counts are proxy evidence only.
+- **WARN if:** the probe exists but provenance is incomplete (missing prompt text, agent/run count,
+  context regime, or classifier enum), the context may be over-curated (for example only the
+  helpful sibling model is shown), or no control A was run. Surface that smoke should be treated as
+  exploratory, not confirmatory.
+- **FAIL if:** the probe prompt or hypothesis uses hidden-correct labels, solution files,
+  verifier output, expected totals, previous pass/fail outcomes, or public reference facts as
+  prompt evidence; if the tested wording materially differs from the README wording to be inserted;
+  or if the hypothesis converts subagent counts into a claimed real `rk` pass rate.
+- **Evidence to cite:** quote the probe block fields, the tested README wording, and any leakage
+  or overclaiming text.
+
 ## Recommendation rubric
 
-After scoring all eleven rules, the gatekeeper emits one overall recommendation. **WARNs never
+After scoring all twelve rules, the gatekeeper emits one overall recommendation. **WARNs never
 drive the recommendation by themselves** — surface them in the "For the captain" note (G7 and
 G11 are WARN-only by design and always land there). Only FAILs move it off APPROVE:
 
 - **APPROVE** — no FAILs (any number of WARNs allowed). Nothing blocks the gate; the captain
   can advance to `smoke`. Carry every WARN into the captain note.
 - **REVISE** — at least one FAIL, and **all** FAILs are on the mechanical rules
-  (G1/G4/G5/G8/G9/G10) the ensign can fix in place without changing the idea; no FAIL on
+  (G1/G4/G5/G8/G9/G10/G12) the ensign can fix in place without changing the idea; no FAIL on
   G2/G3/G6. Recommend the specific fix, then re-review. (G9 caveat: a G9 FAIL is REVISE-class
   only when independence can be added without changing the single idea — e.g. adding
   forced-divergence stances or an external falsifier criterion; if the self-anchored selection
@@ -327,6 +348,7 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated <date>). Revi
 | G9 selector independence | PASS/WARN/FAIL/N/A | <substrate class + per-criterion anchors> |
 | G10 self-correcting false-positive | PASS/WARN/FAIL/N/A | <self-correcting? scope gate + reconcile source + replace-vs-check> |
 | G11 multi-model-target risk | PASS/WARN/N/A | <each target's scored-model count + lever single-vs-covers-all> |
+| G12 decision-fork probe quality | PASS/WARN/FAIL/N/A | <probe fields + exact wording + leakage/overclaim check> |
 
 **For the captain:** <what to look at / what to decide, 1–3 lines.>
 ```

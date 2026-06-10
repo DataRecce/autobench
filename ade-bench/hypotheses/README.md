@@ -149,6 +149,12 @@ A fully-formed, queued hypothesis. Auto-advances to `propose`.
 - **Outputs:** the body's `## Hypothesis` (the claim + the single README change) and
   `## Acceptance criteria` (the verdict, e.g. "the paired `rk runs diff` delta vs
   `@baseline` clears the tripwire on `stratified_pass_at_1`").
+- **Flipped-task follow-up requirement.** If the hypothesis comes from a smoke/full rejection
+  on a flipped or high-variance task, include `## Pre-smoke Decision-Fork Probe` before propose.
+  It must name the local fork being tested, the exact prompt context used, the control A
+  result, the proposed B/C result, the exact README wording tested, the artifact signature
+  expected in a real run, and the caveat that this is proxy evidence only. If no probe was
+  run, state why (for example: infrastructure fix, no local fork, or oracle-blocked).
 - **Good:** falsifiable; names the target datasets for smoke.
 - **Bad:** success criteria invented after seeing results.
 
@@ -214,7 +220,10 @@ by that recommendation.**
 - **Gatekeeper (advisory pre-review):** its recommendation is input to your decision, not a
   substitute for it. A rule the gatekeeper marks FAIL is a likely reject; tune the bar by
   asking an agent to update `_gatekeeper/propose-review-guideline.md` on demand (it is not
-  auto-updated; the gatekeeper re-reads it fresh each run).
+  auto-updated; the gatekeeper re-reads it fresh each run). For flipped-task follow-ups, the
+  gatekeeper also reviews the `## Pre-smoke Decision-Fork Probe` block for proxy quality: no
+  hidden-result leakage, solver-visible context only, exact README wording, a control variant,
+  and no pass-rate claim from subagent counts.
 - **Gate — you reject if:** the README leaks ground truth (its no-external-reference /
   leak-guard prose is removed or weakened); the FULL spec differs from baseline in anything other than
   `experiment:` + `solver_workflow:` (the smoke spec additionally adds `benchmark.tasks`);
@@ -281,6 +290,19 @@ deferred — this is a worthiness gate.)*
      in reasoning is NOT evidence — verify the artifact.
   Write the full per-task detail (a flip/distance/why table + the behavioral read) into
   `## Smoke result` and `## Behavioral analysis`.
+- **Failure review loop (REQUIRED for every NO-GO, canary regression, or revise).** Before
+  routing `smoke → hypothesis` or `smoke → conclude`, append a `## Failure Review` block to the
+  entity. Classify the failure as exactly one primary type:
+  `infrastructure-failure` / `diagnosis-miss` / `wrong-branch` / `incomplete-artifact` /
+  `correct-artifact-still-fail` / `canary-bleed` / `variance-unclear`.
+  Then answer:
+  1. What was the original hypothesized fork?
+  2. What fork did the committed artifact actually reveal?
+  3. Did the README rule fire, and where is the artifact evidence?
+  4. What new fork or failure mechanism should be tested next?
+  5. Is the next step `stop`, `probe`, `file`, or `escalate`?
+  Infrastructure failures are not experiment evidence; recover or relaunch before drawing
+  behavioral conclusions.
 - **Workflow-refinement evaluation (AUTOMATIC — do this without being asked).** If the
   hypothesis's lever is a change to the **solver workflow's structure** — a new stage, a
   removed / reordered / replaced stage, or a new protocol / protocol-family (tell-tales: a
@@ -308,6 +330,8 @@ deferred — this is a worthiness gate.)*
 - **Gate:** worthwhile (the change moved the targeted tasks, or at least did not regress
   them) → `full`; flawed but revisable → back to `hypothesis`; cleanly falsified (e.g. 0
   flips, lever inert) → `conclude` (REJECTED), recording the deep-dive as the evidence.
+  A `smoke → hypothesis` revision requires a `## Failure Review` block with a newly defined
+  fork and a decision about whether subagent probing is needed before another smoke.
 - **Good:** smoke exercises the changed behavior; audit clean before the score is trusted;
   every NO-GO carries a behavioral *why* backed by the committed artifact.
 - **Bad:** advancing on a smoke that never exercised the change; scoring without a clean
@@ -383,6 +407,11 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
      harm (scoping guardrails), how to catch it earlier (smoke canaries / G8), and the
      recommended next step (do NOT reflexively file if the lever family is exhausted —
      escalate to the captain).
+  6. **Smoke-vs-full fork drift** — if a smoke GO later fails or regresses at full, identify
+     whether the smoke result was artifact-real or single-trial variance; name the fork that
+     changed at full; state whether the smoke panel missed a family, the README rule drifted
+     into a different implementation branch, or the failure is unrelated variance. This answer
+     feeds the `## Failure Review` / follow-up routing loop.
 - **Report to the captain in plain language.** Keep the full detail (tables, CIs, SQL) in the
   entity; give the captain a SIMPLE-WORDS on-screen summary — net result, what flipped each
   way, why, and the recommendation. Lead with the headline; never make the captain read raw
@@ -428,8 +457,11 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
   datasets). **But do not reflexively file when the evidence says the lever family is
   exhausted** — if a meta-pattern has emerged (e.g. several hypotheses of the same kind all
   inert), surface the candidate directions to the captain as a strategy decision instead of
-  auto-filing another doomed variant. When you do file, it is ONE follow-up
-  `h<NNNN>-<slug>.md` (status `hypothesis`) forking the current `@baseline`.
+  auto-filing another doomed variant. First write `## Follow-up Routing` with one of:
+  `stop` (oracle-blocked/exhausted/no visible fork), `probe` (new fork exists but wording is
+  untested), `file` (subagent probe or artifact evidence supports a new hypothesis), or
+  `escalate` (multiple viable directions need captain strategy). When you do file, it is ONE
+  follow-up `h<NNNN>-<slug>.md` (status `hypothesis`) forking the current `@baseline`.
 - **Verdict + archive.** Set `verdict: PASSED` (promoted / ran cleanly to a real result) or
   `REJECTED` (cleanly falsified, e.g. NO-GO at smoke); archive.
 
@@ -480,6 +512,12 @@ worktree:
 
 The falsifiable claim and the single solver-README change it makes. Target datasets: <ids>.
 
+## Pre-smoke Decision-Fork Probe
+
+Required for flipped-task follow-ups unless explicitly skipped. State the fork, prompt context,
+control result, proposed-rule result, exact README wording tested, expected artifact signature,
+and why the proxy does or does not justify smoke.
+
 ## Acceptance criteria
 
 **AC-1 — Exactly the README changes; spec differs only in `experiment:` + `solver_workflow:`.**
@@ -497,6 +535,13 @@ Verified by: each `rk score` cites a `rk audit --policy strict` on the same run-
 ## Run result
 
 ## Behavioral analysis
+
+## Failure Review
+
+Required for every smoke/full rejection or revise route. Classify the failure and define the
+next fork or routing decision: stop / probe / file / escalate.
+
+## Follow-up Routing
 
 ## Verdict
 ```
