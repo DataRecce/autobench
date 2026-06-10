@@ -186,6 +186,49 @@ The semantic content (cited analog + construction facts) is recoverable in both.
 
 ## Run result
 
+**Run-dir:** `runs/ade-bench-h0037-reference-mining-stage/5d707b3cdf7901b3` (all 48 tasks, completed
+2026-06-09→10). Launched detached via `drivers/rk-run-detached.sh h0037-full
+specs/h0037-reference-mining-stage.frozen.yaml run` (handle `runs/.rk-handles/h0037-full-20260609-170312/`;
+the /tmp log + pidfile were cleared on the date rollover, the run-dir is intact and authoritative).
+
+**HEADLINE — `stratified_pass_at_1 = 0.625` (30/48). Net vs `@baseline` 31/48 (0.6458) = −1
+(−0.0208).** This is a NET-NEGATIVE result: h0037 predicted {0} flips and the full run instead shows
+a +1 / −2 composition — a regression, NOT inertness. (The per-task interpretation — whether the two
+drops are an RM-stage regression or single-trial variance — is the NEXT stage, `analyze`; this section
+records only the clean-run accounting.)
+
+**Paired split vs `@baseline` (slug-paired, 48/48 common; computed from `per_trial_outcomes.json`
+since `rk runs diff` crashes on ade-bench run-dirs — MEMORY ade-bench-runs-diff-query-id-null):**
+
+| Direction | Count | Tasks |
+|-----------|-------|-------|
+| GAIN (base FAIL → h0037 PASS) | 1 | `ade-bench-asana002` |
+| DROP (base PASS → h0037 FAIL) | 2 | `ade-bench-f1006-hard`, `ade-bench-f1010-medium` |
+| Net | **−1** | +1 − 2 |
+
+- **Target `ade-bench-ana-eng004` stayed FAIL** (base 0 → h0037 0) — the predicted D6 width-oracle wall
+  held, exactly as the smoke read and the kill-path predicted.
+- **Paired bootstrap (10k resamples, seed 12345) on the delta in #passes: obs = −1, 95% CI = [−5, +2]**
+  — the CI straddles 0, so the −1 net is within single-trial noise; but two passers DROPPED and the
+  drops are load-bearing for the analyze-stage attribution (both in the f1 family — note the f1001
+  canary smoke proved SAFE was also f1; the analyze stage must read these two committed artifacts).
+
+**AC-2 — strict audit clean + every cell captured a verifier outcome (BEFORE the score is trusted).**
+`rk audit … --policy strict` = **`tainted: 0`** (48/48 `taint_status: clean`, zero findings).
+`rk score … --format json`: `n_completed: 48, n_errored: 0` and a non-null `verifier_result` on all
+48 cells ⇒ **captured > 0 on every cell** (every cell produced a real verifier outcome; none errored).
+`against_constant` paper-baseline 0.1875 → verdict `above`.
+
+**Methodology consistency (no smoke→full drift) — CONFIRMED at the resolved-run level.** The full run's
+resolved `solver_workflow_content_hash` =
+**`sha256:d3cd9be1abf20588ca3b74bd6ae4ce90454e01d0d1f2c0a52ffcb8278a720a7c`** — BYTE-IDENTICAL to the
+smoke run `6671b5e449bd0975`'s resolved hash (compared from each run's `config.json`). Both frozen specs
+also share `sealed_hash e8a10bbc995e781038f44dda05e611ea`; they differ ONLY in `benchmark.tasks`
+(full=null/all-48 vs the 10-task smoke panel). The solver README is byte-identical on lines 1-49 to the
+`@baseline` parent `codex-ade-dbt-minimal/README.md` (leak-guard + Exploration unchanged); raw README
+sha256 `da396e0996952e09f4dab1e1810d2c99255b3a014b8b3caf12fce2806375e9a5`. The full run used the SAME
+solver README as smoke — only the task set differed.
+
 ## Behavioral analysis
 
 **(a) ATTRIBUTION — the decisive read (the analog construction REACHED the committed SQL; NOT
@@ -325,3 +368,26 @@ caveats for the captain: the intended OBT perturbable canaries were repairs the 
 skips (f1001 is the load-bearing regression datum), and the free-form record schema drifted a 3rd time.
 The full run's value is reach-systematization + a confirmed distance read across all 48, at single-trial
 judge-by-artifact economy — not a pass-rate flip.
+
+## Stage Report: full
+
+- DONE: Full 48-task run on `specs/h0037-reference-mining-stage.frozen.yaml` completed (launched DETACHED, polled across turns)
+  Run-dir `runs/ade-bench-h0037-reference-mining-stage/5d707b3cdf7901b3`; launched via `drivers/rk-run-detached.sh h0037-full … run` (nohup, handle `runs/.rk-handles/h0037-full-20260609-170312/`, ntfy on done); 48/48 cells, 0 errored.
+- DONE: Strict audit clean (`tainted: 0`) + `captured > 0` on every cell confirmed BEFORE the score is trusted
+  `rk audit … --policy strict` = `tainted: 0` (48/48 `taint_status: clean`, zero findings); `rk score` `n_completed: 48 / n_errored: 0` + non-null `verifier_result` on all 48 ⇒ every cell captured a real verifier outcome.
+- DONE: run-dir path + headline recorded in `## Run result`
+  `stratified_pass_at_1 = 0.625` (30/48); net vs `@baseline` 31/48 (0.6458) = **−1**; composition +1 (`asana002`) / −2 (`f1006-hard`, `f1010-medium`); target `ana-eng004` held FAIL (width-oracle wall); paired bootstrap delta obs=−1, 95% CI [−5,+2].
+- DONE: Methodology consistency (no smoke→full drift) — confirmed; hash stated
+  Full run's resolved `solver_workflow_content_hash = sha256:d3cd9be1abf20588ca3b74bd6ae4ce90454e01d0d1f2c0a52ffcb8278a720a7c` — BYTE-IDENTICAL to smoke run `6671b5e449bd0975` (compared from each run's `config.json`); specs differ only in `benchmark.tasks`. Same solver README as smoke (raw sha256 `da396e09…`).
+
+### Summary
+
+Clean full-stage run accounting. The Reference-Mining stage at all-48 scored **0.625 (30/48)**, **−1 below
+`@baseline` (31/48)** — a NET-NEGATIVE result against the honest {0}-flip prediction, composed of +1
+gain (`asana002`) and −2 drops (`f1006-hard`, `f1010-medium`, both f1 family). Strict audit is clean
+(`tainted: 0`, all 48 cells captured a verifier outcome) and methodology is drift-free (full run used the
+byte-identical solver README/content-hash as smoke — `sha256:d3cd9be1…` — only the task set differed). The
+target `ana-eng004` held FAIL at the predicted width-oracle wall; the paired-delta 95% bootstrap CI [−5,+2]
+straddles zero so the net is within single-trial noise, but two passers dropped — the per-task attribution
+(RM-stage regression vs trial variance, reading the two committed f1 artifacts) is the NEXT stage (analyze),
+deliberately NOT started here.
