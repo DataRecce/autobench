@@ -114,6 +114,30 @@ change. Leak guard remains intact; the proposed README rule references only visi
 instructions, visible schema/tests, sibling models, and local SQL. It does not mention hidden
 oracle totals, hidden test names, expected row counts, solution files, or verifier output.
 
+## Gatekeeper review
+
+**Recommendation: APPROVE** — single Implementation-stage policy block, B-variant text verbatim,
+leak-guard byte-identical, specs differ only in the allowed fields; both WARNs (G7 inert-risk,
+G8 same-family perturbability) are advisory and do not block the gate.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-08). Reviewed 2026-06-10T08:40:00Z.
+Fork parent resolved: `source:` names `solver_workflows/codex-ade-dbt-minimal`; `rk registry resolve run @baseline` → `runs/ade-bench-baseline/622bdedac572b479` whose solver_workflow is the same seed dir — they agree.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff` vs parent = one hunk, `55a56,62`, 6 prose lines + blank, all under `## Stage: Implementation`; exactly one idea (coverage-repair preserves metric semantics); no other stage touched. |
+| G2 leak-guard intact | PASS | Leak-guard paragraphs (lines 1-32) and dependency guardrails byte-identical to parent; token scan over added lines: no `AUTO_*`/`solution__*`/`check_*`/`verifier`/`equality test`/`expected output`/`Got N`/`curl`/`wget`/`git clone`/web/fetch. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0042…yaml` = only `experiment:` and `solver_workflow:` (lines 2 and 11); `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0042…yaml …smoke.yaml` adds only `benchmark.tasks`; all 6 slugs `ade-bench-` prefixed; includes the named target `ade-bench-airbnb009`. |
+| G5 both frozen | PASS | `…frozen.yaml` (1733 B) + `…smoke.frozen.yaml` (1872 B) present; both carry `kind: spacedock_solver` + `runtime: codex` + `trials: 1`. |
+| G6 resolver fidelity | PASS | Inserted text is the hypothesis's B variant word-for-word (collapsed-whitespace string-match confirmed). Generative-independent tie-breaker (preserve existing metric / abstain from rewrite), NOT a self-anchored re-run-your-own-model check — none of the dead h0006/h0007/h0008 phrasings present. |
+| G7 actionability/inert-risk | WARN | Classify: abstract preference/abstain prose ("treat as coverage repair first; do not change COUNT/SUM/AVG…"), no worked-example SQL skeleton. NOT a structural FROM/spine/join rewrite, so it dodges the primary G7 inert mode, but it is still prose the solver could acknowledge-and-skip. Pre-smoke 12/12-kept-`COUNT(*)` proxy is preliminary only, not a score. Inert-risk noted for the captain. |
+| G8 regression-canary coverage | PASS (WARN) | Generative (fires on any coverage-repair task). Smoke panel carries one `@baseline` passer per non-target family: airbnb001 / asana001 / ana-eng001 / f1007 / quickbooks002 (each reward=1.0 in 622bdedac572b479; no intercom canary exists — family has no passer). WARN: the family sharing the target's construct (airbnb) carries only ONE canary (airbnb001), and a date-spine/COUNT coverage rule may perturb a *different* airbnb passer than airbnb001 (the h0012 −4 lesson). G8 wants ≥2 perturbable same-family canaries; mitigated because this is a FLIP-SEEKER whose decisive read is the airbnb009 committed artifact, and the focused-repeat smoke + canary panel both run. |
+| G9 selector independence | N/A | Not a multi-candidate / selector protocol. |
+| G10 self-correcting false-positive | N/A | The lever is the *inverse* of a self-correcting check: it instructs the solver to PRESERVE the existing metric and NOT author a second derivation or reconcile-and-fix. No verify-then-act-on-disagreement mechanism, no re-derived independent CTE, no "replace with a different path" mandate — none of G10's failure axes apply. |
+| G11 multi-model-target risk | N/A | Target `airbnb009` is scored by a SINGLE model (`mom_agg_review_date_range`, per `_artifacts/bug-type-taxonomy.md` line 36), distinct from the multi-model airbnb007 trap. Lever reaches the only scored model. |
+
+**For the captain:** Clean APPROVE — all integrity rules (G2/G3/G6) PASS, no FAILs. Two advisory WARNs to weigh at the smoke gate: (1) G7 — the rule is abstract abstain-prose with no worked-example skeleton, so judge by the committed `mom_agg_reviews.sql` aggregate expression, not transcript chatter (AC-3); the 12/12 proxy is NOT pass-rate evidence. (2) G8 — only one airbnb same-family canary (airbnb001); a coverage/COUNT rule could perturb a different airbnb passer the smoke never runs, so watch full-scale airbnb regression if promoted. The decisive read remains the airbnb009 focused-repeat committed artifact (AC-4: ≥2/3 preserve `COUNT(*)` + date-spine repair + verifier pass + clean strict audit).
+
 ## Acceptance criteria
 
 **AC-1 -- Exactly one README policy change; specs differ only in allowed fields.**
@@ -143,4 +167,33 @@ date-spine repair landed, verifier pass, and clean strict audit. 3/3 is the targ
 If the smoke includes canaries, all baseline passers must remain pass. Any canary regression
 is a NO-GO unless artifact analysis proves it is unrelated single-trial variance and the
 captain explicitly accepts that risk.
+
+## Stage Report: propose
+
+- DONE: Fork the current @baseline solver into `solver_workflows/h0042-coverage-repair-preserve-metric-semantics`
+  `cp -r` from `codex-ade-dbt-minimal`; one file (README.md), all other surfaces unchanged.
+- DONE: README change = EXACTLY ONE Implementation-stage policy block, B-variant text VERBATIM
+  `diff` vs parent = single hunk `55a56,62` under `## Stage: Implementation`; collapsed-whitespace string-match against the B variant is byte-identical; leak-guard (lines 1-32) + 4 stage headers byte-identical; token scan over added lines clean (no AUTO_*/solution__*/check_*/verifier/Got N/curl/wget/git clone/web/fetch). AC-1 met.
+- DONE: Full spec differs only in `experiment:` + `solver_workflow:`
+  `diff specs/baseline.yaml specs/h0042….yaml` = lines 2 and 11 only; `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved.
+- DONE: Smoke spec `benchmark.tasks` = airbnb009 PRIMARY FLIP target + h0019 canary panel
+  airbnb009 (target) + airbnb001 / asana001 / ana-eng001 / f1007 / quickbooks002; `diff` vs full adds only the `benchmark.tasks` block; verified against @baseline 622bdedac572b479: airbnb009 reward=0.0, all 5 canaries reward=1.0.
+- DONE: Freeze both specs (`rk freeze --allow-missing`)
+  `…frozen.yaml` (1733 B) + `…smoke.frozen.yaml` (1872 B) written; both carry kind=spacedock_solver / runtime=codex / trials=1.
+- DONE: Run the gatekeeper; record per-rule table + recommendation in `## Gatekeeper review`
+  Recommendation APPROVE (no FAILs). G1-G6 PASS, G7 WARN (abstract abstain-prose, no worked example), G8 PASS+WARN (one airbnb same-family canary), G9/G10/G11 N/A (not a selector; not self-correcting — the inverse, preserve-don't-rewrite; airbnb009 single-model).
+
+### Summary
+
+Authored the h0042 variant: forked the @baseline solver and added one Implementation-stage policy
+block (B-variant text verbatim) telling the solver to treat missing-rows/date-spine/coverage tasks
+as coverage repairs first and preserve existing COUNT/SUM/AVG/window/filter definitions unless
+visible evidence says the metric is wrong. Full + smoke specs created and frozen, differing from
+baseline only in the allowed fields; smoke carries airbnb009 (the PRIMARY FLIP target, @baseline
+0.0) plus the h0019 5-family canary panel (all @baseline 1.0). Gatekeeper recommendation APPROVE
+(no FAILs); two advisory WARNs noted — G7 inert-risk (abstract prose, judge by committed SQL not
+chatter; the 12/12 pre-smoke probe is proxy, NOT a score) and G8 single airbnb same-family canary.
+NOTE: the smoke STAGE will additionally run 3 SEQUENTIAL FOCUSED airbnb009 repeats (fresh context
+each); AC-4 GO bar is ≥2/3 runs that BOTH preserve `COUNT(*)` AND pass a clean strict audit (3/3
+target) — a decision-policy/reproducibility claim, not a single-shot flip.
 
