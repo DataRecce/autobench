@@ -387,6 +387,65 @@ reusable boundary on what "copy the construction shape" can and cannot fix. **Ca
 
 ## Verdict
 
+**REJECTED — not promotable.** Net **−1** (full `stratified_pass_at_1 = 0.625`, 30/48 vs `@baseline`
+0.6458, 31/48), **0 flips on the known wall**. `@baseline` is **UNCHANGED** at
+`runs/ade-bench-baseline/622bdedac572b479` (31/48); registry NOT touched; no follow-up filed. The
+captain decided REJECTED — the value is the reach + anti-bleed-at-scale findings, not a score.
+
+**The −1 is NOT a lever regression — it is unrelated single-trial solver-reasoning variance**
+(committed-artifact forensics, full detail in `## Full-run behavioral analysis`). `f1006-hard` DROP:
+a REPAIR where RM correctly did NOT fire (no `Analog:`); the solver chose `row_number()/latest` over
+the baseline's correct `max(points)` and lost 2 edge-case rows (`Got 2`) — the analog mechanism never
+engaged. `f1010-medium` DROP: RM fired but cited `constructor_points`, an analog with ZERO pit-stop
+logic — inert on the failing dimension; the solver over-engineered "subtract pit-stop duration" vs the
+baseline's correct "exclude pit-stop laps" (`Got 1092`). `asana002` GAIN: incidental config-task flip,
+RM did not fire (known causal-flip task). Paired 10k bootstrap on the delta in #passes: obs −1, 95% CI
+[−5, +2] — straddles 0, i.e. the net is within single-trial noise. None of the three is
+lever-attributable.
+
+**The POSITIVE structural finding — the richest of the R2 set (this is what we bank).** The
+Reference-Mining mechanism *works*: it is the ONLY R2 structural lever with a clean positive mechanism
+result.
+
+1. **REACH — the cited analog construction REACHED committed SQL.** On the target `ana-eng004` the
+   stage fired fully and concretely, citing `Analog: models/analytics_obt/obt_sales_overview.sql:1-78`
+   (`own_sibling`), and the analog's construction shape (OBT fact-spine + LEFT JOIN dim, single
+   `source` CTE) landed in the committed `obt_product_inventory.sql` — spine correctly adapted to the
+   target's own `fact_inventory`, not a verbatim copy. Across the whole 48, RM fired on **~21/48
+   model-authoring cells**, and the reach holds at full. This clears the two bars that sank prior
+   levers: NOT h0010/h0016 inert-prose (committed SQL carries the cited construction) and NOT h0033
+   green-but-inert (attribution proven on the artifact, not a score). The h0019 lone-survivor engine
+   generalizes into a generative stage that reaches the artifact.
+2. **SAFETY — the own-sibling-first gate is ARTIFACT-PROVEN SAFE AT SCALE; the h0012 fear is
+   FALSIFIED.** Across all 48 cells, **no held passer was broken by a wrong/wider analog** — the
+   own-siblings-FIRST / package-only-as-fallback gate did not bleed at scale. f1001 (the passer h0023's
+   deliverable-set clause bled 6/6→2/6) FIRED the stage here, correctly found no own sibling, cited the
+   project's OWN `source('f1_dataset',…)` convention (NOT a package template), and held 6/6 PASS
+   including the exact three tests h0023 bled. `intercom001` exercised the package-fallback path (cited
+   a `dbt_packages/dbt_utils/integration_tests/…` template) and still held its baseline FAIL — the
+   fallback did not break a passer. The smoke→full h0012 convention-bleed-at-scale fear (gate holds the
+   sampled canary but breaks unsampled members) is **falsified by committed artifact across the full
+   48**: it held by firing-correctly, not by skipping. This is a reusable positive structural primitive.
+
+**EFFICACY {0} — the predicted wall held, byte-identical.** The target `ana-eng004` stayed FAIL at the
+D6 width oracle wall ("obt_product_inventory has less columns than solution__obt_product_inventory" — a
+`dbt_utils.equality` Compilation Error, **byte-identical to `@baseline`**). The sibling analog is wider
+than the target and the target already followed its skeleton, so copying the analog's *shape* added
+nothing decision-relevant; the deciding column set lives ONLY in the hidden `solution__*`. Same
+`solver-blind-to-oracle` ceiling (D6, h0011/h0023/h0029). intercom001/003 reach flat at `Got 7`.
+
+**New boundary (the transferable rule).** Structural construction-copy is **INERT on the task-semantic
+dimensions it does not encode** — it fixes shape / grain / join / spine, but not the deciding business
+rule (pit-stop handling, max-vs-latest, the oracle-only width DROP/ADD). "Copy the construction shape"
+cannot supply the oracle-only width/value/semantic deciding fact, so it flips nothing on the known wall.
+The reusable positive: the own-sibling-first reach primitive is worth carrying forward **paired with a
+semantic/value lever** — alone it reaches but cannot decide.
+
+Strict audit clean (`tainted: 0`, 48/48 captured a verifier outcome); no smoke→full drift (full used the
+byte-identical solver content-hash `sha256:d3cd9be1…` as smoke `6671b5e449bd0975`). Single-trial,
+judge-by-artifact (standing convention). Workflow-structural lever (a NEW `## Stage: Reference Mining`)
+→ the `_artifacts/WORKFLOW-REFINE.md` h0037 entry is finalized to a terminal state.
+
 ## Stage Report: propose
 
 - DONE: README change = EXACTLY ONE new `## Stage: Reference Mining` inserted between Exploration and Implementation
@@ -510,3 +569,28 @@ construction-copy analog is inert on task-semantic dimensions (pit-stop logic, m
 encode. Recommended conclude verdict: **`@baseline` NOT promoted** (net −1, no flip) — bank the knowledge
 gains (reach-systematization clears h0010/h0016/h0033; own-sibling gate closes the h0023 bleed vector at
 scale; D6 width wall re-confirmed). Captain decides.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict` — REJECTED, not promotable (net −1, no flip; @baseline UNCHANGED at 31/48)
+  `## Verdict` written: REJECTED per captain. States the POSITIVE structural finding plainly (richest of the R2 set) — the Reference-Mining mechanism WORKS: cited analog reached committed SQL (~21/48 authoring cells; ana-eng004 reach held at full), AND the own-sibling-first gate is artifact-proven SAFE AT SCALE (no held passer broken by a wrong/wider analog across all 48 → h0012 smoke→full convention-bleed fear FALSIFIED by artifact). The −1 = unrelated single-trial variance (f1006-hard RM never fired, row_number vs max(points); f1010-medium RM fired but cited a pit-stop-irrelevant analog, inert on the failing dimension; +asana002 incidental). New boundary stated: structural construction-copy is INERT on task-semantic dimensions it does not encode.
+- DONE: Finalize the `_artifacts/WORKFLOW-REFINE.md` h0037 entry to a FINAL state (NEW-STAGE structural lever — mandatory)
+  Title + Status set to `rejected-as-written / not-promotable` (CAPTAIN, conclude 2026-06-10); Learning line sharpened to FINAL (reference-mining reaches SQL + own-sibling-first gate is anti-bleed AT SCALE = a reusable positive structural primitive, but structural shape-copy cannot supply the oracle-only width/value/semantic deciding fact → flips nothing on the known wall); Bears-on sharpened to lead with the reusable anti-bleed reach primitive (the one R2 structural positive, reusable when paired with a semantic/value lever) + the explicit h0023 contrast (bled f1001 6/6→2/6 via package-copy). FULL-RUN ADDENDUM (analyze) retained as supporting detail.
+- DONE: Confirm @baseline NOT promoted + NO follow-up filed + program state noted
+  Registry NOT touched; `@baseline` stays `runs/ade-bench-baseline/622bdedac572b479` (31/48, baseline run-dir confirmed present). No `rk` command re-run; pure documentation finalization. No new hypothesis filed. Program state recorded below.
+
+### Summary
+
+Terminal conclude for h0037 (Reference Mining): **REJECTED — not promotable** at net −1 (full
+`stratified_pass_at_1 = 0.625`, 30/48 vs `@baseline` 0.6458, 31/48), 0 flips. `@baseline` UNCHANGED at
+`runs/ade-bench-baseline/622bdedac572b479`; registry not touched; no follow-up filed (next-direction
+strategy escalated to the captain). The value banked is the richest structural finding of the R2 set: the
+Reference-Mining mechanism is the ONLY R2 structural lever with a clean positive mechanism result — the
+cited analog construction REACHED committed SQL (~21/48 authoring cells) AND the own-sibling-first gate is
+artifact-proven SAFE AT SCALE (no held passer broken by a wrong/wider analog across all 48, falsifying the
+h0012 convention-bleed-at-scale fear by committed artifact). The −1 is unrelated single-trial
+solver-reasoning variance, not a lever regression. New reusable boundary: structural construction-copy is
+inert on the task-semantic dimensions it does not encode. The WORKFLOW-REFINE.md h0037 entry is finalized
+to a terminal state. **Program state:** h0037 is the LAST FULL-run of the R2 workflow-stage set; only
+h0041's full remains parked (captain midnight trigger). The FO will set the verdict frontmatter + archive
+after this report.

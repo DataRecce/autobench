@@ -777,11 +777,15 @@ or a dispatched worker, never a direct first-officer edit.
   `verification-without-oracle-real-world`, `ade-bench-oracle-program-concluded`,
   `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.
 
-### Reference Mining: a generative copy-the-analog stage REACHES the committed SQL and the own-sibling-first gate is artifact-proven anti-bleed — but {0} flips on the width oracle (h0037 smoke GO-as-reach-finding, 2026-06-09)
-- **Status:** **smoke GO → full** (reach finding, NOT a flip) — new-stage structural lever; the
-  E-RMS systematization of the h0019 lone-survivor engine. @baseline UNCHANGED at 31/48 on this
-  panel (0 flips, 0 regressions); advanced because the mechanism is artifact-proven to reach the
-  committed SQL AND no passer regressed. Forked the @baseline solver `codex-ade-dbt-minimal`.
+### Reference Mining: a generative copy-the-analog stage REACHES committed SQL and the own-sibling-first gate is artifact-proven anti-bleed AT SCALE — but {0} flips on the width oracle (h0037 REJECTED — rejected-as-written / not-promotable, 2026-06-10)
+- **Status:** **rejected-as-written / not-promotable** (CAPTAIN, conclude 2026-06-10) — new-stage
+  structural lever; the E-RMS systematization of the h0019 lone-survivor engine. Full 48-run scored
+  **0.625 (30/48), net −1 vs @baseline 0.6458 (31/48)**, **0 flips on the known wall**; @baseline
+  UNCHANGED at `runs/ade-bench-baseline/622bdedac572b479` (31/48), registry NOT touched, no follow-up
+  filed. NOT promoted because there is no flip and the −1 is unrelated single-trial variance (not a
+  lever regression). **REJECTED-as-written, but this is the ONLY R2 structural lever with a clean
+  POSITIVE mechanism result — the reach + anti-bleed-at-scale primitive is the bankable value, not a
+  score.** Forked the @baseline solver `codex-ade-dbt-minimal`.
 - **Layer:** solver workflow (`solver_workflows/h0037-reference-mining-stage/README.md`).
 - **Refinement type:** NEW stage — exactly one `## Stage: Reference Mining` between Exploration and
   Implementation (generative on model-authoring tasks, gated-skip on repairs/no-ops). It (a) names
@@ -836,24 +840,41 @@ or a dispatched worker, never a direct first-officer edit.
   But the free-form record SCHEMA DRIFTED again (3rd sighting): ana-eng004 used the spec keys, f1001
   used `records[]`/`task_classification`/`construction_skeleton`. Semantic content recoverable both
   ways; any enforced consumer must derive its decision from content, not a literal field.
-- **Learning:** (1) **A generative copy-the-analog stage CAN reach the committed SQL** (clears the
-  h0010/h0016 inert-prose bar) when it carries a worked-example skeleton and cites a named local
-  analog — reach-systematization of the h0019 survivor engine is achieved. (2) **Own-siblings-FIRST /
-  package-only-as-fallback is the correct anti-bleed gate** — artifact-proven on f1001 (fired,
-  found-no-sibling, cited own convention, held 6/6), unlike h0023's deliverable-set clause which bled
-  packages. Re-use this gate shape for any future copy/template lever. (3) **Copying a CONSTRUCTION
-  ANALOG does not beat the width oracle** — on a width target the deciding column set is oracle-only,
+- **Learning (FINAL — after the full 48-run + analyze):** **Reference-mining is the one R2 structural
+  positive: it REACHES committed SQL AND the own-sibling-first gate is anti-bleed AT SCALE — a reusable
+  positive structural primitive — but a structural shape-copy cannot supply the oracle-only
+  width/value/semantic deciding fact, so it flips nothing on the known wall.** Four reusable facts:
+  (1) **A generative copy-the-analog stage CAN reach the committed SQL** (clears the h0010/h0016
+  inert-prose bar AND the h0033 green-but-inert bar) when it carries a worked-example skeleton + cites
+  a named local analog — reach-systematization of the h0019 survivor engine, confirmed at full (RM
+  fired on ~21/48 authoring cells). (2) **Own-siblings-FIRST / package-only-as-fallback is the correct
+  anti-bleed gate, and it is SAFE AT SCALE** — across all 48, NO held passer was broken by a
+  wrong/wider analog (the smoke→full h0012 convention-bleed-at-scale fear is FALSIFIED by committed
+  artifact): f1001 fired, found no own sibling, cited its own `source()` convention, held 6/6
+  (vs h0023's deliverable-set clause which bled f1001 6/6→2/6 via a package); intercom001 took the
+  package-fallback path and still held its baseline FAIL. **This is the gate shape to carry forward for
+  any future copy/template lever.** (3) **Copying a CONSTRUCTION ANALOG cannot supply the oracle-only
+  deciding fact** — on a width target the deciding column set lives only in the hidden `solution__*`,
   and the closest sibling encodes a DIFFERENT (wider) convention, so a faithful analog copy is
-  efficacy-zero exactly where it reaches. The D6 width family stays dead; copying shape ≠ the hidden
-  DROP/ADD. (4) **An author-gated generative stage is invisible to same-model REPAIRS** — pick
-  AUTHORING canaries to test regression risk.
-- **Bears on:** the D6 width family (h0011/h0023/h0029 — confirms copying a construction analog does
-  NOT supply the oracle-only column set; do not re-file width-flip levers); the h0017/h0023 Output
-  Contract family (the own-sibling-first COPY gate is the safe version of the deliverable-set clause
-  that bled f1001 — this is the gate to carry forward, not the deliverable-set clause); the
-  `solver-blind-to-oracle` / `verification-without-oracle` family (the width oracle is the same wall);
-  any future generative copy/template/convention lever (use own-siblings-first + worked-example +
-  /tmp+stdout routing; pick authoring canaries); the standing observe-only write-path (3rd validation).
+  efficacy-zero exactly where it reaches; AND a structural construction-copy is **INERT on
+  task-semantic dimensions it does not encode** (pit-stop handling, max-vs-latest — the f1010-medium /
+  f1006-hard full-run drops). Copy-the-shape fixes shape/grain/join/spine, not the deciding business
+  rule or the oracle DROP/ADD. The D6 width family stays dead. (4) **An author-gated generative stage
+  is invisible to same-model REPAIRS** — pick AUTHORING (creation/restructure) canaries, not same-model
+  repairs, to test regression risk. **Net structural verdict: the own-sibling-first reach primitive is
+  REUSABLE, but only when PAIRED with a semantic/value lever — alone it reaches but cannot decide.**
+- **Bears on:** **the own-sibling-first anti-bleed REACH primitive is the one structural POSITIVE of
+  the R2 set — reusable when PAIRED with a semantic/value lever** (alone it reaches committed SQL but
+  cannot decide the oracle-only fact). Carry this gate shape forward, not as a standalone flip lever.
+  Sharp **contrast: h0023** bled f1001 6/6→2/6 via its deliverable-set package-copy clause; h0037's
+  own-siblings-FIRST / package-only-as-fallback gate is the SAFE version of the same idea, artifact-
+  proven anti-bleed across all 48 — when a future Output-Contract or copy/template lever needs a "find
+  the analog" step, use h0037's gate, never h0023's deliverable-set clause. Also bears on: the D6 width
+  family (h0011/h0023/h0029 — confirms copying a construction analog does NOT supply the oracle-only
+  column set; do not re-file width-flip levers); the `solver-blind-to-oracle` /
+  `verification-without-oracle` family (the width oracle is the same wall); any future generative
+  copy/template/convention lever (use own-siblings-first + worked-example + /tmp+stdout routing; pick
+  AUTHORING canaries, not same-model repairs); the standing observe-only write-path (3rd validation).
 - **Evidence:** entity `hypotheses/h0037-reference-mining-stage.md` (`## Smoke result`,
   `## Behavioral analysis`); run `runs/ade-bench-h0037-reference-mining-stage/6671b5e449bd0975` (audit
   clean 10/10 tainted:0, captured=1; score 0.70; ana-eng004 committed `obt_product_inventory.sql` +
