@@ -247,3 +247,99 @@ captain: G7 inert-risk (the README text is abstract structural-repair prose with
 skeleton — the form that has gone inert at gpt-5.5/xhigh), and the decisive read is ARTIFACT-
 shaped per AC-4 — a green asana002 alone is NOT a GO unless the committed patch gates the
 tag/task-tag chain with existing package vars and is not a cast/seed/broad-copy.
+
+## Smoke result
+
+**GO.** asana002 flipped FAIL→PASS via an artifact-attributed optional-resource
+VAR-GATING patch; all 5 canaries held; strict audit clean. Run dir:
+`runs/ade-bench-h0043-package-update-optional-resource-matrix/b0f5d0dd93ecfca3`
+(finished 2026-06-10T10:51Z, 6/6 trials completed, 0 errored).
+
+**Score (AC-2):** `rk score` → `stratified_pass_at_1 = 1.0` (6/6), verdict `above` the
+0.1875 constant. **Strict audit (AC-2):** `rk audit --policy strict` → `clean: 6,
+tainted: 0, coverage_missing: 0`; every cell `captured: 1` (subagent-trace-manifest).
+
+| Task | @baseline | Smoke | Verifier tests | Role |
+|------|-----------|-------|----------------|------|
+| ade-bench-asana002 | ❌ 0.0 | ✅ 1.0 | 3/3 pass (`AUTO_asana__task_equality` FAIL 2 → PASS) | TARGET — flipped |
+| ade-bench-f1001 | ✅ 1.0 | ✅ 1.0 | 6/6 pass | canary (f1, h0009/h0033 bleed) — held |
+| ade-bench-quickbooks003 | ✅ 1.0 | ✅ 1.0 | 14/14 pass | canary (quickbooks, h0009/h0033 bleed) — held |
+| ade-bench-asana001 | ✅ 1.0 | ✅ 1.0 | 2/2 pass | sentinel (asana same-family) — held |
+| ade-bench-airbnb001 | ✅ 1.0 | ✅ 1.0 | 10/10 pass | canary (airbnb) — held |
+| ade-bench-ana-eng001 | ✅ 1.0 | ✅ 1.0 | 1/1 pass | canary (ana-eng) — held |
+
+Net: flipped the 1 target, lost zero of the 5 passers. The two convention-bleed
+canaries (f1001 6/6, quickbooks003 14/14) held at full baseline test count — no bleed
+(the gated precondition fired only on the package-update target, as designed).
+
+## Behavioral analysis
+
+**The decisive artifact read (AC-3/AC-4) — CLASSIFICATION: optional-resource VAR-GATING
+(the intended GO family).** Read the COMMITTED `apply_patch` payload from the asana002
+trial rollout (`agent/sessions/.../rollout-*.jsonl`), not the narration. One unique
+patch, touching exactly the three predicted candidate files and nothing else:
+`models/intermediate/int_asana__task_tags.sql`, `models/asana__task.sql`,
+`models/asana__tag.sql`.
+
+The committed edits:
+
+- `int_asana__task_tags.sql` and `asana__tag.sql`: added
+  `{{ config(enabled=var('asana__using_tags', True) and var('asana__using_task_tags', True)) }}`
+  — gates each tag/task-tag model on the EXISTING package vars.
+- `asana__task.sql`: `{% set using_task_tags = var('asana__using_tags', True) and var('asana__using_task_tags', True) %}`,
+  then conditionally includes (a) the `task_tags` CTE, (b) the tag final columns, and
+  (c) the `left join task_tags` — all guarded by `{% if using_task_tags %}`. When tags
+  are disabled it emits stable placeholders `cast(null as {{ dbt.type_string() }}) as tags,
+  0 as number_of_tags` to keep the output shape. Default behavior (tags enabled) is
+  preserved.
+
+This is exactly the AC-4 GO condition: gates the affected dependency chain with the same
+existing package vars, conditional CTEs/refs/joins/final columns, default preserved,
+stable null/0 placeholders only where shape must hold.
+
+**Wrong-family falsifiers — ALL CLEAR (AC-4):**
+
+- NOT a `::type` representation cast: the only `cast(...)` in the patch is
+  `cast(null as {{ dbt.type_string() }})` — a typed-NULL placeholder for the disabled-tags
+  branch (shape preservation), not a representation cast on an existing column. This is
+  the OPPOSITE of the h0033 inert result: h0033 prescribed a `::type` cast that never
+  appeared; here the prescribed VAR-GATING DID appear and is load-bearing.
+- NOT a raw seed/source edit: patch touches only `models/*.sql`.
+- NOT a seed `column_types` edit: no `dbt_project.yml` change (0 added lines match
+  `column_types`/`.csv`/`.duckdb`/`ALTER`).
+- NOT a broad package-convention copy: edits are scoped to the tag/task-tag chain only.
+
+**Canary integrity (AC-5):** all 5 canaries PASS on the clean strict audit at full
+verifier test count (f1001 6/6, quickbooks003 14/14, asana001 2/2, airbnb001 10/10,
+ana-eng001 1/1) — no degraded greens, no regression. The gated precondition ("a task says
+an installed package was updated AND a model unconditionally refs a disable-able package
+resource") fired only on asana002, so no generative cross-family bleed — consistent with
+the G8 N/A classification at propose.
+
+**Verdict read:** This is the rare artifact-attributed flip — green AND inert-free. It
+proves the h0043 gated package-update optional-resource diagnostic produces the structural
+package-migration repair, not the exhausted cast/seed/broad-copy families. Single-trial,
+so the flip is one observation; but unlike a multi-model target, asana002 is scored by a
+single equality model (`AUTO_asana__task_equality`) which the var-gating patch directly
+addresses (FAIL 2 → PASS), so the flip is attributable to the lever's mechanism rather than
+variance on an unaddressed model (G11 N/A confirmed). Recommend → `full`.
+
+## Stage Report: smoke
+
+- DONE: Smoke run on the frozen 6-task panel completed (detached nohup, polled across turns); strict audit clean + captured>0 before score
+  Run dir `…/b0f5d0dd93ecfca3`; `rk audit --policy strict` = clean:6/tainted:0/coverage_missing:0; captured:1 on all 6 cells; `rk score` = stratified_pass_at_1 1.0 (6/6). Recorded in `## Smoke result`.
+- DONE: THE DECISIVE ARTIFACT READ (AC-3/AC-4) — classify the committed asana002 patch
+  Read the committed `apply_patch` from the trial rollout JSONL: optional-resource VAR-GATING (gates tag/task-tag chain via existing pkg vars `asana__using_tags`/`asana__using_task_tags`; conditional CTE/join/final-columns + stable null/0 placeholders) across the 3 predicted models. NOT a `::type` cast / raw seed edit / seed column_types / broad package copy (all falsifiers clear). asana002 PASSED (`AUTO_asana__task_equality` FAIL 2 → PASS). = artifact-attributed GO, not green-but-inert.
+- DONE: Canary check (AC-5) — all 5 hold PASS on the clean audit; per-cell + classification recorded
+  f1001 6/6, quickbooks003 14/14, asana001 2/2, airbnb001 10/10, ana-eng001 1/1; zero regression. Recorded in `## Smoke result` + `## Behavioral analysis`. In-stage instruction lever → no WORKFLOW-REFINE entry needed.
+
+### Summary
+
+GO. The detached 6-task smoke flipped asana002 FAIL→PASS and held all 5 canaries; strict
+audit clean (tainted 0, captured 1 on every cell); score 1.0. The decisive artifact read is
+the headline: the committed asana002 patch is optional-resource VAR-GATING (gates the
+tag/task-tag chain with the existing package vars, conditional CTEs/refs/joins/final columns,
+stable typed-null placeholders) across exactly the three predicted Asana models — and is NOT
+a `::type` cast / raw seed edit / seed `column_types` / broad package copy. This is the
+opposite of the h0033 green-but-inert outcome: the prescribed repair appeared in the committed
+SQL and is load-bearing. Recommend advancing to `full`.
