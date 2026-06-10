@@ -182,3 +182,60 @@ hypothesis.
 All baseline passers in the smoke panel must remain pass. Any same-family or
 canary regression is a NO-GO unless artifact analysis proves it is unrelated
 single-trial variance and the captain explicitly accepts that risk.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — exactly one Implementation-stage policy block (the
+C-variant verbatim), leak-guard byte-identical, specs differ only in the allowed
+fields, both frozen; the lever is gated to the standings construct and covers
+BOTH of f1006's scored equality models, so the multi-model-target trap is
+sidestepped, and the no-latest-row guard directly targets the h0037/h0041 drift
+mode. WARNs are G7 (no worked-example skeleton) and G12 (probe block lacks the
+literal heading/full provenance fields) — neither blocks the gate.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). Reviewed 2026-06-10T14:55Z.
+
+Fork parent resolved: `source:` field and `@baseline` run
+(`runs/ade-bench-baseline/622bdedac572b479`, `solver_workflow:
+solver_workflows/codex-ade-dbt-minimal`) agree → parent =
+`solver_workflows/codex-ade-dbt-minimal`. G1/G6 evaluable.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff = one hunk added at L63 (inside `## Stage: Implementation`, before `## Stage: Validation`); exactly the cumulative-standings max-points guard; no other stage touched, no guardrail/dependency prose changed. |
+| G2 leak-guard intact | PASS | Leak-guard prose (L1-32) byte-identical to parent; grep over added lines only — no `AUTO_*`/`solution__*`/`check_option`/`verifier`/`equality test`/`expected rows`/`curl`/`wget`/`git clone`/`published solution`. Added text names only visible task instructions, local model names, local `*_standings` tables, local SQL. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0044…yaml` = only `experiment:` (→ `ade-bench-h0044-cumulative-standings-max-points-guard`) and `solver_workflow:` (→ `./solver_workflows/h0044-cumulative-standings-max-points-guard`). `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0044…yaml h0044…smoke.yaml` = only an added `benchmark.tasks:` block (+ descriptive comment) with 6 `ade-bench-`-prefixed slugs. Both named targets present (f1006, f1006-hard). |
+| G5 both frozen | PASS | `…frozen.yaml` (1725B) + `…smoke.frozen.yaml` (1856B) exist; both carry `kind: spacedock_solver` + `runtime: codex`; frozen smoke lists all 6 tasks. |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim's C-variant verbatim; Implementation stage; mechanical SQL substitution (`sum(points)`→`max(points)`) + a same-grain/no-final-row guard. Not a self-anchored "re-run/verify your own output" instruction — it prescribes a concrete construct and forbids the wrong branch; reconciliation is against local task evidence, not the model's own re-derivation. |
+| G7 actionability/inert-risk | WARN | Mostly a concrete mechanical substitution (`sum(points)`→`max(points)`) on a named construct — the durable-win shape (cf. asana002 `::timestamp`), low inert-risk. WARN: the "do not switch to latest-row/rank/…" guard is a prohibition stated as prose with no before→after skeleton; if the solver has already chosen a final-row path the prohibition may not mechanically reverse it. Predictive only — does not block. |
+| G8 regression-canary coverage | N/A (PASS) | Lever is GATED, not generative: precondition = repairing season/entity totals from `*_standings` tables where the model sums standings points. It does not fire on arbitrary tasks. Smoke nonetheless carries a same-family perturbable panel (f1005, f1005-medium — h0012's regression victims) + f1001 (f1) + airbnb001 (cross-family) as tripwires. |
+| G9 selector independence | N/A (PASS) | Not a multi-candidate/selector protocol — single deterministic repair rule. |
+| G10 self-correcting false-positive | PASS | The lever is figure-change-gated (fires only when points are being repaired and the model currently sums standings points), and it does NOT mandate replacing a simple-correct path with a "structurally different" one — it PINS the simple aggregate (`max(points)`) and forbids the elaborate alternatives. This is the direct corrective for h0012's −4 failure mode (h0012 pushed passers OFF simple `sum→max` ONTO a wrong path then false-green-validated). No re-derived self-anchored reconcile. |
+| G11 multi-model-target risk | N/A (PASS) | f1006/f1006-hard are each scored by 2 equality models — `AUTO_constructor_points_equality` AND `AUTO_driver_points_equality` (baseline `…f1006__VrRB7uJ/verifier/test-stdout.txt`: constructor FAIL 2 / driver PASS). The lever is COVERS-ALL: it names BOTH `constructor_points.sql` and `driver_points.sql`. The only failing model (constructor) is the lever's primary target; the guard also protects the already-passing driver model from an over-engineered rewrite. Not the single-model trap (airbnb007/h0018). |
+| G12 decision-fork probe quality | WARN | Body carries decision-fork probe tables (A/B/C calibration; C 14/14 chose `max(points)`, 0/14 latest-row/recompute) with the right substance: solver-visible context only, a weak control A (also chose max 4/4 — honestly disclosed, no unique-discovery overclaim), explicit "proxy, not a score result" caveat, and the expected committed-artifact signature (same-grain `max(points)`, no row_number/rank/QUALIFY/final-row). WARN: the probe is NOT under the literal `## Pre-smoke Decision-Fork Probe` heading G12 names, and provenance fields are partial (agent count given for the C batch but `fork_context=false`/no-tools regime stated only narratively; exact tested wording is the C-variant block but not re-quoted per-batch). Substance is sound; treat smoke as exploratory-confirmatory. Does not block. |
+
+**For the captain:** APPROVE for smoke. The two WARNs are the worth-a-glance items:
+(G7) the no-latest-row guard is a prohibition without a worked skeleton — if the
+solver pre-commits to a final-row path the prose may not mechanically unwind it;
+(G12) the probe is solid in substance but not under the literal heading and is
+proxy-only (weak A also chose `max` 4/4, so C's value is reducing full-workflow
+drift, not unique discovery). The decisive read at smoke is ARTIFACT, not the
+verdict: the committed `constructor_points.sql` + `driver_points.sql` must use
+same-grain `max(...points...)` with NO `row_number()`/`rank()`/`QUALIFY`/
+order-by-round/order-by-race_date/final-row selection and NO race-results
+recompute. A green f1006 whose committed SQL uses latest-row logic = NO-GO
+(AC-4). f1006-hard is a must-hold PASS (the h0037/h0041 drop cell); any passer
+regression in the panel = NO-GO unless artifact-proven unrelated variance (AC-5).
+
+## Stage Report: propose
+
+- DONE: README change = EXACTLY ONE Implementation-stage policy block (C-variant verbatim), inside the existing Implementation stage; leak-guard + four stages otherwise byte-identical; no hidden-test/curl/web references.
+  `diff codex-ade-dbt-minimal/README.md h0044…/README.md` = one hunk added at L63 (before `## Stage: Validation`); added-line leak/dead-family token grep clean. Commit 9b4fecd.
+- DONE: Smoke spec `benchmark.tasks` = the 6-task f1-standings panel; both specs frozen.
+  f1006 (🎯 only FAIL) + f1006-hard (✅ must-hold, h0037/h0041 drop cell) + f1005 + f1005-medium (perturbable same-family sentinels) + f1001 (f1 canary) + airbnb001 (cross-family canary). Full diff vs baseline = `experiment:`+`solver_workflow:` only; smoke diff = `benchmark.tasks` only. `…frozen.yaml`+`…smoke.frozen.yaml` written, kind/runtime preserved.
+- DONE: Run the gatekeeper; record per-rule PASS/WARN/FAIL + APPROVE/REVISE/REJECT in `## Gatekeeper review`.
+  Recommendation APPROVE (no FAILs). Decisive flags surfaced: COVERS-ALL on f1006's two scored models (constructor FAIL 2 / driver PASS at baseline → G11 N/A, not the single-model trap); G10 PASS (lever PINS simple `max(points)`, the direct corrective for h0012's −4); WARNs G7 (prohibition w/o skeleton) + G12 (probe substance sound, not under literal heading, proxy-only). C-probe 14/14 noted as proxy, weak-A also 4/4 → C's value = reducing full-workflow latest-row drift, not unique discovery.
+
+### Summary
+
+Forked `@baseline` solver `codex-ade-dbt-minimal` into `solver_workflows/h0044-cumulative-standings-max-points-guard` and inserted the single C-variant Implementation policy block verbatim (cumulative-standings max-points guard: `sum(points)`→`max(points)` in every named affected model; reject latest-row/rank/row_number/QUALIFY/final-race/race-results-recompute as the load-bearing fix; inspect edited SQL before finalizing). Built + froze full and smoke specs (full = two allowed fields; smoke adds the 6-task f1-standings panel). Gatekeeper recommendation APPROVE: leak-guard intact, specs clean, lever is gated to the standings construct and covers BOTH of f1006's scored equality models — and it directly corrects h0012's "off-simple-onto-wrong-path" failure and the h0037/h0041 latest-row drift on f1006-hard. Two non-blocking WARNs (G7 prohibition without a worked skeleton; G12 probe not under the literal heading and proxy-only). Decisive smoke read is ARTIFACT (committed SQL uses same-grain `max(points)`, no final-row logic), not the verdict.
