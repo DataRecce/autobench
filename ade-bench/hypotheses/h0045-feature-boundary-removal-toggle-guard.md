@@ -244,3 +244,47 @@ broad rewrite; any canary regression or green-by-unrelated-refactor is NO-GO.
 - DONE: Ran `rk run --explain` on the frozen smoke spec. It resolves to 7 tasks,
   concurrency 1, runtime `codex`, model `gpt-5.5`, and the sample composed
   prompt includes the h0045 feature-boundary guard.
+
+## Smoke result (cycle 1 — BLOCKED by infrastructure failure, no experiment evidence)
+
+Smoke launch on `specs/h0045-feature-boundary-removal-toggle-guard.smoke.frozen.yaml`
+(7-task panel) crashed at orchestrator startup (`rc=1`, ~6s) BEFORE any cell of
+this launch executed. No score, no audit, no behavioral read — this is an
+`infrastructure-failure`, not experiment evidence.
+
+- Pre-flight all clean: `rk run --explain` resolved 7 tasks / concurrency 1 /
+  codex / gpt-5.5, composed prompt carries the h0045 guard; all 7 panel tasks
+  confirmed `@baseline` 1.0 in `runs/ade-bench-baseline/622bdedac572b479`
+  (parsed via `trial_name` — `benchmark_task_id`/`query_id` are null in that file).
+- Launch: `drivers/rk-run-detached.sh h0045-smoke … run` → handle
+  `runs/.rk-handles/h0045-smoke-20260610-170831` (pid 4018431).
+- Crash: `done` → `rc=1 rundir=runs/ade-bench-h0045-feature-boundary-removal-toggle-guard/df3a3b1e3a4c2ace`.
+  Traceback: `PermissionError: [Errno 13] Permission denied:
+  …/df3a3b1e3a4c2ace/_job_config.yaml` at `razorback/cli/run.py:360`.
+
+### Root cause — orphaned root-owned state from a PRIOR, non-launcher h0045 run
+
+- The deterministic content-hash run dir `df3a3b1e3a4c2ace` already existed,
+  owned by `root:root` (I run as `kent`), created **16:59-17:00** — ~9 min BEFORE
+  my 17:08 dispatch. It held only partial `quickbooks002` cell attempts
+  (`__ah6uCZP`, `__nACSwo7`) + `_razorback/freeze`, no `_job_config.yaml`.
+- Two Harbor containers from that prior run were still **running** at diagnosis:
+  `ade-bench-quickbooks002__ah6uczp-main-1` (started 16:51:38) and
+  `…__nacswo7-main-1` (started 16:50:49). Their orchestrator was already dead
+  (`pgrep -af "rk run"` → none), so the dispatch's "no other rk run is active"
+  was true, but the run leaked root-owned containers + run-dir tree.
+- There is **no other `h0045` handle** under `runs/.rk-handles/` — so the prior
+  run was a direct/manual `rk run` of this same spec (not via the audited
+  launcher), which crashed/was killed and orphaned its container children.
+- My `kent`-owned relaunch reuses the same deterministic run-dir path and cannot
+  write `_job_config.yaml` into the root-owned tree → immediate `rc=1`.
+
+### Recovery is BLOCKED on privilege / shared-state decision
+
+Clean recovery = (a) stop the two orphaned `quickbooks002` containers, (b) remove
+the stale root-owned `df3a3b1e3a4c2ace` run dir, (c) relaunch. I cannot do (a)/(b)
+as `kent`: `docker rm -f` of the two containers was DENIED by the auto-mode
+classifier (force-removing shared containers of uncertain provenance), and the
+run dir is `root:root`. Escalated to team-lead for a privileged cleanup or
+go-ahead before relaunch. No behavioral conclusion can be drawn until the
+infra failure is recovered and the smoke actually executes its 7 cells.
