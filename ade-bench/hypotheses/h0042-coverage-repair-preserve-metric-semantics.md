@@ -234,6 +234,19 @@ analysis only, never surfaced to the solver: the task oracle also uses `COUNT(*)
 Panel `stratified_pass_at_1 = 1.0` (6/6); audit `{clean: 6, tainted: 0, coverage_missing: 0}`;
 every cell `captured = 1`. No canary lost (AC-5 satisfied).
 
+## Run result
+
+**Status: RUNNING (launched detached 2026-06-10T17:25:57Z).** Full 48-task run on
+`specs/h0042-coverage-repair-preserve-metric-semantics.frozen.yaml` (task selector `null` → all 48).
+
+- Handle: `runs/.rk-handles/h0042-full-20260610-172557/` (worker pid 4024242; ntfy topic `adebench-rk-381c976fe07465bf`).
+- Command: `uv run --project ../razorback rk run specs/h0042-coverage-repair-preserve-metric-semantics.frozen.yaml --runs-dir runs` (bare `run` mode; audit + score applied by this stage after `done`).
+- Methodology consistency (no smoke→full drift): the full frozen spec and the smoke frozen spec carry the **same** `solver_workflow_content_hash: sha256:b0103e7a29f39b2e17c7cd7c889f9c06f540451ccd2915e5ad3585545160ed6c` and the same agent `sealed_hash 14e4e3f015cd0dbf775caf60818ef1d6`; they differ ONLY in `benchmark.tasks` (full=`null`/all-48 vs smoke=6-task panel). Same solver README as smoke confirmed.
+- Cache-collision check: the only pre-existing run-dir under this experiment is `797604a420d08244` (the 6-task SMOKE panel — verified `n_trials_total: 6`, smoke task selector). Full uses `tasks: null` → distinct sealed input set → new distinct run-dir; no perturbation needed.
+- @baseline = `runs/ade-bench-baseline/622bdedac572b479` (31/48 = 0.6458; airbnb009 = 0.0 FAIL). Hoping +1 (32/48) if airbnb009 holds FAIL→PASS at scale with no regression.
+
+_Audit/score/headline to be filled in once the `done` sentinel appears (rc=0)._
+
 ## Behavioral analysis
 
 - **The lever pins the exact fork it was authored for.** h0019 steered the spine repair but left
