@@ -6,9 +6,10 @@ kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §4 M3 (captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 5. Observe-only de-risk of h0040 (the M2 enforced abstention rail). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-08T14:29:36Z
 completed: 2026-06-10
-verdict: CONCLUDE (recommended; captain decides) — observe-only instrument succeeded on its own terms: contract held (tainted:0, both net-0 flips are solver variance not a gate-strip leak), routing scales to 48/48, 0/48 would_abstain. @baseline NOT promoted (net 0, {0}-flip by construction). h0040 (the rail this de-risks) already REJECTED-inert → map is retrospective de-risk knowledge; no follow-up filed.
+verdict: PASSED
 score: 0.6458 (31/48, full run fe1505abeeddabff; = @baseline 31/48, net 0; strict audit clean, 0 errored)
-worktree:
+worktree: 
+archived: 2026-06-10T14:23:03Z
 ---
 
 ## Hypothesis
