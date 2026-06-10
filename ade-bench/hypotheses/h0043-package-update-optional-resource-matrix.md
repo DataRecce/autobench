@@ -165,3 +165,85 @@ inert result, not a GO.
 All baseline passers in the smoke panel must remain pass. Any canary regression
 is a NO-GO unless artifact analysis proves it is unrelated single-trial variance
 and the captain explicitly accepts that risk.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — exactly one Implementation-stage diagnostic block added
+(B-variant verbatim), leak-guard byte-identical, specs differ only in the allowed
+fields, and the lever is GATED (fires only on package-update + disable-able-resource
+tasks) so it carries no generative regression risk. Two WARN-only advisories carried
+to the captain (G7 inert-risk; AC-4 artifact attribution is the decisive read).
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-08). Reviewed 2026-06-10T09:46Z.
+Note: review performed by the propose ensign in-line (no separate Agent-dispatch tool on the ensign surface); same guideline applied to the same artifacts.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff` vs parent `codex-ade-dbt-minimal/README.md` = one added 9-line block at 63a64,72, entirely inside `## Stage: Implementation` (50) before `## Stage: Validation` (73); no other stage touched. |
+| G2 leak-guard intact | PASS | Added lines grep-clean for AUTO_*/solution__*/check_option/verifier/equality-test/expected-output/curl/wget/git clone/git ls-remote/web/http/browser/published-solution; leak-guard paragraphs (lines 1-32) byte-identical to parent. |
+| G3 full spec two fields | PASS | `diff specs/baseline.yaml specs/h0043….yaml` = only `experiment:` and `solver_workflow:`; `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff` full→smoke = only an added `benchmark.tasks` block; all 6 slugs `ade-bench-` prefixed; the named target `ade-bench-asana002` is present; same-family sentinel `ade-bench-asana001` included. |
+| G5 both frozen | PASS | `specs/h0043….frozen.yaml` + `…smoke.frozen.yaml` both exist; both carry `kind: spacedock_solver` + `runtime: codex`; smoke frozen lists the 6-task panel. |
+| G6 resolver fidelity | PASS | Inserted text byte-matches the hypothesis "single proposed README text (B variant)" verbatim (programmatic compare = MATCH); same stage, same idea (gated package-migration diagnostic), no scope creep; it is a gated diagnostic / generative-repair instruction, NOT a self-anchored "re-run your own model / verify your answer" phrasing (dead h0006/h0007/h0008 family absent). |
+| G7 actionability/inert-risk | WARN | Class: gated DIAGNOSTIC + structural-repair instruction ("repair the dependency graph with the same existing vars"), stated as abstract prose — the inserted README text carries NO worked-example SQL skeleton (the candidate files `asana__task.sql` / `int_asana__task_tags.sql` / `asana__tag.sql` and the gating pattern live only in the hypothesis body, not the rule the solver reads). Per the G7 "restructure SQL → inert at gpt-5.5/xhigh" prior (h0008 0/7, h0010 0/4), structural-rewrite prose without a copyable skeleton is inert-risk. The one durable win (asana002/h0033) was a concrete mechanical substitution, not a rewrite reasoned into. This is exactly why AC-4 makes the smoke read ARTIFACT-shaped: a green asana002 with no var-gating patch = green-but-inert (the h0033 lesson — its prescribed `::type` cast never appeared). |
+| G8 regression-canary coverage | N/A (PASS) | GATED, not generative: the rule fires only "When a task says an installed dbt package was updated" AND "a downstream model unconditionally refs a package resource that can be disabled by an existing package var" — a narrow two-part precondition, and the "do not start from casts/seed edits/broad copying" clause is scoped under that same conditional. It does not fire on every task, so it carries no generative cross-family bleed risk. The smoke nonetheless carries the h0009/h0033 convention-bleed canaries `ade-bench-f1001` + `ade-bench-quickbooks003` (both @baseline PASS) plus cross-family passers `ade-bench-airbnb001` + `ade-bench-ana-eng001` and same-family sentinel `ade-bench-asana001` — coverage beyond what a gated lever requires. |
+| G9 selector independence | N/A (PASS) | No multi-candidate / selector protocol declared; single-session repair lever. |
+| G10 self-correcting false-positive | N/A (PASS) | Not a check/reconcile/validate-and-fix lever; it is a repair-path-selection diagnostic ("classify package vars first, then gate the dependency graph"). It does not instruct the solver to recompute a figure and overwrite on disagreement, so the h0012 false-green mode does not apply. |
+| G11 multi-model-target risk | N/A (PASS) | `ade-bench-asana002` is scored by a SINGLE equality model — `AUTO_asana__task_equality` (the only `*_equality` test in the baseline verifier stdout; the other two graded items, `AUTO_asana__task_existence` and `task_source_schema`, are existence/schema gates, both PASS @baseline). The failing test is `AUTO_asana__task_equality "Got 2"`. The lever's prescribed repair (gate the tag/task-tag chain feeding `asana__task`) targets that one scored equality model, so a flip is not multi-model variance. (Taxonomy file `_artifacts/bug-type-taxonomy.md` is absent; scored-model count resolved directly from the baseline run's `verifier/test-stdout.txt`, the alternate source G11 names.) |
+
+**For the captain:** No FAILs → nothing blocks the gate; advance to smoke. Two things to weigh.
+(1) G7 inert-risk: the README text is abstract structural-repair prose with no worked-example
+skeleton, the form that has gone inert at gpt-5.5/xhigh in past structural hypotheses. The
+hypothesis acknowledges this and makes the read ARTIFACT-shaped (AC-4): a green asana002 alone
+is NOT a GO — the committed patch MUST gate the tag/task-tag chain with existing package vars
+(e.g. `asana__using_tags`) and MUST NOT be a `::type` cast / raw seed edit / seed
+`column_types` / broad package-convention copy. Read the committed Asana model SQL, not the
+transcript. (2) The pre-smoke subagent probe (B 14/14 chose the desired diagnostic) is
+PRELIMINARY PROXY evidence, not an `rk` score; weak-A also chose the branch 4/4 when tag-var
+context was visible, so B's value is making the repair smoke-AUDITABLE, not unique discovery.
+
+## Smoke-set table (for the captain)
+
+@baseline = `runs/ade-bench-baseline/622bdedac572b479` (31/48); rewards read from
+`per_trial_outcomes.json` by slug.
+
+```
+┌────────────────────────┬──────────┬──────────────────────┬────────────────────────────────────────────────────────────┐
+│          Task          │ Baseline │ Should pass in smoke?│                  Role / why we picked it                     │
+├────────────────────────┼──────────┼──────────────────────┼────────────────────────────────────────────────────────────┤
+│ ade-bench-asana002     │ ❌ FAIL  │ 🎯 want it to flip   │ TARGET — package-migration repair; gate tag/task-tag chain   │
+│                        │          │                      │   with existing pkg vars. AC-4: green w/o var-gating = NOT GO.│
+│ ade-bench-asana001     │ ✅ PASS  │ ✅ must stay PASS    │ Sentinel (asana same-family) — breaks ⇒ side effects in fam. │
+│ ade-bench-f1001        │ ✅ PASS  │ ✅ must stay PASS    │ Canary (f1, no package) — h0009/h0033 bleed tripwire.        │
+│ ade-bench-quickbooks003│ ✅ PASS  │ ✅ must stay PASS    │ Canary (quickbooks) — h0009/h0033 2nd bleed tripwire.        │
+│ ade-bench-airbnb001    │ ✅ PASS  │ ✅ must stay PASS    │ Canary (airbnb family) — cross-family regression tripwire.   │
+│ ade-bench-ana-eng001   │ ✅ PASS  │ ✅ must stay PASS    │ Canary (ana-eng family) — cross-family regression tripwire.  │
+└────────────────────────┴──────────┴──────────────────────┴────────────────────────────────────────────────────────────┘
+```
+
+Net we want: flip `asana002` (the only target) with an ARTIFACT-proven optional-resource
+var-gating patch on the tag/task-tag chain, lose zero of the 5 passers. AC-4 governs the
+verdict — a green `asana002` with no var-gating patch (a `::type` cast / raw seed edit / seed
+`column_types` / broad package copy instead) is green-but-inert = NOT a GO. ETA: 6 tasks ×
+~9 min ≈ 54 min, detached (nohup); the captain need not wait on-screen.
+
+## Stage Report: propose
+
+- DONE: README change = EXACTLY ONE Implementation-stage diagnostic policy block (B-variant verbatim)
+  `diff` vs parent = single 9-line block at 63a64,72, inside `## Stage: Implementation`; leak-guard (1-32) + 4 stages byte-identical; programmatic compare to hypothesis B-variant = MATCH; grep-clean for hidden-test/external-fetch tokens (AC-1).
+- DONE: Smoke spec `benchmark.tasks` = the 6-task panel; both specs frozen
+  `ade-bench-asana002` (target) + `ade-bench-f1001` + `ade-bench-quickbooks003` (h0009/h0033 bleed canaries) + `ade-bench-asana001` (same-family sentinel) + `ade-bench-airbnb001` + `ade-bench-ana-eng001` (cross-family passers); all 5 = @baseline 1.0, asana002 = 0.0. Full spec diff = only `experiment:`+`solver_workflow:`; smoke diff = only `benchmark.tasks`. Both `.frozen.yaml` written, kind/runtime preserved.
+- DONE: Run the gatekeeper; record per-rule table + APPROVE/REVISE/REJECT in `## Gatekeeper review`
+  Recommendation APPROVE (no FAILs); G7 WARN (inert-risk, abstract structural prose, no worked-example skeleton) + AC-4 artifact-attribution note carried to the captain; G8 N/A (gated lever); G11 N/A (asana002 single-equality-model `AUTO_asana__task_equality`). Review run in-line by the propose ensign — no Agent-dispatch tool on the ensign surface.
+
+### Summary
+
+Forked the @baseline solver to `solver_workflows/h0043-package-update-optional-resource-matrix`
+and inserted the B-variant gated package-update optional-resource diagnostic block VERBATIM
+inside the existing Implementation stage (no new stage). Built + froze the full and smoke specs
+(smoke = the 6-task panel: asana002 target + 5 @baseline passers as bleed/sentinel/cross-family
+canaries). Applied the gatekeeper guideline → APPROVE: no FAILs, leak-guard intact, specs in
+the allowed fields only, lever is GATED so no generative regression risk. Two advisories for the
+captain: G7 inert-risk (the README text is abstract structural-repair prose with no copyable SQL
+skeleton — the form that has gone inert at gpt-5.5/xhigh), and the decisive read is ARTIFACT-
+shaped per AC-4 — a green asana002 alone is NOT a GO unless the committed patch gates the
+tag/task-tag chain with existing package vars and is not a cast/seed/broad-copy.
