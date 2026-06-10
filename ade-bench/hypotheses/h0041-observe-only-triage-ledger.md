@@ -7,7 +7,7 @@ source: _proposal/round-2-workflow-stage-program.md §4 M3 (captain-approved 202
 started: 2026-06-08T14:29:36Z
 completed:
 verdict:
-score:
+score: 0.6458 (31/48, full run fe1505abeeddabff; = @baseline 31/48, net 0; strict audit clean, 0 errored)
 worktree:
 ---
 
@@ -206,6 +206,48 @@ grep hits are the README guardrail prose echoed in the dispatch prompt, not solv
 
 ## Run result
 
+**Headline (M3 deliverable — the clean full run): `stratified_pass_at_1 = 0.6458` = EXACTLY @baseline
+(31 PASS / 17 FAIL = 31/48), net 0 vs @baseline 0.6458 — the by-construction observe-only outcome.**
+Run dir: `runs/ade-bench-h0041-observe-only-triage-ledger/fe1505abeeddabff` (frozen spec
+`specs/h0041-observe-only-triage-ledger.frozen.yaml`, all 48 tasks, `trials: 1`). 48 cells completed,
+`n_errored = 0`, verdict `above` the 0.1875 anchor. Finished cleanly (rk emitted `result.json` +
+harbor view/upload hints; no traceback, no freeze-lock error).
+
+**AC-2 — clean strict audit paired with the score (SAME run-dir):** `rk audit
+runs/ade-bench-h0041-observe-only-triage-ledger/fe1505abeeddabff --policy strict` →
+`summary: {clean: 48, coverage_missing: 0, tainted: 0}` — all 48 trials `taint_status: clean`, zero
+non-clean. `captured = 1` (>0) on all 48 `subagent-trace-manifest.json` (48/48 manifests present). The
+score is trustworthy.
+
+**Methodology consistency (no smoke→full drift):** the full run's solver README
+`solver_workflow_content_hash` = `sha256:812509727c4459ad98a237e49e3f3da9adf5bd0dc47d4147e8fbf4759b4738bf`
+(in `fe1505abeeddabff/config.json` + `lock.json`) is BYTE-IDENTICAL to the smoke run
+`45c2ba6667a47a60`'s recorded hash and to the hash in both frozen specs. The full spec differs from the
+smoke spec ONLY in `benchmark.tasks` (null/all-48 vs the 8-cell panel) — same solver README, same
+`sealed_hash afb12203d4f920b450622fa7d40f5e0e`. No methodology drift.
+
+**Net 0 — but NOT a byte-identical cell-level hold (the honest caveat for analyze).** The aggregate is
+exactly @baseline (31/48), but slug-paired per-cell outcomes show TWO offsetting single-cell flips, not
+zero movement:
+
+| Cell | @baseline | h0041 full | Direction |
+|------|-----------|------------|-----------|
+| `ade-bench-airbnb009` | 0.0 (FAIL) | 1.0 (PASS) | FLIP UP |
+| `ade-bench-f1006-hard` | 1.0 (PASS) | 0.0 (FAIL) | REGRESSION |
+
+NET (up − down) = **0**; the other 46 cells held their @baseline verdict. Attribution (pending the
+analyze-stage per-cell `Got N` deep-dive): **airbnb009 is the documented stochastic-variance survivor**
+— its FAIL→PASS flip is the same non-reproducible single-trial flip recorded across h0019 and the
+oracle-program conclusion (it has flipped up in some `trials:1` runs and did NOT bank), and `f1006-hard`
+is the offsetting borderline cell going the other way. This reads as single-trial run-to-run variance on
+two borderline cells, NOT observe-only contamination — but it means the AC-3 "`Got N` UNCHANGED on every
+cell" success condition is met at the AGGREGATE level (net 0, audit clean) yet is NOT byte-identical on
+these two cells. Whether the movement is pure solver nondeterminism on borderline cells or a faint
+gate-strip leak is precisely what the analyze-stage per-cell `Got N` / committed-SQL diff will adjudicate
+(reserved for the next stage per the dispatch). The full `would_abstain` distribution across all 48 +
+the contamination deep-dive are the analyze deliverable; this stage records only the clean-run
+accounting.
+
 ## Behavioral analysis
 
 **The stage was exercised on every cell, and the build proceeded exactly as baseline.** Each of the
@@ -307,3 +349,14 @@ the two failers (inertness kill), airbnb009 NOT flagged would_abstain (survivor 
 ### Summary
 
 Smoke is a clean GO → full. The decisive result: the h0039 routing fix WORKED — an observe-only stage durably emitted a filled, non-empty triage record on all 8 cells (recovered from the session transcript, the `/tmp` scratch being correctly torn-down/absent from the run-dir), with ZERO build contamination (Got N byte-unchanged on every passer and failer; strict audit tainted:0; score 0.625 = the baseline 5/8 split). The `would_abstain` deliverable: 0/8 flagged abstain, the survivor airbnb009 found decidable — so on this panel h0040 would predict zero false-reverts. Two caveats for h0040: (1) the record schema DRIFTED into 3 incompatible shapes (4 of 8 cells lack a literal `would_abstain` field) so an enforced consumer must derive abstain from the clause results, not parse the field; (2) the only independent clause (raw_source_probe) decided nothing on 8/8 — the trigger's "decidable" verdicts lean on the non-independent instruction/schema clauses, inheriting the Round-1 mis-discrimination wall.
+
+## Stage Report: full
+
+- DONE: Full 48-task run on `specs/h0041-observe-only-triage-ledger.frozen.yaml` completed; strict audit clean + captured>0 on every cell; score recorded.
+  Launched DETACHED (nohup, PID 3630703, polled across turns via a persistent Monitor — never foregrounded). Run `fe1505abeeddabff` finished all 48 cells, `n_errored = 0`. `rk audit --policy strict` → `{clean: 48, coverage_missing: 0, tainted: 0}` (48/48 `taint_status: clean`, zero non-clean); `captured = 1` on all 48 `subagent-trace-manifest.json`. `rk score --format json` → `stratified_pass_at_1 = 0.6458` (31/48), verdict `above` the 0.1875 anchor. Recorded in `## Run result`.
+- DONE: Headline + net vs @baseline recorded. 31 PASS / 17 FAIL = 0.6458 = EXACTLY @baseline (31/48), **net 0** — the by-construction observe-only outcome. Honest caveat surfaced: the net-0 aggregate hides TWO offsetting single-cell flips (airbnb009 FAIL→PASS, the documented stochastic survivor; f1006-hard PASS→FAIL, the offset) — single-trial variance on two borderline cells, NOT byte-identical at the cell level. The per-cell `Got N` / committed-SQL contamination adjudication is reserved for the analyze stage.
+- DONE: Methodology consistency (no smoke→full drift) confirmed. Full run solver README `solver_workflow_content_hash = sha256:812509727c4459ad98a237e49e3f3da9adf5bd0dc47d4147e8fbf4759b4738bf` (in `fe1505abeeddabff` config.json + lock.json) is byte-identical to the smoke run `45c2ba6667a47a60`'s recorded hash and to both frozen specs; the full spec differs from smoke only in `benchmark.tasks` (all 48 vs the 8-cell panel); `sealed_hash afb12203d4f920b450622fa7d40f5e0e` matches.
+
+### Summary
+
+The M3 clean full run is banked: run dir `runs/ade-bench-h0041-observe-only-triage-ledger/fe1505abeeddabff`, `stratified_pass_at_1 = 0.6458` = exactly @baseline 31/48, net 0, strict audit `{clean:48, tainted:0}`, captured>0 on all 48, 0 errored, no smoke→full README drift (content-hash byte-identical to smoke). The expected observe-only result. ONE honest caveat for the analyze stage: net 0 is at the aggregate level, not byte-identical at the cell level — two offsetting flips (airbnb009 up, the known stochastic survivor; f1006-hard down) net to zero. That reads as single-trial variance on two borderline cells rather than a gate-strip leak, but the per-cell `Got N` / committed-SQL deep-dive (the analyze deliverable, reserved per the dispatch) is what adjudicates variance-vs-contamination. The full `would_abstain` distribution across all 48 is likewise the analyze deliverable, not done here.
