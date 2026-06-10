@@ -1,7 +1,7 @@
 ---
 id: h0041
 title: Observe-only triage ledger — the h0040 three-clause trigger in OBSERVE-ONLY mode, writing triage.json {claim, clause_results, would_abstain} on all 48, never reverting; de-risks h0040 before it is trusted to revert
-status: analyze
+status: conclude
 kind: hypothesis
 source: _proposal/round-2-workflow-stage-program.md §4 M3 (captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 5. Observe-only de-risk of h0040 (the M2 enforced abstention rail). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-08T14:29:36Z
