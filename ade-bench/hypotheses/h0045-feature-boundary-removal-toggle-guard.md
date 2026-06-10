@@ -288,3 +288,20 @@ classifier (force-removing shared containers of uncertain provenance), and the
 run dir is `root:root`. Escalated to team-lead for a privileged cleanup or
 go-ahead before relaunch. No behavioral conclusion can be drawn until the
 infra failure is recovered and the smoke actually executes its 7 cells.
+
+### Cleanup + relaunch (captain APPROVED, bounded)
+
+- `docker rm -f` of ONLY the two orphaned containers
+  `ade-bench-quickbooks002__ah6uczp-main-1` + `…__nacswo7-main-1` (names confirmed
+  first via `docker ps --filter name=quickbooks002`; no other container touched).
+  After: zero `ade-bench` containers remain.
+- `sudo rm -rf …/df3a3b1e3a4c2ace` (only that one hash dir), then `sudo rmdir`
+  the now-empty root-owned experiment parent so `rk` recreates the tree as `kent`.
+  Nothing else under `runs/` touched.
+- Relaunch: `drivers/rk-run-detached.sh h0045-smoke-r2 … run` → handle
+  `runs/.rk-handles/h0045-smoke-r2-20260610-172101` (pid 4020017). Run dir
+  `df3a3b1e3a4c2ace` recreated `kent:kent`, no instant crash (no seed perturbation
+  needed — clearing the collision was sufficient). Polling for `done` across turns.
+
+(Cycle 1 was an infra collision, not experiment evidence — the real smoke result
+follows below once cycle-2 completes.)
