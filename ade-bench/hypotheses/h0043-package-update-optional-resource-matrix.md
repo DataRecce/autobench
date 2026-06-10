@@ -1,7 +1,7 @@
 ---
 id: h0043
 title: Package-update optional-resource matrix -- when an installed package update exposes vars that disable resources, diagnose the var matrix first and gate only the affected dependency chain
-status: hypothesis
+status: propose
 kind: hypothesis
 source: Captain request 2026-06-10 after asana002 decision-fork analysis; follows h0033 green-but-inert cast result and the Round 1 + Round 2 flipped-task choice map. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-10T07:17:29Z
