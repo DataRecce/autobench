@@ -213,6 +213,19 @@ since `rk runs diff` crashes on ade-bench run-dirs — MEMORY ade-bench-runs-dif
   drops are load-bearing for the analyze-stage attribution (both in the f1 family — note the f1001
   canary smoke proved SAFE was also f1; the analyze stage must read these two committed artifacts).
 
+**ANALYZE-STAGE ATTRIBUTION (committed-artifact forensics — full detail in `## Full-run behavioral
+analysis`).** The −1 is **unrelated single-trial solver-reasoning variance, NOT a lever regression.**
+`f1006-hard` (DROP) is a REPAIR where RM correctly did NOT fire (no `Analog:`); the solver chose
+`row_number()/latest` vs the baseline's correct `max(points)` and lost 2 edge-case rows. `f1010-medium`
+(DROP) fired RM citing `constructor_points` — but that analog carries ZERO pit-stop logic, so it was
+inert on the failing dimension; the solver over-engineered "subtract pit-stop duration" instead of the
+baseline's correct "exclude pit-stop laps" (`Got 1092`). `asana002` (GAIN) is an incidental config-task
+flip (RM did not fire). The whole-48 reach scan finds **RM fired on ~21/48 authoring cells and NO held
+passer was broken by a wrong/wider analog** — the own-sibling-first gate is safe at scale. Target
+`ana-eng004` held FAIL at the byte-identical width wall with the cited `obt_sales_overview` analog
+reaching the committed SQL (reach finding holds at full). **Recommended conclude verdict: `@baseline`
+NOT promoted (net −1, no flip); bank the knowledge gains. Captain decides.**
+
 **AC-2 — strict audit clean + every cell captured a verifier outcome (BEFORE the score is trusted).**
 `rk audit … --policy strict` = **`tainted: 0`** (48/48 `taint_status: clean`, zero findings).
 `rk score … --format json`: `n_completed: 48, n_errored: 0` and a non-null `verifier_result` on all
@@ -291,6 +304,86 @@ lone-survivor engine — achieved); the own-sibling-first gate is SAFE and artif
 the lever is EFFICACY-zero on the width family because the deciding column set is oracle-only (D6
 width wall, same `solver-blind-to-oracle` ceiling). A reach + safety + distance finding at {0} flips —
 worthwhile per the smoke gate ("analog construction reached committed SQL AND no passer regressed").
+
+---
+
+## Full-run behavioral analysis (analyze stage — supersedes the smoke whole-panel read)
+
+The smoke panel (10 tasks) was clean: 0 flips, 0 regressions. The full 48-task run is **net −1**
+(0.625 vs `@baseline` 0.6458) with a **+1 / −2** composition. This section answers the five required
+analyze questions, leading with the smoke→full reconciliation and the decisive regression read.
+
+### Q2 / smoke-vs-full reconciliation (LEAD) — why full differs from the clean smoke
+
+The smoke held f1001 (the h0023 convention-bleed victim) at 6/6, proving the own-sibling-first gate is
+anti-bleed. The full run then **dropped two OTHER f1 passers the panel never sampled** — `f1006-hard`
+and `f1010-medium`. The h0012 fear was: *smoke held the sampled canary, full broke unsampled members =
+the gate is insufficient at scale (lever-attributable convention-bleed)*. **The forensic verdict is the
+OPPOSITE: neither drop is convention-bleed; both are unrelated single-trial solver-reasoning variance.**
+The own-sibling gate is NOT implicated in either drop, and the whole-48 reach scan finds **no passer
+broken by a wrong/wider analog copy**.
+
+### Q1 — Net + full per-task ledger, BOTH directions, each with mechanism
+
+**Net −1 = +1 GAIN − 2 DROPS** (slug-paired, 48/48 common; paired delta computed from
+`per_trial_outcomes.json` — `rk runs diff` TypeErrors on ade-bench dirs, MEMORY ade-bench-runs-diff-query-id-null;
+10k-resample seed-12345 bootstrap on the delta in #passes: **obs −1, 95% CI [−5, +2]**, straddles 0).
+
+| Task | base→h0037 | RM fired? | Committed-artifact mechanism | Attribution |
+|------|-----------|-----------|------------------------------|-------------|
+| `ade-bench-asana002` | FAIL→**PASS** | NO (0 apply_patch — Fivetran *config* repair, no model SQL, no `Analog:`) | Baseline failed `Got 2`; h0037 passed 3/3 via config reconciliation. Known causal-flip task (MEMORY instruction-lever-taxonomy: asana002 causal flip). | **Incidental variance** — RM did not fire; not lever-attributable. |
+| `ade-bench-f1006-hard` | **PASS**→FAIL | NO (REPAIR task — RM correctly skipped; no record, no `Analog:`) | Task = "results in constructor_points/driver_points look wrong, fix it." Baseline fix: `sum(points)→max(points)` (matches hidden solution, 0 mismatch). h0037 fix: `sum→row_number() … WHERE standings_rank=1` ("latest" not "max"). `driver_points` passed; `constructor_points` failed **`Got 2`** on a 2-row edge case (solver itself flagged "Force India 2018: max 59 but latest 52" and chose latest = wrong). | **Variance** — same repair, two reasonable bug hypotheses (max vs latest); the analog mechanism never engaged. |
+| `ade-bench-f1010-medium` | **PASS**→FAIL | YES — cited `analog: models/stats/constructor_points.sql:1-17` ("local same-layer aggregate"), `from_relation: stg_f1_dataset__lap_times` | Task = create `analysis__lap_times`, "account for pit stops correctly." Baseline (PASS): EXCLUDE pit-stop laps (`where p.race_id is null`) then avg → matches `solution__analysis__lap_times`. h0037 (FAIL **`Got 1092`**): its FIRST patch was the same exclude approach, then it over-engineered across 3 patches to SUBTRACT pit-stop duration and DROP the exclude filter. | **Variance, NOT convention-bleed** — the cited analog (`constructor_points`, a points-SUM) carries ZERO pit-stop logic; the deciding error (subtract-duration vs exclude-laps) is a task-semantic interpretation the analog does not encode. RM was inert on the failing dimension. |
+
+### Q3 — already-correct-and-broken: each regression WAS a `@baseline` passer (damage to working code)
+
+Both drops are confirmed `@baseline` PASSERS (reward.txt=1): `f1006-hard` passed 4/4 (constructor+driver
+equality), `f1010-medium` passed (lap_times equality). So both are **damage to previously-working code**,
+not failed-to-help. But "damage" here = the solver re-solved the SAME task differently on this run and
+its alternative was slightly wrong — NOT the lever copying a bad analog into a working model. f1006-hard's
+analog mechanism never fired; f1010-medium's analog was irrelevant to the failing dimension.
+
+### Q4 — was the change EXECUTED? (committed-artifact classification per cell)
+
+- **Target `ade-bench-ana-eng004` — EXECUTED-and-held-FAIL (reach finding holds at full).** RM fired,
+  cited `analog: models/analytics_obt/obt_sales_overview.sql:1-78` (`own_sibling`), and the construction
+  (`FROM {{ ref('fact_inventory') }} i LEFT JOIN {{ ref('dim_products') }} p`) reached the committed
+  `obt_product_inventory.sql`. Held FAIL at the **byte-identical** width wall: *"obt_product_inventory
+  has less columns than solution__obt_product_inventory"* (a `dbt_utils.equality` Compilation Error,
+  same string as `@baseline`). The deciding column set is oracle-only → executed-but-cannot-help (D6).
+- **f1010-medium — EXECUTED-and-hurt-on-an-inert-dimension.** RM fired and reached SQL, but the analog
+  was a non-pit-stop aggregate; the regression is on the pit-stop dimension the analog cannot inform.
+- **f1006-hard / asana002 — INERT for RM** (repair / config; RM correctly did not fire). Their flips are
+  solver-reasoning variance.
+- **Whole-48 reach map:** RM fired (emitted a real `/tmp/reference_mining.json` record) on ~21 of 48
+  model-authoring cells and correctly skipped repairs/no-ops/config. **No held passer was broken by a
+  wrong/wider analog copy.** `intercom001` exercised the PACKAGE-fallback path (cited
+  `dbt_packages/dbt_utils/integration_tests/.../test_star_aggregate.sql` — no own sibling found) and
+  still held its `@baseline` FAIL; the fallback did not break a passer. The own-sibling-first gate is
+  **safe at scale**, confirming smoke.
+
+### Q5 — prevention + next move (NOT reflexively filing — escalating to captain)
+
+**Is the −1 a REAL lever regression or unrelated variance? → UNRELATED VARIANCE.** The reach mechanism
+is real but the score is unbankable: the two drops are single-trial solver-reasoning divergences on
+ambiguous tasks (max-vs-latest; subtract-vs-exclude), and the cited analog is either absent (f1006-hard)
+or inert on the failing dimension (f1010-medium). The CI [−5,+2] straddles 0. The own-sibling gate did
+NOT fail at scale — no wrong/wider-analog passer breakage exists in the 48. The lever is the same
+EFFICACY-zero-but-reach-real result smoke predicted; the −1 is noise on top of a true {0}-flip.
+
+**Prevention (if ever re-run):** under standing `trials:1` this kind of ±1 from ambiguous-repair variance
+is structural and not worth chasing with multi-trial CI (MEMORY ade-bench-single-trial-judge-by-artifact).
+The clean way to separate variance from a true regression here would be to read the artifact (done) —
+which is exactly why judge-by-artifact is the standing rule.
+
+**Recommended conclude verdict:** **`@baseline` NOT promoted** (net −1; no flip; the predicted width-oracle
+wall held). Bank the KNOWLEDGE gains, not a score: (1) the h0019 lone-survivor engine generalizes into a
+generative stage that REACHES committed SQL on ~21/48 authoring cells (clears h0010/h0016 inert-prose and
+h0033 green-but-inert); (2) the own-sibling-first / package-fallback gate is **safe at scale** — no passer
+broken by a wrong/wider analog across all 48 (the h0023 bleed vector is closed); (3) the D6 width oracle
+wall is re-confirmed byte-identical (`solver-blind-to-oracle` ceiling); (4) a structural construction-copy
+analog is **inert on task-semantic dimensions** (pit-stop logic, max-vs-latest) it does not encode — a
+reusable boundary on what "copy the construction shape" can and cannot fix. **Captain decides the verdict.**
 
 ## Verdict
 
@@ -391,3 +484,29 @@ target `ana-eng004` held FAIL at the predicted width-oracle wall; the paired-del
 straddles zero so the net is within single-trial noise, but two passers dropped — the per-task attribution
 (RM-stage regression vs trial variance, reading the two committed f1 artifacts) is the NEXT stage (analyze),
 deliberately NOT started here.
+
+## Stage Report: analyze
+
+- DONE: THE DECISIVE REGRESSION READ — the 2 DROPS f1006-hard + f1010-medium classified from committed SQL + cited Analog
+  Both confirmed `@baseline` PASSERS (damage to working code). **Neither is lever-attributable.** `f1006-hard`: REPAIR, RM did NOT fire (no `Analog:`); solver chose `row_number()/latest` vs baseline's correct `max(points)`, lost 2 edge-case rows (`Got 2`). `f1010-medium`: CREATION, RM fired citing `constructor_points` (points-SUM, ZERO pit-stop logic) → inert on the failing dimension; solver over-engineered "subtract pit-stop duration" vs baseline's correct "exclude pit-stop laps" (`Got 1092`). Cited from apply_patch payloads in `agent/sessions/**/*.jsonl` + `verifier/test-stdout.txt`.
+- DONE: The +1 GAIN asana002 + target ana-eng004 attribution
+  `asana002` (FAIL→PASS): Fivetran config task, 0 apply_patch, RM did NOT fire → incidental variance (known causal-flip task). `ana-eng004` held FAIL at the byte-identical width wall ("has less columns…"); cited analog `obt_sales_overview.sql:1-78` (own_sibling) reached the committed `obt_product_inventory.sql` → reach finding holds at full.
+- DONE: All 5 required questions answered in `## Run result` + `## Full-run behavioral analysis`, leading with smoke-vs-full reconciliation + prevention/next-move
+  Q1 full per-task ledger both directions (paired delta from `per_trial_outcomes.json`, 10k bootstrap obs −1 CI [−5,+2] — `rk runs diff` TypeErrors, said so); Q2 reconciliation (h0012 fear FALSIFIED — variance not bleed); Q3 both drops were baseline passers; Q4 executed/inert classification per cell + whole-48 reach map (RM fired ~21/48, no passer broken by a wrong/wider analog — gate safe at scale); Q5 verdict = `@baseline` NOT promoted (net −1), bank knowledge gains, captain decides.
+- DONE: WORKFLOW-REFINE.md full-run addendum appended
+  Added the analyze addendum to the existing h0037 ledger entry: net −1 = variance not regression, gate safe at scale, new reusable boundary (structural copy is inert on task-semantic dimensions it does not encode).
+
+### Summary
+
+The full run is **net −1 (0.625, 30/48) vs `@baseline` 0.6458**, composed of +1 (`asana002`) / −2
+(`f1006-hard`, `f1010-medium`). Committed-artifact forensics show the −1 is **unrelated single-trial
+solver-reasoning variance, NOT a lever regression**: the smoke→full h0012 fear (own-sibling gate
+insufficient at scale, breaking unsampled f1 members) is FALSIFIED — `f1006-hard` is a repair where RM
+never fired, `f1010-medium`'s cited analog was inert on the deciding pit-stop dimension, and the whole-48
+reach scan finds NO held passer broken by a wrong/wider analog (gate safe at scale). The reach finding
+holds at full (RM fired on ~21/48 authoring cells; the target's cited `obt_sales_overview` analog reached
+the committed SQL; held FAIL at the byte-identical width wall). New reusable boundary: a structural
+construction-copy analog is inert on task-semantic dimensions (pit-stop logic, max-vs-latest) it does not
+encode. Recommended conclude verdict: **`@baseline` NOT promoted** (net −1, no flip) — bank the knowledge
+gains (reach-systematization clears h0010/h0016/h0033; own-sibling gate closes the h0023 bleed vector at
+scale; D6 width wall re-confirmed). Captain decides.

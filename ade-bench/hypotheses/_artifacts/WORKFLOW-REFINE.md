@@ -863,6 +863,31 @@ or a dispatched worker, never a direct first-officer edit.
   `ade-bench-solver-blind-to-oracle`, `verification-without-oracle-real-world`,
   `ade-bench-single-trial-judge-by-artifact`, `ade-bench-instruction-lever-taxonomy`.
 
+- **FULL-RUN ADDENDUM (analyze, 2026-06-09→10; run `…/5d707b3cdf7901b3`, all 48):** scored **0.625
+  (30/48), net −1 vs `@baseline` 0.6458** = **+1 / −2** (paired bootstrap obs −1, 95% CI [−5,+2],
+  straddles 0). Strict audit clean (`tainted:0`, 48/48 captured a verifier outcome). **The −1 is
+  unrelated single-trial solver-reasoning variance, NOT a lever regression — the smoke→full h0012 fear
+  (gate insufficient at scale) is FALSIFIED by committed-artifact forensics:**
+  - `f1006-hard` DROP — REPAIR; RM correctly did NOT fire (no `Analog:`). Solver chose `row_number()/
+    latest` vs baseline's correct `max(points)`; lost 2 edge-case rows (`Got 2`). Analog never engaged.
+  - `f1010-medium` DROP — CREATION; RM FIRED citing `constructor_points` (a points-SUM) which has ZERO
+    pit-stop logic → **inert on the failing dimension**. Solver over-engineered "subtract pit-stop
+    duration" vs baseline's correct "exclude pit-stop laps" (`Got 1092`). NOT a wrong/wider-analog bleed.
+  - `asana002` GAIN — incidental config-task flip (RM did not fire; known causal-flip task).
+  - **Whole-48 reach scan:** RM fired on ~21/48 authoring cells, correctly skipped repairs/no-ops/config,
+    and **NO held passer was broken by a wrong/wider analog copy** — the own-sibling-first gate is **safe
+    at scale** (confirms smoke). `intercom001` exercised the package-fallback path (cited a
+    `dbt_packages/dbt_utils/integration_tests/…` template, no own sibling) and held its baseline FAIL.
+  - Target `ana-eng004` held FAIL at the **byte-identical** width wall ("has less columns…", a
+    `dbt_utils.equality` Compilation Error), cited analog `obt_sales_overview.sql:1-78` reaching the
+    committed SQL — **reach finding holds at full**.
+  - **New reusable boundary:** a structural construction-copy analog is **INERT on task-semantic
+    dimensions it does not encode** (pit-stop handling, max-vs-latest) — "copy the construction shape"
+    fixes shape/grain/join, not the deciding business rule. **Recommended conclude: `@baseline` NOT
+    promoted (net −1, no flip); bank the knowledge gains.** Evidence: run `…/5d707b3cdf7901b3` per-cell
+    `verifier/test-stdout.txt` + `agent/sessions/**/*.jsonl` apply_patch payloads; baseline
+    `…/622bdedac572b479` (f1006-hard `max(points)`; f1010-medium exclude-pit-laps).
+
 
 ### Enforced abstention rail (Track Z / M2): the REVERT never fires — clause-1/clause-3 self-credit collapses the AND-of-NOTs, so the gate is inert on every oracle-only cell (h0040 smoke REJECTED-inert, 2026-06-09)
 - **Status:** **rejected-as-written** — new-stage structural lever (the 5th `## Stage:`, a pre-commit
