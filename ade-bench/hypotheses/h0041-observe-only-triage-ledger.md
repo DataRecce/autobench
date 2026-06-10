@@ -394,8 +394,38 @@ stage moved nothing, confirming inertness-on-the-artifact (the desired property 
 
 ## Verdict
 
-**Recommended verdict: CONCLUDE — instrument SUCCEEDED on its own terms (captain decides).** The
-observe-only triage ledger delivered exactly what M3 was built for and confirmed it at full 48-cell scale:
+**Verdict: PASSED — the observe-only triage-ledger INSTRUMENT SUCCEEDED at its design goal (captain
+decision, 2026-06-10). This is NOT a @baseline promotion.** PASSED here means the M3 instrument *ran
+cleanly to a real result* — the validated observe-only mechanism plus the all-48 `would_abstain` map — not
+that the lever flipped the score. It is the same "ran cleanly to a real result" sense the workflow README
+gives `verdict: PASSED`, and it is distinct from the inert sibling h0039 (which never even emitted a record
+to test). `@baseline` stays `runs/ade-bench-baseline/622bdedac572b479` (31/48); the registry was NOT
+touched (`rk registry list` → `@baseline → runs/ade-bench-baseline/622bdedac572b479` unchanged). Net 0,
+paired delta 95% CI `[−0.0625, +0.0625]` includes 0, {0}-flip by construction ⇒ there is nothing to bank;
+**do NOT run `rk baseline promote`**.
+
+The instrument was validated END-TO-END at 48-cell scale on three axes:
+
+- **The durable observe-only write-path SCALES (the routing primitive works at 48/48).** Every one of the
+  48 cells durably emitted a triage record — the unconditional `/tmp/triage.json` write + `cat`/`printf`/
+  `tee`/`*** Add File` capture into the session transcript landed on 48/48 cells. The make-or-break h0039
+  fix is now confirmed at full scale: no cell went inert. This routing primitive is the reusable positive
+  finding (recorded in WORKFLOW-REFINE).
+- **ZERO contamination — the observe-only contract held on all 48.** Net 0 = TWO offsetting single-trial
+  VARIANCE flips: +1 `ade-bench-airbnb009` (FAIL→PASS) and −1 `ade-bench-f1006-hard` (PASS→FAIL). Reading
+  the committed `apply_patch` SQL on BOTH flips proves they are the solver's OWN reasoning with ZERO
+  triage→SQL coupling — airbnb009's full run committed a minimal `IN(DISTINCT)`→`BETWEEN MIN/MAX` fix where
+  baseline over-rewrote and broke it; f1006-hard's full run committed baseline's correct `sum`→`max` PLUS a
+  second over-refinement (`row_number()` season-rank) that broke its own fix. The triage record carries NO
+  SQL on either cell. 46/48 cells byte-held their @baseline verdict; strict audit `tainted:0` on all 48,
+  `captured>0` on all 48. (Honest precision: "net 0" is aggregate-level, NOT byte-identical on those two
+  stochastic cells — airbnb009 is the documented non-reproducible single-trial survivor.)
+- **The all-48 `would_abstain` map: 0/48 would_abstain, NO @baseline passer flagged, survivor airbnb009
+  decidable** ⇒ a future enforced rail (h0040) would have predicted ZERO false-reverts on this fixed 48 —
+  it would not have suppressed any of the 31 passers, and it would NOT have suppressed the one real fix.
+  This is the green-light precondition the M3 instrument was built to map.
+
+The observe-only triage ledger delivered exactly what M3 was built for and confirmed it at full 48-cell scale:
 
 - **The observe-only contract held (the contamination tripwire passed).** Net 0 vs @baseline (31/48),
   strict audit `tainted:0`, `captured>0` on all 48, and on BOTH single-cell flips the committed model SQL
@@ -410,16 +440,39 @@ observe-only triage ledger delivered exactly what M3 was built for and confirmed
 - **The M3 map: 0/48 would_abstain, no passer flagged, survivor decidable** ⇒ a future enforced rail
   would predict ZERO false-reverts on this fixed 48.
 
-**@baseline NOT promoted** (net 0 — nothing to bank; this was {0}-flip by construction). **No reflexive
-follow-up filed.** **Prevention / next-move** (the 5th required question): the two enforced-rail
-hardening requirements this instrument surfaced — (1) DERIVE abstain from the clause results, never parse
-a possibly-absent literal `would_abstain` (10/48 cells lack it under schema drift); (2) the trigger
-under-fires the independent raw-source probe and leans on the non-independent instruction/schema clauses
-(the h0030/h0036 wall), so it maps as conservative, NOT a certified oracle-only detector — are
-RETROSPECTIVE de-risk knowledge only: **h0040, the enforced abstention rail this M3 was built to
-de-risk, has already concluded REJECTED-inert.** With h0040 dead, there is no live consumer to harden;
-escalate the two requirements as recorded knowledge (entity + WORKFLOW-REFINE), do NOT re-open the
-enforced-rail family. This closes the M3 observe-only de-risk line.
+**Two scale caveats on the map (recorded; they bound any future enforced consumer, not THIS instrument).**
+(1) **Schema drift:** the literal `would_abstain` key is present on only **38/48** cells; **10/48** emit a
+drifted/nested (`{verdict,evidence}`, `{evaluated,supports_claim}`) or narrative
+(`load_bearing_claim`+`fixed_three_clause_check`) shape with NO literal field. The abstain decision is
+recoverable in every case (≥1 clause supports ⇒ decidable), but an enforced consumer MUST DERIVE abstain
+from the clause booleans and MUST NOT parse the literal field + default-to-abstain on absence.
+(2) **The oracle wall:** `raw_source_probe` fired as a deciding clause on ~26/48 (vs inert on the smoke 8)
+but never independently OVER-abstained and never decided a cell the instruction/schema clauses didn't — so
+the trigger leans on the non-independent instruction/schema clauses and maps as a CONSERVATIVE map (won't
+suppress on this fixed 48), NOT a certified clean oracle-only detector (the h0030/h0036 mis-discrimination
+wall persists at the clause level).
+
+**@baseline NOT promoted** (net 0 — nothing to bank; {0}-flip by construction; registry verified
+unchanged at `622bdedac572b479`). **No follow-up filed** (Follow-up Routing: `stop`). **Program state /
+next-move** (the 5th required question): the two caveats above are RETROSPECTIVE de-risk knowledge only —
+**h0040, the enforced abstention rail this M3 was built to de-risk, has already concluded REJECTED-inert.**
+With h0040 dead there is no live consumer to harden, so the two requirements are recorded as knowledge
+(this entity + `_artifacts/WORKFLOW-REFINE.md`) and the enforced-rail / arbitration-architecture family
+(D9) stays closed — do NOT re-open it. The single durable POSITIVE that outlives the dead consumer is the
+write-path itself: the unconditional `/tmp`-write + `cat`-to-stdout observe-only routing primitive, now
+PROVEN at 48/48 scale, is the structural primitive any future observe/record/debug-lens stage should
+reuse (NOT the dead `/razorback-freeze` single-child precondition). This closes the M3 observe-only
+de-risk line of the Round-2 workflow-stage program.
+
+## Follow-up Routing
+
+**`stop`.** No follow-up filed. h0041 was a {0}-flip method instrument with no flippable target by
+construction; it succeeded at its design goal. Its sole downstream consumer — h0040, the enforced
+abstention rail — has already concluded REJECTED-inert, so the `would_abstain` map is retrospective de-risk
+knowledge with no live consumer to feed, and the enforced-rail / arbitration-architecture family (D9) is
+closed. The one durable forward-looking asset (the proven observe-only write-path) is recorded in
+`_artifacts/WORKFLOW-REFINE.md` for any future observe/record stage to reuse; that is structural memory,
+not a new hypothesis. No probe, no fork.
 
 - DONE: DURABLE ARTIFACT ROUTING (the make-or-break h0039 fix)
   The new stage writes `triage.json` to a fixed `/tmp/triage.json` **unconditionally** (no
@@ -493,3 +546,16 @@ The M3 clean full run is banked: run dir `runs/ade-bench-h0041-observe-only-tria
 ### Summary
 
 Analyze closes the M3 observe-only de-risk line. The decisive adjudication: net 0 vs @baseline is TWO offsetting single-cell flips (airbnb009 up, f1006-hard down), and reading the committed SQL on both proves they are pure single-trial solver-reasoning variance — the observe-only stage altered NO committed SQL on any cell, the contamination tripwire held (tainted:0, 46/48 byte-held). The M3 deliverable: 48/48 cells durably emitted a triage record (routing scales), 0/48 would_abstain, no passer flagged, survivor decidable ⇒ a future enforced rail would predict zero false-reverts on this fixed 48. Two confirmed-at-scale caveats (schema drift on 10/48 → derive abstain from clauses; raw-source probe under-fires → conservative map not a clean detector) are retrospective de-risk knowledge since h0040 is already REJECTED-inert. Recommended verdict CONCLUDE; @baseline NOT promoted; no follow-up filed.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict`: PASSED — the observe-only triage-ledger INSTRUMENT SUCCEEDED at its design goal (NOT a @baseline promotion).
+  `## Verdict` rewritten to the terminal captain-decided (2026-06-10) PASSED framing: PASSED = "ran cleanly to a real result" (validated observe-only mechanism + the all-48 `would_abstain` map), distinct from the inert sibling h0039. States the three validated axes plainly — durable `/tmp`+stdout routing emitted a record on 48/48 (the primitive SCALES); ZERO contamination (net 0 = two offsetting single-trial VARIANCE flips airbnb009+/f1006-hard−, both the solver's OWN committed SQL, zero triage→SQL coupling; 46/48 byte-held; strict audit tainted:0); the all-48 map (0/48 would_abstain, NO @baseline passer flagged ⇒ ZERO predicted false-reverts, survivor airbnb009 decidable). @baseline UNCHANGED at 31/48 — NOT promoted (net 0, paired delta CI [−0.0625,+0.0625] includes 0). Both scale caveats recorded: literal `would_abstain` key on only 38/48 (consumer must DERIVE abstain from clause booleans) and raw_source_probe fires ~26/48 but never solely decides (conservative map, NOT a certified oracle-only detector — h0030/h0036 wall).
+- DONE: Finalize the `_artifacts/WORKFLOW-REFINE.md` h0041 entry to a FINAL state (NEW-STAGE structural lever — mandatory).
+  Entry (the 2026-06-10 full+analyze record) brought to FINAL: status = **PASSED-as-instrument (terminal; observe-only mechanism validated at 48-scale)**; learning line sharpened — the durable observe-only write-path (unconditional `/tmp/<record>.json` write + `cat`-to-stdout into the session transcript) is the PROVEN, REUSABLE positive primitive that scaled to 48/48 and is the structural primitive future observe/record/debug-lens stages should reuse, explicitly NOT `/razorback-freeze`; bears-on sharpened to steer any future enforced consumer (derive-abstain-from-clauses for the schema drift; raw_source_probe oracle wall ⇒ conservative map not a detector) and notes h0040 (the de-risked rail) already concluded REJECTED-inert.
+- DONE: Confirm @baseline NOT promoted (registry untouched; net 0) and NO new follow-up filed.
+  `rk registry list` → `run  @baseline  runs/ade-bench-baseline/622bdedac572b479` — unchanged (no `rk baseline promote` / `rk registry add` run). `## Follow-up Routing` written as `stop` (no follow-up `h<NNNN>` filed). Program state recorded in this report: h0041 is the M3 de-risk; its sole downstream consumer h0040 already concluded REJECTED-inert, so the validated `would_abstain` map is retrospective de-risk knowledge + the proven durable-routing primitive is the forward-looking asset.
+
+### Summary
+
+Terminal conclude for h0041 — captain-decided PASSED, meaning the observe-only INSTRUMENT succeeded at its design goal (NOT a baseline promotion). The observe-only mechanism is validated end-to-end at 48-cell scale: durable `/tmp`+stdout routing emitted a triage record on 48/48 (the routing primitive SCALES — the make-or-break h0039 fix confirmed at full scale), zero contamination (net 0 decomposes into two offsetting single-trial solver-reasoning VARIANCE flips, both the solver's own committed SQL with zero triage→SQL coupling; tainted:0; 46/48 byte-held), and the all-48 map shows 0/48 would_abstain with no @baseline passer flagged and the survivor airbnb009 decidable. @baseline stays `622bdedac572b479` (31/48) — registry verified unchanged, NOT promoted (net 0, {0}-flip by construction). Pure documentation finalization: no `rk` re-run, no frontmatter/file moves (FO handles those), no follow-up filed. The WORKFLOW-REFINE entry is finalized as PASSED-as-instrument with the durable observe-only write-path recorded as the proven reusable primitive. Program state: h0041 is the M3 de-risk; its consumer h0040 already concluded REJECTED-inert, so the map is retrospective de-risk knowledge and the durable-routing primitive is the forward-looking asset.

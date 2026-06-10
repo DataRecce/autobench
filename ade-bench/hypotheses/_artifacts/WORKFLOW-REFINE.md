@@ -688,9 +688,12 @@ or a dispatched worker, never a direct first-officer edit.
   `ade-bench-instruction-lever-taxonomy`.
 
 ### Observe-only triage ledger CONFIRMED at full 48-cell scale: routing scales, 0/48 would_abstain, both net-0 flips are solver variance — the contract held (h0041 full + analyze CONCLUDE, 2026-06-10)
-- **Status:** **full done → CONCLUDE (recommended; captain decides)** — the M3 observe-only de-risk line
-  is closed. Everything the smoke found reproduces at 48-cell scale; nothing new breaks. @baseline NOT
-  promoted (net 0, {0}-flip by construction); no reflexive follow-up filed.
+- **Status:** **PASSED-as-instrument (terminal; captain decision 2026-06-10)** — the observe-only mechanism
+  was validated END-TO-END at 48-cell scale; the M3 observe-only de-risk line is CLOSED. PASSED here = "ran
+  cleanly to a real result" (validated mechanism + the all-48 `would_abstain` map), NOT a @baseline
+  promotion. Everything the smoke found reproduces at 48-cell scale; nothing new breaks. @baseline NOT
+  promoted (net 0, {0}-flip by construction; registry verified unchanged at `622bdedac572b479`); no
+  follow-up filed (`stop`).
 - **Layer:** solver workflow (`solver_workflows/h0041-observe-only-triage-ledger/README.md`), same frozen
   skeleton as smoke (content-hash `sha256:812509727c…b4738bf` byte-identical — no smoke→full drift).
 - **Run:** `runs/ade-bench-h0041-observe-only-triage-ledger/fe1505abeeddabff`, all 48 tasks, `trials:1`;
@@ -717,19 +720,31 @@ or a dispatched worker, never a direct first-officer edit.
   raw_source_probe fired on ~26/48 (vs inert on the smoke 8) but never OVER-abstained and never independently
   decided a cell the instruction/schema clauses didn't — conservative map, NOT a certified clean oracle-only
   detector (the h0030/h0036 mis-discrimination wall persists at the clause level).
-- **Learning:** (1) the unconditional-write + print-to-stdout observe-only routing is now proven at full
-  48-cell scale — adopt it for any future debug-lens / observe-only stage. (2) An observe-only instrument's
-  success metric is "the contract held" (tainted:0, no record→artifact coupling, aggregate net 0), and the
-  honest read is that single-trial variance still moves a couple of borderline cells at the CELL level —
-  judge the artifact (committed SQL), not the aggregate alone. (3) The two enforced-rail hardening
-  requirements (derive abstain from clauses; the trigger leans on non-independent clauses) are
-  RETROSPECTIVE de-risk knowledge — **h0040, the enforced abstention rail this M3 was built to de-risk,
-  already concluded REJECTED-inert**, so there is no live consumer to harden; do NOT re-open the
-  enforced-rail / arbitration-architecture family (D9).
-- **Bears on:** **h0040** (REJECTED-inert — this map is now retrospective; the green-light precondition it
-  was to feed has no consumer); **h0039** (its routing fix, validated at smoke, now confirmed at scale);
-  any future observe-only / debug-lens stage (the proven write-path); the solver-blind-to-oracle /
-  verification-without-oracle family (raw-source probe under-firing as a *sole* decider is the same wall in
+- **Learning (the durable positive — a PROVEN, REUSABLE primitive):** the **durable observe-only
+  write-path — an unconditional `/tmp/<record>.json` write + a `cat`-to-stdout step that lands the record
+  in the worker session transcript** — is a PROVEN positive primitive that SCALED to 48/48 cells with zero
+  build contamination. This is the structural primitive any future observe / record / debug-lens stage
+  should REUSE; it is explicitly NOT the dead `/razorback-freeze` "exactly one child" precondition (verified
+  empty in the @baseline run-dir) that made the sibling h0039 go inert. The h0039→h0041 arc is the canonical
+  worked example: route durable records through stdout/session-transcript, never through `/razorback-freeze`.
+  Secondary learnings: (a) an observe-only instrument's success metric is "the contract held"
+  (`tainted:0`, no record→artifact coupling, aggregate net 0) — judge the committed ARTIFACT (the
+  `apply_patch` SQL), not the aggregate alone, because single-trial variance still moves a couple of
+  borderline cells at the CELL level (airbnb009 up / f1006-hard down here, both solver-own SQL). (b) The two
+  enforced-rail hardening requirements (derive abstain from the clause booleans; the trigger leans on
+  non-independent clauses) are RETROSPECTIVE de-risk knowledge — **h0040, the enforced abstention rail this
+  M3 was built to de-risk, already concluded REJECTED-inert**, so there is no live consumer to harden; do
+  NOT re-open the enforced-rail / arbitration-architecture family (D9).
+- **Bears on:** **any future observe / record / debug-lens stage** — REUSE the proven unconditional-write +
+  cat-to-stdout write-path (the durable positive primitive). **Any future ENFORCED consumer of a
+  `would_abstain`-style record** — the map's two caveats steer it directly: (1) DERIVE abstain from the
+  clause booleans, never parse the literal `would_abstain` field + default-to-abstain on absence (10/48
+  schema-drifted, no literal key); (2) the trigger is a CONSERVATIVE map not a certified oracle-only
+  detector (raw_source_probe under-fires as a *sole* decider — the h0030/h0036 wall), so an enforced rail
+  built on it would lean on the non-independent instruction/schema clauses. **h0040** (REJECTED-inert — this
+  map is now retrospective; the green-light precondition it was to feed has no live consumer; D9 stays
+  closed). **h0039** (its routing fix, validated at smoke, now confirmed at scale). The solver-blind-to-oracle
+  / verification-without-oracle family (raw-source probe under-firing as a *sole* decider is the same wall in
   the clause-level data). Closes the M3 observe-only de-risk line of the Round-2 workflow-stage program.
 - **Evidence:** entity `hypotheses/h0041-observe-only-triage-ledger.md` (`## Run result` ANALYZE section,
   `## Behavioral analysis` FULL RUN lead, `## Verdict`); run
