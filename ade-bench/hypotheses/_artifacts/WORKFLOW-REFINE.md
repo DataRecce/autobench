@@ -687,6 +687,58 @@ or a dispatched worker, never a direct first-officer edit.
   `verification-without-oracle-real-world`, `ade-bench-single-trial-judge-by-artifact`,
   `ade-bench-instruction-lever-taxonomy`.
 
+### Observe-only triage ledger CONFIRMED at full 48-cell scale: routing scales, 0/48 would_abstain, both net-0 flips are solver variance — the contract held (h0041 full + analyze CONCLUDE, 2026-06-10)
+- **Status:** **full done → CONCLUDE (recommended; captain decides)** — the M3 observe-only de-risk line
+  is closed. Everything the smoke found reproduces at 48-cell scale; nothing new breaks. @baseline NOT
+  promoted (net 0, {0}-flip by construction); no reflexive follow-up filed.
+- **Layer:** solver workflow (`solver_workflows/h0041-observe-only-triage-ledger/README.md`), same frozen
+  skeleton as smoke (content-hash `sha256:812509727c…b4738bf` byte-identical — no smoke→full drift).
+- **Run:** `runs/ade-bench-h0041-observe-only-triage-ledger/fe1505abeeddabff`, all 48 tasks, `trials:1`;
+  strict audit `{clean:48, tainted:0}`, `captured=1` on all 48; score `stratified_pass_at_1 = 0.6458`
+  (31/48) = exactly @baseline, `n_errored=0`.
+- **Finding — ROUTING SCALES (4th-scale confirmation of the make-or-break h0039 fix).** 48/48 cells
+  durably emitted a triage record to the session transcript (the unconditional `/tmp/triage.json` write +
+  stdout `cat`/`printf`/`tee`/`*** Add File`). Not one cell went inert. The 8-cell smoke proof generalizes.
+- **Finding — THE CONTAMINATION CONTRACT HELD; net 0 is TWO offsetting flips = solver VARIANCE, not a
+  gate-strip leak.** Net 0 vs @baseline decomposes into +1 airbnb009 (FAIL→PASS) and −1 f1006-hard
+  (PASS→FAIL); 46/48 byte-held. Reading the committed `apply_patch` SQL on both flips proves variance, not
+  contamination: airbnb009 full committed a minimal `IN(DISTINCT)`→`BETWEEN MIN/MAX` fix (correct) where
+  baseline over-rewrote and broke it; f1006-hard full committed baseline's correct `sum`→`max` PLUS a
+  second over-refinement (`row_number()` season-rank) that broke its own fix. Triage record carries NO SQL
+  on either; zero triage→SQL coupling. The observe-only gate-strip did not leak. (`rk runs diff` TypeErrors
+  on ade-bench dirs → paired delta from per_trial_outcomes.json, slug-paired, 10k bootstrap: mean +0.0,
+  95% CI [−0.0625, +0.0625].) Honest precision: "net 0" is aggregate-level, NOT byte-identical on those
+  two single-trial-variance cells (airbnb009 is the documented non-reproducible survivor).
+- **Finding — THE M3 MAP: 0/48 would_abstain, no passer flagged, survivor decidable.** A future enforced
+  rail would predict ZERO false-reverts on this fixed 48. Schema-drift confirmed at scale: literal
+  `would_abstain` key on only 38/48; 10/48 use drifted/nested (`{verdict,evidence}`,
+  `{evaluated,supports_claim}`) / narrative (`load_bearing_claim`+`fixed_three_clause_check`) shapes — an
+  enforced consumer MUST DERIVE abstain from the clause results, never parse the field + default-to-abstain.
+  raw_source_probe fired on ~26/48 (vs inert on the smoke 8) but never OVER-abstained and never independently
+  decided a cell the instruction/schema clauses didn't — conservative map, NOT a certified clean oracle-only
+  detector (the h0030/h0036 mis-discrimination wall persists at the clause level).
+- **Learning:** (1) the unconditional-write + print-to-stdout observe-only routing is now proven at full
+  48-cell scale — adopt it for any future debug-lens / observe-only stage. (2) An observe-only instrument's
+  success metric is "the contract held" (tainted:0, no record→artifact coupling, aggregate net 0), and the
+  honest read is that single-trial variance still moves a couple of borderline cells at the CELL level —
+  judge the artifact (committed SQL), not the aggregate alone. (3) The two enforced-rail hardening
+  requirements (derive abstain from clauses; the trigger leans on non-independent clauses) are
+  RETROSPECTIVE de-risk knowledge — **h0040, the enforced abstention rail this M3 was built to de-risk,
+  already concluded REJECTED-inert**, so there is no live consumer to harden; do NOT re-open the
+  enforced-rail / arbitration-architecture family (D9).
+- **Bears on:** **h0040** (REJECTED-inert — this map is now retrospective; the green-light precondition it
+  was to feed has no consumer); **h0039** (its routing fix, validated at smoke, now confirmed at scale);
+  any future observe-only / debug-lens stage (the proven write-path); the solver-blind-to-oracle /
+  verification-without-oracle family (raw-source probe under-firing as a *sole* decider is the same wall in
+  the clause-level data). Closes the M3 observe-only de-risk line of the Round-2 workflow-stage program.
+- **Evidence:** entity `hypotheses/h0041-observe-only-triage-ledger.md` (`## Run result` ANALYZE section,
+  `## Behavioral analysis` FULL RUN lead, `## Verdict`); run
+  `runs/ade-bench-h0041-observe-only-triage-ledger/fe1505abeeddabff` (audit clean 48/48 tainted:0,
+  captured=1; score 0.6458; 48 triage records + the two flips' committed `apply_patch` SQL recovered from
+  `agent/sessions/2026/06/10/*.jsonl`); baseline `runs/ade-bench-baseline/622bdedac572b479`. MEMORY
+  `ade-bench-oracle-program-concluded` (airbnb009 stochastic survivor), `ade-bench-single-trial-judge-by-artifact`,
+  `verification-without-oracle-real-world`.
+
 ### Plan Review (Method B): the FIRST LIVE run of independent re-derivation — Method B ALSO false-rejects; the REJECT verdict is a guess, not a locally-grounded contradiction (h0038 smoke NO-GO, 2026-06-09)
 - **Status:** **rejected-as-written** (smoke NO-GO → conclude/REJECTED; terminal) — new-stage
   structural lever (a pre-Implementation `## Stage: Plan Review` between Exploration and
