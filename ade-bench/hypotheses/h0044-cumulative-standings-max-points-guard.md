@@ -239,3 +239,84 @@ regression in the panel = NO-GO unless artifact-proven unrelated variance (AC-5)
 ### Summary
 
 Forked `@baseline` solver `codex-ade-dbt-minimal` into `solver_workflows/h0044-cumulative-standings-max-points-guard` and inserted the single C-variant Implementation policy block verbatim (cumulative-standings max-points guard: `sum(points)`→`max(points)` in every named affected model; reject latest-row/rank/row_number/QUALIFY/final-race/race-results-recompute as the load-bearing fix; inspect edited SQL before finalizing). Built + froze full and smoke specs (full = two allowed fields; smoke adds the 6-task f1-standings panel). Gatekeeper recommendation APPROVE: leak-guard intact, specs clean, lever is gated to the standings construct and covers BOTH of f1006's scored equality models — and it directly corrects h0012's "off-simple-onto-wrong-path" failure and the h0037/h0041 latest-row drift on f1006-hard. Two non-blocking WARNs (G7 prohibition without a worked skeleton; G12 probe not under the literal heading and proxy-only). Decisive smoke read is ARTIFACT (committed SQL uses same-grain `max(points)`, no final-row logic), not the verdict.
+
+## Smoke result
+
+**Verdict: GO** — f1006 flipped FAIL→PASS via an artifact-proven same-grain
+`max(points)` fix on BOTH named models; f1006-hard held PASS on `max(points)`
+(stabilization claim confirmed — no latest-row drift); all sentinels/canaries
+held. Smoke `stratified_pass_at_1 = 1.0` (6/6), n_errored=0.
+
+Run: `runs/ade-bench-h0044-cumulative-standings-max-points-guard/17732f64285f1de2`.
+Strict audit (`rk audit --policy strict`): `clean: 6, tainted: 0,
+coverage_missing: 0` — captured traces on every cell (AC-2 satisfied).
+
+| Task | @baseline | smoke | Role | Patch classification (committed) |
+|------|----------:|------:|------|----------------------------------|
+| ade-bench-f1006 | 0.0 FAIL | 1.0 PASS 🎯 | flip target | **same-grain `max(points)`** on `constructor_points.sql` (`sum(cs.points)`→`max(cs.points)`) AND `driver_points.sql` (`sum(ds.points)`→`max(ds.points)`); grain preserved; NO row_number/rank/QUALIFY/order-by-round/order-by-race_date/final-row, NO race-results recompute. All 4 verifier tests PASS (constructor_equality FAIL 2→PASS; driver_equality held PASS). |
+| ade-bench-f1006-hard | 1.0 PASS | 1.0 PASS ✅ | stabilization must-hold | **same-grain `max(points)`** on both models (`constructor_points.sql:5`, `driver_points.sql:5`); 0 mismatches (920 constructor / 3190 driver rows). NOT the latest-row path that dropped it at full in h0037/h0041. All 4 tests PASS. |
+| ade-bench-f1005 | 1.0 PASS | 1.0 PASS ✅ | perturbable sentinel (h0012 victim) | `sum(cs.points)`→`max(cs.points)` on `constructor_points.sql`; 0 max-aggregate mismatches across 920 rows; no final-row logic. All 4 tests PASS. |
+| ade-bench-f1005-medium | 1.0 PASS | 1.0 PASS ✅ | perturbable sentinel (h0012 victim) | `sum(cs.points)`→`max(cs.points)` at existing constructor grain; no final-row logic. All 4 tests PASS. |
+| ade-bench-f1001 | 1.0 PASS | 1.0 PASS ✅ | f1 canary | staging task (`stg_f1_dataset__results`); NO points/standings construct → lever precondition did not match (inert). All 6 tests PASS — no convention bleed. |
+| ade-bench-airbnb001 | 1.0 PASS | 1.0 PASS ✅ | cross-family canary | airbnb reviews aggregates; lever inert (no f1/standings construct). All 10 tests PASS — no cross-family bleed. |
+
+## Behavioral analysis
+
+**The flip is real and on the intended artifact (AC-3/AC-4).** f1006's
+load-bearing fix is exactly the same-grain `max(points)` substitution on both
+`constructor_points.sql` and `driver_points.sql`. The committed-edit record (the
+worker's structured final report in `agent/codex.txt`) names the literal
+`sum(...points...)`→`max(...points...)` edits, the verifier's
+`AUTO_constructor_points_equality` flipped FAIL 2→PASS and
+`AUTO_driver_points_equality` held PASS, and the worker's own value checks show
+0 mismatches vs `max(points)` (920 constructor / 3190 driver rows; Red Bull 2023
+860 not 10,158; Verstappen 2023 575 not 6,453). No `row_number()`/`rank()`/
+`QUALIFY`/order-by-round/order-by-race_date/final-row selection and no
+race-results recomputation appears. This is a `max(points)` GO, not a
+green-with-latest-row NO-GO.
+
+**The stabilization claim held.** f1006-hard — the @baseline passer that
+latest-row-DROPPED at full in h0037 and h0041 — stayed PASS AND stayed on the
+simple `max(points)` aggregate, with no drift into the fragile final-row branch.
+This is the specific over-engineering mode the no-latest-row guard targets.
+
+**No regression; the lever stayed in its lane (AC-5).** The two perturbable
+same-family sentinels (f1005, f1005-medium — h0012's −4 regression victims) both
+held PASS on the simple `max(points)` path rather than being pushed onto a
+"structurally different" wrong path; this is the direct contrast with h0012,
+whose generative independent-recompute framing damaged exactly these cells. The
+two inert canaries (f1001 staging, airbnb001 cross-family) held with the lever's
+precondition correctly not matching — no convention bleed.
+
+**Caveats carried to full.** (1) Single trial per cell: a 6/6 smoke is a strong
+artifact signal but not a multi-trial CI; the GO rests on the committed-artifact
+proof + clean canaries, per the standing single-trial / judge-by-artifact
+decision. (2) The lever is gated to the standings/points construct, so at full
+scale it should remain inert on non-f1 tasks — but the full run is the real test
+of zero cross-family bleed (h0009/h0012 both passed targeted smokes then
+regressed other-family or other-member passers at full). (3) The pre-smoke
+C-probe (14/14 max) was proxy only and weak-A also chose max 4/4; this smoke
+confirms the full-workflow form lands the artifact and does not drift, which the
+probe could not establish.
+
+## Stage Report: smoke
+
+- DONE: Smoke run on the frozen 6-task panel completed (detached nohup, polled across turns); strict audit clean + captured traces on every cell BEFORE the score; score + attestation in `## Smoke result`.
+  Run `runs/.../17732f64285f1de2`; `rk audit --policy strict` = `clean: 6, tainted: 0, coverage_missing: 0`; `rk score` stratified_pass_at_1 = 1.0 (6/6, n_errored=0).
+- DONE: THE DECISIVE ARTIFACT READ (AC-3/AC-4) for f1006 AND f1006-hard — classify the load-bearing fix; flip counts only if `max(points)`; f1006-hard must hold AND be `max(points)`.
+  Both = same-grain `max(points)` on `constructor_points.sql` + `driver_points.sql`; NO row_number/rank/QUALIFY/order-by-round/order-by-race_date/final-row, NO race-results recompute. f1006 FAIL→PASS (constructor_equality FAIL 2→PASS, driver held); f1006-hard held PASS on `max(points)` (no h0037/h0041 latest-row drift).
+- DONE: Sentinel/canary check (AC-5) — f1005, f1005-medium, f1001, airbnb001 all hold PASS on clean audit; record per-cell + f1006/f1006-hard patch classification in `## Smoke result` + `## Behavioral analysis`.
+  All four held PASS (clean audit). f1005/f1005-medium kept `max(points)` (no h0012-style off-simple drift); f1001 (staging) + airbnb001 (cross-family) inert, lever precondition unmatched, no bleed. In-stage instruction lever → no WORKFLOW-REFINE entry.
+
+### Summary
+
+Detached smoke on the 6-task f1-standings panel returned 6/6 PASS, strict audit
+clean (tainted 0 / coverage_missing 0), and the decisive committed-artifact read
+confirms the intended fix: f1006 flipped FAIL→PASS via same-grain `max(points)`
+on BOTH `constructor_points.sql` and `driver_points.sql` with zero
+latest-row/rank/QUALIFY/final-row/recompute logic. f1006-hard held PASS on
+`max(points)` (stabilization claim confirmed — no h0037/h0041 latest-row drift),
+and all sentinels/canaries held with no convention or cross-family bleed.
+**Verdict: GO** (artifact-proven `max(points)` flip + clean canaries). Carried
+caveat: single-trial, so full-scale zero-bleed is the real test (h0009/h0012 both
+passed targeted smokes then regressed at full).
