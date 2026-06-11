@@ -1,0 +1,28 @@
+# ABOUTME: Direct minimal DAB Codex smoke spec; override data_root before live execution.
+# ABOUTME: Uses agent.kind=codex without solver workflow or sealed hash semantics.
+version: 1
+experiment: codex-dab-baseline
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/spacedock-readme-baseline
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
