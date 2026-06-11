@@ -323,16 +323,56 @@ passed targeted smokes then regressed at full).
 
 ## Run result
 
-_Phase 2 pending: filled when the detached full run's `done` sentinel lands rc=0._
+**Headline: NO-GO for promotion. Net −1 (variant 31/48 vs @baseline h0043 32/48),
+inside the noise band — the GAINS ARE ARTIFACT-REAL, the NET LOSSES ARE PURE
+SINGLE-TRIAL VARIANCE the lever never touched.** The lever did exactly what it was
+designed to: f1006 AND f1006-hard BOTH flipped FAIL→PASS, both on artifact-proven
+same-grain `max(points)` with zero latest-row/QUALIFY/rank. The three regressions
+(asana002, f1011, quickbooks002) are on NON-standings tasks where the lever
+precondition never fired — confirmed by artifact. The real finding: the lever is
+correct and inert off-target; the net is dragged negative only by run-to-run
+coin-flips on cells the lever cannot reach. Promotion fails the tripwire (CI
+crosses zero), but no damage is attributable to h0044.
 
-Full run launched DETACHED (Phase 1, launch-only):
-- Handle: `runs/.rk-handles/h0044-full-20260611-152742/`
-- Spec: `specs/h0044-cumulative-standings-max-points-guard.frozen.yaml` (full 48-task, no selector)
-- ntfy topic: `adebench-rk-381c976fe07465bf`
-- The FO owns the wait by scanning `runs/.rk-handles/`. On `done` with rc=0:
-  strict audit (`rk audit <dir> --policy strict`) must be clean + captured>0 on
-  every cell, then `rk score <dir> --format json`, then record the run-dir +
-  headline here. Deep-dive/interpretation is the separate analyze stage.
+Full run launched DETACHED (Phase 1) → completed rc=0. Phase 2 audit + score:
+
+- **Run-dir:** `runs/ade-bench-h0044-cumulative-standings-max-points-guard/645f1f4dbca44ee0`
+- **Strict audit** (`rk audit … --policy strict`): `clean: 48, tainted: 0,
+  coverage_missing: 0` — captured traces on every cell. AC-2 satisfied; the score
+  is trustworthy.
+- **Score** (`rk score … --format json`): `stratified_pass_at_1 = 0.6458` (31/48),
+  `n_errored = 0`. Absolute vs paper_baseline 0.1875 → `above`. Wilson CI
+  [0.504, 0.766].
+- **@baseline:** h0043 `runs/ade-bench-h0043-package-update-optional-resource-matrix/7390e6adf44ba5ea`
+  = 32/48 = 0.6667.
+
+### Paired delta vs @baseline (h0043)
+
+`rk runs diff` is unreliable on these run-dirs (outcomes carry `query_id: null` →
+`TypeError`), so the paired delta is computed directly from
+`per_trial_outcomes.json`, paired by task slug (48/48 slugs paired, 0 unpaired),
+with a 10k-resample bootstrap CI.
+
+- **Observed paired delta (variant − baseline): −0.0208 = −1 / 48.**
+- **95% bootstrap CI: [−0.1042, +0.0625]** — straddles zero. The net change is
+  statistically indistinguishable from single-trial noise.
+
+### Full per-task ledger (every verdict change, both directions)
+
+| Task | h0043 @baseline | h0044 full | Direction | Lever fired? | Mechanism |
+|------|----------------:|-----------:|-----------|-------------|-----------|
+| ade-bench-f1006 | 0.0 FAIL | 1.0 PASS | **GAIN 🎯** | YES (on-target) | Committed same-grain `max(points)`: `sum(cs.points)`→`max(cs.points)` in `constructor_points.sql` + `sum(ds.points)`→`max(ds.points)` in `driver_points.sql`. All 4 tests PASS (constructor_equality FAIL 2→PASS, driver held). No row_number/QUALIFY/rank/order-by/final-row, no race-results recompute. |
+| ade-bench-f1006-hard | 0.0 FAIL | 1.0 PASS | **GAIN ✅🎯** | YES (on-target) | FAIL→PASS via the same `sum(points)`→`max(points)` on both models. This is the h0037/h0041 latest-row DROP cell, and it was ALSO FAIL at h0043 @baseline — h0044 RECOVERS it onto the simple aggregate, not the fragile final-row branch. Stronger than a hold: a genuine flip of the known-fragile cell. |
+| ade-bench-asana002 | 1.0 PASS | 0.0 FAIL | **REGRESSION** | NO (inert) | Solver edited `asana.duckdb` (source-data/field-add construct). `AUTO_asana__task_equality` FAIL 2 (2/3 checks pass). No points/standings construct — lever precondition unmatched. h0043's own +1 coin-flip cell. |
+| ade-bench-f1011 | 1.0 PASS | 0.0 FAIL | **REGRESSION** | NO (inert) | Decision-fork answer cell (`check_option_a..e`); solver committed `answer='ABDE'`, `check_option_b` FAIL 1 (5/6 pass). The oracle-only ADE/ABDE blind cell — B-vs-not-B has no local signal. Not a SQL-aggregation task. |
+| ade-bench-quickbooks002 | 1.0 PASS | 0.0 FAIL | **REGRESSION** | NO (inert) | Solver edited quickbooks union/enhanced models; 3 ERRORs (`int_quickbooks__expenses_union_equality`, `int_quickbooks__sales_union_equality`, `quickbooks__ap_ar_enhanced_equality`), 5/8 pass. Union-completeness construct — no points/standings. |
+
+Net arithmetic (slug-paired, unambiguous): **baseline 32 pass, variant 31 pass.
+TWO gains — f1006 AND f1006-hard, both FAIL→PASS — and THREE regressions —
+asana002, f1011, quickbooks002. 32 + 2 − 3 = 31; net −1.** Note: f1006-hard was
+FAIL at h0043 @baseline (not a hold), so the lever scored BOTH named targets as
+genuine flips onto artifact-proven `max(points)`. Every one of the three
+regressions is on a task the lever's standings/points precondition cannot reach.
 
 ## Stage Report: full
 
@@ -350,3 +390,105 @@ open. This stage is launch-only per the checklist — no wait, no audit, no scor
 the FO owns the detached wait via `runs/.rk-handles/` scanning and ntfy
 `adebench-rk-381c976fe07465bf`, then re-dispatches Phase 2 (strict-audit + score)
 when the `done` sentinel lands rc=0.
+
+## Behavioral analysis (analyze stage)
+
+All reads are committed-artifact reads on the audited run-dir
+`…/645f1f4dbca44ee0` (strict-clean 48/48). The six required analyze questions:
+
+**Q1 — Net + full per-task ledger (both directions).** Absolute 31/48 = 0.6458
+(above paper_baseline 0.1875). Paired vs @baseline h0043 (32/48): **−1/48 =
+−0.0208, 95% bootstrap CI [−0.1042, +0.0625]** (crosses zero). Ledger above lists
+ALL five changed cells: GAINS = f1006, f1006-hard (both FAIL→PASS, lever on-target);
+REGRESSIONS = asana002, f1011, quickbooks002 (all PASS→FAIL, lever inert). Reported
+in full — gains and losses both.
+
+**Q2 — Smoke vs full: why did the verdict differ?** Smoke was a 6/6 GO; full is
+net −1. The smoke panel (f1006, f1006-hard, f1005, f1005-medium, f1001,
+airbnb001) was the f1-standings family plus two canaries — by construction it could
+NOT see asana, f1011, or quickbooks. The full-vs-smoke gap is NOT a lever failure
+and NOT family-regression bleed (the smoke's same-family sentinels f1005/f1005-medium
+held PASS at full too — verified separately). It is exactly the thing a focused
+family smoke cannot see: **single-trial coin-flips on unrelated families the smoke
+didn't sample.** The lever's own targets did at full exactly what they did at smoke.
+
+**Q3 — Already-correct-and-broken (damage to passers).** All three regressions were
+clean passers at h0043 @baseline (asana002 3/3, f1011 6/6, quickbooks002 8/8) and
+are now FAIL (2/3, 5/6, 5/8). So this IS damage to working code in the run-to-run
+sense. BUT it is "failed-to-reproduce-a-coin-flip," NOT "lever-broke-a-passer":
+the committed artifacts in all three cells show the solver chose a different
+implementation this run on tasks the h0044 README rule never addresses. None of the
+three edits touched a `*_standings`/points construct; the lever language is present
+only as inert dispatch-prompt boilerplate (the 6× `max(points)` / 2× `sum(points)`
+hits in each cell are the verbatim README block, identical token-for-token across
+all three cells — the signature of boilerplate, not task edits).
+
+**Q4 — Was the change executed? (artifact, not chatter)**
+- f1006 = **executed-and-helped**: main-agent final message + ensign apply_patch
+  both name `sum(cs.points)`→`max(cs.points)` and `sum(ds.points)`→`max(ds.points)`;
+  `AUTO_constructor_points_equality` FAIL 2→PASS, driver held; 0 row_number/QUALIFY/
+  rank/order-by in patch context.
+- f1006-hard = **executed-and-helped**: same edit on both models; recovers the
+  h0037/h0041 latest-row drop cell onto the simple aggregate.
+- asana002 = **inert (premise-not-local for the lever)**: solver edited
+  `asana.duckdb` source data; lever precondition (repair season/entity totals from
+  `*_standings`) does not match. Regression is independent.
+- f1011 = **inert (premise-falsified for the lever)**: it is a multiple-choice
+  decision-fork answer model (`answer='ABDE'`), `check_option_b` failed — the
+  oracle-only blind cell, no local signal to disambiguate. Not a SQL-aggregation
+  task; lever silent.
+- quickbooks002 = **inert**: solver edited union/enhanced models; 3 union-equality
+  ERRORs. No points/standings construct; lever silent.
+
+**Q5 — Prevention + next move.** Keeping the gains without the harm: the gains are
+already harm-free — the lever is precondition-gated and provably inert off-target
+(this run is the evidence). There is no scoping guardrail to add; the −2 net is not
+caused by the lever and cannot be prevented by changing the lever. To catch the
+"net dragged by unrelated coin-flips" pattern earlier, the only real fix is
+multi-trial on the volatile cells (asana002/f1011/quickbooks002), which the standing
+captain decision (trials:1, judge-by-artifact) explicitly declines. **Recommended
+next move: do NOT promote h0044 (paired CI crosses zero — fails the tripwire), and
+do NOT file a follow-up.** The lever is artifact-correct and the loss is pure
+variance — there is nothing to fix. Per the oracle-program-CONCLUDED and
+single-trial-judge-by-artifact memories, this is a knowledge gain (the max-points
+guard is confirmed to fire correctly and stay in its lane on a full run), not a
+pass-rate flip to bank. Escalate the verdict to the captain; the flip portfolio for
+this family is exhausted.
+
+**Q6 — Smoke-vs-full fork drift.** The smoke GO was ARTIFACT-REAL, not variance:
+f1006/f1006-hard flipped on the committed `max(points)` edit at BOTH smoke and full,
+and the README rule did NOT drift into a different implementation branch at full
+(no latest-row/QUALIFY/rank in either target's full-run patch). The fork that
+changed at full is NOT in the lever's targets — it is three unrelated cells the
+smoke panel never sampled, each an independent single-trial coin-flip
+(asana002 = h0043's own +1 coin-flip; f1011 = the documented oracle-only ADE/ABDE
+blind cell; quickbooks002 = union-completeness, a known fix-it-completeness weak
+spot). Routing: this is unrelated-variance drift, NOT a missed family the lever
+should have covered and NOT a rule that drifted branch. No `## Failure Review`
+follow-up is warranted for the lever; the variance cells are pre-existing portfolio
+volatility.
+
+## Stage Report: analyze
+
+- DONE: Strict audit the run-dir clean + captured>0 on every cell BEFORE the score; `rk score --format json`; record audited score + run-dir in `## Run result`.
+  `rk audit --policy strict` = `clean: 48, tainted: 0, coverage_missing: 0`; `rk score` = stratified_pass_at_1 0.6458 (31/48), n_errored 0; run-dir `…/645f1f4dbca44ee0` recorded.
+- DONE: Paired delta vs @baseline (h0043) — `rk runs diff` TypeError → compute from `per_trial_outcomes.json` slug-paired + 10k bootstrap CI; say so.
+  `rk runs diff` data-shape limit confirmed; slug-paired 48/48 → delta −0.0208 (−1/48), 95% bootstrap CI [−0.1042, +0.0625] (crosses zero). Method noted in `## Run result`.
+- DONE: PRE-AUDIT read confirm/correct (variant 31/48, net −1); verify gains are same-grain max(points), classify each regression lever-vs-variance by committed artifact.
+  Confirmed 31/48, net −1. CORRECTION to pre-audit read: f1006-hard was FAIL at h0043 baseline (not a hold) → TWO gains (f1006 + f1006-hard, both committed `sum(points)`→`max(points)`, no latest-row/QUALIFY). asana002/f1011/quickbooks002 = lever inert (precondition unmatched; README tokens are boilerplate only), all PASS→FAIL independent single-trial variance, each cited.
+- DONE: Answer ALL §analyze required questions; write `## Run result` + `## Behavioral analysis`; lead with the verdict recommendation; commit before signaling.
+  Six required questions answered in `## Behavioral analysis`; headline leads with NO-GO-but-gains-real, losses-pure-variance. Recommendation: do NOT promote (CI crosses zero), do NOT file follow-up (lever artifact-correct, loss is variance) — knowledge gain banked.
+
+### Summary
+
+Full run is strict-clean 31/48 (0.6458), net −1 vs @baseline h0043 (32/48), paired
+delta −0.0208 with 95% bootstrap CI [−0.1042, +0.0625] crossing zero. The lever
+performed exactly as designed: BOTH named targets (f1006 AND f1006-hard — the
+latter was FAIL at baseline, correcting the pre-audit "hold" read) flipped FAIL→PASS
+on artifact-proven same-grain `max(points)` with no latest-row/QUALIFY/rank drift.
+All three regressions (asana002, f1011, quickbooks002) are on NON-standings tasks
+where the lever precondition provably never fired — independent single-trial
+variance, not lever-caused damage. Verdict recommendation: NO-GO for promotion (CI
+straddles zero), no follow-up to file; bank the knowledge gain that the
+cumulative-standings max-points guard fires correctly and stays in its lane on a
+full run.
