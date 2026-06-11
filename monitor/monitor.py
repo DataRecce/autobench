@@ -1353,7 +1353,7 @@ def dab_answers_json_value(trial_dir: Path) -> str | None:
     # patch_apply_end event in the session rollout. Return the last answer
     # written across all steps, or None when there is no such write (ade-bench).
     content: str | None = None
-    for root in step_roots(trial_dir):
+    for root in content_roots(trial_dir):
         sessions_dir = root / "agent" / "sessions"
         if not sessions_dir.is_dir():
             continue
@@ -1407,10 +1407,10 @@ def trial_agent_answer(trial_dir: Path) -> str:
     answer = dab_answers_json_value(trial_dir)
     if answer is not None:
         return answer
-    # Otherwise (ade-bench) read the last step's transcript: the agent's final
-    # message, or a summary of the files it changed.
+    # Otherwise (ade-bench, or a still-running DAB step) read the last
+    # transcript: the agent's final message, or a summary of its changed files.
     path = None
-    for root in step_roots(trial_dir):
+    for root in content_roots(trial_dir):
         candidate = root / "agent" / "codex.txt"
         if candidate.is_file():
             path = candidate
@@ -1590,7 +1590,7 @@ def trial_test_counts(trial_dir: Path) -> tuple[int, int] | None:
     # stdout. The build phase emits earlier summaries too, so the last match in
     # the file is the one for the test run.
     passed = total = None
-    for root in step_roots(trial_dir):
+    for root in content_roots(trial_dir):
         for line in tail_lines(root / "verifier" / "test-stdout.txt", 200):
             match = TEST_SUMMARY_RE.search(line)
             if match:
@@ -1672,24 +1672,36 @@ def step_roots(trial_dir: Path) -> list[Path]:
     return [trial_dir]
 
 
+def content_roots(trial_dir: Path) -> list[Path]:
+    # Step roots plus the trial dir itself. While a DAB trial runs, codex writes
+    # the live transcript to the trial-root agent/ and only moves it into
+    # steps/<step>/agent/ when the step finishes -- so the trial root must be
+    # searched too. It contributes nothing once the move has happened (the
+    # trial-root agent/ is gone), so this never duplicates the finished logs.
+    roots = step_roots(trial_dir)
+    if trial_dir not in roots:
+        roots = roots + [trial_dir]
+    return roots
+
+
 def trial_log_sources(trial_dir: Path) -> list[tuple[str, Path]]:
     sources: list[tuple[str, Path]] = []
-    roots = step_roots(trial_dir)
-    # Prefix labels with the step name only when content is nested under
-    # steps/ (DAB), so steps don't collide; the flat layout keeps bare labels.
-    multi = roots != [trial_dir]
-    for root in roots:
-        prefix = f"{root.name}:" if multi else ""
+    for root in content_roots(trial_dir):
+        # Step dirs get a step-name prefix so they don't collide; the trial
+        # root (flat layout, or the live transcript) keeps bare labels.
+        prefix = "" if root == trial_dir else f"{root.name}:"
         for label, relative in STEP_LOG_CANDIDATES:
             path = root / relative
-            if path.exists():
+            if path.exists() and all(path != known for _, known in sources):
                 sources.append((f"{prefix}{label}", path))
         agent_dir = root / "agent"
         if agent_dir.is_dir():
             for path in sorted(agent_dir.glob("*.txt")) + sorted(agent_dir.glob("*.log")):
                 if all(path != known for _, known in sources):
                     sources.append((f"{prefix}{path.name}", path))
-        sources.extend(session_log_sources(root, trial_dir, prefix))
+        for source in session_log_sources(root, trial_dir, prefix):
+            if all(source[1] != known for _, known in sources):
+                sources.append(source)
     # Trial-root logs come last so the agent transcript stays the default.
     for label, relative in TRIAL_ROOT_LOGS:
         path = trial_dir / relative
@@ -1782,13 +1794,10 @@ def job_trial_signature(job_dir: Path) -> tuple[object, ...]:
     for trial_dir in trial_dirs:
         parts.append((trial_dir.name, path_mtime_ns(trial_dir)))
         parts.extend(file_signature(trial_dir / relative) for relative in TRIAL_ACTIVITY_FILES)
-        # Watch each step root's agent/ + verifier logs so DAB's nested
-        # steps/<step>/ content (which TRIAL_ACTIVITY_FILES misses) invalidates
-        # the trial cache when it changes.
-        for root in step_roots(trial_dir):
-            if root == trial_dir:
-                parts.append(file_signature(root / "agent"))
-                continue
+        # Watch each content root's agent/ + step logs so both DAB's nested
+        # steps/<step>/ content and the live trial-root transcript (which a
+        # running step writes there) invalidate the trial cache when they change.
+        for root in content_roots(trial_dir):
             parts.append(file_signature(root / "agent"))
             parts.extend(file_signature(root / relative) for _label, relative in STEP_LOG_CANDIDATES)
     return tuple(parts)

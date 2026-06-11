@@ -110,15 +110,18 @@ output. The most likely sources of future breakage:
 - **Job dir markers**: `looks_like_job_dir()` → `_job_config.yaml`,
   `config.json`, `job.log`, `lock.json`.
 - **Trial dir convention**: name contains `__`, `<task-id>__<suffix>`.
-- **Trial content layout** (`step_roots()`): ade-bench keeps `agent/` and
-  `verifier/` flat in the trial dir; DAB (`dataagentbench`) nests them under
-  `steps/<step>/` (one per pipeline step). All agent/verifier readers
-  (`trial_log_sources`, `session_log_sources`, `trial_agent_answer`,
-  `trial_test_counts`) iterate `step_roots(trial_dir)`, which returns the step
-  dirs for DAB or `[trial_dir]` for the flat layout. DAB labels are
-  step-prefixed (`main:codex`); `trial.log`/`exception.txt` stay at the trial
-  root in both. **Anything reading `agent/*` or `verifier/*` must go through
-  `step_roots`, not `trial_dir / "agent"` directly.**
+- **Trial content layout** (`step_roots()` / `content_roots()`): ade-bench keeps
+  `agent/` and `verifier/` flat in the trial dir; DAB (`dataagentbench`) nests
+  them under `steps/<step>/` (one per pipeline step). **While a DAB step runs,
+  codex writes the live transcript to the trial-root `agent/` and only moves it
+  into `steps/<step>/agent/` when the step finishes** — so readers iterate
+  `content_roots(trial_dir)` (= step roots **plus the trial dir itself**), not
+  `step_roots` alone, or a running trial shows only `trial.log`. The trial root
+  contributes nothing once the move happens (its `agent/` is gone), so finished
+  logs aren't duplicated. DAB step-root labels are step-prefixed (`main:codex`);
+  trial-root labels are bare (`codex`); `trial.log`/`exception.txt` stay at the
+  trial root in both layouts. **Anything reading `agent/*` or `verifier/*` must
+  go through `content_roots`, not `trial_dir / "agent"` directly.**
 - **`result.json`**: `stats.{n_running,n_pending,n_errored,n_completed}_trials`,
   `n_total_trials`, `finished_at`, `started_at`, `verifier_result.rewards.reward`,
   `agent_result.{n_input_tokens,n_output_tokens}`, `exception_info`,

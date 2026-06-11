@@ -169,9 +169,12 @@ under `agent/sessions/` — labelled `session:first-officer` for the parent and
 `subagent:<type>#N` for dispatched workers (types read from the trial-root
 `subagent-trace-manifest.json`). For DAB's multi-step layout every label is
 prefixed with the step name (`main:codex`, …); the flat ade-bench layout uses
-bare labels. `trial.log` and `exception.txt` (trial root) come last, and the
-agent transcript stays the default selection. With no trial selected it falls
-back to the job's `job.log` / `events.jsonl`.
+bare labels. While a DAB step is still running its transcript lives at the
+trial-root `agent/` (it moves into `steps/<step>/` only when the step finishes),
+so a running trial shows the live `codex` plus `trial.log`. `trial.log` and
+`exception.txt` (trial root) come last, and the agent transcript stays the
+default selection. With no trial selected it falls back to the job's
+`job.log` / `events.jsonl`.
 
 ## Development
 

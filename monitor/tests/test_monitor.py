@@ -305,6 +305,25 @@ def test_dab_trial_log_sources_finds_step_logs(tmp_path: Path):
     assert any(label == "trial" for label in labels)
 
 
+def test_dab_running_trial_shows_live_codex_at_trial_root(tmp_path: Path):
+    # While a DAB trial runs, codex.txt is written at the trial-root agent/ and
+    # steps/<step>/agent/ is still empty; the live transcript must still appear
+    # (and be the default), not just trial.log.
+    trial = tmp_path / "DEPS_DEV_V1-q1__x"
+    (trial / "steps" / "main" / "agent").mkdir(parents=True)  # empty (not yet populated)
+    (trial / "steps" / "main" / "verifier").mkdir(parents=True)
+    (trial / "agent").mkdir()
+    (trial / "agent" / "codex.txt").write_text("live transcript")
+    (trial / "trial.log").write_text("Starting step 1/1: main")
+
+    sources = m.trial_log_sources(trial)
+    labels = [label for label, _ in sources]
+    paths = dict(sources)
+    assert labels[0] == "codex"
+    assert paths["codex"] == trial / "agent" / "codex.txt"
+    assert "trial" in labels
+
+
 def test_dab_trial_agent_answer_reads_step_codex(tmp_path: Path):
     trial = tmp_path / "t__x"
     step = trial / "steps" / "main" / "agent"
