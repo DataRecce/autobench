@@ -188,7 +188,108 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 Forked the live @baseline (h0043, NOT the seed) and added exactly one Implementation-stage worked-example SQL skeleton that pins all three airbnb009 forks (drop narrowing predicate / keep COUNT(*) byte-intact / no cross-join) in one copyable before→after block; the asana002 var-gating rule from h0043 is left byte-intact so the skeleton stacks on it. Full spec differs from baseline only in `experiment:` + `solver_workflow:`; smoke spec adds only `benchmark.tasks` (target airbnb009 + the G8 cross-family canary panel — five passers, no intercom passer exists). Both specs frozen; gatekeeper APPROVE with WARN-only flags (single airbnb canary / unverifiable scored-model count / probe-in-artifact). Smoke baselines resolved against h0043: airbnb009=0.0 (target), all five canaries=1.0. Flagged the stale `source:` line (names seed) for the captain — the verified diff governs.
 
-## Smoke result (Phase 1 — launched, awaiting sentinels)
+## Smoke result
+
+**GO.** The all-three-fork worked-example skeleton flipped airbnb009 FAIL→PASS on **all 3
+independent draws (3/3)** vs the ~17% @baseline base rate, with a **byte-identical committed
+artifact every time** — the clean subtractive edit (drop the narrowing predicate, KEEP `COUNT(*)`,
+no cross-join) — and **zero canary regressions** (all 5 canaries held PASS on clean audit). The
+mechanism is artifact-proven, not transcript chatter, and is single-scored-model (resolves the G11
+WARN). This is a strong smoke GO; per AC-4 the full verdict stays provisional pending the 48-task
+run (`trials: 1` can still land a residual free choice), but the convergence here is far stronger
+than h0019/h0042 ever showed.
+
+### Audit + score (all foreground, post-sentinel)
+
+All three run-dirs: `rk audit --policy strict` **clean** (`tainted: 0`, `coverage_missing: 0`;
+panel clean=6, each repeat clean=1) and every cell's `subagent-trace-manifest.json` `captured ≥ 1`
+— scores trusted (AC-2 satisfied). Run-dirs:
+`runs/ade-bench-h0046-…/bc6ce6143ceee77c` (panel) ·
+`…-airbnb009-r2/9138440df75aaf75` · `…-airbnb009-r3/f61bc08a15c7a752`.
+
+### airbnb009 three-fork artifact read — the decisive AC-3/AC-4 table
+
+Committed `models/agg/mom_agg_reviews.sql` `apply_patch` from each draw's worker session
+(`agent/sessions/.../*.jsonl`). airbnb009 is scored by exactly **one** test
+(`mom_agg_review_date_range`, `actual_test_total=1`) — single-model, so the flip is not multi-model
+variance (G11 resolved).
+
+| Draw | Seed | #1 narrowing predicate dropped? | #2 `COUNT(*)` byte-intact (not `COUNT(col)`)? | #3 no cross-join CTE? | reward | All 3 forks? |
+|------|------|--------------------------------|----------------------------------------------|----------------------|--------|--------------|
+| Panel (repeat #1) | null | ✅ predicate deleted | ✅ aggregate not in diff (untouched) | ✅ no `cats`/`grid`/cross-join | 1.0 | ✅ YES |
+| r2 | 42 | ✅ predicate deleted | ✅ aggregate not in diff (untouched) | ✅ no cross-join | 1.0 | ✅ YES |
+| r3 | 43 | ✅ predicate deleted | ✅ aggregate not in diff (untouched) | ✅ no cross-join | 1.0 | ✅ YES |
+
+**airbnb009 pass count across the 3 draws: 3/3.** All three `apply_patch` payloads are
+**byte-identical** — the same minimal subtractive hunk:
+```diff
+ dates_cte AS (
+ 	SELECT DATE_ACTUAL
+ 	FROM {{ ref('dim_dates') }}
+-	WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)
+ 	{% if is_incremental() %}
+-		AND DATE_ACTUAL = (SELECT MAX(REVIEW_DATE::DATE) FROM {{ref('fct_reviews')}})
++	WHERE DATE_ACTUAL = (SELECT MAX(REVIEW_DATE::DATE) FROM {{ref('fct_reviews')}})
+ 	{% endif %}
+ ),
+```
+The `AND`→`WHERE` flip in the `is_incremental` branch is a *required* syntactic consequence of
+deleting the preceding `WHERE…IN` (the branch's `AND` had no `WHERE` to attach to once the predicate
+was gone) — not a second idea. Forks #2 and #3 are proven by **absence from the diff**: the patch is
+an `*** Update File` hunk that touches only `dates_cte`, so the `SELECT COUNT(*) AS REVIEW_TOTALS`
+line and the existing `LEFT JOIN`/`GROUP BY` are byte-unchanged, and no `cats`/`grid`/`cross join`
+CTE was added.
+
+### Canary panel (AC-5) — all hold
+
+| Canary | Family | @baseline (h0043) | Smoke panel | Held? |
+|--------|--------|-------------------|-------------|-------|
+| airbnb001 | airbnb (same-family) | 1.0 | 1.0 | ✅ |
+| asana001 | asana | 1.0 | 1.0 | ✅ |
+| ana-eng001 | ana-eng | 1.0 | 1.0 | ✅ |
+| f1007 | f1 | 1.0 | 1.0 | ✅ |
+| quickbooks002 | quickbooks | 1.0 | 1.0 | ✅ |
+
+Zero regressions, including the lone same-family canary airbnb001. (G8 residual stands for full
+scale: only one airbnb non-target passer and no second coverage-repair passer to perturb — the
+generative rule's same-family blind spot is exercised at the 48-task run, not here.)
+
+## Behavioral analysis
+
+**Why it flipped — the @baseline contrast is the proof.** The @baseline (h0043, no skeleton)
+airbnb009 cell committed exactly the two-fork failure the forensics predicted:
+```diff
+-	WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)
++	WHERE DATE_ACTUAL BETWEEN (SELECT MIN(REVIEW_DATE::DATE) FROM review_cte)
++						  AND (SELECT MAX(REVIEW_DATE::DATE) FROM review_cte)   -- fork #1: only a PARTIAL spine repair
+ SELECT
+-	COUNT(*) AS REVIEW_TOTALS ,
++	COUNT(review_cte.REVIEW_DATE) AS REVIEW_TOTALS ,                          -- fork #2: THE over-eager aggregate rewrite
+```
+That `COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)` rewrite is the discriminator the hypothesis named:
+it makes the 722 zero-review days carry `REVIEW_TOTALS=0` instead of the oracle's `1`, breaking the
+windowed `sum` → `Got 1` mismatch → FAIL. The h0046 skeleton's explicit "leave the aggregate
+expression BYTE-INTACT — do not rewrite a `COUNT(*)` into `COUNT(col)`" prevented exactly this, and
+its "delete the one narrowing membership predicate" steered the solver to a *clean* drop rather than
+the partial `BETWEEN MIN..MAX` range. Classification: **flipped because the change reached the
+committed SQL** — and reached it identically on all three draws.
+
+**Inert-risk verdict (G7) falsified — the worked-example form works.** h0019 (one-fork skeleton) and
+h0042 (one-fork abstain-prose) each pinned one fork and lost the others to free choices; the
+prose-only h0010/h0016 went inert. The net-new bet — *a skeleton showing all three forks in one
+block holds all three under a single draw* — is confirmed at smoke: not one of the three draws
+flip-flopped the aggregate or added a cross-join. The copyable before→after block is the lever form
+that both REACHES the committed SQL and PINS all the free choices at once.
+
+**Honest caveat (AC-4 / the standing single-trial decision).** 3/3 at smoke raises the per-draw
+probability dramatically but does not make the cell deterministic; the full 48-task run draws
+airbnb009 once more, and a residual free choice the skeleton does not pin could still surface. The
+honest signal to watch at full: if the committed artifact lands all three forks but the single
+scored draw still fails on something the skeleton doesn't pin, that is "mechanism works but
+`trials: 1` cannot bank it" (the h0019/h0042 outcome), NOT mechanism-inert. The 3/3 byte-identical
+convergence makes that outcome much less likely here than for the prior one-fork attempts.
+
+## Smoke result (Phase 1 — launch record)
 
 Three detached runs launched 2026-06-11T04:38Z (FO owns the wait; scan `runs/.rk-handles/*/`):
 
@@ -207,3 +308,32 @@ clean + captured>0, score, the three-fork committed-artifact deep-dive on every 
 @baseline (h0043), the five canaries hold, then `## Behavioral analysis` + GO/NO-GO. A flip counts
 only if the committed `mom_agg_reviews.sql` shows ALL THREE forks; a lone flip among the draws is
 variance, not a GO.
+
+## Stage Report: smoke
+
+- DONE: Strict audit each run-dir; confirm clean + captured>0 BEFORE trusting any score; score each.
+  All 3 run-dirs `rk audit --policy strict` clean (tainted 0 / coverage_missing 0); all 8 cells captured≥1; rewards trusted.
+- DONE: THE DECISIVE READ (AC-3/AC-4) — committed `mom_agg_reviews.sql` three-fork classification on every airbnb009 draw vs @baseline.
+  3/3 draws byte-identical clean subtractive edit: predicate dropped, `COUNT(*)` untouched, no cross-join; all reward=1.0. @baseline committed `COUNT(*)`→`COUNT(col)` + `BETWEEN MIN..MAX` (the predicted 2-fork failure → Got 1 → FAIL). airbnb009 single-scored-model (`mom_agg_review_date_range`), G11 resolved.
+- DONE: Canary check (AC-5) — airbnb001/asana001/ana-eng001/f1007/quickbooks002 hold PASS on clean audit.
+  All 5 canaries reward=1.0, zero regressions incl. lone same-family airbnb001.
+- DONE: Write `## Smoke result` + `## Behavioral analysis`; lead with GO/NO-GO + one-line reason.
+  GO written; behavioral why backed by the @baseline contrast (the COUNT-rewrite discriminator); G7 inert-risk falsified.
+- SKIPPED: `## Failure Review` block.
+  Not a NO-GO / canary regression / revise — GO, so no Failure Review owed.
+- SKIPPED: Workflow-refinement log entry (`_artifacts/WORKFLOW-REFINE.md`).
+  Lever is a rule tweak INSIDE the existing Implementation stage (a worked-example skeleton), not a new/reordered/replaced stage or protocol-family — structural-refinement evaluation is N/A; the in-stage learning belongs to the instruction-lever taxonomy, not WORKFLOW-REFINE.
+
+### Summary
+
+Smoke is a clean **GO**: the all-three-fork worked-example skeleton flipped airbnb009 FAIL→PASS on
+**3/3 independent draws** (panel + r2 seed=42 + r3 seed=43) vs the ~17% @baseline base rate, with a
+**byte-identical committed artifact** every time — the minimal subtractive edit (drop the narrowing
+predicate, keep `COUNT(*)` byte-intact, no cross-join) — and **zero canary regressions**. The
+@baseline contrast proves the mechanism: without the skeleton the solver committed the exact
+predicted failure (`COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)` + a partial `BETWEEN MIN..MAX` range),
+which the skeleton's byte-intact-aggregate rule prevented. airbnb009 is single-scored-model
+(`mom_agg_review_date_range`), so the flip is not multi-model variance (G11 resolved). The net-new
+bet (one block pins all three forks under a single draw) is confirmed — the G7 inert-risk on
+structural rewrites is falsified by the worked-example form. Per AC-4 the full 48-task verdict stays
+provisional (`trials: 1`), but the 3/3 byte-identical convergence is far stronger than h0019/h0042.
