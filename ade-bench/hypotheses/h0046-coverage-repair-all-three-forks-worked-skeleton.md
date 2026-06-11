@@ -187,3 +187,23 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 ### Summary
 
 Forked the live @baseline (h0043, NOT the seed) and added exactly one Implementation-stage worked-example SQL skeleton that pins all three airbnb009 forks (drop narrowing predicate / keep COUNT(*) byte-intact / no cross-join) in one copyable before→after block; the asana002 var-gating rule from h0043 is left byte-intact so the skeleton stacks on it. Full spec differs from baseline only in `experiment:` + `solver_workflow:`; smoke spec adds only `benchmark.tasks` (target airbnb009 + the G8 cross-family canary panel — five passers, no intercom passer exists). Both specs frozen; gatekeeper APPROVE with WARN-only flags (single airbnb canary / unverifiable scored-model count / probe-in-artifact). Smoke baselines resolved against h0043: airbnb009=0.0 (target), all five canaries=1.0. Flagged the stale `source:` line (names seed) for the captain — the verified diff governs.
+
+## Smoke result (Phase 1 — launched, awaiting sentinels)
+
+Three detached runs launched 2026-06-11T04:38Z (FO owns the wait; scan `runs/.rk-handles/*/`):
+
+| Run | Spec (frozen) | Tasks | Seed | Handle |
+|-----|---------------|-------|------|--------|
+| Panel (repeat #1) | `h0046-…smoke.frozen.yaml` | 6 (airbnb009 target + airbnb001/asana001/ana-eng001/f1007/quickbooks002 G8 canaries) | null | `runs/.rk-handles/h0046-smoke-20260611-043802/` |
+| airbnb009 r2 | `h0046-…airbnb009-r2.frozen.yaml` | 1 (airbnb009) | 42 | `runs/.rk-handles/h0046-airbnb009-r2-20260611-043809/` |
+| airbnb009 r3 | `h0046-…airbnb009-r3.frozen.yaml` | 1 (airbnb009) | 43 | `runs/.rk-handles/h0046-airbnb009-r3-20260611-043809/` |
+
+`--explain` rc=0 on all three (panel resolved to 6 tasks, each repeat to 1 airbnb009). Distinct
+experiment names + distinct seeds (42/43) are CAS-busters so each repeat lands a separate
+content-addressed run-dir; combined with the panel's airbnb009 cell this gives **≥3 independent
+airbnb009 draws** to read the bimodal ~17% cell per AC-4. ETA ≈ 6×9 min ≈ 55 min for the panel;
+the two single-cell repeats ~9 min each (overlapping). **Phase 2** (after sentinels): strict audit
+clean + captured>0, score, the three-fork committed-artifact deep-dive on every airbnb009 draw vs
+@baseline (h0043), the five canaries hold, then `## Behavioral analysis` + GO/NO-GO. A flip counts
+only if the committed `mom_agg_reviews.sql` shows ALL THREE forks; a lone flip among the draws is
+variance, not a GO.
