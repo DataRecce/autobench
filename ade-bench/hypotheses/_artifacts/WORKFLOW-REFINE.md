@@ -58,9 +58,21 @@ or a dispatched worker, never a direct first-officer edit.
   confirmed the wall survives genuine candidate diversity + external-criterion arbitration;
   **h0024 (static-contract-scorer-selector) REJECTED 2026-06-11 as a captain strategic
   sibling-kill** (no run — its static build/shape/type rubric is the same self-anchored
-  scorer, would fail propose gate G9 judgment-independence). The two remaining siblings
-  **h0025 / h0027** are gated by G9 and should not run without an independent IN-decision
-  falsifier or forced divergence (and per h0031, even that is table stakes). Family CLOSED.
+  scorer, would fail propose gate G9 judgment-independence); **h0025
+  (output-contract-satisfaction-selector) REJECTED 2026-06-11 as a captain strategic
+  sibling-kill** (no run — each candidate writes its OWN local contract and is scored on
+  artifact-vs-own-contract satisfaction; a uniformly-held wrong answer scores perfect against
+  its own contract, so no candidate diversity + no independent IN-decision falsifier => fails
+  propose gate G9 judgment-independence — same wall as h0026/h0031); **h0027
+  (do-no-harm-selector) REJECTED 2026-06-11 as a captain strategic sibling-kill** (no run —
+  its do-no-harm diff filter that rejects candidates with unrelated rewrites is useful HYGIENE,
+  but the SELECTION among survivors still scores by best local-contract satisfaction, so it
+  changes WHICH candidate wins yet cannot break a uniformly-held plausible-wrong answer; no
+  candidate diversity + no independent IN-decision falsifier => fails G9 judgment-independence).
+  All four scorer-style siblings (h0024/h0025/h0026/h0027) are now terminal. The still-open
+  adversarial re-fire **h0028** intentionally attempts the G9 independence axes
+  (forced-divergence + cross-examination) and is kept queued; do NOT file another self-anchored
+  selector variant. Family CLOSED.
 - **Layer:** solver workflow
 - **Refinement type:** new protocol (an *Answer Decision Table Selector* — run N≥3 candidates,
   each emitting a per-option decision table, then pick by local-check completeness + mechanical

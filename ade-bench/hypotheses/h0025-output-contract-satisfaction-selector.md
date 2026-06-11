@@ -95,4 +95,66 @@ not inventing columns to mimic hidden solutions.
 
 ## Behavioral analysis
 
+No run was performed. This was a captain strategic sibling-kill on accumulated
+candidate-selector family evidence (h0024 REJECTED 2026-06-11, h0026 REJECTED-by-run
+2026-06-05, h0031 REJECTED 2026-06-07). The mechanism that sinks h0025 is the same
+self-anchored-scoring wall the family has hit three times:
+
+- h0025 has each candidate write its OWN local Output Contract (grain/key set, ordered
+  columns, local types, deliverable set) and then scores the committed artifact ONLY against
+  that candidate's own self-written contract.
+- A confident, uniformly-held WRONG reading produces a self-consistent contract: the SQL emits
+  exactly the grain/columns/types the candidate recorded, so it scores perfect contract
+  satisfaction (support N/N, contradictions 0) while still being wrong against the hidden
+  oracle. This is precisely the false-green h0026 demonstrated by run (all three candidates
+  shared one plausible-wrong option; each self-scored 6/6 and the wrong one won).
+- The "prefer more concrete local sources / fewer unrelated edits" tiebreaker (AC-3) only
+  orders candidates that ALL satisfy their own contracts; it does not break toward the oracle.
+- The AC-4 honest-ceiling handling for `ana-eng004` / width parts of `ana-eng006` does not
+  rescue the design: refusing to invent columns is correct but is not a selection signal that
+  moves a wrong-but-self-consistent candidate toward the right answer.
+
+There is NO candidate diversity (single-session harness cannot supply N genuinely independent
+readings — G9 generation-independence axis) and NO independent IN-decision falsifier (the only
+judge is the candidate's own contract — G9 judgment-independence axis). h0025 fails BOTH G9
+axes at propose, so it would not earn a smoke run. Transferable rule confirmed (4th instance):
+a selection criterion anchored to the candidate's own checks/contract is a false-green; only
+forced candidate divergence + an external falsifier escapes the self-anchored trap, and per
+h0031 even that is table stakes, not a guaranteed win.
+
 ## Verdict
+
+REJECTED: sibling-killed by the candidate-selector family wall (h0024 / h0026 / h0031). h0025
+requires each candidate to write its OWN local Output Contract, then selects the artifact that
+best satisfies that self-written contract — the same self-anchored-scoring design the family
+has falsified three times. A confident, uniformly-held wrong answer scores perfect against its
+own contract, so it cannot be moved toward the oracle. No candidate diversity + no independent
+IN-decision falsifier => fails propose gate G9 (judgment-independence axis). No run performed;
+captain strategic kill on the family evidence. Family CLOSED.
+
+## Follow-up Routing
+
+stop — candidate-selector family exhausted / CLOSED. Four instances now confirm the
+self-anchored-scoring wall (h0024, h0025, h0026 by run, h0031). Do NOT file another
+self-anchored selector variant. The one still-open sibling **h0028** (adversarial re-fire) is
+intentionally kept queued because it explicitly attempts the G9 independence axes
+(forced-divergence + cross-examination) rather than re-running self-scored completeness — it is
+the family's only remaining legitimate fork and is left in place, not closed here.
+
+## Stage Report: conclude
+
+- DONE: Write ## Verdict = REJECTED (sibling-killed by candidate-selector family wall h0024/h0026/h0031)
+  Verdict + Behavioral analysis sections written; self-anchored-contract mechanism + G9 dual-axis failure recorded. No run (captain strategic kill).
+- DONE: Write ## Follow-up Routing = stop (family exhausted/CLOSED; h0028 kept queued)
+  Routing notes h0028 explicitly attempts G9 independence axes and is intentionally left open; no new self-anchored variant filed.
+- DONE: Finalize the workflow-refinement finding (structural / protocol-family hypothesis)
+  WORKFLOW-REFINE.md candidate-selector family Status line updated: h0025 REJECTED 2026-06-11, h0028 queued note added; family CLOSED.
+
+### Summary
+
+h0025 concluded REJECTED via captain strategic sibling-kill — no run. It is the 4th instance
+of the candidate-selector self-anchored-scoring wall: scoring an artifact against the
+candidate's OWN self-written Output Contract gives a confident-wrong candidate a perfect score,
+so it fails both G9 axes (no candidate diversity, no independent IN-decision falsifier) at
+propose. Follow-up routing is `stop`; the family is CLOSED, with only the adversarial re-fire
+h0028 (which targets the G9 independence axes directly) left intentionally queued.
