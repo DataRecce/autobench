@@ -1,7 +1,7 @@
 ---
 id: h0024
 title: Static Contract Scorer Selector -- run multiple baseline candidates and choose by local build/artifact contract score
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: concept-candidate-selector-contract-scorer fan-out; tests the static scorer selector design, not a new failure-pattern README rule. Forks the current @baseline solver protocol only as a declared protocol-family variant.
 started: 2026-06-05T09:42:10Z
