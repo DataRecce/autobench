@@ -1,5 +1,5 @@
-# ABOUTME: Direct minimal DAB Codex smoke spec; override data_root before live execution.
-# ABOUTME: Uses agent.kind=codex without solver workflow or sealed hash semantics.
+# ABOUTME: Single-task (googlelocal) DAB dev smoke via codex spacedock_solver + spacedock-readme-baseline workflow.
+# ABOUTME: Set data_root to your local dataagentbench/data checkout before running.
 version: 1
 experiment: codex-dab-dev
 agent:
