@@ -1,10 +1,10 @@
 ---
 id: h0049
 title: Combined three-lever single README — stack the h0044 (standings max-points) + h0045 (feature-boundary removal/toggle) + h0046 (coverage-repair all-three-forks skeleton) levers verbatim on h0043 and test whether ONE README resolves all their target tasks without interference
-status: hypothesis
+status: propose
 kind: hypothesis
 source: captain request 2026-06-11 — the three levers each passed smoke solo (h0044 6/6, h0045 7/7, h0046 airbnb009 3/3 byte-identical); verify whether a SINGLE solver README composing all three resolves every target task at once, or whether stacking interferes / bloats the README so a precondition mis-fires. Forks the current @baseline h0043 (32/48).
-started:
+started: 2026-06-11T06:04:09Z
 completed:
 verdict:
 score:
