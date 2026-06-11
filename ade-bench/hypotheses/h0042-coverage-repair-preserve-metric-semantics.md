@@ -271,6 +271,23 @@ The per-task behavioral ledger — (a) why airbnb009's committed `COUNT(*)` pin 
 at full despite the 3/3 smoke, and (b) which of the 5 regressions are lever-attributable vs
 single-trial variance — is the NEXT stage (analyze), deliberately not started here.
 
+### Paired delta (analyze stage; `rk runs diff` TypeErrors on these run-dirs → computed from `per_trial_outcomes.json`, slug-paired, 10k bootstrap)
+
+`rk runs diff` raises `TypeError` on ade-bench run-dirs (`query_id: null`, keyed on `trial_name`),
+so the paired delta was computed directly from `per_trial_outcomes.json` slug-paired over the
+identical 48-task set:
+
+- Observed paired delta (h0042 − @baseline): **−4 tasks** (−0.0833 pass-rate); 31 → 27.
+- 10k-bootstrap 95% CI on the pass-rate delta: **[−0.1875, +0.0000]** = [−9, 0] tasks — **the CI
+  touches 0**.
+- Discordant pairs: 5 regressions (P→F), 1 gain (F→P); exact two-sided sign-test **p = 0.219**.
+- Absolute score 0.5625 vs `paper_baseline` 0.1875 (well above the paper anchor, as all forks are).
+
+Read: the −4 point estimate is negative but **NOT statistically distinguishable from zero** (CI
+includes 0, p = 0.22). This matches the per-task variance analysis below — the regressions are
+dominated by single-trial churn on coin-flip cells, not a clean lever-caused harm. It is still a
+NO-GO: the point estimate is negative AND the decisive flip target (airbnb009) did not reproduce.
+
 ## Behavioral analysis
 
 - **The lever pins the exact fork it was authored for.** h0019 steered the spine repair but left
@@ -337,3 +354,133 @@ cover. Methodology was drift-free: full and smoke share the identical solver-wor
 `b0103e7a…`. This stage is the clean run accounting only; the per-task behavioral ledger (why the
 airbnb009 COUNT(*) pin did not reproduce, and which regressions are lever-attributable vs variance)
 is the next stage (analyze), not started here.
+
+## Analyze (full vs @baseline 31/48)
+
+**Recommended verdict: REJECTED.** Net −4 (27/48), the decisive flip target airbnb009 did NOT
+reproduce, and the −4 is dominated by ordinary single-trial variance on coin-flip cells (CI touches
+0, sign-test p=0.22) rather than a clean lever-caused harm. @baseline is NOT promoted. All
+classifications below are from committed `apply_patch` payloads (AC-3), not transcript chatter.
+
+### Decisive: THE REPRODUCIBILITY GAP — why the clean 3/3 airbnb009 smoke did not predict the full
+
+**At full, airbnb009 did NOT keep `COUNT(*)` — the pin did not hold this run.** The committed
+`models/agg/mom_agg_reviews.sql` hunk (cell `airbnb009__uo2JG9E`) changed the aggregate to the
+**exact h0019 wrong fork** AND additionally restructured the model:
+
+```text
+-	COUNT(*) AS REVIEW_TOTALS ,
++	COUNT(review_cte.REVIEW_DATE) AS REVIEW_TOTALS ,
+... + a new sentiments_cte + date_sentiments_cte CROSS JOIN, FROM date_sentiments_cte
+```
+
+The date-spine repair landed (`IN(DISTINCT)` → `BETWEEN MIN..MAX`), but the aggregate was rewritten
+exactly as h0019's failing standalone did — and exactly as **@baseline** did (baseline
+`airbnb009__zaFEXfL` committed the same `COUNT(*)` → `COUNT(review_cte.REVIEW_DATE)`). Verifier:
+`mom_agg_review_date_range` "Got 1 result, configured to fail if != 0" — a semantic mismatch, model
+built fine. So the lever did NOT suppress the wrong fork in this context.
+
+**Why the 3/3 smoke did not predict it (the h0019 lesson restated): airbnb009 is a low-base-rate
+cell, and the focused smoke was a high-end streak, not a guarantee.** Across the 12 full-scale runs
+on disk, airbnb009 passes in only **2/12 (~17%)**. A focused 3/3 single-cell smoke is a sample of 3
+draws from a ~17%-pass process *that happened to cluster on the good branch* (it is not even
+representative — it over-sampled the pass side). At `trials: 1` the single full draw fell on the
+modal FAIL branch. **The pin REDUCES but does not ELIMINATE the gpt-5.5 fork variance**; a 3/3
+reproducibility smoke is necessary-not-sufficient evidence at `trials: 1`. This is the h0019 lesson:
+"found/pinned the fork in N fresh contexts" ≠ "the single scored trial lands there."
+
+### Per-task ledger — both directions (committed-artifact classified)
+
+| Task | @baseline | h0042 full | Δ | Committed-artifact mechanism | P/F across 12 full runs | Classification |
+|---|---|---|---|---|---|---|
+| **airbnb009** (target) | 0.0 F | 0.0 F | 0 | aggregate rewritten to `COUNT(review_cte.REVIEW_DATE)` + CROSS-JOIN restructure (the h0019 wrong fork; pin did not hold) | P 2/12 | **target did not flip** (low base-rate ~17%; pin reduces ≠ eliminates) |
+| airbnb005 | 1.0 P | 0.0 F | −1 | from-scratch `Add File` of two NPS rolling-window models; failed `*_nps_reviews_equality_with_tolerance` (Got 4 / Got 2) — value/window-frame divergence in a from-scratch authoring task | P 10/12 (F only 2/12) | possibly LEVER-ADJACENT but rare-drop; not clean attribution |
+| asana003 | 1.0 P | 0.0 F | −1 | edited 11 `dbt_packages/asana_source/stg_asana__*` package-staging models; 6/17 equality fails (task/metrics/user/tags) — package-migration family, NOT coverage-repair | P 8/12 (F 4/12) | single-trial VARIANCE (not a coverage task; rule wouldn't fire) |
+| f1005-medium | 1.0 P | 0.0 F | −1 | edited `models/stats/constructor_points.sql`; `AUTO_constructor_points_equality` Got 2 — value divergence, NOT coverage | P 8/12 (F 4/12) | single-trial VARIANCE |
+| f1006-hard | 1.0 P | 0.0 F | −1 | edited `constructor_points.sql` + `driver_points.sql`; same `AUTO_constructor_points_equality` Got 2 — value divergence | **F 8/12** (fails MORE than passes — chronic variance cell, also dropped h0037/h0041/h0043) | single-trial VARIANCE |
+| quickbooks003 | 1.0 P | 0.0 F | −1 | removed `using_department: true`, edited union models; verifier = **Compilation Error** "has less columns than solution" (under-inclusion / broken edit) on a package-config task, NOT coverage | P 6/12 / F 6/12 (coin-flip) | single-trial VARIANCE (possibly lever-conservatism-adjacent but compile-broken) |
+| asana002 (gain) | 0.0 F | 1.0 P | +1 | conditional-inclusion package-migration fix (Fivetran made tags optional) — solver-native, a known "Mini flip" | P 6/12 / F 6/12 (coin-flip) | incidental VARIANCE gain, NOT the lever's target |
+
+**Bottom line on attribution:** of the 5 regressions, **4 (asana003, f1005-medium, f1006-hard,
+quickbooks003) are within normal single-trial variance** — each fails in 4–8 of the other 12 full
+runs and none is a coverage-repair task where the rule fires. **airbnb005 is the one anomaly**
+(fails only 2/12), and even it is a from-scratch NPS-authoring task with many free knobs, not a clean
+"rule preserved a metric that should have changed." There is **no clean evidence the coverage-repair
+rule caused a −N**; the net −4 is variance churn (CI [−9, 0] tasks, p=0.22) plus the target's
+non-reproduction. The single incidental gain (asana002) is also a coin-flip cell, not a lever win.
+
+### The 6 required questions
+
+1. **Net + full per-task ledger (both directions):** −4 (27/48 vs 31/48); paired delta −0.0833,
+   10k-bootstrap 95% CI [−0.1875, +0.0000] (CI touches 0), sign-test p=0.219. Gains: asana002
+   (F→P). Regressions: airbnb005, asana003, f1005-medium, f1006-hard, quickbooks003 (all P→F). Each
+   mechanism in the ledger table above. Target airbnb009 unchanged FAIL.
+2. **Smoke vs full:** the smoke was a focused 3/3 single-cell airbnb009 repeat + a 6-task canary
+   panel. It could NOT see (a) airbnb009's true ~17% base rate — 3/3 was a high-end streak, not a
+   guarantee, so it over-stated reproducibility; and (b) the 41 unsampled tasks, where coin-flip
+   cells (f1005-medium, f1006-hard, asana003, quickbooks003, asana002) churn between runs. The 6-task
+   panel held PASS at full too (the canaries themselves did not regress) — the regressions were all
+   on UNSAMPLED tasks, exactly the G8 gap.
+3. **Already-correct-and-broken:** all 5 regressions were @baseline passers (1.0) — this is damage to
+   working code, not "failed to help." BUT artifact + cross-run evidence shows 4/5 are single-trial
+   variance (they break in 4–8 of the other 12 runs regardless of any lever), and the rule does not
+   fire on them (they are package-migration / value-divergence tasks, not coverage repairs). Only
+   airbnb005 is a rare drop. So: damage is real at the row level, but mostly NOT lever-caused.
+4. **Was the change executed?** Yes — every cell's committed artifact changed. Classify: airbnb009 =
+   **executed-and-hurt-via-wrong-branch** (rule present but did not suppress the wrong fork; the pin
+   did not hold). The 4 variance regressions = **executed-but-on-non-coverage-tasks** (the rule's
+   premise "this is a coverage-repair task" was not met → the rule is effectively inert there; the
+   FAILs are independent variance). airbnb005 = **executed**, from-scratch authoring, value
+   divergence. asana002 gain = **executed** (solver-native conditional-inclusion), not lever-driven.
+   No inert "discussed-not-done" cells.
+5. **Prevention + next move:** (a) **Don't trust a focused single-cell reproducibility smoke as a
+   flip predictor for a low-base-rate target at `trials: 1`** — a 3/3 on a ~17%-pass cell is a streak;
+   either measure the base rate first (the cross-run table existed) or require multi-trial CI on the
+   target before promoting (which the standing single-trial decision forbids → so such flips should be
+   treated as un-promotable by construction). (b) The G8 smoke gap (unsampled regressions) is inherent
+   to a 6-task panel; only a full run reveals it — so for generative rules, the smoke verdict should be
+   explicitly provisional pending full. (c) **Next move: do NOT re-file.** This re-confirms the
+   oracle-problem / single-trial-variance wall already documented (the flip portfolio is concluded,
+   @baseline 31/48; airbnb009 is a ~17% cell whose only genuine fix was h0019, itself unpromotable due
+   to variance masking). Escalate to the captain — the coverage-semantics lever is net-harmful-or-null
+   at full and adds no new movement; the box remains closed at the program level.
+6. **Smoke-vs-full fork drift:** the smoke result was **artifact-real but not population-representative**
+   — the 3/3 committed `COUNT(*)` artifacts were genuine, but they sampled the favorable tail of a
+   bimodal fork. The fork that changed at full: the airbnb009 aggregate-line choice flipped from
+   `COUNT(*)` (smoke) to `COUNT(review_cte.REVIEW_DATE)` (full) — the README rule **drifted into the
+   wrong implementation branch** despite being present (it is abstract abstain-prose, the G7 inert-risk
+   the gatekeeper flagged — it can be acknowledged-and-skipped). The 5 regressions are **unrelated
+   single-trial variance** on unsampled cells, not a rule-driven fork. This feeds the Failure
+   Review: a focused reproducibility smoke on a low-base-rate, abstract-prose lever is not a reliable
+   GO signal at `trials: 1`.
+
+### WORKFLOW-REFINE note
+
+This is an in-stage instruction lever (solver README only), so per the standing rule the per-task
+learnings stay in this entity + the instruction-lever taxonomy, not WORKFLOW-REFINE. The transferable
+**methodology** lesson — *a focused single-cell reproducibility smoke (even 3/3) is not a flip
+predictor for a low-base-rate target at `trials: 1`; measure the cross-run base rate before
+promoting* — is worth recording for the loop (candidate for the single-trial / judge-by-artifact
+note), as it generalizes beyond this lever.
+
+## Stage Report: analyze
+
+- DONE: THE REPRODUCIBILITY GAP (decisive) — airbnb009 committed SQL read at full + why the 3/3 smoke did not predict
+  At full airbnb009 did NOT keep `COUNT(*)`: committed hunk rewrote it to `COUNT(review_cte.REVIEW_DATE)` + CROSS-JOIN restructure (the exact h0019 wrong fork; same as @baseline). Explained: airbnb009 passes only 2/12 (~17%) across full runs; the 3/3 focused smoke was a high-end streak, not a guarantee — the pin reduces but does not eliminate the gpt-5.5 fork variance at trials:1 (h0019 lesson restated). Artifact-classified, not chatter.
+- DONE: THE 5 REGRESSIONS + 1 GAIN — each confirmed a @baseline passer/failer, committed SQL read, classified lever-attributable vs variance
+  All 5 regressions were @baseline 1.0; asana002 was @baseline 0.0. Per-task ledger + cross-run P/F frequency table recorded. Verdict: 4/5 regressions (asana003, f1005-medium, f1006-hard, quickbooks003) are single-trial VARIANCE (non-coverage tasks where the rule doesn't fire; each fails in 4–8/12 other runs; f1006-hard fails 8/12 — chronic). airbnb005 the lone rare-drop (2/12). No clean lever-caused −N. asana002 gain = incidental coin-flip, not a lever win.
+- DONE: 6 required questions answered in `## Run result` + `## Analyze`; recommend conclude verdict
+  Paired delta −4 / CI [−9,0] tasks / p=0.219 (computed from per_trial_outcomes.json, slug-paired, 10k bootstrap, because `rk runs diff` TypeErrors on query_id:null). All 6 questions answered. **Recommended verdict: REJECTED — net −4, target didn't flip, no new movement; @baseline NOT promoted; escalate (do not re-file — re-confirms the single-trial-variance / oracle-problem wall).**
+
+### Summary
+
+REJECTED recommendation. h0042 = 27/48, net −4 vs @baseline 31/48; the decisive flip target
+airbnb009 did NOT reproduce — at full the committed SQL fell to the exact h0019 wrong fork
+(`COUNT(review_cte.REVIEW_DATE)`, same as @baseline) despite the rule. The 3/3 focused smoke did not
+predict this because airbnb009 is a ~17%-pass cell and 3/3 was a favorable-tail streak: the pin
+reduces but does not eliminate the gpt-5.5 fork variance at `trials: 1` (the h0019 lesson). The −4
+is NOT statistically distinguishable from zero (CI [−9,0] tasks, p=0.22) and is dominated by
+single-trial variance on coin-flip cells (4/5 regressions fail in 4–8 of the other 12 full runs and
+are not coverage-repair tasks where the rule fires); only airbnb005 is a rare drop. No clean
+lever-caused harm and no new movement. @baseline stays 31/48. Next move: escalate — do not re-file;
+this re-confirms the concluded flip-portfolio / single-trial-variance wall.
