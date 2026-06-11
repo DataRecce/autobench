@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: concept-candidate-selector-contract-scorer fan-out; tests the candidate-written-contract satisfaction selector design, not another Output Contract README fix. Forks the current @baseline solver protocol only as a declared protocol-family variant.
 started: 2026-06-05T09:42:10Z
-completed:
-verdict:
+completed: 2026-06-11T02:53:53Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-11T02:53:53Z
 ---
 
 ## Hypothesis
