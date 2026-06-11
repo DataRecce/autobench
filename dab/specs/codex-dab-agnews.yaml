@@ -1,7 +1,5 @@
-# ABOUTME: Full DAB run on dab@1.0 via codex spacedock_solver + spacedock-readme-baseline workflow.
-# ABOUTME: reasoning_effort=high; set data_root to your local dataagentbench/data checkout.
 version: 1
-experiment: codex-dab-baseline
+experiment: codex-dab-agnews
 agent:
   kind: spacedock_solver
   runtime: codex
@@ -23,17 +21,6 @@ benchmark:
     data_root: /home/kent/dataagentbench/data
   tasks:
   - agnews
-  - bookreview
-  - crmarenapro
-  - DEPS_DEV_V1
-  - GITHUB_REPOS
-  - googlelocal
-  - music_brainz_20k
-  - PANCANCER_ATLAS
-  - PATENTS
-  - stockindex
-  - stockmarket
-  - yelp
 trials: 1
 observers:
 - kind: jsonl

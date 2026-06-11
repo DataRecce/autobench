@@ -1,6 +1,6 @@
 ---
 title: Implementation — a coverage-repair worked-example skeleton that pins ALL THREE forks at once (drop the narrowing date-spine predicate, keep COUNT(*) byte-intact, do NOT cross-join the secondary category) in one copyable before→after block
-status: smoke
+status: full
 kind: hypothesis
 source: concept-airbnb009-reproducible-fix (ideate 2026-06-11), grounded in the airbnb009 failed-attempt forensics h0019 (pinned forks #1+#3, left #2 free) / h0042 (pinned #2, left #1+#3 free). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 id: h0046
