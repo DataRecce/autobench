@@ -431,3 +431,49 @@ gated only the exchange-rate columns preserving enabled-path formulas. The
 @baseline PASS footprint), not a broad rewrite. Notable: a prior non-launcher
 run of this exact spec orphaned root-owned containers + a run dir that blocked
 the first launch; recovered with a bounded, captain-approved cleanup.
+
+## Run result
+
+**Phase 1 — full 48-task run LAUNCHED (detached, not yet complete).**
+
+- Launched DETACHED via `drivers/rk-run-detached.sh h0045-full
+  specs/h0045-feature-boundary-removal-toggle-guard.frozen.yaml run`.
+- Handle: `runs/.rk-handles/h0045-full-20260611-235413` (pid 1076517).
+- Pre-flight `rk run --explain` (read-only) clean: 48 tasks, concurrency 1,
+  runtime codex, model gpt-5.5, solver README content hash
+  `sha256:376cee68489e6b3eb1307c7f14e3c3279e9d23b703fd531382afccd5796570e0`
+  (matches the frozen smoke), full run-dir hash `9cd7b6635a124c12` (distinct from
+  the h0044/h0046 full hashes — no path collision). Worker alive at +19s, no
+  instant-crash, no `done` sentinel yet.
+- Launch was STAGGERED to protect the proven-safe 2-concurrent envelope: held
+  while h0044-full + h0046-full ran (box ~4 GB free, load 5.85); the FO released
+  it once both landed rc=0 and the box went idle (load 0.26, ~9 GB free).
+- Phase 2 (strict audit clean + captured>0 on every cell, then
+  `rk score --format json`, then headline here) follows once the `done` sentinel
+  lands rc=0; the FO owns the wait and re-engages.
+
+## Stage Report: full
+
+- DONE: Phase 1 launch only. `export RAZORBACK_SPACEDOCK_PLUGIN_DIR=...`; read-only
+  `rk run --explain` pre-flight clean (48 tasks / concurrency 1 / codex / gpt-5.5 /
+  solver README hash `sha256:376cee68...` matching the frozen smoke); launched the
+  FULL 48-task run DETACHED via `drivers/rk-run-detached.sh h0045-full ... run`.
+  Handle `runs/.rk-handles/h0045-full-20260611-235413` (pid 1076517), worker alive
+  at +19s, no instant-crash. Did NOT wait — FO owns the wait via the done sentinel.
+- DONE: Staggered the launch to respect the 2-concurrent safe envelope. Held on FO
+  instruction while h0044-full + h0046-full occupied both slots (~4 GB free, load
+  5.85); launched the moment the FO confirmed both landed rc=0 and the box was idle
+  (load 0.26, ~9 GB free). Verified `no active rk run` immediately before launch.
+- SKIPPED: Phase 2 audit/score/headline. Intentionally deferred — the `done`
+  sentinel has not landed (long run). The FO re-engages this stage when it lands
+  rc=0; deep behavioral interpretation is the separate analyze stage.
+
+### Summary
+
+Phase-1 launch complete. The full 48-task h0045 run is in flight, detached, handle
+`runs/.rk-handles/h0045-full-20260611-235413`. Launch was deliberately staggered
+behind h0044-full + h0046-full to stay inside the proven-safe 2-concurrent Harbor
+envelope; released by the FO on a clear, idle box. Read-only `--explain` pre-flight
+confirmed 48 tasks, the matching frozen solver README hash, and a collision-free
+run-dir hash. Phase 2 (strict audit + score + headline) is deferred to the
+sentinel-landing re-engagement.
