@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: Captain request 2026-06-10 after Round 2 airbnb009 COUNT(*) vs COUNT(review_date) decision-fork analysis; follows h0019 banking failure and the Round 1 + Round 2 flipped-task choice map. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-10T06:32:33Z
-completed:
-verdict:
+completed: 2026-06-11T02:02:04Z
+verdict: REJECTED
 score:
-worktree:
+worktree: 
+archived: 2026-06-11T02:02:04Z
 ---
 
 ## Hypothesis
