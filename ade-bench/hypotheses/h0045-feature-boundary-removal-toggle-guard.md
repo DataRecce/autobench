@@ -305,3 +305,129 @@ infra failure is recovered and the smoke actually executes its 7 cells.
 
 (Cycle 1 was an infra collision, not experiment evidence — the real smoke result
 follows below once cycle-2 completes.)
+
+### Cycle 2 — REAL evidence (GO)
+
+Run dir `runs/ade-bench-h0045-feature-boundary-removal-toggle-guard/df3a3b1e3a4c2ace`
+(deterministic hash put it back at the same path after the orphan was cleared;
+this tree is `kent`-owned and complete). `done` rc=0, end 2026-06-10T18:25:53Z.
+
+- **Strict audit clean:** `rk audit --policy strict` → `summary: {clean: 7,
+  tainted: 0, coverage_missing: 0}`, every cell `findings: []`.
+- **Score:** `rk score` → `stratified_pass_at_1: 1.0`, `n_completed: 7`,
+  `n_errored: 0`. Against-constant verdict `above` (baseline 0.1875).
+- **Trace capture:** `captured = 1` on all 7 cells (subagent-trace-manifest).
+
+**Verdict: GO → full.** 7/7 PASS (all `@baseline` 1.0 passers held), strict
+audit clean, and BOTH targets passed via genuinely NARROW feature-boundary
+committed edits (not a broad rewrite, not green-by-unrelated-refactor).
+
+| Task | Role | Baseline | Smoke | Verifier tests | Artifact classification |
+|---|---|---|---|---|---|
+| quickbooks002 | target (removal) | 1.0 | PASS | 8/8 | NARROW feature-boundary |
+| quickbooks004 | target (toggle)  | 1.0 | PASS | 48/48 | NARROW feature-boundary |
+| quickbooks003 | same-family canary | 1.0 | PASS | 14/14 | n/a (rule not applicable) |
+| f1001 | convention-bleed canary | 1.0 | PASS | 6/6 | n/a (no bleed) |
+| airbnb001 | cross-family canary | 1.0 | PASS | 10/10 | n/a (no bleed) |
+| ana-eng001 | cross-family canary | 1.0 | PASS | 1/1 | n/a (no bleed; 0-file no-op) |
+| asana001 | cross-family canary | 1.0 | PASS | 2/2 | n/a (no bleed) |
+
+## Behavioral analysis
+
+Committed artifacts read from each cell's ENSIGN `apply_patch` payloads
+(`agent/sessions/.../rollout-*.jsonl`) — NOT the first-officer narration in
+`agent/codex.txt`. Both targets are decided by what reached the committed SQL.
+
+**quickbooks002 — removal — NARROW FEATURE-BOUNDARY (GO).** Instruction: remove
+the `using_department` variable and all project-local refs, NOT the Fivetran
+source package. Committed patch touched 6 project-local files (`dbt_project.yml`,
+`quickbooks__ap_ar_enhanced.sql`, `int_quickbooks__sales_union.sql`,
+`int_quickbooks__expenses_union.sql`, `quickbooks.yml`, `docs.md`); **zero**
+dependency / `dbt_packages` / Fivetran edits. The signature matches the README
+guard exactly:
+- Removed the `using_department: true` var from `dbt_project.yml`.
+- **Deleted** the feature-only `{% if var('using_department') %} departments as
+  (...) {% endif %}` CTEs, the `department_name` select outputs, and the
+  `left join departments …` joins — deleted the whole guarded block *including
+  the body*, did NOT unwrap the guard to keep the feature alive.
+- **Preserved the base raw attribute** `department_id` (it is part of the base
+  entity and does not depend on the removed feature) — removed only the derived
+  `department_name`. No null/placeholder outputs.
+- Removed the `department_name` schema docs in `quickbooks.yml` + the
+  "department level detail" prose in `docs.md`.
+- Verifier: 8/8 hidden tests PASS → genuine pass, not green-by-refactor.
+
+**quickbooks004 — toggle/disable — NARROW FEATURE-BOUNDARY (GO).** Instruction:
+add a `using_exchange_rate` var defaulting false and use it to hide the
+converted-amount / converted-payment (exchange-rate) columns. Committed patch
+added `using_exchange_rate: false` to `dbt_project.yml` and gated ~30
+project-local models (all `transaction_lines/*`, `double_entry_transactions/*`,
+the intermediate joins/unions, `ap_ar_enhanced`, `expenses_sales_enhanced`,
+`quickbooks.yml`); **zero** dependency edits. This wide footprint is the
+*expected* feature-boundary shape (the exchange-rate columns are wired through
+every transaction/double-entry/union model — it matches the `@baseline` PASS
+footprint), NOT a broad domain rewrite:
+- Gated ONLY the exchange-rate-derived columns (`converted_amount`,
+  `total_converted_amount`, `total_current_converted_payment`,
+  `estimate_total_converted_amount`) behind `{% if var('using_exchange_rate',
+  false) %}`.
+- **Preserved the enabled-path formulas verbatim** — the
+  `* coalesce(exchange_rate, 1)` expressions and the credit/sign `case`
+  logic are wrapped, not rewritten.
+- Structural changes are exactly the README-allowed "adjust column alignment /
+  grouping only as needed because disabled outputs changed shape": moved the
+  trailing comma so `total_amount` is the last column when converted columns are
+  off, and conditionally switched `dbt_utils.group_by(11)→(9)` /
+  `group_by(17)→(15)` to match the reduced non-aggregated column count.
+- Did NOT recompute unrelated formulas, signs, grains, joins, or the
+  `using_estimate` guard.
+- Verifier: 48/48 hidden tests PASS.
+
+**Canaries (5/5 hold, no convention bleed).** quickbooks003 (same family),
+f1001 (broad-footprint convention-bleed canary), airbnb001, ana-eng001 (a
+correctly-identified 0-file no-op), asana001 — all PASS with 0 failing verifier
+tests. The feature-boundary guard is gated on remove/disable-feature tasks and
+did not mis-fire: no spurious `using_*` gating leaked into the canaries, and
+each canary's committed footprint reflects its own task scope, not the rule.
+
+**Net:** 0 regressions, both targets stabilized via artifact-proven narrow
+feature-boundary edits. As a stabilization lever on the minimal @baseline its
+standalone protective value is limited (the targets already pass) — this smoke
+confirms (a) no harm and (b) the feature-boundary artifact discipline holds; the
+real protective value is when combined with a flip-seeking lever at full scale.
+(In-stage instruction lever — no `_artifacts/WORKFLOW-REFINE.md` entry needed.)
+
+## Stage Report: smoke
+
+- DONE: Smoke run on `specs/h0045-feature-boundary-removal-toggle-guard.smoke.frozen.yaml`
+  (7-task panel) completed, launched DETACHED via `drivers/rk-run-detached.sh`, PID
+  file, polled across turns. Cycle 1 died at startup on a root-owned run-dir
+  collision (infra-failure, recovered via captain-approved bounded cleanup);
+  cycle 2 is the real evidence — run dir `df3a3b1e3a4c2ace`, `done` rc=0.
+  Strict audit `--policy strict` clean (`tainted: 0`, `coverage_missing: 0`),
+  `captured: 1` on all 7 cells, score `stratified_pass_at_1: 1.0`. Attestation
+  in `## Smoke result` → `### Cycle 2`.
+- DONE: THE DECISIVE ARTIFACT READ (AC-3/AC-4). All 7 tasks HELD PASS. Read the
+  committed `apply_patch` payloads (ensign rollout, not narration) for both
+  targets: quickbooks002 = NARROW feature-boundary removal (var + dept CTEs/joins/
+  outputs/docs deleted; base `department_id` preserved; no dependency edits; no
+  guard-unwrap; no placeholders; 8/8 tests). quickbooks004 = NARROW feature-
+  boundary toggle (added `using_exchange_rate: false`; gated only converted-amount
+  columns; enabled-path formulas preserved; group_by/comma adjusted only for
+  shape; no dependency edits; no broad rewrite; 48/48 tests). Classification +
+  evidence in `## Behavioral analysis`.
+- DONE: Canary check (AC-5). quickbooks003 + f1001 + airbnb001 + ana-eng001 +
+  asana001 all hold PASS, 0 failing verifier tests, no convention bleed (guard
+  did not mis-fire on non-feature-removal tasks). Per-cell results in
+  `## Smoke result`. (In-stage instruction lever → no WORKFLOW-REFINE entry.)
+
+### Summary
+
+GO → full. 7/7 PASS, strict audit clean, both targets stabilized via
+artifact-proven NARROW feature-boundary edits (not green-by-broad-rewrite): qb002
+removed only project-local department logic preserving `department_id`; qb004
+gated only the exchange-rate columns preserving enabled-path formulas. The
+~30-file qb004 footprint is the expected feature-boundary shape (matches the
+@baseline PASS footprint), not a broad rewrite. Notable: a prior non-launcher
+run of this exact spec orphaned root-owned containers + a run dir that blocked
+the first launch; recovered with a bounded, captain-approved cleanup.
