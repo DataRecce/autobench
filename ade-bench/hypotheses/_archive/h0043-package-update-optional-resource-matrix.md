@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: Captain request 2026-06-10 after asana002 decision-fork analysis; follows h0033 green-but-inert cast result and the Round 1 + Round 2 flipped-task choice map. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-10T07:17:29Z
-completed:
-verdict:
+completed: 2026-06-11T01:59:32Z
+verdict: PASSED
 score:
-worktree:
+worktree: 
+archived: 2026-06-11T01:59:32Z
 ---
 
 ## Hypothesis
