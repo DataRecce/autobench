@@ -463,6 +463,49 @@ predictor for a low-base-rate target at `trials: 1`; measure the cross-run base 
 promoting* — is worth recording for the loop (candidate for the single-trial / judge-by-artifact
 note), as it generalizes beyond this lever.
 
+## Verdict
+
+**Verdict: REJECTED (captain decision, 2026-06-11).** h0042 scored **27/48 (0.5625), net −4 vs
+@baseline 31/48** on a clean strict audit (`tainted: 0`, `coverage_missing: 0`, 0 findings), and the
+**PRIMARY FLIP TARGET airbnb009 did NOT flip** (stayed 0.0 FAIL). The −4 is **VARIANCE CHURN +
+airbnb009's ~17%-base-rate NON-REPRODUCTION, NOT lever-caused damage.**
+
+**The decisive read — the pin did not hold, and the smoke over-stated reproducibility.** At full,
+airbnb009's committed `models/agg/mom_agg_reviews.sql` reverted to the **exact h0019 wrong fork**:
+`COUNT(*)` → `COUNT(review_cte.REVIEW_DATE)` plus a `sentiments_cte`/`date_sentiments_cte` CROSS JOIN
+restructure (same artifact @baseline committed). The date-spine repair landed, but the aggregate line
+was rewritten exactly as the lever forbade. **The `COUNT(*)` pin REDUCES but does not ELIMINATE the
+multi-fork variance** — airbnb009 passes only **2/12 (~17%)** across the full runs on disk, so the
+clean **3/3 focused single-cell smoke was a favorable-tail streak, not a flip predictor**; at
+`trials: 1` the single scored draw fell on the modal FAIL branch. A focused reproducibility smoke is
+necessary-not-sufficient evidence for a low-base-rate target (the h0019 lesson restated: "pinned the
+fork in N fresh contexts" ≠ "the single scored trial lands there").
+
+**The −4 is variance, not lever damage.** Of the 5 regressions, **4 (asana003, f1005-medium,
+f1006-hard, quickbooks003) are ordinary single-trial variance on NON-coverage tasks where the rule
+never fires** — each fails in 4–8 of the other 12 full runs (f1006-hard fails 8/12, a chronic cell
+also dropped by h0037/h0041/h0043). Only **airbnb005** is an anomaly (drops only 2/12), and even it is
+a from-scratch NPS-authoring task with many free knobs, not a "rule preserved a metric that should have
+changed." The lone gain (asana002) is also a coin-flip cell, not a lever win. There is **no clean
+lever-caused −N**: the paired delta CI is **[−9, 0] tasks (touches 0), sign-test p = 0.22** — not
+statistically distinguishable from zero. (All classifications are committed-`apply_patch`-artifact
+based, AC-3.)
+
+**@baseline NOT promoted by h0042 — and h0042 does NOT change it.** @baseline is now **32/48** via the
+just-promoted **h0043** (independent of this entity); h0042 leaves the registry untouched. **No
+follow-up hypothesis is filed** — the next-direction deliverable is the new concept entity
+`concept-airbnb009-reproducible-fix.md` (status `concept`), which synthesizes the h0019/h0041/h0042
+failed-attempt evidence into a fresh research direction for a future ideate fan-out.
+
+**This is an IN-STAGE instruction lever (solver README only), NOT a workflow-structural change → NO
+WORKFLOW-REFINE entry.** The transferable methodology lesson — *a focused single-cell reproducibility
+smoke (even 3/3) is NOT a flip predictor for a low-base-rate target at `trials: 1`; measure the
+cross-run base rate before promoting; and a generative rule's smoke verdict is provisional pending full
+(the G8 unsampled-regression gap)* — is durably recorded in MEMORY (`ade-bench-single-trial-judge-by-
+artifact`, the FOCUSED-REPRODUCIBILITY-SMOKE-trap paragraph). This re-confirms the concluded
+flip-portfolio / single-trial-variance wall (`ade-bench-oracle-program-concluded`); the box stays
+closed at the program level.
+
 ## Stage Report: analyze
 
 - DONE: THE REPRODUCIBILITY GAP (decisive) — airbnb009 committed SQL read at full + why the 3/3 smoke did not predict
@@ -484,3 +527,25 @@ single-trial variance on coin-flip cells (4/5 regressions fail in 4–8 of the o
 are not coverage-repair tasks where the rule fires); only airbnb005 is a rare drop. No clean
 lever-caused harm and no new movement. @baseline stays 31/48. Next move: escalate — do not re-file;
 this re-confirms the concluded flip-portfolio / single-trial-variance wall.
+
+## Stage Report: conclude
+
+- DONE: Write h0042's terminal `## Verdict`: REJECTED (captain decision)
+  `## Verdict` written: net −4 (27/48) is VARIANCE CHURN + airbnb009 ~17%-base-rate NON-REPRODUCTION, NOT lever damage. At full airbnb009 reverted to the exact h0019 wrong fork (`COUNT(*)`→`COUNT(review_cte.REVIEW_DATE)` + cross-join); the `COUNT(*)` pin reduces but does not eliminate the multi-fork variance; the clean 3/3 focused smoke was a favorable-tail streak (airbnb009 passes ~2/12 across full runs), not a flip predictor. 4/5 regressions are single-trial variance on non-coverage tasks (rule never fires); no clean lever-caused −N (CI [−9,0], p=0.22). @baseline NOT promoted by h0042 (it is now 32/48 via the just-promoted h0043; h0042 leaves it unchanged). No follow-up hypothesis filed.
+- DONE: AUTHOR a NEW CONCEPT entity `concept-airbnb009-reproducible-fix.md` (status `concept`, ACTIVE — not archived)
+  Created `hypotheses/concept-airbnb009-reproducible-fix.md` (flat, `kind: concept`, `status: concept`, `source:` = captain request 2026-06-11 grounded in h0019/h0041/h0042). `## Direction` synthesizes the evidence: (a) airbnb009 needs three load-bearing forks at once (drop narrowing predicate, keep `COUNT(*)`, no cross-join); (b) reachable but a coin-flip at trials:1 (~17% base rate); (c) prior mechanisms failed because each pinned ONE fork and left the others free → variance displaced; (d) candidate NEW mechanisms (a complete BEFORE/AFTER skeleton pinning all three forks at once, or a remove-the-DOF subtractive framing), with the honest tension vs the standing trials:1 / no-best-of-N decision and the concluded flip-portfolio wall. Plain-English testable direction, NOT pre-written hypotheses.
+- DONE: Confirm h0042's transferable lesson is durably in MEMORY (focused-single-cell-reproducibility-smoke is NOT a flip predictor for a low-base-rate target at trials:1; measure cross-run base rate before promoting)
+  Verified present in `ade-bench-single-trial-judge-by-artifact.md` (the FOCUSED-REPRODUCIBILITY-SMOKE-trap paragraph, dated 2026-06-11, saved by the prior ensign) — accurate and complete (states airbnb009 ~2/12, the favorable-tail-streak root cause, CI [−9,0]/p=0.22, the generative-rule-smoke-provisional-pending-full G8 gap, and links `ade-bench-oracle-program-concluded`). No extension needed.
+
+### Summary
+
+Terminal conclude for h0042 = REJECTED (captain decision). The −4 (27/48 vs @baseline 31/48) is variance
+churn plus airbnb009's ~17%-base-rate non-reproduction, not lever-caused damage: at full the committed SQL
+fell to the exact h0019 wrong fork despite the `COUNT(*)` pin, and the clean 3/3 focused smoke was a
+favorable-tail streak on a low-base-rate cell, not a flip predictor. 4/5 regressions are single-trial
+variance on non-coverage tasks (CI touches 0, p=0.22); no clean lever-caused −N. @baseline NOT promoted by
+h0042 (now 32/48 via h0043; registry untouched). h0042 filed NO hypothesis follow-up — the next-direction
+deliverable is the NEW concept `concept-airbnb009-reproducible-fix.md` (status `concept`, ACTIVE), which
+synthesizes the h0019/h0041/h0042 evidence into a pin-all-three-forks-at-once direction for a future ideate
+fan-out. In-stage instruction lever → NO WORKFLOW-REFINE entry. Transferable lesson verified durable in
+MEMORY (`ade-bench-single-trial-judge-by-artifact`).
