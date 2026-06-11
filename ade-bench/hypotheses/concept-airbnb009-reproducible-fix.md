@@ -98,3 +98,41 @@ solver-README change forking the current `@baseline`, each naming airbnb009 as t
 target, each stating the three-fork acceptance condition (committed SQL: narrowing predicate gone,
 `COUNT(*)` intact, no cross-join) and a cross-family regression canary panel (the rule is
 generative — the h0042/h0019 G8 gap means the smoke verdict is provisional pending full).
+
+## Stage Report: ideate
+
+- DONE: Write 2-5 hypothesis entities (h<NNNN>-<slug>.md, status: hypothesis), each a SINGLE
+  falsifiable solver-README change with named target datasets (airbnb009 + perturbable canaries)
+  and acceptance criteria.
+  Wrote 3 hypotheses: `h0046-coverage-repair-all-three-forks-worked-skeleton.md`,
+  `h0047-coverage-repair-delete-one-predicate-touch-nothing-else.md`,
+  `h0048-exploration-protect-list-load-bearing-lines-before-coverage-edit.md`. Each = one
+  README change forking `@baseline` (codex-ade-dbt-minimal), names `ade-bench-airbnb009` as the
+  artifact-proven target + the G8 cross-family canary panel (airbnb001/asana001/ana-eng001/
+  f1007/quickbooks002; no intercom passer exists), and carries AC-1..AC-5 incl. the three-fork
+  committed-artifact read (AC-3) and the ~17%-base-rate >=3-repeat reproducibility gate (AC-4).
+- DONE: Each hypothesis must operationalize the concept's core bet: pin ALL THREE load-bearing
+  forks at once (full date-spine coverage / keep COUNT(*) / no cross-join), not one fork at a
+  time — the one-at-a-time approach already failed (h0019/h0041/h0042).
+  All three pin every fork simultaneously, via THREE DISTINCT mechanism classes (head-to-head):
+  h0046 = Implementation positive worked-example skeleton showing all three forks in one copyable
+  before->after block; h0047 = Implementation NEGATIVE remove-the-DOF constraint ("delete the one
+  narrowing predicate; touch nothing else — not the aggregate, not the joins"); h0048 =
+  Exploration pre-edit PROTECT-LIST that commits the aggregate/join/GROUP BY lines as off-limits
+  before the edit. Each entity has a "Why this is a distinct mechanism class" section contrasting
+  it against h0019 (forks #1+#3, left #2 free), h0042 (fork #2, left #1+#3 free), and its siblings,
+  so none re-walks the concluded single-fork wall.
+
+### Summary
+
+Fanned the concept into 3 falsifiable single-README-change hypotheses (h0046/h0047/h0048), each
+operationalizing the pin-all-three-forks-at-once bet through a different mechanism class — a
+positive three-fork skeleton (h0046, Implementation), a negative do-nothing-else single-predicate
+constraint (h0047, Implementation), and a pre-edit protect-list of load-bearing lines (h0048,
+Exploration). Every entity names airbnb009 as the artifact-proven target, carries the G8
+cross-family canary panel, judges the flip by the committed-artifact three-fork read (not
+transcript chatter), and confronts both standing constraints head-on: the `trials: 1` ~17%-base-
+rate un-promotable-by-construction risk (AC-4: >=3 seed-perturbed focused repeats, full verdict
+provisional) and the concluded flip-portfolio wall (each filed as a genuinely new mechanism class,
+CAPPED one-shot if a fork breaks at smoke). Concept ready to advance to `expanded` (FO performs the
+frontmatter transition).
