@@ -144,3 +144,46 @@ residual full-scale blind spot.
 Method/README change only. Forks the current `@baseline` solver
 (`solver_workflows/codex-ade-dbt-minimal`, runtime codex); no dataset, harness, or
 solver-runtime change.
+
+> **Note (propose, 2026-06-11):** the `source:`/closing lines above name the stale seed
+> `codex-ade-dbt-minimal`; the actual fork parent is the live `@baseline` =
+> `solver_workflows/h0043-package-update-optional-resource-matrix` (registry resolves
+> `@baseline` → `runs/ade-bench-h0043-package-update-optional-resource-matrix/7390e6adf44ba5ea`).
+> The README diff was taken against, and the skeleton stacks on top of, the h0043 parent
+> (the asana002 var-gating rule is left byte-intact). Stale-baseline slip flagged by the
+> gatekeeper (G1/G6 evidence); verdict unaffected since the verified diff governs.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — single Implementation-stage worked-example skeleton, leak-guard byte-intact, specs scoped to two fields; the only flags are WARN-only inert/variance predictions and one G12 probe-provenance note, none of which block the gate.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). Reviewed 2026-06-11T00:00:00Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | Parent resolved by registry to `solver_workflows/h0043-package-update-optional-resource-matrix` (the `source:` line names the stale seed `codex-ade-dbt-minimal` — a noted stale-baseline slip, but the verified diff governs). README diff is one additive hunk (55a56,81), entirely under `## Stage: Implementation` (header L50), inserted after "...schema patterns." (L54) before "Run basic confirmation..." (L82); Stage-header count 4=4; no other stage/guardrail prose touched. |
+| G2 leak-guard intact | PASS | Grep of the added lines for `curl\|wget\|git clone\|git ls-remote\|AUTO_\|solution__\|check_option\|verifier\|equality test\|expected output\|dim_dates\|sentiment\|4508\|12278\|mom_agg` → no match (exit 1). Diff is purely additive; the leak-guard paragraphs (README L9-10 et seq.) are byte-identical to the parent. Skeleton uses only generic identifiers (`dimension`/`fact_detail`/`category_col`). |
+| G3 spec two fields | PASS | `diff baseline.yaml h0046.yaml` = exactly two hunks: `experiment:` and `solver_workflow:`. `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0046.yaml h0046.smoke.yaml` = one added `benchmark.tasks:` block only; all six slugs `ade-bench-` prefixed; includes the named target `ade-bench-airbnb009`. Nothing else differs. |
+| G5 both frozen | PASS | Both `…frozen.yaml` (1745B) and `…smoke.frozen.yaml` (1884B) present; each carries `kind: spacedock_solver`, `runtime: codex`, `trials: 1`. |
+| G6 resolver fidelity | PASS | Inserted skeleton matches the Falsifiable claim verbatim in intent: (1) delete the one narrowing membership predicate, (2) keep the aggregate `COUNT(*)` byte-intact, (3) no cross-join — one copyable before→after block in Implementation. Generative-but-mechanical/subtractive; contains NO self-anchored "re-run your own model / verify your answer matches / compare to existing code" phrasing (dead h0006/7/8 family absent). |
+| G7 actionability/inert-risk | PASS | Carries a literal before→after SQL skeleton (the guideline's explicit PASS form vs inert abstract prose). Inert-risk note: it IS a structural-edit instruction, but the worked-example form is precisely the mitigation G7 prescribes; forensics (h0019/h0030) say a copyable skeleton is the only form that has reliably reached the committed SQL. Net-new bet (all three forks in one block) remains a single-trial-REACH risk, not a propose-stage integrity issue. |
+| G8 regression-canary coverage | WARN | Generative (fires on any coverage repair). Smoke carries one @baseline passer per available non-target family — airbnb001/asana001/ana-eng001/f1007/quickbooks002 (all confirmed @baseline=1.0); no intercom passer exists, correctly omitted. WARN (not FAIL): ≥1 canary per family is present, but the construct-sharing family (airbnb) carries only the single passer airbnb001 and there is no second *perturbable* coverage-repair canary — the residual full-scale blind spot (same structural limit as h0019/h0042, acknowledged in the body and smoke comment). |
+| G9 selector independence | N/A | Not a multi-candidate / selector protocol — a single subtractive edit, no N-candidate generation or scoring. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever — it is a mechanical subtractive edit (delete predicate, keep aggregate byte-intact, add no CTE), not a "verify a result and act on disagreement" instruction. |
+| G11 multi-model-target risk | WARN (unverifiable) | Cannot confirm airbnb009's scored-model count statically: `_artifacts/bug-type-taxonomy.md` is absent and the gatekeeper does not run `rk` to read the verifier test set. The hypothesis + probe name a single scored check (`mom_agg_review_date_range`) on the single edited model `mom_agg_reviews.sql`, which leans single-model — but per G11 an unconfirmable count is surfaced as unknown, not assumed. If airbnb009 turns out multi-model, a single-run flip must be treated as variance and judged by the committed artifact on every scored model. |
+| G12 decision-fork probe quality | WARN | airbnb009 is a flipped-task follow-up, so a probe is expected. No inline `## Pre-smoke Decision-Fork Probe` block in the body; a standalone artifact (`_artifacts/h0046-h0047-h0048-decision-fork-probe.md`) carries all required fields — fork tested (3 forks), prompt context (task instr + starting SQL + 2 sibling models + rule only), control A (0/12 all-three), B/C/D = 12/12, exact per-variant wording tested, expected committed-artifact signature (three-fork classification by a blind classifier), and an explicit proxy-only / single-trial-REACH caveat. No leakage (no hidden tests, expected totals, or correct-answer labels; classifier blind to which rule). WARN for provenance/format: the probe lives outside the hypothesis body so the body doesn't self-document it — treat smoke as exploratory, not confirmatory (consistent with the artifact's own h0042 cautionary framing). |
+
+**For the captain:** No FAILs — clean to advance to smoke. Two substantive WARNs to hold in mind: (G8) the airbnb construct-family has only one canary and no perturbable coverage-repair sentinel, so a generative-rule regression could surface only at full scale (accepted structural limit, same as h0019/h0042); (G11) airbnb009's scored-model count is unverifiable here — if it proves multi-model, judge any flip by the committed artifact on every scored model, not the aggregate. Also note the `source:` line names the stale seed `codex-ade-dbt-minimal`; the real fork (verified by diff) is the live @baseline h0043 — worth a one-line fix in the body but it does not affect the verdict. Per AC-4, require ≥3 seed-perturbed airbnb009 repeats all landing three forks before any GO.
+
+## Stage Report: propose
+
+- DONE: Fork the CURRENT @baseline solver — solver_workflows/h0043-package-update-optional-resource-matrix → solver_workflows/h0046-coverage-repair-all-three-forks-worked-skeleton, add ONLY the h0046 worked-example skeleton to Implementation; README diff vs h0043 shows exactly that one idea, leak-guard intact.
+  `diff h0043/README.md h0046/README.md` = single additive hunk 55a56,81 under `## Stage: Implementation` only; leak-guard paragraphs byte-identical.
+- DONE: Build the FULL spec (cp baseline.yaml; set ONLY experiment + solver_workflow — AC-1) AND the smoke spec (benchmark.tasks = airbnb009 + G8 panel); freeze both with rk freeze --allow-missing.
+  `diff baseline.yaml h0046.yaml` = only experiment + solver_workflow; `diff h0046.yaml h0046.smoke.yaml` = only the added `benchmark.tasks` block (airbnb009 + airbnb001/asana001/ana-eng001/f1007/quickbooks002); both `.frozen.yaml` written.
+- DONE: Run the gatekeeper subagent and write the `## Gatekeeper review` block (per-rule PASS/WARN/FAIL + overall APPROVE/REVISE/REJECT + one-line rationale).
+  Gatekeeper returned APPROVE; no FAILs; WARNs on G8 (one airbnb canary), G11 (unverifiable scored-model count), G12 (probe in artifact not inline). Block written above.
+
+### Summary
+
+Forked the live @baseline (h0043, NOT the seed) and added exactly one Implementation-stage worked-example SQL skeleton that pins all three airbnb009 forks (drop narrowing predicate / keep COUNT(*) byte-intact / no cross-join) in one copyable before→after block; the asana002 var-gating rule from h0043 is left byte-intact so the skeleton stacks on it. Full spec differs from baseline only in `experiment:` + `solver_workflow:`; smoke spec adds only `benchmark.tasks` (target airbnb009 + the G8 cross-family canary panel — five passers, no intercom passer exists). Both specs frozen; gatekeeper APPROVE with WARN-only flags (single airbnb canary / unverifiable scored-model count / probe-in-artifact). Smoke baselines resolved against h0043: airbnb009=0.0 (target), all five canaries=1.0. Flagged the stale `source:` line (names seed) for the captain — the verified diff governs.
