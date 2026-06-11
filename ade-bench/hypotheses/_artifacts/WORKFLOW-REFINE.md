@@ -53,6 +53,14 @@ or a dispatched worker, never a direct first-officer edit.
 ## Ledger
 
 ### Candidate-selector protocols: self-anchored scoring is a false-green (h0026 REJECTED, 2026-06-05)
+- **Status (family, updated 2026-06-11):** **rejected-as-written** for the whole
+  `concept-candidate-selector-contract-scorer` fan-out. h0026 falsified it by run; h0031
+  confirmed the wall survives genuine candidate diversity + external-criterion arbitration;
+  **h0024 (static-contract-scorer-selector) REJECTED 2026-06-11 as a captain strategic
+  sibling-kill** (no run — its static build/shape/type rubric is the same self-anchored
+  scorer, would fail propose gate G9 judgment-independence). The two remaining siblings
+  **h0025 / h0027** are gated by G9 and should not run without an independent IN-decision
+  falsifier or forced divergence (and per h0031, even that is table stakes). Family CLOSED.
 - **Layer:** solver workflow
 - **Refinement type:** new protocol (an *Answer Decision Table Selector* — run N≥3 candidates,
   each emitting a per-option decision table, then pick by local-check completeness + mechanical
