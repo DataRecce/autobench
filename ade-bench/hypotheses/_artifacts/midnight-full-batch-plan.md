@@ -6,6 +6,12 @@ harbor handles concurrent fulls). Trigger = **captain pings the FO at ~00:00**; 
 All three are at `smoke` with a recorded **GO**; the captain's midnight launch instruction IS the
 smoke→full gate approval for all three. `@baseline` is currently **h0043 = 32/48**.
 
+**Held out of this batch (captain decision 2026-06-11):** h0049 (the combined three-lever
+composite) is **smoke-GO** (composition succeeded, +3 flips, no interference) but is **HELD at its
+smoke gate** — NOT in the midnight batch. The captain chose the three separate solo full runs for
+clean per-lever attribution; the composite stays in reserve (it would subsume h0044+h0046's flips
+in one run if we later prefer that). Do not launch h0049 full without a fresh captain go.
+
 ## The three (all smoke-GO, frozen full specs verified present)
 
 | Hyp | Lever | Smoke GO basis | Full upside |
