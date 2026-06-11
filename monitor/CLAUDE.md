@@ -62,6 +62,32 @@ the only shared types. `discover_jobs()` builds shallow `Job`s (cheap stats for
 every sidebar row); `discover_trials()` is the expensive per-job parse, run
 lazily only for the *current* job and memoized in `self.trial_cache`.
 
+### Mouse (click-to-select + scroll-wheel)
+
+`TerminalInput.__enter__` emits `MOUSE_ENABLE` (xterm button tracking + SGR
+coordinates, `\x1b[?1000h\x1b[?1006h`) and `__exit__` emits `MOUSE_DISABLE`.
+Mouse reports arrive as CSI sequences ending in `M`/`m`, so the existing
+escape-sequence assembler (`read_pending_chars`) reassembles them unchanged;
+`read_key` then tries `parse_mouse_sequence()` before `normalize_key()` and
+returns a `MouseEvent` instead of a key string. `handle_key` dispatches
+`MouseEvent` to `handle_mouse`.
+
+Hit-testing maps a screen `(col, row)` back to a logical row. **It does not
+re-derive geometry by hand** — `render()` stashes the rendered root layout in
+`self._last_layout`, and `compute_regions()` asks rich for the real
+`Region(x, y, width, height)` of each named leaf panel
+(`layout.render(console, options)`). Panel content starts at `region.y + 1`
+(the top border), so `offset = row - (region.y + 1)` indexes into the same
+`visible_window(...)` the panel drew — which is why `render()` also stores
+`_sidebar_capacity` / `_trials_capacity` (the hit-test must recompute the
+*identical* window). State only changes on input, so recomputing the window at
+click time is guaranteed consistent with what was drawn. `_last_layout` is set
+to `None` for the too-small and picker frames, which disables mouse there.
+
+If you add or rename a clickable panel, give its `Layout` a stable `name=` and
+look it up in `handle_click`/`handle_wheel`; if you change the capacity a panel
+is rendered with, update the stored capacity so the hit-test stays aligned.
+
 ### Refresh & caching
 
 - `refresh()` runs at most every `refresh_sec`, re-discovers jobs, and restores

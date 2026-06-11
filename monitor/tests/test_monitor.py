@@ -228,3 +228,101 @@ def test_read_json_tolerates_garbage(tmp_path: Path):
     bad.write_text("{not valid json")
     assert m.read_json(bad) == {}
     assert m.read_json(tmp_path / "missing.json") == {}
+
+
+# --- mouse parsing & hit-testing -------------------------------------------
+
+from argparse import Namespace
+from collections import namedtuple
+
+Region = namedtuple("Region", "x y width height")
+
+
+def test_parse_mouse_sequence_left_click():
+    # SGR: ESC [ < button ; col ; row M/m, coords 1-based.
+    ev = m.parse_mouse_sequence("\x1b[<0;13;6M")
+    assert ev == m.MouseEvent("press", "left", 12, 5)
+    assert m.parse_mouse_sequence("\x1b[<0;13;6m").kind == "release"
+
+
+def test_parse_mouse_sequence_wheel():
+    assert m.parse_mouse_sequence("\x1b[<64;5;5M") == m.MouseEvent("wheel", "wheel-up", 4, 4)
+    assert m.parse_mouse_sequence("\x1b[<65;5;5M") == m.MouseEvent("wheel", "wheel-down", 4, 4)
+
+
+def test_parse_mouse_sequence_rejects_non_mouse():
+    assert m.parse_mouse_sequence("\x1b[A") is None
+    assert m.parse_mouse_sequence("q") is None
+
+
+def test_region_contains():
+    region = Region(x=5, y=2, width=10, height=4)  # x:5..14, y:2..5
+    assert m.region_contains(region, 5, 2)
+    assert m.region_contains(region, 14, 5)
+    assert not m.region_contains(region, 15, 2)
+    assert not m.region_contains(region, 5, 6)
+
+
+def _monitor_with_runs(tmp_path: Path) -> m.Monitor:
+    runs = tmp_path / "runs"
+    job = runs / "exp" / "job"
+    job.mkdir(parents=True)
+    (job / "config.json").write_text(json.dumps({
+        "tasks": [{"path": "/d/a001"}, {"path": "/d/a002"}, {"path": "/d/a003"}],
+    }))
+    for tid in ("a001", "a002", "a003"):
+        (job / f"{tid}__x").mkdir()
+    args = Namespace(runs_dir=runs, datasets=tmp_path / "none.md", refresh_sec=2.0)
+    monitor = m.Monitor(args)
+    monitor.refresh(force=True)
+    return monitor
+
+
+def test_handle_click_selects_trial(tmp_path: Path):
+    monitor = _monitor_with_runs(tmp_path)
+    monitor._trials_capacity = 10
+    trials_region = Region(x=34, y=1, width=66, height=12)  # content rows at y=2..
+    # Click the 3rd content row -> trial index 2.
+    monitor.handle_click(m.MouseEvent("press", "left", 40, 4), {"trials": trials_region})
+    assert monitor.focus == 1
+    assert monitor.trial_index == 2
+
+
+def test_handle_click_selects_sidebar_item(tmp_path: Path):
+    monitor = _monitor_with_runs(tmp_path)
+    monitor._sidebar_capacity = 20
+    side_region = Region(x=0, y=1, width=34, height=20)
+    # Row 0 of sidebar content is the experiment header; clicking it focuses
+    # the sidebar and selects that experiment.
+    monitor.handle_click(m.MouseEvent("press", "left", 5, 2), {"sidebar": side_region})
+    assert monitor.focus == 0
+    assert monitor.sidebar_kind == "experiment"
+
+
+def test_handle_click_outside_rows_is_ignored(tmp_path: Path):
+    monitor = _monitor_with_runs(tmp_path)
+    monitor._trials_capacity = 10
+    monitor.trial_index = 1
+    trials_region = Region(x=34, y=1, width=66, height=12)
+    # Click far below the last trial row (only 3 trials) -> no change.
+    monitor.handle_click(m.MouseEvent("press", "left", 40, 10), {"trials": trials_region})
+    assert monitor.trial_index == 1
+
+
+def test_handle_wheel_scrolls_log(tmp_path: Path):
+    monitor = _monitor_with_runs(tmp_path)
+    logs_region = Region(x=34, y=13, width=66, height=10)
+    monitor.handle_wheel(m.MouseEvent("wheel", "wheel-up", 40, 15), {"logs": logs_region})
+    assert monitor.log_scroll > 0
+    before = monitor.log_scroll
+    monitor.handle_wheel(m.MouseEvent("wheel", "wheel-down", 40, 15), {"logs": logs_region})
+    assert monitor.log_scroll < before
+
+
+def test_handle_wheel_moves_trial_selection(tmp_path: Path):
+    monitor = _monitor_with_runs(tmp_path)
+    monitor.focus = 1
+    monitor.trial_index = 0
+    trials_region = Region(x=34, y=1, width=66, height=12)
+    monitor.handle_wheel(m.MouseEvent("wheel", "wheel-down", 40, 5), {"trials": trials_region})
+    assert monitor.trial_index == 1

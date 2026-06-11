@@ -112,6 +112,21 @@ The monitor expects razorback's standard run layout:
 When the log is scrolled into history the panel title shows `scrolled +N` and
 `paused +N, PgDn to follow`; scrolling back to the bottom resumes the live tail.
 
+### Mouse
+
+The monitor enables xterm mouse tracking, so you can also drive it by pointer:
+
+| Action | Effect |
+|--------|--------|
+| Click a sidebar row | focus the sidebar and select that experiment/job |
+| Click a trial row | focus the trials panel and select that trial |
+| Scroll wheel over sidebar / trials | move that panel's selection up/down |
+| Scroll wheel over the log panel | scroll the log through history / toward the live tail |
+
+Mouse mode is turned off again on exit. While it's on, the terminal's own
+click-to-select/copy is suppressed — hold your terminal's modifier (often
+`Shift`) to select text the normal way.
+
 ## Panels
 
 - **Experiments / Jobs** (left sidebar): every experiment with a job count; the

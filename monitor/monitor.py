@@ -100,6 +100,14 @@ TILDE_KEYS = {
 }
 MODIFIED_ARROW_RE = re.compile(r"^\x1b\[[0-9;?]*([ABCD])$")
 MODIFIED_TILDE_RE = re.compile(r"^\x1b\[([0-9]+)(?:;[0-9]+)?~$")
+# SGR mouse report: ESC [ < button ; col ; row (M=press, m=release), 1-based.
+MOUSE_SGR_RE = re.compile(r"^\x1b\[<(\d+);(\d+);(\d+)([Mm])$")
+MOUSE_WHEEL_BIT = 64
+# Enable/disable xterm button + SGR-coordinate mouse tracking.
+MOUSE_ENABLE = "\x1b[?1000h\x1b[?1006h"
+MOUSE_DISABLE = "\x1b[?1006l\x1b[?1000l"
+# How many lines a single wheel notch scrolls the log panel.
+WHEEL_LOG_LINES = 3
 # Trial list sort modes cycled by the `s` key.
 SORT_MODES = ("name", "passed", "failed")
 # dbt's run/test summary line, e.g. "Done. PASS=9 WARN=0 ERROR=2 SKIP=0 NO-OP=0 TOTAL=11".
@@ -174,6 +182,14 @@ class LogEntry:
     is_json: bool = False
 
 
+@dataclass(frozen=True)
+class MouseEvent:
+    kind: str  # "press", "release", or "wheel"
+    button: str  # "left"/"middle"/"right"/"other" or "wheel-up"/"wheel-down"
+    col: int  # 0-based screen column
+    row: int  # 0-based screen row
+
+
 def main() -> int:
     args = parse_args()
 
@@ -211,17 +227,21 @@ class TerminalInput:
             fd = self.stream.fileno()
             self.original_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
+            sys.stdout.write(MOUSE_ENABLE)
+            sys.stdout.flush()
         return self
 
     def __exit__(self, *_exc_info: object) -> None:
         if self.original_settings is not None:
+            sys.stdout.write(MOUSE_DISABLE)
+            sys.stdout.flush()
             termios.tcsetattr(
                 self.stream.fileno(),
                 termios.TCSADRAIN,
                 self.original_settings,
             )
 
-    def read_key(self, timeout: float) -> str | None:
+    def read_key(self, timeout: float) -> str | MouseEvent | None:
         if not self.stream.isatty():
             time.sleep(timeout)
             return None
@@ -232,7 +252,11 @@ class TerminalInput:
         if first is None:
             return None
         if first == "\x1b":
-            return normalize_key(first + self.read_pending_chars())
+            sequence = first + self.read_pending_chars()
+            mouse = parse_mouse_sequence(sequence)
+            if mouse is not None:
+                return mouse
+            return normalize_key(sequence)
         return normalize_key(first)
 
     def read_pending_chars(self) -> str:
@@ -309,6 +333,12 @@ class Monitor:
         self.experiments: list[str] = []
         self.last_refresh = 0.0
         self.trial_cache: dict[Path, tuple[tuple[object, ...], list[Trial]]] = {}
+        # Geometry of the last full render, used to map mouse clicks back to
+        # rows. _last_layout is None whenever the current frame is not the
+        # normal dashboard (terminal-too-small notice or the log picker).
+        self._last_layout: Layout | None = None
+        self._sidebar_capacity = 0
+        self._trials_capacity = 0
 
     def run(self) -> None:
         self.refresh(force=True)
@@ -428,7 +458,9 @@ class Monitor:
         self.log_scroll = clamped
         return label, path, lines
 
-    def handle_key(self, key: str) -> bool:
+    def handle_key(self, key: str | MouseEvent) -> bool:
+        if isinstance(key, MouseEvent):
+            return self.handle_mouse(key)
         if self.picker_open:
             return self.handle_picker_key(key)
         if key == "quit":
@@ -510,6 +542,73 @@ class Monitor:
             self.picker_open = False
         return False
 
+    def handle_mouse(self, event: MouseEvent) -> bool:
+        # Mouse is ignored while the picker is open or when the last frame was
+        # not the dashboard (so we have no row geometry to hit-test against).
+        if self.picker_open or self._last_layout is None:
+            return False
+        regions = self.compute_regions(self._last_layout)
+        if not regions:
+            return False
+        if event.kind == "wheel":
+            self.handle_wheel(event, regions)
+        elif event.kind == "press" and event.button == "left":
+            self.handle_click(event, regions)
+        return False
+
+    def handle_click(self, event: MouseEvent, regions: dict) -> None:
+        sidebar = regions.get("sidebar")
+        if sidebar is not None and region_contains(sidebar, event.col, event.row):
+            self.focus = 0
+            items = self.sidebar_items()
+            window = visible_window(items, self.current_sidebar_index(), self._sidebar_capacity)
+            offset = event.row - (sidebar.y + 1)
+            if 0 <= offset < len(window):
+                _index, (kind, experiment_index, job_index) = window[offset]
+                self.select_sidebar_item(kind, experiment_index, job_index)
+            return
+        trials = regions.get("trials")
+        if trials is not None and region_contains(trials, event.col, event.row):
+            self.focus = 1
+            trial_list = self.current_trials()
+            window = visible_window(trial_list, self.trial_index, self._trials_capacity)
+            offset = event.row - (trials.y + 1)
+            if 0 <= offset < len(window):
+                self.trial_index = window[offset][0]
+                self.reset_log_view()
+            return
+
+    def handle_wheel(self, event: MouseEvent, regions: dict) -> None:
+        direction = -1 if event.button == "wheel-up" else 1
+        logs = regions.get("logs")
+        if logs is not None and region_contains(logs, event.col, event.row):
+            # Wheel up walks back into history (positive scroll offset).
+            self.scroll_log(-direction * WHEEL_LOG_LINES)
+            return
+        sidebar = regions.get("sidebar")
+        if sidebar is not None and region_contains(sidebar, event.col, event.row):
+            self.focus = 0
+            self.move_sidebar_selection(direction)
+            return
+        trials = regions.get("trials")
+        if trials is not None and region_contains(trials, event.col, event.row):
+            self.focus = 1
+            trial_list = self.current_trials()
+            if trial_list:
+                self.trial_index = (self.trial_index + direction) % len(trial_list)
+                self.reset_log_view()
+
+    def compute_regions(self, layout: Layout) -> dict:
+        # Ask rich where it placed each named leaf panel for the current size,
+        # so click coordinates map to the exact rows that were drawn.
+        size = self.console.size
+        options = self.console.options.update_dimensions(size.width, size.height)
+        try:
+            render_map = layout.render(self.console, options)
+        except Exception:
+            return {}
+        return {lay.name: render.region for lay, render in render_map.items() if lay.name}
+
     def move_job(self, delta: int) -> None:
         jobs = self.current_jobs()
         if not jobs:
@@ -585,12 +684,14 @@ class Monitor:
     def render(self) -> Layout | Panel | Align:
         size = self.console.size
         if size.height < 12 or size.width < 80:
+            self._last_layout = None
             return Panel(
                 Text("Terminal too small; use at least 80x12.", style="muted"),
                 border_style="panel.border",
             )
 
         if self.picker_open:
+            self._last_layout = None
             return render_log_picker(self)
 
         body_height = max(1, size.height - 3)
@@ -621,6 +722,11 @@ class Monitor:
             ),
             Layout(render_current_log_panel(self, height=log_height), name="logs"),
         )
+        # Remember what we drew so a later mouse click can be hit-tested against
+        # the same windows. capacity here must match what the panels received.
+        self._last_layout = layout
+        self._sidebar_capacity = sidebar_capacity
+        self._trials_capacity = 10
         return layout
 
     def status_line(self) -> str:
@@ -738,9 +844,31 @@ def is_csi_final_byte(char: str) -> bool:
     return len(char) == 1 and 0x40 <= ord(char) <= 0x7E
 
 
+def parse_mouse_sequence(sequence: str) -> MouseEvent | None:
+    match = MOUSE_SGR_RE.match(sequence)
+    if not match:
+        return None
+    button = int(match.group(1))
+    col = max(0, int(match.group(2)) - 1)
+    row = max(0, int(match.group(3)) - 1)
+    if button & MOUSE_WHEEL_BIT:
+        wheel = "wheel-up" if button & 1 == 0 else "wheel-down"
+        return MouseEvent("wheel", wheel, col, row)
+    kind = "press" if match.group(4) == "M" else "release"
+    name = {0: "left", 1: "middle", 2: "right"}.get(button & 0b11, "other")
+    return MouseEvent(kind, name, col, row)
+
+
+def region_contains(region: object, col: int, row: int) -> bool:
+    return (
+        region.x <= col < region.x + region.width
+        and region.y <= row < region.y + region.height
+    )
+
+
 def render_header() -> Text:
     return Text(
-        "Razorback Monitor  q:quit  left/right:panel  up/down:select  tab:panel  []:job  "
+        "Razorback Monitor  q:quit  click/wheel:select  up/down:select  tab:panel  []:job  "
         "l:log  f:pick-log  s:sort  pgup/pgdn:scroll  r:refresh",
         style="chrome",
     )
