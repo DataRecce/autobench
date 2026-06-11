@@ -29,14 +29,20 @@ from rich.text import Text
 from rich.theme import Theme
 
 
-LOG_CANDIDATES = (
+# Logs relative to a *step root* — the trial dir itself in the flat ade-bench
+# layout, or each steps/<step>/ dir in DAB's multi-step layout. codex stays
+# first so it is the default selected source.
+STEP_LOG_CANDIDATES = (
     ("codex", Path("agent/codex.txt")),
     ("claude", Path("agent/claude.txt")),
     ("claude-log", Path("agent/claude.log")),
     ("agent-log", Path("agent/agent.log")),
+    ("verifier", Path("verifier/test-stdout.txt")),
+)
+# Logs that always live at the trial root, regardless of layout.
+TRIAL_ROOT_LOGS = (
     ("trial", Path("trial.log")),
     ("exception", Path("exception.txt")),
-    ("verifier", Path("verifier/test-stdout.txt")),
 )
 JOB_ACTIVITY_FILES = (
     Path("_job_config.yaml"),
@@ -377,7 +383,7 @@ class Monitor:
         previous_trial = self.current_trial_name()
 
         self.jobs_by_experiment = discover_jobs(self.runs_dir)
-        self.experiments = sorted(self.jobs_by_experiment)
+        self.experiments = sort_experiments(self.jobs_by_experiment)
         self.last_refresh = time.time()
 
         if previous_experiment in self.experiments:
@@ -919,7 +925,9 @@ def render_log_picker(monitor: Monitor) -> Align:
 def render_sidebar_panel(monitor: Monitor, *, capacity: int) -> Panel:
     items = monitor.sidebar_items()
     selected = monitor.current_sidebar_index()
-    lines = Text()
+    # no_wrap keeps each item on exactly one screen row -- a wrapped long name
+    # would shift every row below it and misalign click hit-testing.
+    lines = Text(no_wrap=True, overflow="ellipsis")
     if not items:
         append_line(lines, "No runs found", "muted")
     else:
@@ -1339,8 +1347,14 @@ def trial_verify_result(trial_dir: Path) -> str:
 
 
 def trial_agent_answer(trial_dir: Path) -> str:
-    path = trial_dir / "agent" / "codex.txt"
-    if not path.is_file():
+    # Read the last step's transcript (the final answer in DAB's multi-step
+    # runs; the only transcript in the flat layout).
+    path = None
+    for root in step_roots(trial_dir):
+        candidate = root / "agent" / "codex.txt"
+        if candidate.is_file():
+            path = candidate
+    if path is None:
         return "-"
     latest = ""
     for line in tail_lines(path, 200):
@@ -1463,10 +1477,11 @@ def trial_test_counts(trial_dir: Path) -> tuple[int, int] | None:
     # stdout. The build phase emits earlier summaries too, so the last match in
     # the file is the one for the test run.
     passed = total = None
-    for line in tail_lines(trial_dir / "verifier" / "test-stdout.txt", 200):
-        match = TEST_SUMMARY_RE.search(line)
-        if match:
-            passed, total = int(match.group(1)), int(match.group(2))
+    for root in step_roots(trial_dir):
+        for line in tail_lines(root / "verifier" / "test-stdout.txt", 200):
+            match = TEST_SUMMARY_RE.search(line)
+            if match:
+                passed, total = int(match.group(1)), int(match.group(2))
     if passed is None or total is None:
         return None
     return passed, total
@@ -1532,31 +1547,52 @@ def shallow_job_status(job_dir: Path) -> str:
     return "pending"
 
 
+def step_roots(trial_dir: Path) -> list[Path]:
+    # The dirs that hold agent/ and verifier/ for a trial. DAB nests them under
+    # steps/<step>/ (one per pipeline step); ade-bench keeps them flat in the
+    # trial dir. Returns the step dirs (sorted) for DAB, else [trial_dir].
+    steps_dir = trial_dir / "steps"
+    if steps_dir.is_dir():
+        steps = sorted(p for p in steps_dir.iterdir() if p.is_dir())
+        if steps:
+            return steps
+    return [trial_dir]
+
+
 def trial_log_sources(trial_dir: Path) -> list[tuple[str, Path]]:
-    sources = []
-    for label, relative in LOG_CANDIDATES:
+    sources: list[tuple[str, Path]] = []
+    roots = step_roots(trial_dir)
+    # Prefix labels with the step name only when content is nested under
+    # steps/ (DAB), so steps don't collide; the flat layout keeps bare labels.
+    multi = roots != [trial_dir]
+    for root in roots:
+        prefix = f"{root.name}:" if multi else ""
+        for label, relative in STEP_LOG_CANDIDATES:
+            path = root / relative
+            if path.exists():
+                sources.append((f"{prefix}{label}", path))
+        agent_dir = root / "agent"
+        if agent_dir.is_dir():
+            for path in sorted(agent_dir.glob("*.txt")) + sorted(agent_dir.glob("*.log")):
+                if all(path != known for _, known in sources):
+                    sources.append((f"{prefix}{path.name}", path))
+        sources.extend(session_log_sources(root, trial_dir, prefix))
+    # Trial-root logs come last so the agent transcript stays the default.
+    for label, relative in TRIAL_ROOT_LOGS:
         path = trial_dir / relative
-        if path.exists():
+        if path.exists() and all(path != known for _, known in sources):
             sources.append((label, path))
-    agent_dir = trial_dir / "agent"
-    if agent_dir.is_dir():
-        for path in sorted(agent_dir.glob("*.txt")):
-            if all(path != known for _, known in sources):
-                sources.append((path.name, path))
-        for path in sorted(agent_dir.glob("*.log")):
-            if all(path != known for _, known in sources):
-                sources.append((path.name, path))
-    sources.extend(session_log_sources(trial_dir))
     return sources
 
 
-def session_log_sources(trial_dir: Path) -> list[tuple[str, Path]]:
-    # Spacedock writes one Codex session per agent under agent/sessions: the
-    # parent first-officer (thread_source=user) plus each dispatched worker
+def session_log_sources(root: Path, trial_dir: Path, prefix: str = "") -> list[tuple[str, Path]]:
+    # Spacedock writes one Codex session per agent under <root>/agent/sessions:
+    # the parent first-officer (thread_source=user) plus each dispatched worker
     # (thread_source=subagent). agent/codex.txt is the rendered parent, but the
     # raw session JSONL carries event-level detail the transcript drops, so we
-    # surface the parent session as well as the workers.
-    sessions_dir = trial_dir / "agent" / "sessions"
+    # surface the parent session as well as the workers. The subagent-type
+    # manifest lives at the trial root in both layouts.
+    sessions_dir = root / "agent" / "sessions"
     if not sessions_dir.is_dir():
         return []
     parents: list[Path] = []
@@ -1570,13 +1606,13 @@ def session_log_sources(trial_dir: Path) -> list[tuple[str, Path]]:
     sources: list[tuple[str, Path]] = []
     for index, path in enumerate(parents):
         label = "session:first-officer" if len(parents) == 1 else f"session:first-officer#{index}"
-        sources.append((label, path))
+        sources.append((f"{prefix}{label}", path))
     types = subagent_types_from_manifest(trial_dir)
     for index, path in enumerate(subagents):
         subagent_type = types[index] if index < len(types) else None
         short = subagent_type.split(":")[-1] if subagent_type else None
         label = f"subagent:{short}#{index}" if short else f"subagent#{index}"
-        sources.append((label, path))
+        sources.append((f"{prefix}{label}", path))
     return sources
 
 
@@ -1633,7 +1669,15 @@ def job_trial_signature(job_dir: Path) -> tuple[object, ...]:
     for trial_dir in trial_dirs:
         parts.append((trial_dir.name, path_mtime_ns(trial_dir)))
         parts.extend(file_signature(trial_dir / relative) for relative in TRIAL_ACTIVITY_FILES)
-        parts.append(file_signature(trial_dir / "agent"))
+        # Watch each step root's agent/ + verifier logs so DAB's nested
+        # steps/<step>/ content (which TRIAL_ACTIVITY_FILES misses) invalidates
+        # the trial cache when it changes.
+        for root in step_roots(trial_dir):
+            if root == trial_dir:
+                parts.append(file_signature(root / "agent"))
+                continue
+            parts.append(file_signature(root / "agent"))
+            parts.extend(file_signature(root / relative) for _label, relative in STEP_LOG_CANDIDATES)
     return tuple(parts)
 
 
@@ -2045,6 +2089,18 @@ def status_sort_key(status: str) -> int:
         "completed": 3,
         "finished": 4,
     }.get(status, 5)
+
+
+def sort_experiments(jobs_by_experiment: dict[str, list[Job]]) -> list[str]:
+    # Category sort: an experiment's rank is its most-active job's status, so
+    # experiments with a running job float to the top, then pending, errored,
+    # and finished; ties broken alphabetically.
+    def key(name: str) -> tuple[int, str]:
+        jobs = jobs_by_experiment[name]
+        rank = min((status_sort_key(job.status) for job in jobs), default=99)
+        return (rank, name)
+
+    return sorted(jobs_by_experiment, key=key)
 
 
 def sort_trials(trials: list[Trial], mode: str) -> list[Trial]:

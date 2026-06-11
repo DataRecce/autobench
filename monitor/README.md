@@ -69,10 +69,21 @@ The monitor expects razorback's standard run layout:
       <task-id>__<suffix>/      # one trial dir per task (must contain "__")
         result.json
         exception.txt
-        agent/codex.txt         # solver transcript
+        trial.log
+        agent/codex.txt         # solver transcript        (ade-bench, flat)
         agent/sessions/*.jsonl  # raw Codex/spacedock session rollouts
         verifier/test-stdout.txt
 ```
+
+Two layouts are supported for where a trial keeps its agent/verifier content:
+
+- **ade-bench (flat)** — `agent/` and `verifier/` live directly in the trial dir
+  (as above).
+- **DAB (`dataagentbench`, multi-step)** — the trial is split into pipeline
+  steps, and each step has its own content under `steps/<step>/agent/...` and
+  `steps/<step>/verifier/...`. The monitor finds these per-step logs and labels
+  them with the step name (e.g. `main:codex`, `main:session:first-officer`).
+  `trial.log` and `exception.txt` stay at the trial root in both layouts.
 
 - A directory is treated as a **job** if it contains any of `_job_config.yaml`,
   `config.json`, `job.log`, or `lock.json`.
@@ -129,10 +140,13 @@ click-to-select/copy is suppressed — hold your terminal's modifier (often
 
 ## Panels
 
-- **Experiments / Jobs** (left sidebar): every experiment with a job count; the
-  selected experiment expands to its jobs (newest first by mtime). Running
-  experiments are marked `*`. Each job row shows status plus a progress suffix
-  (`N/total done · K passed` while running, `K/total passed` when terminal).
+- **Experiments / Jobs** (left sidebar): every experiment with a job count.
+  Experiments are category-sorted by their most-active job — those with a
+  running job float to the top, then pending, errored, and finished, with
+  alphabetical ties — and active experiments are marked `*`. The selected
+  experiment expands to its jobs (newest first by mtime). Each job row shows
+  status plus a progress suffix (`N/total done · K passed` while running,
+  `K/total passed` when terminal).
 - **Trials** (top right): one row per trial with status, `[passed]`/`[failed]`,
   wall-clock duration, dbt test counts (`passed/total`), and agent token usage.
 - **Trial Info**: dataset id, trial name, status, verify result, a one-line
@@ -145,13 +159,16 @@ click-to-select/copy is suppressed — hold your terminal's modifier (often
 
 ## Log sources
 
-For a trial the monitor surfaces, in order: known files (`agent/codex.txt`,
-`agent/claude.txt`, `trial.log`, `exception.txt`, `verifier/test-stdout.txt`,
-…), any other `agent/*.txt` / `agent/*.log`, and each spacedock session rollout
+For a trial the monitor surfaces, per step root, in order: known agent/verifier
+files (`agent/codex.txt`, `agent/claude.txt`, `verifier/test-stdout.txt`, …),
+any other `agent/*.txt` / `agent/*.log`, and each spacedock session rollout
 under `agent/sessions/` — labelled `session:first-officer` for the parent and
-`subagent:<type>#N` for dispatched workers (types read from
-`subagent-trace-manifest.json`). With no trial selected it falls back to the
-job's `job.log` / `events.jsonl`.
+`subagent:<type>#N` for dispatched workers (types read from the trial-root
+`subagent-trace-manifest.json`). For DAB's multi-step layout every label is
+prefixed with the step name (`main:codex`, …); the flat ade-bench layout uses
+bare labels. `trial.log` and `exception.txt` (trial root) come last, and the
+agent transcript stays the default selection. With no trial selected it falls
+back to the job's `job.log` / `events.jsonl`.
 
 ## Development
 

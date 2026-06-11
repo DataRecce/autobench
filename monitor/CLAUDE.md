@@ -96,7 +96,8 @@ is rendered with, update the stored capacity so the hit-test stays aligned.
 - `load_current_job_trials()` re-parses trials only when
   `job_trial_signature()` (mtimes + sizes of activity files) changes. **If you
   add a file the parser reads, add it to `TRIAL_ACTIVITY_FILES` /
-  `JOB_ACTIVITY_FILES`** or the cache will serve stale data.
+  `JOB_ACTIVITY_FILES`** (or, for per-step files, the `step_roots` loop in
+  `job_trial_signature`) or the cache will serve stale data.
 - The event loop (`run()`) interleaves key polling and refresh: `key_poll_interval()`
   keeps input latency low while honoring the refresh cadence, and `dirty`
   tracking avoids redundant repaints.
@@ -109,6 +110,15 @@ output. The most likely sources of future breakage:
 - **Job dir markers**: `looks_like_job_dir()` → `_job_config.yaml`,
   `config.json`, `job.log`, `lock.json`.
 - **Trial dir convention**: name contains `__`, `<task-id>__<suffix>`.
+- **Trial content layout** (`step_roots()`): ade-bench keeps `agent/` and
+  `verifier/` flat in the trial dir; DAB (`dataagentbench`) nests them under
+  `steps/<step>/` (one per pipeline step). All agent/verifier readers
+  (`trial_log_sources`, `session_log_sources`, `trial_agent_answer`,
+  `trial_test_counts`) iterate `step_roots(trial_dir)`, which returns the step
+  dirs for DAB or `[trial_dir]` for the flat layout. DAB labels are
+  step-prefixed (`main:codex`); `trial.log`/`exception.txt` stay at the trial
+  root in both. **Anything reading `agent/*` or `verifier/*` must go through
+  `step_roots`, not `trial_dir / "agent"` directly.**
 - **`result.json`**: `stats.{n_running,n_pending,n_errored,n_completed}_trials`,
   `n_total_trials`, `finished_at`, `started_at`, `verifier_result.rewards.reward`,
   `agent_result.{n_input_tokens,n_output_tokens}`, `exception_info`,

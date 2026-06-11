@@ -230,6 +230,102 @@ def test_read_json_tolerates_garbage(tmp_path: Path):
     assert m.read_json(tmp_path / "missing.json") == {}
 
 
+# --- experiment ordering ---------------------------------------------------
+
+def _job(status: str) -> "m.Job":
+    return m.Job(experiment="x", path=Path("/x"), updated=0.0, status=status, trials=[])
+
+
+def test_sort_experiments_running_on_top():
+    data = {
+        "zeta-running": [_job("running")],
+        "alpha-finished": [_job("finished")],
+        "beta-running": [_job("running")],
+        "gamma-pending": [_job("pending")],
+    }
+    # Category rank (running < pending < errored < finished), name within rank.
+    assert m.sort_experiments(data) == [
+        "beta-running",
+        "zeta-running",
+        "gamma-pending",
+        "alpha-finished",
+    ]
+
+
+def test_sort_experiments_uses_most_active_job():
+    # An experiment with any running job ranks as running, even if other jobs
+    # are finished.
+    data = {
+        "mixed": [_job("finished"), _job("running")],
+        "done": [_job("finished")],
+    }
+    assert m.sort_experiments(data) == ["mixed", "done"]
+
+
+# --- DAB (steps/<step>/) layout vs flat ade-bench layout -------------------
+
+def test_step_roots_flat_and_nested(tmp_path: Path):
+    flat = tmp_path / "flat__x"
+    flat.mkdir()
+    assert m.step_roots(flat) == [flat]
+
+    nested = tmp_path / "dab__y"
+    (nested / "steps" / "main").mkdir(parents=True)
+    (nested / "steps" / "setup").mkdir(parents=True)
+    # Both steps returned, sorted by name.
+    assert m.step_roots(nested) == [nested / "steps" / "main", nested / "steps" / "setup"]
+
+
+def _write_session(step_root: Path):
+    sess = step_root / "agent" / "sessions" / "2026" / "06" / "11"
+    sess.mkdir(parents=True)
+    rollout = sess / "rollout-2026-06-11T09-21-17-abc.jsonl"
+    rollout.write_text(json.dumps({"type": "session_meta", "payload": {"thread_source": "user"}}) + "\n")
+    return rollout
+
+
+def test_dab_trial_log_sources_finds_step_logs(tmp_path: Path):
+    trial = tmp_path / "googlelocal-q1__P2R8KNn"
+    step = trial / "steps" / "main"
+    (step / "agent").mkdir(parents=True)
+    (step / "agent" / "codex.txt").write_text("hello")
+    (trial / "trial.log").write_text("Starting step 1/1: main")
+    _write_session(step)
+
+    sources = m.trial_log_sources(trial)
+    labels = [label for label, _ in sources]
+    paths = {label: path for label, path in sources}
+    # The step's codex transcript is found (and is the default = first source),
+    # nested under steps/main, with a step-prefixed label.
+    assert labels[0] == "main:codex"
+    assert paths["main:codex"] == step / "agent" / "codex.txt"
+    # The session rollout under the step is surfaced too.
+    assert any(label == "main:session:first-officer" for label in labels)
+    # The trial-root trial.log is still available, after the agent logs.
+    assert any(label == "trial" for label in labels)
+
+
+def test_dab_trial_agent_answer_reads_step_codex(tmp_path: Path):
+    trial = tmp_path / "t__x"
+    step = trial / "steps" / "main" / "agent"
+    step.mkdir(parents=True)
+    event = {"type": "item.completed", "item": {"type": "agent_message", "text": "the answer"}}
+    (step / "codex.txt").write_text(json.dumps(event) + "\n")
+    assert m.trial_agent_answer(trial) == "the answer"
+
+
+def test_flat_layout_log_sources_still_default_to_codex(tmp_path: Path):
+    # ade-bench flat layout: agent/ sits directly in the trial dir, codex first,
+    # labels unprefixed.
+    trial = tmp_path / "airbnb001__abc"
+    (trial / "agent").mkdir(parents=True)
+    (trial / "agent" / "codex.txt").write_text("x")
+    (trial / "trial.log").write_text("y")
+    sources = m.trial_log_sources(trial)
+    assert sources[0] == ("codex", trial / "agent" / "codex.txt")
+    assert ("trial", trial / "trial.log") in sources
+
+
 # --- mouse parsing & hit-testing -------------------------------------------
 
 from argparse import Namespace
@@ -317,6 +413,30 @@ def test_handle_wheel_scrolls_log(tmp_path: Path):
     before = monitor.log_scroll
     monitor.handle_wheel(m.MouseEvent("wheel", "wheel-down", 40, 15), {"logs": logs_region})
     assert monitor.log_scroll < before
+
+
+def test_sidebar_long_name_stays_on_one_row(tmp_path: Path):
+    # A very long experiment name must be truncated, not wrapped onto a second
+    # screen row -- wrapping would shift every row below it and break the
+    # click-to-select row math.
+    from rich.console import Console
+
+    runs = tmp_path / "runs"
+    long_name = "ade-bench-" + "x" * 90
+    job = runs / long_name / "job"
+    job.mkdir(parents=True)
+    (job / "config.json").write_text(json.dumps({"tasks": []}))
+    (job / "lock.json").write_text("{}")
+    args = Namespace(runs_dir=runs, datasets=tmp_path / "none.md", refresh_sec=2.0)
+    monitor = m.Monitor(args)
+    monitor.refresh(force=True)
+
+    panel = m.render_sidebar_panel(monitor, capacity=10)
+    console = Console(width=40, height=20, theme=m.RICH_THEME)
+    with console.capture() as cap:
+        console.print(panel)
+    rows_with_name = [line for line in cap.get().splitlines() if "xxxx" in line]
+    assert len(rows_with_name) == 1
 
 
 def test_handle_wheel_moves_trial_selection(tmp_path: Path):
