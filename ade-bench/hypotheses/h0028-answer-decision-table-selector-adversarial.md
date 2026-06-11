@@ -3,7 +3,7 @@ id: h0028
 title: Answer Decision Table Selector (adversarial re-fire) -- forced-divergence candidates with cross-examination; an IN survives only if it withstands an adversarial attack
 status: hypothesis
 kind: hypothesis
-source: re-fire of h0026 (REJECTED — implementation wrong, hypothesis sound). h0026 falsified the *self-anchored* selector design (one session simulating N candidates, scoring by own checks); it did NOT falsify the multi-candidate selector idea itself. Two G9 axes unmet in h0026: (a) generation independence — one session = one mind photocopied 3 times; (b) judgment independence — selector scored candidates by their own checks, so a confident wrong answer scores perfect. This variant fixes both axes without a harness change, using forced-divergence stances and adversarial cross-examination within the same session. Forks the current @baseline solver protocol as a declared protocol-family variant.
+source: "re-fire of h0026 (REJECTED — implementation wrong, hypothesis sound). h0026 falsified the *self-anchored* selector design (one session simulating N candidates, scoring by own checks); it did NOT falsify the multi-candidate selector idea itself. Two G9 axes unmet in h0026: (a) generation independence — one session = one mind photocopied 3 times; (b) judgment independence — selector scored candidates by their own checks, so a confident wrong answer scores perfect. This variant fixes both axes without a harness change, using forced-divergence stances and adversarial cross-examination within the same session. Forks the current @baseline solver protocol as a declared protocol-family variant."
 started: 2026-06-06T00:00:00Z
 completed:
 verdict:
