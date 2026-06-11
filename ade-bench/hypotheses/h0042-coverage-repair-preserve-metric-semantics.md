@@ -236,16 +236,40 @@ every cell `captured = 1`. No canary lost (AC-5 satisfied).
 
 ## Run result
 
-**Status: RUNNING (launched detached 2026-06-10T17:25:57Z).** Full 48-task run on
-`specs/h0042-coverage-repair-preserve-metric-semantics.frozen.yaml` (task selector `null` → all 48).
+**Status: COMPLETE — NO-GO. `stratified_pass_at_1 = 0.5625` (27/48) = net −4 vs @baseline 31/48
+(0.6458). The PRIMARY FLIP TARGET airbnb009 = 0.0 FAIL — it did NOT flip at full.** The clean
+3/3 smoke did NOT reproduce at 48-scale, AND the generative coverage rule regressed 5 baseline
+passers (the G8 unsampled-regression risk materialized). This is a NO-GO direction.
 
-- Handle: `runs/.rk-handles/h0042-full-20260610-172557/` (worker pid 4024242; ntfy topic `adebench-rk-381c976fe07465bf`).
-- Command: `uv run --project ../razorback rk run specs/h0042-coverage-repair-preserve-metric-semantics.frozen.yaml --runs-dir runs` (bare `run` mode; audit + score applied by this stage after `done`).
-- Methodology consistency (no smoke→full drift): the full frozen spec and the smoke frozen spec carry the **same** `solver_workflow_content_hash: sha256:b0103e7a29f39b2e17c7cd7c889f9c06f540451ccd2915e5ad3585545160ed6c` and the same agent `sealed_hash 14e4e3f015cd0dbf775caf60818ef1d6`; they differ ONLY in `benchmark.tasks` (full=`null`/all-48 vs smoke=6-task panel). Same solver README as smoke confirmed.
-- Cache-collision check: the only pre-existing run-dir under this experiment is `797604a420d08244` (the 6-task SMOKE panel — verified `n_trials_total: 6`, smoke task selector). Full uses `tasks: null` → distinct sealed input set → new distinct run-dir; no perturbation needed.
-- @baseline = `runs/ade-bench-baseline/622bdedac572b479` (31/48 = 0.6458; airbnb009 = 0.0 FAIL). Hoping +1 (32/48) if airbnb009 holds FAIL→PASS at scale with no regression.
+- **Run-dir:** `runs/ade-bench-h0042-coverage-repair-preserve-metric-semantics/1948ab42a6a5d9b7/`
+  (48 cells). Launched detached 2026-06-10T17:25:57Z, finished 2026-06-11T00:00:37Z (rc=0,
+  ~6.6h); handle `runs/.rk-handles/h0042-full-20260610-172557/` (sentinel rc=0).
+- **Strict audit (run BEFORE the score was trusted):** `rk audit … --policy strict` →
+  `summary: {clean: 48, coverage_missing: 0, tainted: 0}`; all 48 trials `taint_status: clean`,
+  zero findings. `coverage_missing: 0` attests captured traces on every cell. CLEAN.
+- **Score:** `rk score … --format json` → `stratified_pass_at_1: 0.5625`,
+  `n_total: 48, n_completed: 48, n_errored: 0, n_pass: 27` (Wilson CI [0.423, 0.693]).
+  **27 PASS / 21 FAIL.**
+- **Net vs @baseline (paired, identical 48-task set):** **−4** (baseline 31 PASS → h0042 27 PASS).
+  - 5 REGRESSIONS (baseline PASS → h0042 FAIL): `airbnb005`, `asana003`, `f1005-medium`,
+    `f1006-hard`, `quickbooks003`.
+  - 1 incidental GAIN (baseline FAIL → h0042 PASS): `asana002` — NOT the intended target.
+  - Intended target `airbnb009`: baseline 0.0 → h0042 0.0 (unchanged FAIL; the smoke flip did
+    not reproduce).
+  - Arithmetic: +1 (asana002) − 5 (regressions) = −4. airbnb009 contributes 0.
+- **Methodology consistency (no smoke→full drift) — from SEALED run-dir artifacts:** the full
+  run-dir and the smoke run-dir (`797604a420d08244`) both carry
+  `solver_workflow_content_hash / solver_workflow_hash =
+  sha256:b0103e7a29f39b2e17c7cd7c889f9c06f540451ccd2915e5ad3585545160ed6c` and identical agent
+  `sealed_hash 14e4e3f015cd0dbf775caf60818ef1d6`. IDENTICAL — the full used the exact same solver
+  README as smoke; only the task set differed (full `tasks: null`/all-48 vs smoke 6-task panel).
+- **Full FAIL list (21):** airbnb005, airbnb007, airbnb009, ana-eng004, ana-eng006, ana-eng007,
+  ana-eng007-medium, asana003, asana004, asana005, asana005-hard, f1002, f1005-medium, f1006,
+  f1006-hard, f1011, intercom001, intercom002, intercom003, quickbooks001, quickbooks003.
 
-_Audit/score/headline to be filled in once the `done` sentinel appears (rc=0)._
+The per-task behavioral ledger — (a) why airbnb009's committed `COUNT(*)` pin did NOT reproduce/pass
+at full despite the 3/3 smoke, and (b) which of the 5 regressions are lever-attributable vs
+single-trial variance — is the NEXT stage (analyze), deliberately not started here.
 
 ## Behavioral analysis
 
@@ -294,3 +318,22 @@ repairing the date spine (`IN(DISTINCT)` → `BETWEEN MIN..MAX`), each PASS on a
 narration (AC-3). One open watch item for full: the smoke carried a single airbnb same-family
 canary, so a generative-rule regression on an unrun airbnb/other passer can only be ruled out at
 full scale (G8). Recommend advancing to `full`.
+
+## Stage Report: full
+
+- DONE: Full 48-task run on `specs/h0042-coverage-repair-preserve-metric-semantics.frozen.yaml` completed (launched DETACHED via nohup, polled across turns, never foregrounded); strict audit clean; run-dir + headline recorded in `## Run result`
+  Run-dir `runs/ade-bench-h0042-coverage-repair-preserve-metric-semantics/1948ab42a6a5d9b7` (48 cells); launched 2026-06-10T17:25:57Z via `drivers/rk-run-detached.sh`, sentinel rc=0 at 2026-06-11T00:00:37Z (~6.6h). `rk audit --policy strict` → `{clean:48, tainted:0, coverage_missing:0}`, 0 findings (captured attested on every cell) BEFORE the score was trusted. `rk score --format json` → `stratified_pass_at_1 0.5625` = 27/48. **NO-GO: net −4 vs @baseline 31/48; airbnb009 = 0.0 did NOT flip; 5 regressions (airbnb005/asana003/f1005-medium/f1006-hard/quickbooks003), 1 incidental gain (asana002).**
+- DONE: Methodology consistency (no smoke→full drift): the full run used the SAME solver README as smoke (only the task set differs); hash stated
+  From the SEALED run-dir artifacts, the full run-dir and the smoke run-dir (`797604a420d08244`) both carry `solver_workflow_content_hash` = `sha256:b0103e7a29f39b2e17c7cd7c889f9c06f540451ccd2915e5ad3585545160ed6c` and identical agent `sealed_hash 14e4e3f015cd0dbf775caf60818ef1d6`. IDENTICAL — no drift.
+
+### Summary
+
+NO-GO at full. h0042 scored 27/48 (0.5625) on a clean strict audit (tainted 0, coverage_missing 0,
+0 findings) — net −4 vs @baseline 31/48. The decisive flip target airbnb009 stayed 0.0 FAIL: the
+clean 3/3 airbnb009 smoke did NOT reproduce at 48-scale. The generative coverage-repair rule also
+regressed 5 baseline passers (airbnb005, asana003, f1005-medium, f1006-hard, quickbooks003) against
+1 incidental gain (asana002), exactly the G8 unsampled-regression risk the 6-task smoke could not
+cover. Methodology was drift-free: full and smoke share the identical solver-workflow content-hash
+`b0103e7a…`. This stage is the clean run accounting only; the per-task behavioral ledger (why the
+airbnb009 COUNT(*) pin did not reproduce, and which regressions are lever-attributable vs variance)
+is the next stage (analyze), not started here.
