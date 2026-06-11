@@ -1,10 +1,12 @@
 ---
 title: Make airbnb009 reliably PASS — pin ALL THREE load-bearing implementation forks at once (full dim_dates calendar spine, keep COUNT(*), no cross-join) instead of one fork at a time
-status: ideate
+status: expanded
 kind: concept
 source: captain request 2026-06-11 after h0042 REJECTED; grounded in the airbnb009 failed-attempt evidence h0019/h0041/h0042.
 id: concept-airbnb009-reproducible-fix
 started: 2026-06-11T02:37:14Z
+completed: 2026-06-11T02:44:24Z
+verdict: PASSED
 archived: 2026-06-11T02:44:24Z
 ---
 
