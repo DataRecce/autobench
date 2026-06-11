@@ -1,0 +1,137 @@
+# CLAUDE.md — monitor/
+
+Developer guide for `monitor.py`, the read-only TUI that watches `rk run` jobs.
+Read `README.md` first for the user-facing behavior. This file is for
+**developing and refining** the script.
+
+## What this is
+
+A single-file Python TUI (`monitor.py`) built on `rich` (`Live` + `Layout`),
+packaged as a self-contained `uv` project (`pyproject.toml`, dep: `rich`). It
+polls a razorback `runs/` tree on a timer and renders experiments → jobs →
+trials with a live log tail. It is strictly **read-only**: it never writes run
+dirs, never calls `rk`, never touches the solver. Treat "do not mutate run
+directories" as an invariant.
+
+## Run / dev loop
+
+This folder owns its env — run everything through `uv` from `monitor/`:
+
+```fish
+cd /home/kent/autobench/monitor
+uv run rk-monitor --runs-dir ../ade-bench/runs   # launch the TUI
+uv run pytest                                    # run the unit suite
+```
+
+`rk-monitor` is the `[project.scripts]` entry point (`monitor:main`). `uv`
+installs the project editable, so edits to `monitor.py` take effect with no
+rebuild (`import monitor` in tests resolves straight to the source file).
+
+There **is** a test suite now (`tests/test_monitor.py`): it covers the pure
+formatting/parsing helpers and the filesystem-discovery functions over a fake
+`runs/` tree built in `tmp_path`. The live TUI loop needs a tty and is not
+unit-tested — after a UI/loop change, also launch it against a real `runs/`
+dir, navigate with the keys, open the log picker (`f`), and confirm it doesn't
+crash on in-flight (partially written) jobs. **New pure helpers should land
+with a test**; that's the cheap regression net for schema-decode drift.
+
+## Architecture
+
+Two layers, cleanly split:
+
+1. **`Monitor` class** — owns all UI state (selection indices, focus, sort
+   mode, scroll, picker, the per-job trial cache) and the event loop in
+   `run()`. `handle_key()` mutates state; `render()` rebuilds the `Layout` from
+   current state. State changes never draw directly — they set state and the
+   next `render()` reflects it.
+2. **Module-level free functions** — two flavors:
+   - **discovery/parsing** (`discover_jobs`, `discover_trials`, `trial_*`,
+     `job_*`, `read_json`, `*_summary`, `parse_log_entry`): pure functions over
+     the filesystem, no UI state. This is where razorback's on-disk schema is
+     decoded.
+   - **rendering** (`render_*`, `titled_panel`, `*_style`, `*_icon`): take data,
+     return `rich` renderables. No filesystem access.
+
+Keep that separation when extending: parsing functions stay pure and
+UI-agnostic; rendering functions stay side-effect-free.
+
+### Data model
+
+`Job` and `Trial` (`@dataclass`) and the frozen `DatasetInfo` / `LogEntry` are
+the only shared types. `discover_jobs()` builds shallow `Job`s (cheap stats for
+every sidebar row); `discover_trials()` is the expensive per-job parse, run
+lazily only for the *current* job and memoized in `self.trial_cache`.
+
+### Refresh & caching
+
+- `refresh()` runs at most every `refresh_sec`, re-discovers jobs, and restores
+  the prior experiment/job/trial selection by identity (path / name) so the
+  cursor doesn't jump when the list reorders.
+- `load_current_job_trials()` re-parses trials only when
+  `job_trial_signature()` (mtimes + sizes of activity files) changes. **If you
+  add a file the parser reads, add it to `TRIAL_ACTIVITY_FILES` /
+  `JOB_ACTIVITY_FILES`** or the cache will serve stale data.
+- The event loop (`run()`) interleaves key polling and refresh: `key_poll_interval()`
+  keeps input latency low while honoring the refresh cadence, and `dirty`
+  tracking avoids redundant repaints.
+
+## razorback schema this depends on
+
+These are the external contracts; they can drift if razorback changes its
+output. The most likely sources of future breakage:
+
+- **Job dir markers**: `looks_like_job_dir()` → `_job_config.yaml`,
+  `config.json`, `job.log`, `lock.json`.
+- **Trial dir convention**: name contains `__`, `<task-id>__<suffix>`.
+- **`result.json`**: `stats.{n_running,n_pending,n_errored,n_completed}_trials`,
+  `n_total_trials`, `finished_at`, `started_at`, `verifier_result.rewards.reward`,
+  `agent_result.{n_input_tokens,n_output_tokens}`, `exception_info`,
+  `stats.evals[*].reward_stats.reward` (for the pass count).
+- **`config.json`**: `tasks[*].path` (pending trials + total count).
+- **Codex transcript** `agent/codex.txt`: line-delimited JSON events with
+  `item.type` ∈ {`agent_message`, `command_execution`, `file_change`,
+  `tool_call`, …}; parsed by `describe_log_item()`.
+- **Spacedock session rollouts** `agent/sessions/**/rollout-*.jsonl`: first line
+  is `session_meta` with `payload.thread_source` (`user` = first-officer,
+  `subagent` = worker); body records have `payload.type`; parsed by
+  `parse_rollout_entry()` / `describe_rollout_payload()`.
+- **`subagent-trace-manifest.json`**: `dispatches[*].{spawn_index,subagent_type}`
+  for labelling worker session logs.
+- **Verifier** `verifier/test-stdout.txt`: dbt `Done. PASS=n … TOTAL=n` summary
+  line; the *last* match is the test run (`TEST_SUMMARY_RE`).
+- **`datasets.md`**: pipe table `` | `dataset` | difficulty | description | ``
+  parsed by `load_dataset_info()`.
+
+When adding a new field, decode it in a small pure helper next to its siblings,
+fail soft (return `None`/`"-"`/`{}` on missing or malformed data — see
+`read_json`, `parse_iso`), and never let a half-written file raise into the
+render loop.
+
+## Conventions
+
+- **Fail soft, never crash the UI.** Every filesystem read tolerates missing /
+  partial / malformed files. A running job is constantly being written; assume
+  any file may be truncated mid-read.
+- **Styles go through the theme.** Add a semantic key to `STYLES` and reference
+  it; don't hardcode colors in renderers. Status/verify colors and icons are
+  centralized in `status_style`/`verify_style`/`status_icon`.
+- **Keys are normalized once.** `normalize_key()` + the `KEY_ALIASES` /
+  regex tables map raw escape sequences to logical names; `handle_key()` only
+  ever sees logical names. Add new bindings there and document them in
+  `render_header()` and the README key table.
+- **Windowing** for any scrollable list goes through `visible_window()` so long
+  lists never overflow and crop silently.
+- Comments explain *why* (e.g. the `os.read` vs buffered-read note in
+  `read_raw_char`, the "last dbt summary is the test run" note). Match that
+  density — explain non-obvious schema/terminal quirks, skip the obvious.
+
+## Refining checklist
+
+When asked to add a feature:
+1. New data to show → add a pure `trial_*`/`job_*` parser + the field on the
+   dataclass, and register any new source file in the `*_ACTIVITY_FILES` tuples.
+2. New display → a `render_*` helper returning a renderable, wired into
+   `render()`'s layout; reuse `titled_panel`.
+3. New key → `handle_key()` (logical name), the header string, the README table.
+4. Add/extend a test in `tests/test_monitor.py`, run `uv run pytest`, and for
+   UI changes also verify against a live `runs/` dir.

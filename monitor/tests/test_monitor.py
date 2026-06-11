@@ -1,0 +1,230 @@
+"""Unit tests for monitor.py pure helpers and filesystem discovery.
+
+These cover the bits that decode razorback's on-disk schema and the small
+formatting/navigation utilities — the parts most likely to break when the
+schema drifts or someone refactors. The TUI event loop itself needs a tty and
+is left for manual verification (see CLAUDE.md).
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import monitor as m
+
+
+# --- formatting ------------------------------------------------------------
+
+def test_format_duration():
+    assert m.format_duration(None) == "-"
+    assert m.format_duration(0) == "0s"
+    assert m.format_duration(45) == "45s"
+    assert m.format_duration(90) == "1m30s"
+    assert m.format_duration(3661) == "1h01m"
+
+
+def test_format_tokens():
+    assert m.format_tokens(None) == "-"
+    assert m.format_tokens(500) == "500"
+    assert m.format_tokens(1500) == "2k"
+    assert m.format_tokens(2_500_000) == "2.5M"
+
+
+def test_clamp():
+    assert m.clamp(5, 0, 10) == 5
+    assert m.clamp(-1, 0, 10) == 0
+    assert m.clamp(99, 0, 10) == 10
+
+
+def test_visible_window_keeps_selection_in_view():
+    items = list(range(100))
+    window = m.visible_window(items, selected=50, capacity=10)
+    indices = [i for i, _ in window]
+    assert len(window) == 10
+    assert 50 in indices
+    # Window is clamped to the list bounds at the edges.
+    assert m.visible_window(items, selected=0, capacity=10)[0][0] == 0
+    assert m.visible_window(items, selected=99, capacity=10)[-1][0] == 99
+    assert m.visible_window([], selected=0, capacity=10) == []
+
+
+# --- key handling ----------------------------------------------------------
+
+def test_normalize_key_aliases_and_sequences():
+    assert m.normalize_key("q") == "quit"
+    assert m.normalize_key("\x03") == "quit"
+    assert m.normalize_key("\x1b[A") == "up"
+    assert m.normalize_key("\x1bOB") == "down"
+    # Modified arrow (e.g. with Ctrl/Shift) still resolves to the base arrow.
+    assert m.normalize_key("\x1b[1;5A") == "up"
+    assert m.normalize_key("\x1b[6~") == "page-down"
+    # Unknown sequence passes through unchanged.
+    assert m.normalize_key("zzz") == "zzz"
+
+
+# --- status / verify styling ----------------------------------------------
+
+def test_status_style_and_icon():
+    assert m.status_style("running") == "status.running"
+    assert m.status_style("errored") == "status.errored"
+    assert m.status_style("completed") == "status.complete"
+    assert m.status_icon("running") == ">"
+    assert m.status_icon("errored") == "!"
+    assert m.status_icon("mystery") == "?"
+
+
+def test_verify_style_and_outcome():
+    assert m.verify_style("reward=1.0") == "verify.pass"
+    assert m.verify_style("reward=0.0") == "verify.fail"
+    assert m.verify_style("pending") == "verify.pending"
+    assert m.verify_outcome("reward=1.0") == "passed"
+    assert m.verify_outcome("reward=0") == "failed"
+    assert m.verify_outcome("pending") == ""
+
+
+# --- small text utils ------------------------------------------------------
+
+def test_one_line():
+    assert m.one_line(None) == "-"
+    assert m.one_line("  hello  ") == "hello"
+    assert m.one_line("\n\n  first\nsecond") == "first"
+    assert m.one_line("   ") == "-"
+
+
+def test_compact_json():
+    assert m.compact_json({"b": 1, "a": 2}) == '{"a":2,"b":1}'
+
+
+def test_changed_files_summary():
+    text = "Changed files\n- /app/models/foo.sql\n- /app/models/bar.sql\n\ndone"
+    assert m.changed_files_summary(text) == "changed: foo.sql, bar.sql"
+    assert m.changed_files_summary("no section here") == ""
+
+
+# --- log entry parsing -----------------------------------------------------
+
+def test_parse_log_entry_plain_line():
+    entry = m.parse_log_entry("trial", "just a plain log line")
+    assert entry.raw == "just a plain log line"
+    assert entry.prefix == ""
+
+
+def test_parse_log_entry_codex_command():
+    line = json.dumps({
+        "type": "item.completed",
+        "item": {"type": "command_execution", "command": "ls -la", "exit_code": 0},
+    })
+    entry = m.parse_log_entry("codex", line)
+    assert entry.prefix == "command_execution"
+    assert entry.description == "ls -la"
+
+
+def test_parse_log_entry_codex_command_nonzero_exit_marks_error():
+    line = json.dumps({
+        "type": "item.completed",
+        "item": {"type": "command_execution", "command": "false", "exit_code": 1},
+    })
+    entry = m.parse_log_entry("codex", line)
+    assert entry.state == "error"
+    assert "(exit 1)" in entry.description
+
+
+def test_parse_log_entry_rollout_payload():
+    line = json.dumps({
+        "type": "response_item",
+        "payload": {"type": "agent_message", "message": "hello world"},
+    })
+    entry = m.parse_log_entry("session:first-officer", line)
+    assert entry.prefix == "agent_message"
+    assert entry.description == "hello world"
+
+
+# --- dataset table ---------------------------------------------------------
+
+def test_load_dataset_info(tmp_path: Path):
+    md = tmp_path / "datasets.md"
+    md.write_text(
+        "| Dataset | Diff | Description |\n"
+        "| --- | --- | --- |\n"
+        "| `airbnb001` | easy | count listings |\n"
+    )
+    info = m.load_dataset_info(md)
+    assert info["airbnb001"].difficulty == "easy"
+    assert info["airbnb001"].description == "count listings"
+    # Header row is skipped, missing file is empty.
+    assert "Dataset" not in info
+    assert m.load_dataset_info(tmp_path / "nope.md") == {}
+
+
+# --- filesystem discovery --------------------------------------------------
+
+def _make_job(runs: Path, experiment: str, job: str) -> Path:
+    job_dir = runs / experiment / job
+    job_dir.mkdir(parents=True)
+    return job_dir
+
+
+def test_discover_jobs_and_status(tmp_path: Path):
+    runs = tmp_path / "runs"
+    # A finished job.
+    done = _make_job(runs, "exp-a", "job1")
+    (done / "config.json").write_text(json.dumps({"tasks": [{"path": "/d/airbnb001"}]}))
+    (done / "result.json").write_text(json.dumps({
+        "finished_at": "2026-06-11T00:00:00Z",
+        "n_total_trials": 1,
+        "stats": {"n_completed_trials": 1, "n_errored_trials": 0},
+    }))
+    # A running job (lock present, no result).
+    running = _make_job(runs, "exp-a", "job2")
+    (running / "config.json").write_text(json.dumps({"tasks": []}))
+    (running / "lock.json").write_text("{}")
+
+    jobs_by_exp = m.discover_jobs(runs)
+    assert set(jobs_by_exp) == {"exp-a"}
+    statuses = {j.path.name: j.status for j in jobs_by_exp["exp-a"]}
+    assert statuses == {"job1": "finished", "job2": "running"}
+
+
+def test_discover_trials_real_and_pending(tmp_path: Path):
+    runs = tmp_path / "runs"
+    job = _make_job(runs, "exp", "job")
+    # config lists two tasks; only one has a trial dir on disk.
+    (job / "config.json").write_text(json.dumps({
+        "tasks": [{"path": "/data/airbnb001"}, {"path": "/data/airbnb002"}],
+    }))
+    trial = job / "airbnb001__abc123"
+    trial.mkdir()
+    (trial / "result.json").write_text(json.dumps({
+        "started_at": "2026-06-11T00:00:00Z",
+        "finished_at": "2026-06-11T00:01:00Z",
+        "verifier_result": {"rewards": {"reward": 1.0}},
+        "agent_result": {"n_input_tokens": 100, "n_output_tokens": 50},
+    }))
+
+    trials = m.discover_trials(job)
+    by_id = {t.task_id: t for t in trials}
+    assert set(by_id) == {"airbnb001", "airbnb002"}
+    # The on-disk trial is parsed as completed+passed with duration and tokens.
+    real = by_id["airbnb001"]
+    assert real.status == "completed"
+    assert real.verify_result == "reward=1.0"
+    assert real.duration_sec == 60.0
+    assert real.tokens == 150
+    # The configured-but-absent task shows up as a pending placeholder.
+    assert by_id["airbnb002"].status == "pending"
+    assert by_id["airbnb002"].path is None
+
+
+def test_trial_status_errored(tmp_path: Path):
+    trial = tmp_path / "t__x"
+    trial.mkdir()
+    (trial / "exception.txt").write_text("boom")
+    assert m.trial_status(trial) == "errored"
+
+
+def test_read_json_tolerates_garbage(tmp_path: Path):
+    bad = tmp_path / "bad.json"
+    bad.write_text("{not valid json")
+    assert m.read_json(bad) == {}
+    assert m.read_json(tmp_path / "missing.json") == {}
