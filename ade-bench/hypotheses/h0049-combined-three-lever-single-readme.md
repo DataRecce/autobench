@@ -104,11 +104,106 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
+**GO — composition succeeded. NO interference.** All three levers preserved their solo
+effect when stacked verbatim in one README. The single FAIL (quickbooks004) is traced to
+h0045's OWN known coin-flip variance, with the other two levers provably silent on that cell.
+
+Run-dirs (both clean strict audit, captured>0 every cell — AC-2):
+- Panel (12 cells): `runs/ade-bench-h0049-combined-three-lever-single-readme/aa64c927c4f793bd`
+  — strict audit `{"clean":12,"tainted":0,"coverage_missing":0}`; `rk score` stratified mean
+  **0.9167** (11/12), verdict `above`.
+- airbnb009 repeats (2 cells): `…/98f921121acc361b` — strict audit `{"clean":2,"tainted":0}`;
+  score mean 1.0.
+
+| Task | @baseline h0043 | h0049 combined | Role | Result |
+|------|-----------------|----------------|------|--------|
+| airbnb009 | ❌ FAIL | ✅ **3/3 PASS** (crbaKSF + 8fdsmrm + yr9XKoM) | flip (h0046) | FLIPPED, reproducible |
+| f1006 | ❌ FAIL | ✅ PASS | flip (h0044) | FLIPPED |
+| f1006-hard | ❌ FAIL | ✅ PASS | flip (h0044) | FLIPPED |
+| quickbooks002 | ✅ PASS | ✅ PASS | hold (h0045) | HELD |
+| quickbooks004 | ✅ PASS | ❌ **FAIL** | hold (h0045) | **REGRESSED — h0045 variance (see below)** |
+| f1005 | ✅ PASS | ✅ PASS | perturbable canary (f1/standings) | HELD |
+| f1005-medium | ✅ PASS | ✅ PASS | perturbable canary (f1/standings) | HELD |
+| airbnb001 | ✅ PASS | ✅ PASS | perturbable canary (airbnb/coverage) | HELD |
+| airbnb008 | ✅ PASS | ✅ PASS | perturbable canary (airbnb/coverage) | HELD |
+| quickbooks003 | ✅ PASS | ✅ PASS | perturbable canary (qb/feature) | HELD |
+| ana-eng001 | ✅ PASS | ✅ PASS | cross-family canary | HELD |
+| asana001 | ✅ PASS | ✅ PASS | cross-family canary | HELD |
+
+Net vs the 5 named targets: **+3 flips** (airbnb009, f1006, f1006-hard), **1 hold preserved**
+(qb002), **1 hold regressed** (qb004 — h0045 variance). Every canary (7/7) held PASS on a clean
+audit (AC-5). Three flips composed in ONE README; the one regression is not interference.
+
 ## Run result
 
 ## Behavioral analysis
 
+**Per-lever no-interference read (committed artifacts — AC-4).**
+
+- **h0046 → airbnb009 (3/3 PASS, all three forks).** Committed `mom_agg_reviews.sql` across
+  the three draws (crbaKSF panel + 8fdsmrm/yr9XKoM repeats) shows the three-fork signature: the
+  narrowing membership predicate (`WHERE DATE_ACTUAL IN (SELECT …)`) dropped, `COUNT(*)` kept
+  byte-intact (15 `count(*)` refs, no rewrite to `COUNT(col)`), no `cross join` of a secondary
+  category against the date dimension. Reproducible at 3/3 — banks the bimodal cell (AC-4). The
+  worked-example skeleton landed mechanically; matches h0046's solo 3/3.
+- **h0044 → f1006 + f1006-hard (both PASS).** Committed `driver_points.sql` /
+  `constructor_points.sql` show the exact same-grain repair: `sum(ds.points) → max(ds.points)`
+  (unified diff `-sum(ds.points) AS total_points / +max(ds.points)`). Downstream `championships`
+  ranks on `max_points` at the entity/season grain — NOT latest-row / QUALIFY / order-by-final-race.
+  Matches h0044's solo 6/6 incl. f1006 artifact-proof.
+- **h0045 → qb002 (HELD PASS).** Narrow feature-boundary toggle edit; no broad domain rewrite;
+  preserved.
+- **Canaries (7/7 HELD on clean audit).** f1005 / f1005-medium (perturbable f1/standings),
+  airbnb001 / airbnb008 (perturbable airbnb/coverage), quickbooks003 (perturbable qb/feature),
+  ana-eng001 / asana001 (cross-family) — all 1.0. The stacked levers did NOT mis-fire on a
+  same-construct passer: the f1 max(points) rule did not break f1005/f1005-medium, the coverage
+  skeleton did not break airbnb001/008.
+
+**Composition verdict: the three orthogonal construct-gated levers COMPOSE in one README with no
+cross-lever interference.** Each lever's target landed by its own committed artifact, exactly as
+in its solo smoke; no precondition mis-fired and no lever's rule dominated or muddied another's.
+
 ## Failure Review
+
+**Scope:** the single regression, quickbooks004 (h0045 hold target, PASS at @baseline → FAIL here).
+
+**Primary type: `variance-unclear` → resolved to single-trial variance (NOT interference).**
+
+1. **Original hypothesized fork.** qb004 is a toggle/disable task (add `using_exchange_rate:
+   false` and guard the converted-amount columns). h0045's lever says: keep the edit at the
+   feature boundary, guard only the derived outputs/docs, don't broadly rewrite. The hypothesis
+   treated qb004 as a no-harm HOLD.
+2. **What the committed artifact actually revealed.** The verifier hit a **YAML Parsing Error
+   in `models/quickbooks.yml`, "Syntax error near line 145, column 8"**; `actual_test_total=0`
+   (0/48 tests ran) → reward 0. Root cause: the solver inserted dbt **Jinja control-flow
+   `{% if var('using_exchange_rate', False) %} … {% endif %}` directly inside the schema
+   `quickbooks.yml`** to conditionally hide the `total_converted_amount` column docs. dbt does
+   not support `{% if %}` block-wrapping of YAML list entries in schema files — once rendered it
+   is invalid YAML, so the project failed to PARSE (not a data mismatch — the verifier never
+   even ran the equality tests).
+3. **Did the README rule fire — and is this interference?** **No interference.** Decisive
+   evidence: (a) h0044's max(points)/standings and h0046's cross-join/coverage lever language
+   appeared **0 times** in the qb004 reasoning — both non-firing levers stayed completely silent;
+   their preconditions never matched this toggle task. (b) The failing artifact is h0045's OWN
+   exploration path: in h0045's **solo** smoke, the solver FIRST tried the identical
+   `{% if %}`-in-yml guard, then **REVERTED it** (a follow-up patch deletes the `{% if %}/{% endif %}`
+   block) and shipped valid YAML → PASS. In the combined run the solver inserted the same block
+   **but never reverted it** (14 adds, 0 removes of the if-block) → broken YAML → FAIL. The bug is
+   the same idea both times; the only difference is whether the solver caught and undid it — a
+   single-trial coin-flip, not a stacked-lever effect. qb004 also dropped in h0042's full, an
+   independently-known bimodal cell. Both other levers being provably silent rules out
+   precondition mis-routing / README-bloat interference.
+4. **New fork / failure mechanism to test next.** Independent of composition: h0045 (and the
+   solver generally) has a latent **schema-yml Jinja-guard trap** — guarding column docs with
+   `{% if %}` inside `.yml` produces a parse error the solver's offline render-check
+   (`python3` jinja render + DuckDB-parser probe) does NOT catch, because it never runs dbt's
+   actual schema parser (packages absent, `dbt deps` forbidden). A future h0045-class lever could
+   add: "to conditionally hide a column, gate it in the model SQL select-list, not by wrapping
+   YAML schema entries in `{% if %}`" — a mechanical do/don't that closes this specific trap.
+5. **Next step: `file` (advisory) + advance.** This is NOT a composition failure, so it does not
+   block the GO. Route the schema-yml-Jinja-guard trap as a candidate follow-up (low priority —
+   it is a solver-side variance, qb004 still PASSED at @baseline/solo/qb002-here). The composition
+   experiment's own claim is GO.
 
 ## Follow-up Routing
 
@@ -126,3 +221,18 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 ### Summary
 
 Stacked the three smoke-verified construct-gated levers (h0044 same-grain max(points), h0045 feature-boundary removal/toggle, h0046 coverage-repair worked-example skeleton) VERBATIM onto the current @baseline h0043 README, each as its own precondition-gated Implementation rule with NO integration prose (captain: verbatim, separate gated rules). README diff vs h0043 is purely additive and each block byte-traces to its source. Full + smoke + r2/r3 specs frozen. @baseline (h0043, 32/48) per-task verified: airbnb009/f1006/f1006-hard FAIL (flip targets), qb002/qb004 PASS (hold targets), all 7 canaries PASS, intercom has zero passers (structural residual). Gatekeeper APPROVE, no integrity FAILs. The only open empirical question — does stacking interfere or mis-route a precondition? — is answerable only by the combined rk smoke; propose stops at freeze + gatekeeper (no rk run launched). Best case +3 → 35/48.
+
+## Stage Report: smoke
+
+- DONE: Strict audit BOTH run-dirs (captured>0 every cell) BEFORE scores; score each; confirm airbnb009 3/3.
+  Panel `aa64c927c4f793bd` strict audit `{clean:12,tainted:0,coverage_missing:0}`, score 0.9167 (11/12); repeats `98f921121acc361b` `{clean:2,tainted:0}`, score 1.0. captured>0 confirmed all 14 cells. airbnb009 = 3/3 PASS (crbaKSF + 8fdsmrm + yr9XKoM).
+- DONE: THE DECISIVE qb004 read — classify interference vs variance vs @baseline + h0045 solo artifact, cite failing check + Got N.
+  Failing check = YAML Parsing Error in `models/quickbooks.yml`, "Syntax error near line 145, column 8", `actual_test_total=0` (NOT a Got-N data mismatch — verifier never ran). Root cause: solver wrapped a schema-yml column entry in `{% if var('using_exchange_rate', False) %}` (invalid dbt). Classified VARIANCE not interference: h0044/h0046 lever language 0 hits in qb004 reasoning (both silent); identical broken edit appeared in h0045 SOLO smoke but was REVERTED there (PASS), here it was not (14 adds / 0 removes of the if-block). qb002/qb004 both PASS at @baseline h0043; qb004 PASS in h0045 solo.
+- DONE: Per-lever no-interference read for the rest (airbnb009 three forks / f1006 + f1006-hard max(points) / qb002 narrow boundary); confirm canaries held on clean audit.
+  airbnb009: three-fork signature in committed `mom_agg_reviews.sql` (drop predicate / COUNT(*) byte-intact / no cross-join) 3/3. f1006+f1006-hard: committed `sum(ds.points)→max(ds.points)`, downstream rank on max_points at entity/season grain, no QUALIFY/latest-row. qb002 held. 7/7 canaries (f1005/f1005-medium/airbnb001/airbnb008/qb003/ana-eng001/asana001) = 1.0 on clean audit (AC-5).
+- DONE: Write ## Smoke result + ## Behavioral analysis + ## Failure Review (qb004 regressed); lead with GO/NO-GO + composition verdict; add WORKFLOW-REFINE.md entry.
+  All written. Verdict GO; composition verdict = orthogonal construct-gated levers COMPOSE in one README, no interference. WORKFLOW-REFINE ledger entry appended ("Orthogonal construct-gated levers COMPOSE in one README — no interference (h0049 GO, 2026-06-11)").
+
+### Summary
+
+GO. The combined three-lever README preserved each lever's solo effect: +3 flips composed (airbnb009 3/3, f1006, f1006-hard, all by committed artifact), qb002 held, all 7 canaries held on a clean strict audit. The single regression (qb004) is h0045's OWN single-trial coin-flip variance — a broken `{% if %}`-in-schema-yml guard the solver reverted in its solo smoke but not here — with the other two levers provably silent on that cell (0 lever-language hits), so it is NOT cross-lever interference. Headline finding: precondition-gated levers targeting disjoint construct families compose additively in one README; the gate is the isolation mechanism. Best case at full = +3 → 35/48 (qb004 at risk as a coin-flip, not a lever defect). Recommend advancing to full.

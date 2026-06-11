@@ -1113,3 +1113,42 @@ or a dispatched worker, never a direct first-officer edit.
   runs*; call sites `hypotheses/README.md` `smoke`/`full` + Repo conventions; MEMORY
   `rk-run-detached-nohup` (rewritten). Smoke test: handles under `runs/.rk-handles/` (cleaned); ntfy
   topic `ade-bench/.ntfy-topic` (gitignored).
+
+### Orthogonal construct-gated levers COMPOSE in one README — no interference (h0049 GO, 2026-06-11)
+- **Layer:** solver workflow
+- **Refinement type:** new protocol — *multi-lever composition*: stack N already-smoke-verified,
+  precondition-gated Implementation rules VERBATIM in a single README (each its own gated paragraph,
+  no integration prose) and test whether each lever keeps its solo effect or stacking interferes.
+- **Finding (h0049 smoke, run `aa64c927c4f793bd` panel + `98f921121acc361b` repeats; clean strict
+  audit, captured>0 every cell):** ONE README composing three orthogonal construct-gated levers
+  (h0044 same-grain max(points) / h0045 feature-boundary toggle / h0046 coverage-repair skeleton)
+  stacked on @baseline h0043 **preserved every lever's solo effect by committed artifact**: airbnb009
+  flipped FAIL→PASS **3/3** (three-fork signature — drop narrowing predicate, COUNT(*) byte-intact,
+  no cross-join); f1006 + f1006-hard flipped via `sum(points)→max(points)` (no latest-row/QUALIFY);
+  qb002 held; all 7 canaries held (incl. the perturbable same-construct ones the levers can fire on:
+  f1005/f1005-medium, airbnb001/008, qb003). The one regression (qb004 0.0) was NOT interference:
+  the two non-firing levers (h0044/h0046) appeared **0 times** in qb004's reasoning, and the failing
+  artifact (`{% if %}` Jinja wrapped around a column entry in schema `quickbooks.yml` → YAML parse
+  error, 0/48 tests ran) is h0045's OWN known-bimodal coin-flip — in h0045's solo smoke the solver
+  made the same broken edit then REVERTED it (PASS); combined it didn't revert (FAIL). Same idea both
+  times; difference is single-trial self-correction, not a stacked-lever effect.
+- **Learning:** **precondition-gated levers that target DISJOINT construct families compose
+  additively in one README — no cross-talk, no README-bloat precondition mis-fire.** The gate is the
+  isolation mechanism: a lever's rule is inert text on any task whose construct it doesn't match, so
+  N disjoint gated levers behave as N independent solo runs. This is the OPPOSITE of a generative
+  (ungated) lever, which bleeds across families (h0009 −3, h0012 −4). Composition is therefore a cheap
+  way to bank multiple verified flips at once WITHOUT re-paying per-lever full-run cost — but the
+  per-lever solo verification must come FIRST (you compose verified levers, you don't discover them by
+  stacking). Corollary trap surfaced: a self-correcting solver behavior (try-broken-then-revert) makes
+  a hold target a coin-flip — judge holds by whether the lever's CONSTRUCT is even touched, not by a
+  single reward. (Also a latent solver trap: guarding a column by wrapping its schema-`.yml` entry in
+  `{% if %}` is invalid dbt — gate it in the model SQL select-list instead; the solver's offline
+  jinja/DuckDB-parser probe misses it because it never runs dbt's schema parser.)
+- **Bears on:** any future "bank several verified levers together" move (compose, don't re-run each at
+  full); the propose-gate canary doctrine (G8 — gated levers need same-construct perturbable canaries,
+  but cross-lever interference is NOT a new failure mode for DISJOINT gates); the hold-target judging
+  rule (construct-touch, not reward, for coin-flip cells).
+- **Evidence:** `hypotheses/h0049-combined-three-lever-single-readme.md` (`## Smoke result` /
+  `## Behavioral analysis` / `## Failure Review`); runs
+  `runs/ade-bench-h0049-combined-three-lever-single-readme/{aa64c927c4f793bd,98f921121acc361b}`;
+  source levers h0044/h0045/h0046; MEMORY cross-ref `ade-bench-instruction-lever-taxonomy`.
