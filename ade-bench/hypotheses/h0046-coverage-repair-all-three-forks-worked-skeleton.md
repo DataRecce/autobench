@@ -337,3 +337,18 @@ which the skeleton's byte-intact-aggregate rule prevented. airbnb009 is single-s
 bet (one block pins all three forks under a single draw) is confirmed — the G7 inert-risk on
 structural rewrites is falsified by the worked-example form. Per AC-4 the full 48-task verdict stays
 provisional (`trials: 1`), but the 3/3 byte-identical convergence is far stronger than h0019/h0042.
+
+## Run result (Phase 1 — full launched, awaiting sentinel)
+
+Full 48-task run launched 2026-06-11T15:27Z, detached, concurrent with the captain's midnight
+batch (h0044/h0045). `rk run --explain` rc=0, resolved to **48 tasks**. FO owns the wait (scan
+`runs/.rk-handles/*/`).
+
+- Spec (frozen): `specs/h0046-coverage-repair-all-three-forks-worked-skeleton.frozen.yaml`
+- Handle: `runs/.rk-handles/h0046-full-20260611-152733/` (pid 601381 ALIVE at launch, no `done` yet)
+
+**Phase 2** (after the `done` sentinel lands rc=0): strict audit the run-dir clean
+(`tainted: 0`, `coverage_missing: 0`) + `captured > 0` on every cell BEFORE trusting the score;
+`rk score <dir> --format json`; record run-dir + headline pass-rate here. The behavioral
+deep-dive (the airbnb009 three-fork artifact read vs @baseline + canary/regression sweep) is the
+separate `analyze` stage the FO dispatches next — NOT done in this Run-result write-up.
