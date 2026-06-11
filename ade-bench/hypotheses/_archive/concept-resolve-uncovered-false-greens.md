@@ -7,6 +7,8 @@ started: 2026-06-04T13:40:51Z
 completed: 2026-06-04T13:40:51Z
 verdict: PASSED
 id: concept-resolve-uncovered-false-greens
+worktree:
+archived: 2026-06-11T02:47:49Z
 ---
 
 ## Direction

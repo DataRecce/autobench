@@ -7,6 +7,8 @@ started: 2026-06-05T00:00:00Z
 completed: 2026-06-05T00:00:00Z
 verdict: PASSED
 id: concept-contract-first-derivation-stage
+worktree:
+archived: 2026-06-11T02:47:49Z
 ---
 ## Direction
 

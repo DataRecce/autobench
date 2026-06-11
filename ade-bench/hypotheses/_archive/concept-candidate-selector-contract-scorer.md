@@ -9,6 +9,7 @@ verdict: PASSED
 score:
 worktree:
 id: concept-candidate-selector-contract-scorer
+archived: 2026-06-11T02:47:49Z
 ---
 
 ## Direction
