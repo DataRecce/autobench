@@ -532,3 +532,93 @@ single-trial — so the verdict rests on the committed-artifact mechanism (stand
 which is decisively a lever win. Recommend CONCLUDE as the program's first genuine +1 and
 that the captain PROMOTE @baseline to 32/48. `rk runs diff` TypeError'd (query_id null) →
 paired delta computed from per_trial_outcomes.json by slug, as noted.
+
+## Verdict
+
+**PASSED + PROMOTED.** Captain-approved. `@baseline` advanced **31/48 → 32/48**.
+
+**New anchor (verified):** `@baseline` now resolves to
+`runs/ade-bench-h0043-package-update-optional-resource-matrix/7390e6adf44ba5ea`
+(`rk registry resolve run @baseline` → that path; `rk registry list` → `run @baseline →
+…/7390e6adf44ba5ea`). `rk score` on it = `stratified_pass_at_1 0.6667` (32/48), verdict
+`above` the 0.1875 paper baseline. The re-bind was executed via
+`rk registry add run baseline runs/ade-bench-h0043-…/7390e6adf44ba5ea` (→ `OK`); it is
+persisted in the YAML registry store `~/.config/razorback/registry.yaml`
+(`entries: [{kind: run, name: baseline, path: runs/ade-bench-h0043-…/7390e6adf44ba5ea}]`).
+Prior anchor was `runs/ade-bench-baseline/622bdedac572b479` (31/48 = 0.6458).
+
+**The first genuine +1 of the program.** `asana002` flipped FAIL→PASS via optional-resource
+VAR-GATING — gates the tag/task-tag chain with the EXISTING package vars
+(`asana__using_tags`/`asana__using_task_tags`) across `int_asana__task_tags.sql`,
+`asana__task.sql`, `asana__tag.sql`; `{% if %}` CTE/join/columns + typed-null shape
+placeholders. **Artifact-proven 2/2 at smoke AND full**, lever-attributable
+(`AUTO_asana__task_equality` FAIL 2 → PASS). This is the OPPOSITE of h0033's green-but-inert:
+there the prescribed `::type` cast never appeared; here the prescribed var-gating IS the
+load-bearing committed fix (no `::type` representation cast, no raw seed edit, no seed
+`column_types`, no broad package copy).
+
+**Honest composition of the promoted anchor (the new @baseline carries this).** The +1 is
+**+2 / −1** by slug-pairing; the two off-target movers are lever-INERT and net 0, so the +1
+rests SOLELY on the lever's asana002 flip:
+- NEW @baseline `asana002` = **PASS** (lever flip — the banked +1).
+- NEW @baseline `f1011` = **PASS** (off-target variance gain; committed `select 'ADE' as
+  answer`, no var-gating — a (variance) PASSER now in the anchor).
+- NEW @baseline `f1006-hard` = **FAIL** (off-target regression; committed `row_number()
+  standings_rank=1` rewrite, no var-gating). **WATCHLIST: f1006-hard is a chronic
+  single-trial-variance cell** — it passed ONLY at the old @baseline (1.0) and scored 0.0 in
+  the h0037, h0041, h0042 AND h0043 fulls. Its FAIL in the new anchor is the modal outcome,
+  not lever damage; treat any future f1006-hard ±1 as noise, not signal.
+
+**Aggregate caveat (why the verdict is artifact-based).** The paired bootstrap 95% CI on the
+pass-rate delta is [−2, +4] tasks and straddles zero — at single-trial it cannot statistically
+distinguish +1 from noise. Per the standing decision [[ade-bench-single-trial-judge-by-artifact]]
+the promotion rests on the committed-artifact mechanism (asana002 var-gating, 2/2) and
+bleed-free canaries, NOT on a multi-trial CI.
+
+**Closing learnings (transferable).**
+- **package-update optional-resource var-gating is a REAL, reproducible lever.** When an
+  installed package update makes a resource optional (exposes a disable-able var) and a
+  downstream model unconditionally refs it, gating the affected dependency chain with the
+  EXISTING package vars lands the flip — because correctness is structurally recoverable from
+  the VISIBLE vars, NOT hidden in an oracle-only aggregate. This is why it succeeded where the
+  oracle-blocked flip portfolio ([[ade-bench-oracle-program-concluded]]) failed at +0.
+- **artifact-attributed flip > green count.** A green target alone is not a GO (h0033
+  green-but-inert); the committed patch must carry the prescribed mechanism. AC-4's
+  artifact-shaped read is what separated this real +1 from an inert green.
+- **gated levers carry no generative bleed** (G8 N/A confirmed at full: all canaries held;
+  the off-target movers were the lever NOT firing, exactly as designed).
+
+**Scope note:** h0043 is an IN-STAGE Implementation-stage instruction lever, NOT a
+workflow-structural change → no `_artifacts/WORKFLOW-REFINE.md` entry needed. No follow-up
+auto-filed: combined-README stacking of var-gating with h0044/h0045 is a captain strategy
+decision, not an auto-file.
+
+**Promote-copy-step note (operator):** the canonical README form
+`rk baseline promote <variant-run-dir>` (hypotheses/README.md:435) is documented WITHOUT the
+`--to`/`--constraints` flags that the installed `rk` now REQUIRES. The artifact-copy step was
+therefore NOT run (it would need an invented constraints file + baseline-dir destination); the
+load-bearing, captain-approved re-bind (`rk registry add`) WAS executed and verified. The
+@baseline ref + score are correct regardless — `promote`'s copy is a portability convenience,
+not what the registry resolves to. Flagged to team-lead as a doc/CLI drift.
+
+## Stage Report: conclude
+
+- DONE: EXECUTE THE PROMOTE — @baseline re-bound + verified
+  `rk registry add run baseline runs/ade-bench-h0043-…/7390e6adf44ba5ea` → `OK`. VERIFY: `rk registry resolve run @baseline` → `…/7390e6adf44ba5ea`; `rk registry list` → `run @baseline → …/7390e6adf44ba5ea`; `rk score` on it = `0.6667` (32/48), verdict `above`. Persisted in `~/.config/razorback/registry.yaml`. (`rk baseline promote` artifact-copy step SKIPPED — installed CLI requires `--to`/`--constraints` the documented form omits; copy is non-load-bearing, flagged as doc/CLI drift.)
+- DONE: Terminal `## Verdict` — PASSED + PROMOTED, @baseline 31/48 → 32/48, composition recorded honestly
+  Verdict written: new anchor `…/7390e6adf44ba5ea` (32/48); first genuine +1 = asana002 optional-resource var-gating (2/2 smoke+full, lever-attributable, opposite of h0033 inert). New anchor carries f1006-hard as a FAILER (chronic-variance watchlist) + f1011 as a variance PASSER; both lever-inert, net 0. Bootstrap CI straddles 0 → artifact-based verdict per standing decision.
+- DONE: Record closing learnings in entity Verdict + MEMORY; no WORKFLOW-REFINE / no follow-up auto-file
+  Verdict carries the transferable learnings (var-gating is a real reproducible non-oracle-blocked lever; artifact > green count; gated = no bleed). MEMORY `ade-bench-oracle-program-concluded` extended: first +1 banked, @baseline now 32/48 = 7390e6adf44ba5ea, var-gating real lever vs h0033 inert, f1006-hard watchlist. In-stage lever → no WORKFLOW-REFINE entry; combined-README stacking left as a captain decision (not auto-filed).
+
+### Summary
+
+PASSED + PROMOTED — the program's first @baseline advance, **31/48 → 32/48**. Executed the
+captain-approved re-bind (`rk registry add run baseline …/7390e6adf44ba5ea`), verified
+`@baseline` now resolves to the h0043 full run and scores 0.6667 (32/48). The banked +1 is
+the asana002 optional-resource VAR-GATING flip (2/2 artifact-proven at smoke + full,
+lever-attributable). Recorded the anchor composition honestly: it carries a lever-inert
+off-target regression (f1006-hard, chronic-variance watchlist) and a lever-inert variance
+gain (f1011) that net 0, so the +1 rests solely on the lever. The `rk baseline promote`
+copy-step was skipped (installed CLI requires `--to`/`--constraints` the documented form
+omits; non-load-bearing) and flagged as doc/CLI drift. Memory updated; no WORKFLOW-REFINE
+entry (in-stage lever); no follow-up auto-filed. FO to set verdict frontmatter + archive.
