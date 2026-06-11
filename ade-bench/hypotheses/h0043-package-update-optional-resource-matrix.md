@@ -419,3 +419,116 @@ movers before the +1 is banked as CLEAN.
 ### Summary
 
 Net +1 confirmed on a CLEAN run: 32/48 = 0.6667 (audit strict-clean, tainted 0, 0 errored), asana002 held FAIL→PASS at 48-scale and the var-gating flip survived. All 5 smoke canaries held PASS. IMPORTANT for analyze: the +1 is +2/−1 by slug-paired composition, not a lone target flip — besides the target there is an OFF-TARGET flip-up `f1011` (0.0→1.0) and an OFF-TARGET regression `f1006-hard` (1.0→0.0), neither in the smoke panel. The clean-+1 verdict is OPEN: analyze must re-prove asana002 via the committed var-gating patch and adjudicate whether the two off-target movers are lever-attributable or single-trial variance before banking the +1. Solver README hash matches smoke (no drift). I did NOT start the per-task ledger / asana002 re-proof — that is the analyze stage.
+
+## Run result — analyze (quantitative)
+
+**Paired delta (slug-paired from `per_trial_outcomes.json`; `rk runs diff` TypeErrors on
+ade-bench run-dirs — `query_id: null`, harness data-shape limitation, not a run defect).**
+48/48 slugs paired. @baseline 31/48 = 0.6458 → h0043 32/48 = 0.6667. Observed net task
+delta **+1** (pass-rate delta **+0.0208**). 10k paired bootstrap (seed 20260611) 95% CI on
+the pass-rate delta = **[−0.0417, +0.0833]** ⇒ in task-count terms **[−2, +4]**; P(delta>0)
+= 0.61. **The aggregate CI straddles zero** — at single-trial it cannot distinguish +1 from
+noise. Per the standing decision (judge by committed-artifact proof + bleed-free canaries,
+NOT multi-trial CI), the verdict rests on the artifact-attributed mechanism below, not the
+headline number. Absolute: `stratified_pass_at_1 0.6667`, verdict `above` the 0.1875 paper
+baseline.
+
+**Full per-task ledger — both directions (the +1 is +2 / −1):**
+
+| Dir | Slug | @base | h0043 | Failing/passing test | Committed artifact | Lever sig? | Class |
+|---|---|---|---|---|---|---|---|
+| ↑ | `asana002` | 0.0 | 1.0 | `AUTO_asana__task_equality` FAIL 2 → PASS (3/3) | var-gates tag/task-tag chain across `int_asana__task_tags.sql` + `asana__task.sql` + `asana__tag.sql` via `config(enabled=var('asana__using_tags',…))` + `{% if %}` CTE/join/columns + typed-null placeholders | **YES** | executed-and-helped (lever) |
+| ↑ | `f1011` | 0.0 | 1.0 | 6/6 `check_option_*` PASS | `Add models/stats/analysis__answer.sql` = `select 'ADE' as answer` | NO | off-target, lever-INERT, variance gain |
+| ↓ | `f1006-hard` | 1.0 | 0.0 | `AUTO_constructor_points_equality` **FAIL 2** (driver_points PASS) | rewrote `constructor_points.sql`+`driver_points.sql` `sum()+GROUP BY` → `row_number() … standings_rank=1` | NO | off-target, lever-INERT, regression-on-passer (variance) |
+
+Stayed PASS: 30 · Stayed FAIL: 15. The 5 smoke canaries (f1001, quickbooks003, asana001,
+airbnb001, ana-eng001) all held PASS at full.
+
+## Behavioral analysis — analyze (full run vs @baseline)
+
+**LEAD (clean-+1 verdict): this IS a CLEAN, lever-attributable +1.** The net +1 rests
+entirely on the lever's `asana002` flip, which is artifact-proven optional-resource
+VAR-GATING at BOTH smoke AND full (2/2). The two off-target movers are each provably
+lever-INERT (zero `config(enabled=var(…))` / `using_tags` signature in committed SQL) and
+happen to net 0. The lever caused no regression — the one regression (`f1006-hard`) is a
+fragile-baseline cell that the lever never touched. PROMOTE-worthy.
+
+**Q1 — Net + full per-task ledger (both directions).** See the ledger table in
+`## Run result — analyze`. Net +1 = `asana002` (lever) +1, `f1011` (variance) +1,
+`f1006-hard` (variance) −1. Reported in both directions; the lone regression is named.
+
+**Q2 — Smoke vs full.** Smoke was a GO (asana002 flip + 5 canaries held) and the full
+CONFIRMED it (asana002 held). The full *additionally* surfaced two off-target movers
+(`f1011` +, `f1006-hard` −) that the **6-task smoke panel could not see** — neither slug was
+in the panel. This did not change the GO direction (net still +1, target still flipped via
+the same patch); it only revealed off-target single-trial noise the panel did not sample.
+The smoke panel correctly covered the lever's *blast radius* (it is gated; canaries confirm
+no bleed) — the off-target movers are outside that radius and are not lever effects.
+
+**Q3 — Already-correct-and-broken.** One regression: `f1006-hard` was PASSING at @baseline
+(1.0) and dropped to 0.0 here — nominally damage to a passer. BUT @baseline is the OUTLIER:
+`f1006-hard` scored 0.0 in every other full run on record (h0037, h0041, h0042 fulls all
+0.0; only @baseline = 1.0). So the @baseline green is the fragile observation; h0043's 0.0
+is the modal outcome across 4 independent fulls. The h0043 committed artifact (a
+`row_number() standings_rank=1` reinterpretation of f1 standings) is an unrelated
+domain-logic choice the solver makes variably across runs — NOT lever-caused damage. This is
+"unrelated single-trial variance on a chronically variance-prone cell," not "the lever broke
+working code." (AC-5 / G8: the lever is gated and the in-panel canaries all held.)
+
+**Q4 — Was the change executed? (artifact, not chatter).**
+- `asana002` (gain): **executed-and-helped (lever)** — committed `apply_patch` gates the
+  tag/task-tag chain with the existing package vars across exactly the 3 predicted models;
+  the only `cast(...)` is a typed-NULL shape placeholder in the disabled branch, NOT a
+  `::type` representation cast; no raw seed / no `dbt_project.yml` / no broad copy. Opposite
+  of h0033's green-but-inert (there the prescribed cast never appeared; here the prescribed
+  var-gating IS load-bearing).
+- `f1011` (gain): **inert w.r.t. the lever** — committed a one-line answer model; the
+  package-update/optional-resource rule did not fire (not such a task) and left no signature.
+  Executed a trivial correct answer = variance gain, not a lever effect.
+- `f1006-hard` (regression): **inert w.r.t. the lever / executed-and-hurt by an unrelated
+  edit** — committed a standings rewrite with no var-gating signature; the lever did not fire
+  (f1 standings is not a package-update/optional-resource task). The hurt is from the
+  solver's own domain choice, not the lever.
+
+**Q5 — Prevention + next move.** The gains we want to keep = the `asana002` var-gating flip,
+which is GATED and carries no cross-family bleed risk (canaries held; G8 N/A confirmed at
+full). The off-target noise (`f1011`/`f1006-hard`) is single-trial variance, not a lever
+harm, so no scoping guardrail is needed for the lever itself. To catch the f1006-hard
+*baseline fragility* earlier, a chronic-variance watchlist (f1006-hard 1.0 only at @baseline,
+0.0 in 4 fulls) belongs in the standing canary notes — it will keep appearing as ±1 noise in
+every full and should not be read as a lever signal. **Recommended next move:** CONCLUDE
+h0043 as a clean, artifact-attributed +1 and recommend the captain PROMOTE @baseline to
+**32/48** on the strength of the lever-attributable asana002 var-gating flip (2/2
+smoke+full). This is the program's first genuine +1. Do NOT re-open the exhausted cast/seed
+families. The captain decides the registry re-bind.
+
+**Q6 — Smoke-vs-full fork drift.** No adverse drift. The smoke GO was ARTIFACT-REAL, not
+variance: the asana002 var-gating patch reproduced at full (same family, same 3 models, same
+existing pkg vars), so the smoke→full fork held on the target. The full-only movers
+(`f1011`, `f1006-hard`) are NOT a drifted lever branch — both are lever-inert (no var-gating)
+and outside the gated precondition; they are unrelated single-trial variance the smoke panel
+did not sample. No README rule drifted into a different implementation branch. The only
+"miss" is panel coverage (the panel sampled the lever's blast radius, not the whole 48), and
+that miss surfaced only noise, not a hidden lever regression.
+
+## Stage Report: analyze
+
+- DONE: RE-PROVE THE TARGET — asana002 var-gating at full matches smoke (2/2 artifact-proven)
+  Read the committed `apply_patch` from `ade-bench-asana002__JNWKSkQ` rollout JSONL: optional-resource VAR-GATING across the same 3 models (`int_asana__task_tags.sql`, `asana__task.sql`, `asana__tag.sql`) via `config(enabled=var('asana__using_tags',…))` + `{% if %}` CTE/join/columns + typed-null placeholders. NOT a `::type` cast / seed edit / broad rewrite. `AUTO_asana__task_equality` FAIL 2 → PASS. Lever-attributable, reproduced smoke→full.
+- DONE: ADJUDICATE THE 2 OFF-TARGET MOVERS — both lever-INERT, net 0, unrelated variance
+  `f1011` (+, `select 'ADE' as answer`) and `f1006-hard` (−, `row_number() standings_rank=1` f1-standings rewrite) — committed SQL has ZERO `config(enabled=var)/using_tags` signature; lever did not fire (neither is a package-update/optional-resource task). f1006-hard 0.0 is modal (also 0.0 in h0037/h0041/h0042 fulls; @baseline 1.0 is the outlier) — fragile-baseline variance, not lever damage. Net +1 rests on asana002 alone.
+- DONE: Answer the 5 (six) required questions in `## Run result` + `## Behavioral analysis`; recommend verdict + PROMOTE
+  Paired delta +1 (bootstrap 95% CI [−2,+4] straddles 0 → verdict on artifact mechanism per standing decision, not CI). All six Qs answered. Lead: CLEAN lever-attributable +1. Recommend CONCLUDE h0043 + captain PROMOTE @baseline → 32/48.
+
+### Summary
+
+CLEAN +1. The net +1 is artifact-attributed to the lever: asana002 flipped FAIL→PASS via
+optional-resource VAR-GATING at BOTH smoke and full (2/2, same 3 models, same existing pkg
+vars), the opposite of h0033's green-but-inert. The two off-target movers (`f1011` +,
+`f1006-hard` −) are each provably lever-INERT (no var-gating signature) and net 0;
+`f1006-hard`'s drop is fragile-baseline variance (0.0 in 3 other fulls, @baseline 1.0 is the
+outlier), not lever damage. The aggregate bootstrap CI straddles zero — expected at
+single-trial — so the verdict rests on the committed-artifact mechanism (standing decision),
+which is decisively a lever win. Recommend CONCLUDE as the program's first genuine +1 and
+that the captain PROMOTE @baseline to 32/48. `rk runs diff` TypeError'd (query_id null) →
+paired delta computed from per_trial_outcomes.json by slug, as noted.
