@@ -343,3 +343,79 @@ stable typed-null placeholders) across exactly the three predicted Asana models 
 a `::type` cast / raw seed edit / seed `column_types` / broad package copy. This is the
 opposite of the h0033 green-but-inert outcome: the prescribed repair appeared in the committed
 SQL and is load-bearing. Recommend advancing to `full`.
+
+## Run result
+
+**Methodology consistency (no smoke→full drift) — CONFIRMED.** The full frozen spec
+`specs/h0043-package-update-optional-resource-matrix.frozen.yaml` references the SAME
+solver README content-hash as the smoke frozen spec:
+`solver_workflow_content_hash: sha256:2badaaae1ee8ccf610fb2be457c00b9d75cfdb55405e3adf069e824ce56a1ce5`
+(byte-identical `solver_workflow_hash` on both specs). Only the task set differs — full
+has `benchmark.tasks: null` (all 48); smoke listed the 6-task panel. `trials: 1`,
+`concurrency.trials: 1`, `agent.kind: spacedock_solver`, `runtime: codex`, `model: gpt-5.5`,
+`reasoning_effort: xhigh` all preserved.
+
+**Launched (detached, nohup).** `drivers/rk-run-detached.sh h0043-full
+specs/h0043-package-update-optional-resource-matrix.frozen.yaml run` at
+2026-06-10T17:29:40Z. Handle: `runs/.rk-handles/h0043-full-20260610-172940/`
+(worker pid 4028792). Run-dir:
+`runs/ade-bench-h0043-package-update-optional-resource-matrix/7390e6adf44ba5ea/` —
+distinct content-hash from the smoke run `b0f5d0dd93ecfca3`, no path collision.
+Ran concurrently with h0042-full and h0045-smoke (3 rk runs total). Done sentinel:
+`rc=0 end=2026-06-11T00:09:19Z` (~6h35m wall, slower under concurrent load).
+**Run-dir solver hash (what actually ran)** = `config.json
+/agents[0]/kwargs/solver_workflow_content_hash:
+sha256:2badaaae1ee8ccf610fb2be457c00b9d75cfdb55405e3adf069e824ce56a1ce5` —
+byte-identical to the smoke frozen spec. No smoke→full drift.
+
+**Strict audit (AC-2) — CLEAN.** `rk audit … --policy strict` →
+`summary: { clean: 48, tainted: 0, coverage_missing: 0 }`; all 48 trial records
+`taint_status: clean` with zero findings; captured-trace evidence present on all 48
+cells (`coverage_missing: 0`). The +1 is on a clean run — trustworthy.
+
+**Score (AC-2).** `rk score … --format json` → `stratified_pass_at_1 = 0.6667`
+(**32/48**), `stratified_n_completed: 48`, `stratified_n_errored: 0`, verdict `above`
+the 0.1875 constant.
+
+**HEADLINE: 32/48 = 0.6667, net +1 vs @baseline 31/48 (0.6458).** asana002
+flipped FAIL→PASS (baseline 0.0 → 1.0) — the var-gating flip HELD at 48-scale. First
++1 of the program; promote-to-32 candidate.
+
+**Per-task split vs @baseline (slug-paired, 48/48 paired, single-trial).** Net +1 by
+count, but the composition is NOT a clean isolated target flip — flagging for analyze:
+
+| Movement | Slug | @baseline | h0043 full | Note |
+|---|---|---|---|---|
+| FLIP UP | `ade-bench-asana002` | 0.0 | 1.0 | TARGET — held at full (intended) |
+| FLIP UP | `ade-bench-f1011` | 0.0 | 1.0 | OFF-TARGET flip-up, not in smoke panel |
+| FLIP DOWN | `ade-bench-f1006-hard` | 1.0 | 0.0 | OFF-TARGET regression, not in smoke panel |
+
+- Stayed PASS: 30 · Stayed FAIL: 15 · Flips: +2 / −1 ⇒ **net +1**.
+- The 5 smoke canaries ALL held PASS at full (f1001, quickbooks003, asana001,
+  airbnb001, ana-eng001 = 1.0). The off-target movers (f1011, f1006-hard) were NOT
+  in the smoke panel, so smoke could not have caught them.
+- 16 FAILs at full: airbnb007, airbnb009, ana-eng004, ana-eng006, ana-eng007,
+  ana-eng007-medium, asana004, asana005, asana005-hard, f1002, f1006, f1006-hard,
+  intercom001, intercom002, intercom003, quickbooks001.
+
+**For analyze (NEXT stage — not done here):** the net +1 is real on a clean,
+0-errored, strict-clean run, but it is +2/−1, not a lone target flip. The clean-+1
+question is open: (a) re-confirm asana002 flipped via the COMMITTED var-gating patch
+(not coincidence), and (b) adjudicate whether the off-target f1011 flip-up and
+f1006-hard regression are lever-attributable or single-trial variance — the gated
+lever fires only on package-update + disable-able-resource tasks, so an effect on
+f1011/f1006-hard would need an artifact check. A masked-regression risk exists in
+principle (the +1 count could hide a lever-caused f1006-hard loss offset by an
+unrelated f1011 gain), so analyze must read the committed artifacts of all three
+movers before the +1 is banked as CLEAN.
+
+## Stage Report: full
+
+- DONE: Full 48-task run on `specs/h0043-package-update-optional-resource-matrix.frozen.yaml` completed (detached nohup, polled across turns); strict audit clean + captured>0 every cell BEFORE the score; run-dir + headline + net recorded
+  Run-dir `…/7390e6adf44ba5ea` (done `rc=0 end=2026-06-11T00:09:19Z`). `rk audit --policy strict` = `clean:48, tainted:0, coverage_missing:0`, all 48 trials `taint_status: clean` zero findings, captured-trace evidence on all 48 cells. `rk score` = `stratified_pass_at_1 0.6667` (32/48), 48 completed / 0 errored, verdict `above`. Net **+1** vs @baseline 31/48 — asana002 held FAIL→PASS at full. Recorded in `## Run result`.
+- DONE: Methodology consistency (no smoke→full drift) — confirmed; hash stated
+  Full frozen spec + the run-dir's own resolved `config.json` both carry `solver_workflow_content_hash: sha256:2badaaae1ee8ccf610fb2be457c00b9d75cfdb55405e3adf069e824ce56a1ce5` — byte-identical to the smoke frozen spec. Only the task set differed (full `tasks: null` = all 48). No drift.
+
+### Summary
+
+Net +1 confirmed on a CLEAN run: 32/48 = 0.6667 (audit strict-clean, tainted 0, 0 errored), asana002 held FAIL→PASS at 48-scale and the var-gating flip survived. All 5 smoke canaries held PASS. IMPORTANT for analyze: the +1 is +2/−1 by slug-paired composition, not a lone target flip — besides the target there is an OFF-TARGET flip-up `f1011` (0.0→1.0) and an OFF-TARGET regression `f1006-hard` (1.0→0.0), neither in the smoke panel. The clean-+1 verdict is OPEN: analyze must re-prove asana002 via the committed var-gating patch and adjudicate whether the two off-target movers are lever-attributable or single-trial variance before banking the +1. Solver README hash matches smoke (no drift). I did NOT start the per-task ledger / asana002 re-proof — that is the analyze stage.
