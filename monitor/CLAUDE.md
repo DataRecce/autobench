@@ -131,6 +131,18 @@ output. The most likely sources of future breakage:
   is `session_meta` with `payload.thread_source` (`user` = first-officer,
   `subagent` = worker); body records have `payload.type`; parsed by
   `parse_rollout_entry()` / `describe_rollout_payload()`.
+- **DAB agent answer** (`dab_answers_json_value`): the agent writes
+  `/workspace/answers.json` = `{"answer": "<str>"}`, which is **not persisted as
+  a file** — it is recovered from the last `patch_apply_end` rollout event whose
+  `changes` has a path ending in `answers.json` (`.content` holds the written
+  text). The `Agent` field prefers this; ade-bench falls back to the transcript
+  summary.
+- **DAB ground truth** (`validate_ground_truth`): the task's
+  `tests/validate.py` assigns a `ground_truth` literal (list of names, or
+  `(name, …)` tuples). Extracted via `ast.literal_eval` and rendered as ordered
+  names for the `Truth` field; ade-bench falls back to the solution/tests/seeds
+  summary. Non-literal ground truth (e.g. loaded from `ground_truth.csv`) yields
+  None.
 - **`subagent-trace-manifest.json`**: `dispatches[*].{spawn_index,subagent_type}`
   for labelling worker session logs.
 - **Verifier** `verifier/test-stdout.txt`: dbt `Done. PASS=n … TOTAL=n` summary

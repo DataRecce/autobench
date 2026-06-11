@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -1346,9 +1347,68 @@ def trial_verify_result(trial_dir: Path) -> str:
     return str(verifier_result)
 
 
+def dab_answers_json_value(trial_dir: Path) -> str | None:
+    # DAB tasks write /workspace/answers.json as {"answer": "<str>"}. The file
+    # is not persisted, but codex's apply_patch records the written content in a
+    # patch_apply_end event in the session rollout. Return the last answer
+    # written across all steps, or None when there is no such write (ade-bench).
+    content: str | None = None
+    for root in step_roots(trial_dir):
+        sessions_dir = root / "agent" / "sessions"
+        if not sessions_dir.is_dir():
+            continue
+        for path in sorted(sessions_dir.rglob("rollout-*.jsonl")):
+            written = answers_json_from_rollout(path)
+            if written is not None:
+                content = written
+    if content is None:
+        return None
+    try:
+        data = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return one_line(content)
+    if isinstance(data, dict) and "answer" in data:
+        return one_line(str(data["answer"]))
+    return one_line(content)
+
+
+def answers_json_from_rollout(path: Path) -> str | None:
+    # Scan a session rollout for the last patch_apply_end that wrote a file
+    # named answers.json and return its content. Lines are pre-filtered on the
+    # substrings so we only JSON-parse the (rare) relevant records.
+    written: str | None = None
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        if "answers.json" not in line or "patch_apply_end" not in line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        payload = event.get("payload") if isinstance(event, dict) else None
+        if not isinstance(payload, dict) or payload.get("type") != "patch_apply_end":
+            continue
+        changes = payload.get("changes")
+        if not isinstance(changes, dict):
+            continue
+        for file_path, change in changes.items():
+            if file_path.endswith("answers.json") and isinstance(change, dict):
+                value = change.get("content")
+                if isinstance(value, str):
+                    written = value
+    return written
+
+
 def trial_agent_answer(trial_dir: Path) -> str:
-    # Read the last step's transcript (the final answer in DAB's multi-step
-    # runs; the only transcript in the flat layout).
+    # DAB's contract is an explicit answers.json value -- prefer it when present.
+    answer = dab_answers_json_value(trial_dir)
+    if answer is not None:
+        return answer
+    # Otherwise (ade-bench) read the last step's transcript: the agent's final
+    # message, or a summary of the files it changed.
     path = None
     for root in step_roots(trial_dir):
         candidate = root / "agent" / "codex.txt"
@@ -1439,6 +1499,11 @@ def trial_dataset_path(trial_dir: Path) -> Path | None:
 def trial_truth_summary(dataset_path: Path | None) -> str:
     if dataset_path is None or not dataset_path.is_dir():
         return "-"
+    # DAB tasks carry the actual expected answer as a `ground_truth` literal in
+    # tests/validate.py -- show it directly when present.
+    ground_truth = validate_ground_truth(dataset_path)
+    if ground_truth:
+        return ground_truth
     parts = []
     solution_dir = dataset_path / "solution"
     if (solution_dir / "solution.sh").is_file():
@@ -1453,6 +1518,54 @@ def trial_truth_summary(dataset_path: Path | None) -> str:
     if seed_count:
         parts.append(f"{seed_count} seeds")
     return "; ".join(parts) if parts else "-"
+
+
+def validate_ground_truth(dataset_path: Path) -> str | None:
+    # Extract the `ground_truth` literal assigned in tests/validate.py (a DAB
+    # task) and render it as the ordered list of expected names. Returns None if
+    # there is no validate.py or no literal ground_truth (e.g. one loaded from a
+    # CSV, or an ade-bench dataset).
+    validate_py = dataset_path / "tests" / "validate.py"
+    if not validate_py.is_file():
+        return None
+    try:
+        tree = ast.parse(validate_py.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, SyntaxError, ValueError):
+        return None
+    value = ground_truth_literal(tree)
+    if value is None:
+        return None
+    return format_ground_truth(value)
+
+
+def ground_truth_literal(tree: ast.AST) -> object | None:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            continue
+        if any(isinstance(t, ast.Name) and t.id == "ground_truth" for t in targets):
+            try:
+                return ast.literal_eval(node.value)
+            except (ValueError, SyntaxError, TypeError):
+                return None
+    return None
+
+
+def format_ground_truth(value: object) -> str:
+    # The validators key on names in order; show those. Each item is either a
+    # name string or a (name, ...) tuple/list whose first element is the name.
+    if isinstance(value, (list, tuple)):
+        names = []
+        for item in value:
+            if isinstance(item, (list, tuple)) and item:
+                names.append(str(item[0]))
+            else:
+                names.append(str(item))
+        return "; ".join(names)
+    return str(value)
 
 
 def trial_duration_sec(trial_dir: Path, status: str) -> float | None:

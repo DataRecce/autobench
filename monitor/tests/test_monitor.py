@@ -314,6 +314,75 @@ def test_dab_trial_agent_answer_reads_step_codex(tmp_path: Path):
     assert m.trial_agent_answer(trial) == "the answer"
 
 
+def _write_patch_answer(step_root: Path, answer: str):
+    sess = step_root / "agent" / "sessions"
+    sess.mkdir(parents=True)
+    rollout = sess / "rollout-x.jsonl"
+    rollout.write_text(
+        json.dumps({"type": "session_meta", "payload": {"thread_source": "subagent"}}) + "\n"
+        + json.dumps({
+            "type": "response_item",
+            "payload": {
+                "type": "patch_apply_end",
+                "changes": {"/workspace/answers.json": {"type": "add", "content": json.dumps({"answer": answer})}},
+            },
+        }) + "\n"
+    )
+
+
+def test_dab_agent_answer_from_answers_json(tmp_path: Path):
+    trial = tmp_path / "googlelocal-q1__x"
+    step = trial / "steps" / "main"
+    step.mkdir(parents=True)
+    _write_patch_answer(step, "Widows Peak Salon; City Textile")
+    # The agent field shows the value the agent wrote to answers.json.
+    assert m.trial_agent_answer(trial) == "Widows Peak Salon; City Textile"
+
+
+def test_agent_answer_falls_back_without_answers_json(tmp_path: Path):
+    # ade-bench-style trial: no answers.json write -> keep the codex summary.
+    trial = tmp_path / "airbnb001__x"
+    agent = trial / "agent"
+    agent.mkdir(parents=True)
+    event = {"type": "item.completed", "item": {"type": "agent_message", "text": "done building"}}
+    (agent / "codex.txt").write_text(json.dumps(event) + "\n")
+    assert m.trial_agent_answer(trial) == "done building"
+
+
+def test_dab_truth_from_validate_py(tmp_path: Path):
+    task = tmp_path / "tasks" / "googlelocal-q1"
+    (task / "tests").mkdir(parents=True)
+    (task / "tests" / "validate.py").write_text(
+        "def validate(x):\n"
+        "    ground_truth = [\n"
+        '        "Widows Peak Salon",\n'
+        '        "City Textile",\n'
+        "    ]\n"
+        "    return True, 'ok'\n"
+    )
+    assert m.trial_truth_summary(task) == "Widows Peak Salon; City Textile"
+
+
+def test_truth_ground_truth_tuple_shape(tmp_path: Path):
+    # Tuple (name, score) ground truth -> show the ordered names.
+    task = tmp_path / "tasks" / "googlelocal-q2"
+    (task / "tests").mkdir(parents=True)
+    (task / "tests" / "validate.py").write_text(
+        "def validate(x):\n"
+        "    ground_truth = [('Elite Massage', 5.0), ('Aurora Massage', 4.17)]\n"
+        "    return True, 'ok'\n"
+    )
+    assert m.trial_truth_summary(task) == "Elite Massage; Aurora Massage"
+
+
+def test_truth_falls_back_to_solution_summary(tmp_path: Path):
+    # ade-bench dataset (no validate.py) keeps the solution/tests/seeds summary.
+    task = tmp_path / "ds"
+    (task / "solution").mkdir(parents=True)
+    (task / "solution" / "solution.sh").write_text("#!/bin/sh\n")
+    assert m.trial_truth_summary(task) == "solution/solution.sh"
+
+
 def test_flat_layout_log_sources_still_default_to_codex(tmp_path: Path):
     # ade-bench flat layout: agent/ sits directly in the trial dir, codex first,
     # labels unprefixed.

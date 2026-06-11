@@ -149,10 +149,13 @@ click-to-select/copy is suppressed — hold your terminal's modifier (often
   `K/total passed` when terminal).
 - **Trials** (top right): one row per trial with status, `[passed]`/`[failed]`,
   wall-clock duration, dbt test counts (`passed/total`), and agent token usage.
-- **Trial Info**: dataset id, trial name, status, verify result, a one-line
-  agent answer summary (or the list of changed files), a "truth" summary of the
-  task's solution/tests/seeds, difficulty + description from `datasets.md`, and
-  the trial path.
+- **Trial Info**: dataset id, trial name, status, verify result, the **agent**
+  answer, the ground **truth**, difficulty + description from `datasets.md`, and
+  the trial path. For DAB the agent field is the value the agent wrote to
+  `answers.json` and truth is the `ground_truth` from the task's
+  `tests/validate.py`; for ade-bench (no answer contract) the agent field falls
+  back to a one-line transcript / changed-files summary and truth to a
+  solution/tests/seeds summary.
 - **Trial Logs**: live tail of the selected log source. Codex transcript JSON
   (`agent/codex.txt`) and spacedock session rollouts (`agent/sessions/*.jsonl`)
   are parsed into readable `type | description` lines; plain logs render as-is.
