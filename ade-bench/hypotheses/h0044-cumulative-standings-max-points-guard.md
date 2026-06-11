@@ -320,3 +320,33 @@ and all sentinels/canaries held with no convention or cross-family bleed.
 **Verdict: GO** (artifact-proven `max(points)` flip + clean canaries). Carried
 caveat: single-trial, so full-scale zero-bleed is the real test (h0009/h0012 both
 passed targeted smokes then regressed at full).
+
+## Run result
+
+_Phase 2 pending: filled when the detached full run's `done` sentinel lands rc=0._
+
+Full run launched DETACHED (Phase 1, launch-only):
+- Handle: `runs/.rk-handles/h0044-full-20260611-152742/`
+- Spec: `specs/h0044-cumulative-standings-max-points-guard.frozen.yaml` (full 48-task, no selector)
+- ntfy topic: `adebench-rk-381c976fe07465bf`
+- The FO owns the wait by scanning `runs/.rk-handles/`. On `done` with rc=0:
+  strict audit (`rk audit <dir> --policy strict`) must be clean + captured>0 on
+  every cell, then `rk score <dir> --format json`, then record the run-dir +
+  headline here. Deep-dive/interpretation is the separate analyze stage.
+
+## Stage Report: full
+
+- DONE: Phase 1 NOW (launch only, do NOT wait) — export RAZORBACK_SPACEDOCK_PLUGIN_DIR, optional `--explain`, launch the FULL 48-task run DETACHED via `drivers/rk-run-detached.sh`; return the handle path and signal done immediately.
+  Launched `drivers/rk-run-detached.sh h0044-full specs/h0044-cumulative-standings-max-points-guard.frozen.yaml run`; handle `runs/.rk-handles/h0044-full-20260611-152742/` (pid 601684 alive, log open); RAZORBACK_SPACEDOCK_PLUGIN_DIR set to repo `spacedock`. Skipped the optional `--explain` (smoke already proved spec validity; same README as smoke).
+- SKIPPED: Phase 2 (LATER — FO re-engages when the done sentinel lands rc=0) — strict audit clean + captured>0 on every cell, `rk score --format json`, record run-dir + headline in `## Run result`.
+  Intentionally not done in this stage: this is the launch-only RUN stage; the FO owns the detached wait and re-dispatches Phase 2 when `done` lands rc=0. `## Run result` carries the handle for that re-engagement.
+
+### Summary
+
+Launched the full 48-task run on the frozen full spec (same solver README as the
+GO smoke — no methodology drift) DETACHED via the audited launcher; handle
+`runs/.rk-handles/h0044-full-20260611-152742/`, pid 601684 confirmed alive, log
+open. This stage is launch-only per the checklist — no wait, no audit, no score;
+the FO owns the detached wait via `runs/.rk-handles/` scanning and ntfy
+`adebench-rk-381c976fe07465bf`, then re-dispatches Phase 2 (strict-audit + score)
+when the `done` sentinel lands rc=0.
