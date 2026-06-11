@@ -1,7 +1,7 @@
 ---
 id: h0025
 title: Output-Contract Satisfaction Selector -- require each candidate to write a local contract, then select the artifact that best satisfies its contract
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: concept-candidate-selector-contract-scorer fan-out; tests the candidate-written-contract satisfaction selector design, not another Output Contract README fix. Forks the current @baseline solver protocol only as a declared protocol-family variant.
 started: 2026-06-05T09:42:10Z

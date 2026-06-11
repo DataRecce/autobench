@@ -1,7 +1,7 @@
 ---
 id: h0027
 title: Do-No-Harm Selector -- reject candidates with unrelated rewrites before choosing the best local contract score
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: concept-candidate-selector-contract-scorer fan-out; tests the do-no-harm selector design, not a new failure-pattern README rule. Forks the current @baseline solver protocol only as a declared protocol-family variant.
 started: 2026-06-05T09:42:10Z
