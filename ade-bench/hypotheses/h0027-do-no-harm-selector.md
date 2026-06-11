@@ -92,4 +92,70 @@ sufficient to beat pass@1.
 
 ## Behavioral analysis
 
+This hypothesis was concluded as a captain strategic sibling-kill on the
+`concept-candidate-selector-contract-scorer` family wall, with no run performed. The
+behavioral evidence is the family's three prior runs/decisions:
+
+- **h0026** (answer-decision-table selector, REJECTED by run `a01f97caf6d6462e`): all N≥3
+  candidates shared the SAME plausible-but-wrong reading (committed `ABDE`, oracle `ADE`),
+  and the scorer graded each candidate against its OWN local checks ("support 6/6,
+  contradictions 0"). A uniformly-held wrong answer self-scores perfect and wins — the
+  self-anchored false-green.
+- **h0031** (dual-output-contract arbitration, REJECTED at smoke `0de9870ae2220bca`):
+  genuinely-independent route B + an external-criterion (raw conservation/coverage) arbitrator
+  are TABLE STAKES, not a contribution — they were both achieved and STILL reproduced
+  baseline's byte-identical wrong answer (f1011 → `ABDE`). More candidate generation +
+  arbitration does not create an oracle.
+- **h0024** (static-contract-scorer selector, REJECTED 2026-06-11, captain sibling-kill): its
+  static build/shape/type rubric is the same self-anchored scorer.
+
+**Why h0027 inherits the wall.** The do-no-harm filter (reject candidates that rewrite
+`profiles.yml` / packages / namespaces / macros / seeds / unrelated models, replace installed
+packages with shims, touch broad model families on a narrow-scope task, or leave scratch as
+final artifacts) is a useful HYGIENE check — it would plausibly reduce convention-bleed and
+broad-edit regressions. But the actual SELECTION among the surviving candidates still rests on
+"prefer the smallest relevant diff that builds and satisfies the locally visible task
+contract" — i.e. self-anchored local-contract scoring. On a uniformly-held plausible-wrong
+answer (the f1011 / asana004 class), every surviving candidate satisfies its OWN local
+contract, so the filter changes WHICH candidate wins but cannot distinguish the plausible-wrong
+from the oracle-correct one. There is no candidate DIVERSITY requirement (force candidates to
+disagree on borderline decisions) and no INDEPENDENT IN-decision falsifier — exactly the two
+axes propose-gate G9 ("selector independence") screens for. h0027 would FAIL G9 at propose,
+without spending a smoke run.
+
 ## Verdict
+
+**REJECTED** — sibling-killed by the candidate-selector family wall (h0024 / h0026 / h0031).
+h0027 rejects candidates with unrelated rewrites before choosing the best local contract score;
+the do-no-harm filter is a useful hygiene check, but the SELECTION still rests on self-anchored
+local-contract scoring, so it inherits the same wall: it cannot distinguish a uniformly-held
+plausible-wrong answer from the oracle-correct one. No candidate diversity + no independent
+IN-decision falsifier => would fail propose gate G9 (selector independence). No run performed;
+captain strategic kill on the family evidence.
+
+## Follow-up Routing
+
+**stop** — candidate-selector family exhausted / CLOSED. The
+`concept-candidate-selector-contract-scorer` fan-out is rejected-as-written across the board
+(h0024 / h0025 / h0026 / h0027 terminal; h0031 confirmed the wall survives genuine candidate
+diversity + external-criterion arbitration). h0028 (adversarial re-fire) is the one kept-open
+sibling attempting the G9 independence axes; do not file another self-anchored selector variant.
+
+## Stage Report: conclude
+
+- DONE: Write ## Verdict = REJECTED: sibling-killed by the candidate-selector family wall (h0024/h0026/h0031)
+  Verdict section records REJECTED, the self-anchored selection wall, G9 failure, no run / captain strategic kill.
+- DONE: Write ## Follow-up Routing = stop: candidate-selector family exhausted/CLOSED
+  Follow-up Routing section = stop; notes h0028 as the one kept-open G9-independence sibling; do not file another self-anchored variant.
+- DONE: Finalize the workflow-refinement finding (protocol-family hypothesis)
+  Updated the family status block in `_artifacts/WORKFLOW-REFINE.md` to record h0027 REJECTED 2026-06-11 (sibling-kill); all four scorer-style siblings h0024/h0025/h0026/h0027 now terminal, family CLOSED.
+
+### Summary
+
+h0027 concluded as a captain strategic sibling-kill (no run) on the
+`concept-candidate-selector-contract-scorer` family wall. The do-no-harm diff filter is useful
+hygiene, but selection among surviving candidates still rests on self-anchored local-contract
+scoring, so it cannot break a uniformly-held plausible-wrong answer (the f1011/asana004 class) —
+it would fail propose gate G9 (selector independence). Recorded the verdict + stop routing in the
+entity, and folded h0027's terminal state into the WORKFLOW-REFINE family ledger (all four
+scorer-style siblings now terminal; h0028 kept open for the G9 independence attempt).
