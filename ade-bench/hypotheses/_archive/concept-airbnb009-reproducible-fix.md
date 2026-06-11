@@ -5,6 +5,7 @@ kind: concept
 source: captain request 2026-06-11 after h0042 REJECTED; grounded in the airbnb009 failed-attempt evidence h0019/h0041/h0042.
 id: concept-airbnb009-reproducible-fix
 started: 2026-06-11T02:37:14Z
+archived: 2026-06-11T02:44:24Z
 ---
 
 ## Direction
