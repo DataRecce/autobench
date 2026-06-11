@@ -352,3 +352,145 @@ batch (h0044/h0045). `rk run --explain` rc=0, resolved to **48 tasks**. FO owns 
 `rk score <dir> --format json`; record run-dir + headline pass-rate here. The behavioral
 deep-dive (the airbnb009 three-fork artifact read vs @baseline + canary/regression sweep) is the
 separate `analyze` stage the FO dispatches next — NOT done in this Run-result write-up.
+
+## Run result
+
+**Recommendation: do NOT promote — net −1 (31/48 vs @baseline h0043 32/48), a statistical wash
+hiding one REAL gain, one REAL lever-caused regression, and one variance loss.** The lever
+*works exactly as designed* on its target (airbnb009 FAIL→PASS, byte-identical all-three-fork
+artifact — 4/4 now across smoke+full), but it is **generative and fired on a same-family sibling
+where the coverage repair was NOT the bug** (airbnb008 PASS→FAIL — the G8 same-family blind spot,
+realized). The third change (f1011 PASS→FAIL) is unrelated oracle-only answer-selection variance.
+Net result is the h0009/h0012-class "correct mechanism, generative collateral" outcome: the gain
+is real and reproducible, but it does not bank because the same rule damages a passer the smoke
+panel never sampled.
+
+### Audit + score
+
+Run-dir: `runs/ade-bench-h0046-coverage-repair-all-three-forks-worked-skeleton/dfabb292560234ce`.
+`rk audit --policy strict` **clean** (clean=48, `tainted: 0`, `coverage_missing: 0`); `captured > 0`
+on **48/48** cells — score trusted (AC-2). `rk score --format json`:
+**`stratified_pass_at_1 = 0.6458` (31/48)**, Wilson CI [0.504, 0.766], well above the
+paper_baseline 0.1875.
+
+### Paired delta vs @baseline (h0043, 32/48)
+
+`rk runs diff` is unusable on these run-dirs (the known `query_id: null` → TypeError; MEMORY
+`ade-bench-runs-diff-query-id-null`), so the paired delta is computed directly from
+`per_trial_outcomes.json`, paired by task slug:
+
+- **Mean paired delta = −0.0208 (−1 task over 48 paired).** 95% bootstrap CI (10k resamples)
+  **[−0.104, +0.042]** — straddles 0; the aggregate is a within-noise wash. The signal is in the
+  three artifact reads below, not the number.
+
+**Full per-task ledger (every verdict change, both directions):**
+
+| Task | Family | @baseline | Variant | Δ | Mechanism (artifact-verified) |
+|------|--------|-----------|---------|---|-------------------------------|
+| airbnb009 | airbnb | ❌ FAIL | ✅ PASS | **+1** | **Real gain.** Committed `mom_agg_reviews.sql` = byte-identical all-three-fork edit (drop predicate / `COUNT(*)` untouched / no cross-join); single test `mom_agg_review_date_range` PASS. Smoke's 3/3 held at full → **4/4** total. |
+| airbnb008 | airbnb | ✅ PASS | ❌ FAIL | **−1** | **Real lever-caused same-family bleed.** Skeleton FIRED: solver applied the *identical* predicate-drop hunk to BOTH `mom_agg_reviews.sql` AND `wow_agg_reviews.sql` — but airbnb008's actual fix was a one-line YAML quote balance (`agg.yml`). The unwanted coverage edit broke `AUTO_mom_agg_reviews_equality` (Got 28631). @baseline touched ONLY `agg.yml` → PASS. |
+| f1011 | f1 | ✅ PASS | ❌ FAIL | **−1** | **Unrelated single-trial variance.** Both runs touched the same file (`models/stats/analysis__answer.sql`); failure is `check_option_b` (Got 1) — an oracle-only multiple-choice answer-selection (ADE/ABDE-class). No `dates_cte`/coverage edit; the skeleton has no bearing. |
+
+Net = +1 −1 −1 = **−1**.
+
+## Behavioral analysis
+
+**Q1 — Net + full per-task ledger.** Absolute 31/48 (0.6458) vs @baseline 32/48 (0.6667); paired
+delta −0.0208, 95% CI [−0.104, +0.042] (straddles 0). Three verdict changes, all in the ledger
+above: +airbnb009 (real gain), −airbnb008 (real bleed), −f1011 (variance). Not gains-only.
+
+**Q2 — Smoke vs full: why the GO didn't bank.** The smoke set (6-task panel + 3 focused airbnb009
+repeats) carried exactly **one airbnb canary — airbnb001 — and never ran airbnb008.** airbnb001 is
+a stable passer the skeleton does not fire on; airbnb008 is a *perturbable* sibling that uses the
+SAME `dates_cte`/`mom_agg_reviews`/`wow_agg_reviews` date-spine construct, so the generative rule
+fires on it. This is **exactly the G8 same-family blind spot named at the propose gate** ("only one
+airbnb non-target passer and no second coverage-repair passer to recruit as a perturbable canary —
+accept the residual full-scale blind spot"). The smoke could not see airbnb008 because no second
+perturbable airbnb canary existed to recruit; the WARN was accepted, and the full run realized it.
+The smoke GO was **artifact-real** (the airbnb009 gain reproduced 4/4), not a false positive — what
+smoke missed was the *collateral*, not the *gain*.
+
+**Q3 — Already-correct-and-broken.** Both regressions were **passing at @baseline** — this is damage
+to working code, not "failed to help." airbnb008: @baseline PASS (4/4), variant FAIL (3/4) — the
+skeleton actively *added* a wrong edit to two models the task did not ask to touch. f1011: @baseline
+PASS (6/6), variant FAIL (5/6) — a borderline answer-option flip on the same committed file. Only
+airbnb008 is lever-attributable; f1011 is variance on an oracle-only cell the lever never reaches.
+
+**Q4 — Was the change executed? (committed artifact, not chatter.)**
+- airbnb009 — **executed-and-helped.** Committed `apply_patch` = the byte-identical all-three-fork
+  hunk; single scored model PASS. (Same artifact as all 3 smoke draws → 4/4.)
+- airbnb008 — **executed-and-hurt.** Committed `apply_patch` applied the skeleton's literal
+  predicate-drop hunk to `mom_agg_reviews.sql` AND `wow_agg_reviews.sql`; @baseline applied neither.
+  The skeleton's pattern is *verbatim* in the diff — unambiguous lever causation, not variance.
+- f1011 — **premise-falsified / inert for the lever.** The committed change is on
+  `analysis__answer.sql` (a multiple-choice answer model); no coverage/date-spine analog exists for
+  the skeleton to act on. The PASS→FAIL is single-trial answer-selection variance, independent of
+  the lever.
+
+**Q5 — Prevention + next move.** The gain is real and the mechanism is proven; the problem is purely
+**scope** — the skeleton fires on *any* model with a `dates_cte … WHERE … IN` shape, including
+siblings where that predicate is correct. Two prevention levers:
+1. **Scope the rule to a fired precondition** (the h0012/G10 fix-shape): gate the predicate-drop on
+   evidence that days are *actually missing for this task* (the task asks for per-day completeness
+   AND a missing-day probe is non-zero), instead of "any coverage-shaped CTE." That keeps airbnb009
+   (genuinely missing 722 days) and spares airbnb008 (where the predicate was correct). This is a
+   REVISE-class change to the same idea, not a new family.
+2. **Catch it earlier:** the G8 WARN should have been a harder stop — a same-family perturbable
+   canary is *necessary*. airbnb008 IS that canary; it simply was not recruitable as a `@baseline`
+   *passer the lever fires on* without running it. The smoke panel should, going forward, include
+   the perturbable sibling even when it is the one we expect to be at risk — running it is how the
+   bleed is caught before full.
+
+   **Recommended next step: present to the captain — do NOT auto-promote and do NOT reflexively
+   re-file.** The honest read is "correct, reproducible mechanism with a known generative scope
+   defect." A scoped-precondition revision (lever 1) is a plausible single follow-up that could bank
+   the airbnb009 +1 without the airbnb008 −1 — but the broader flip-portfolio is concluded
+   (MEMORY `ade-bench-oracle-program-concluded`), so whether to spend a cycle on the scoped variant
+   is a captain call, not an automatic file.
+
+**Q6 — Smoke-vs-full fork drift.** No fork drift: the airbnb009 committed fork at full is
+**byte-identical** to all three smoke draws — the README rule did NOT drift into a different
+implementation branch, and the smoke result was artifact-real, not variance. What changed at full is
+not the target's fork but the *population*: the full run exposed the generative rule to airbnb008, a
+same-family sibling the smoke panel did not sample (the missed family member, G8). For the
+follow-up routing loop: the fork to address is not airbnb009's (it is solved) but the **rule's
+trigger condition** — it must distinguish "missing-day coverage repair" from "a correct narrowing
+predicate on a sibling model." This is the input to any scoped-precondition revision.
+
+### Workflow-refinement note
+
+N/A as a structural refinement (the lever is an in-stage Implementation rule, not a new/reordered
+stage or protocol-family). But the in-stage learning is sharp and belongs in the instruction-lever
+taxonomy: **a copyable worked-example skeleton REACHES and PINS the committed SQL reliably (4/4
+byte-identical — the h0019/h0042 inert/one-fork wall is broken), but an *ungated* coverage-repair
+skeleton is generative and bleeds onto same-construct siblings where the edit is wrong.** The
+worked-example form is the right *delivery* mechanism; the missing piece is a *firing precondition*.
+This is the first lever to both (a) reproducibly reach the committed SQL across draws AND (b) prove
+the generative-collateral failure mode on a same-family sibling at full — a knowledge gain even
+though net is −1.
+
+## Stage Report: analyze
+
+- DONE: Strict audit clean + captured>0 BEFORE score; `rk score --format json`; record in `## Run result`.
+  audit clean=48 / tainted 0 / coverage_missing 0; captured>0 on 48/48; score 31/48 (0.6458).
+- DONE: Paired delta vs @baseline (h0043) — bootstrap CI since `rk runs diff` TypeErrors.
+  `rk runs diff` unusable (query_id null); computed slug-paired from per_trial_outcomes.json: −0.0208, 95% bootstrap CI [−0.104, +0.042] (straddles 0).
+- DONE: PRE-AUDIT read — verify airbnb009 three-fork artifact; CLASSIFY airbnb008 (same-family bleed?) + f1011.
+  airbnb009 committed artifact = byte-identical all-three-fork edit (4/4 smoke+full). airbnb008 = LEVER-CAUSED same-family bleed (skeleton's predicate-drop hunk applied verbatim to mom_agg_reviews.sql + wow_agg_reviews.sql; broke AUTO_mom_agg_reviews_equality Got 28631; @baseline touched only agg.yml). f1011 = unrelated oracle-only check_option_b variance.
+- DONE: Answer ALL §analyze required questions (esp. Q2 smoke missed airbnb008, Q3 broke-a-passer, Q6 fork-drift); `## Run result` + `## Behavioral analysis`; lead with verdict + bleed-vs-variance.
+  All 6 questions answered; airbnb008 named explicitly as the G8 same-family blind spot realized; f1011 as variance; recommendation = present to captain (scoped-precondition revision is a possible single follow-up, captain call — not auto-file).
+
+### Summary
+
+Net **−1** (31/48 vs 32/48), a statistical wash hiding three artifact-decisive changes. The lever
+**works as designed**: airbnb009 flipped FAIL→PASS with a byte-identical all-three-fork committed
+artifact (4/4 across smoke+full — the worked-example skeleton reliably reaches AND pins the SQL,
+breaking the h0019/h0042 wall). But it is **generative and bled onto airbnb008**, a same-family
+sibling where the coverage repair was NOT the bug: the solver applied the skeleton's literal
+predicate-drop to two date-spine models the task did not ask to touch, breaking a passer
+(`AUTO_mom_agg_reviews_equality`, Got 28631). This is the **G8 same-family blind spot flagged at
+propose, now realized** — the smoke carried only airbnb001 (a non-firing stable passer) and never
+ran airbnb008. f1011 is unrelated oracle-only answer-selection variance. Recommendation: do NOT
+promote; present to the captain. A scoped-precondition revision (fire the predicate-drop only on a
+non-zero missing-day probe) could plausibly bank the +1 without the −1, but the flip-portfolio is
+concluded, so spending that cycle is a captain decision.
