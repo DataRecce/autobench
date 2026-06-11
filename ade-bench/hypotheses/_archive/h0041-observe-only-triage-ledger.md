@@ -1,14 +1,14 @@
 ---
 id: h0041
-title: Observe-only triage ledger — the h0040 three-clause trigger in OBSERVE-ONLY mode, writing triage.json {claim, clause_results, would_abstain} on all 48, never reverting; de-risks h0040 before it is trusted to revert
+title: 'Observe-only triage ledger — the h0040 three-clause trigger in OBSERVE-ONLY mode, writing triage.json {claim, clause_results, would_abstain} on all 48, never reverting; de-risks h0040 before it is trusted to revert'
 status: conclude
 kind: hypothesis
-source: _proposal/round-2-workflow-stage-program.md §4 M3 (captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 5. Observe-only de-risk of h0040 (the M2 enforced abstention rail). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
+source: '_proposal/round-2-workflow-stage-program.md §4 M3 (captain-approved 2026-06-08); concept-round-2-workflow-stage-program.md item 5. Observe-only de-risk of h0040 (the M2 enforced abstention rail). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).'
 started: 2026-06-08T14:29:36Z
 completed: 2026-06-10
 verdict: PASSED
-score: 0.6458 (31/48, full run fe1505abeeddabff; = @baseline 31/48, net 0; strict audit clean, 0 errored)
-worktree: 
+score: '0.6458 (31/48, full run fe1505abeeddabff; = @baseline 31/48, net 0; strict audit clean, 0 errored)'
+worktree:
 archived: 2026-06-10T14:23:03Z
 ---
 
@@ -249,8 +249,6 @@ gate-strip leak is precisely what the analyze-stage per-cell `Got N` / committed
 the contamination deep-dive are the analyze deliverable; this stage records only the clean-run
 accounting.
 
----
-
 ### ANALYZE STAGE (interpretation; `rk runs diff` not used — it TypeErrors on ade-bench run-dirs, so the paired delta was computed from `per_trial_outcomes.json`, slug-paired, 10k bootstrap)
 
 **Paired delta vs @baseline (slug-paired, 10k bootstrap).** 48/48 slugs paired. Mean per-cell delta
@@ -341,8 +339,6 @@ non-independent instruction/schema clauses and under-fired the independent raw-s
 decider — it maps as conservative (won't suppress), not as a certified clean oracle-only detector
 (the h0030/h0036 mis-discrimination wall persists). NB: h0040, the enforced rail this M3 de-risks, has
 already concluded REJECTED-inert, so this 48-cell map is retrospective de-risk knowledge.
-
----
 
 **SMOKE RUN (8-cell panel) — `45c2ba6667a47a60` (retained below for the smoke→full comparison).**
 
