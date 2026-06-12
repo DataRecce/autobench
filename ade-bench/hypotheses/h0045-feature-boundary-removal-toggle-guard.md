@@ -477,3 +477,151 @@ envelope; released by the FO on a clear, idle box. Read-only `--explain` pre-fli
 confirmed 48 tasks, the matching frozen solver README hash, and a collision-free
 run-dir hash. Phase 2 (strict audit + score + headline) is deferred to the
 sentinel-landing re-engagement.
+
+## Run result — Phase 2 (analyze; full 48-task run COMPLETE)
+
+**NO-PROMOTE. Audited score 28/48 = 0.5833; net −4 vs @baseline h0043 (32/48 =
+0.6667). ZERO gains, 4 regressions — all off-construct single-trial variance, NOT
+lever damage.** @baseline stays h0043.
+
+- **Run dir:** `runs/ade-bench-h0045-feature-boundary-removal-toggle-guard/9cd7b6635a124c12`.
+- **Strict audit clean:** `rk audit --policy strict` → `summary: {clean: 48,
+  tainted: 0, coverage_missing: 0}`, every cell `findings: []`, captured>0 every
+  cell. Score trustworthy.
+- **Score:** `rk score --format json` → `stratified_pass_at_1: 0.5833333`,
+  `n_completed: 48`, `n_errored: 0`, against-constant verdict `above` (0.1875).
+- **Paired delta vs @baseline** (`rk runs diff` TypeErrors on null `query_id`;
+  computed directly from `per_trial_outcomes.json`, slug-paired over all 48 common
+  slugs + 10k bootstrap): **mean −0.0833 (−4/48), 95% CI [−0.1667, −0.0208]**. The
+  CI excludes 0, but every changed cell is an off-construct near-miss (below) — the
+  delta is variance, not a measured lever effect.
+
+### Full per-task ledger (both directions)
+
+| Direction | Task | @baseline | h0045 full | Distance-to-pass | Mechanism |
+|---|---|---|---|---|---|
+| GAIN | (none) | — | — | — | Pure no-harm guard — flips nothing by design |
+| REGRESSION | asana002 | PASS | FAIL | AUTO_asana__task_equality Got 2 (≠0); 2/3 tests | h0043's coin-flip +1; off-construct near-miss |
+| REGRESSION | f1005 | PASS | FAIL | AUTO_constructor_points_equality Got 2 (≠0); 3/4 | constructor-points near-miss, own model only |
+| REGRESSION | f1010-medium | PASS | FAIL | AUTO_analysis__lap_times_equality Got 1092 (≠0); 1/2 | lap-times near-miss, own model only |
+| REGRESSION | f1011 | PASS | FAIL | check_option_b Got 1 (≠0); 5/6 | oracle-only ADE/ABDE option-choice coin-flip |
+
+All four targets (quickbooks002, quickbooks004) plus all five smoke canaries that
+overlap the full panel held; both PRIMARY targets PASS at 1.0 (reward confirmed
+from `per_trial_outcomes.json`).
+
+## Behavioral analysis
+
+**Headline (plain words): NO-PROMOTE. h0045 is a pure no-harm feature-boundary
+guard — it flips nothing and is meant to flip nothing (its targets already pass).
+It scored net −4, and EVERY −1 is an off-construct task that the lever never
+touched. This is the cleanest variance signal in the midnight batch: a lever that
+provably does nothing still moved the score −4, which is direct evidence that
+trials:1 single-run noise (~±4) dominates the per-lever signal. Recommend
+do-NOT-file: there is no lever defect to fix, and the noise is not chaseable at
+trials:1.**
+
+**Targets held (the guard worked).** quickbooks002 and quickbooks004 both PASS
+at 1.0 in the full run, reproducing the smoke result. The no-harm stabilization
+guard did exactly what it claimed: kept the two named passers PASS without harm.
+
+**The 4 regressions are NOT lever damage — the precondition never fired.** The
+feature-boundary guard is precondition-gated: "When a task asks to remove,
+disable, or add a switch for a project-local feature." None of the four
+regressions is a feature-removal/disable/toggle task (asana002 = task-model
+equality; f1005 = constructor points; f1010-medium = lap times; f1011 = the
+oracle-only A/B/C/D/E/F option-choice cell). Artifact check on each regression's
+ENSIGN rollout (`agent/sessions/.../rollout-*.jsonl`, not narration):
+
+1. **No lever firing in any committed patch.** Zero `var('using_*')` gating in
+   any of the four patches. The only occurrence of "feature boundary" / "feature-
+   boundary" in each cell's session is in the `role=user` composed-prompt
+   boilerplate (the README guard injected into every cell) — never in agent
+   reasoning or an applied edit. The lever is SILENT / boilerplate-echo only, the
+   same method that classified the h0044 regressions.
+2. **Each cell touched only its own task model** — f1005 edited
+   `models/stats/constructor_points.sql`, f1010-medium edited
+   `models/stats/analysis__lap_times.sql`, f1011 edited
+   `models/stats/analysis__answer.sql`; asana002 edited its asana task model (no
+   apply_patch header captured in the rollout, but test-stdout confirms an on-
+   construct edit). No task-irrelevant `using_*` gating, no broad refactor, no
+   convention bleed from the guard.
+3. **Each is a single-trial near-miss**, off by one failing check: asana002 Got 2,
+   f1005 Got 2, f1010-medium Got 1092, f1011 check_option_b Got 1 — each one
+   equality check away from PASS, exactly the shape of trials:1 coin-flip noise on
+   already-borderline cells.
+
+**Required analyze questions:**
+
+1. **Net + ledger** — −4 (0.5833 vs 0.6667), CI [−0.1667, −0.0208]. ZERO gains
+   (by design). 4 regressions tabled above, each an off-construct near-miss with
+   its mechanism. No gains omitted — there are none.
+2. **Smoke vs full** — smoke was a legitimate GO (7/7 PASS, both targets via narrow
+   artifact-proven edits). The full verdict differs ONLY because the full panel
+   includes 41 tasks the 7-task smoke could not sample, four of which are
+   borderline off-construct passers that flipped on single-trial noise. The smoke
+   panel was target+canary scoped; it had no window onto asana/f1005/f1010/f1011
+   variance. Nothing the smoke saw changed at full.
+3. **Already-correct-and-broken** — all 4 regressions were PASS at @baseline, so
+   all 4 are "broke a passer" by score bookkeeping. But the lever did not touch
+   them; they broke under independent single-trial variance, not h0045's edit.
+   This is "failed to help (untouched) + unlucky trial," not lever-caused damage.
+4. **Was the change executed?** — Targets: executed-and-held (narrow feature-
+   boundary edits, both PASS — confirmed in smoke + full). Regressions: INERT with
+   respect to the lever (precondition never fired; no `using_*` in any patch);
+   the regressions are independent off-construct variance, not premise-falsified
+   lever application.
+5. **Prevention + next move** — No scoping guardrail is needed: the gate already
+   held (zero bleed onto the 4 non-feature tasks). The only "fix" for a −4 of pure
+   variance is more trials, which the standing captain decision rejects (trials:1
+   for budget+speed; judge by artifact + canaries, not multi-trial CI). **Recommend
+   do-NOT-file.** No lever defect exists; the noise is structural at trials:1 and
+   not chaseable per-lever. The feature-boundary guard is a verified no-harm
+   discipline available to compose under a future flip-seeking lever, but it has no
+   standalone protective value on the minimal @baseline (its targets already pass).
+6. **Smoke-vs-full fork drift** — The smoke GO was artifact-real (targets pass via
+   genuinely narrow edits, re-confirmed at full). The full regressions are NOT a
+   drifted README branch and NOT a missed family in any actionable sense — they are
+   unrelated single-trial variance on off-construct passers. No fork in the lever's
+   own decision path changed between smoke and full; the smoke simply did not (and
+   a 7-task panel could not) sample the noisy off-construct tail. No follow-up
+   routing warranted.
+
+**Batch context:** h0045 is the third midnight-batch loss (h0044 net −1, h0046
+net −1, h0045 net −4), all NO-PROMOTE, all losses dominated by off-construct
+single-trial variance. h0045 is the purest signal because it is a no-harm guard:
+zero lever-attributable flips, −4 entirely from variance. asana002 (h0043's
+coin-flip +1) and f1011 (oracle-only ADE/ABDE cell) regressed across h0044+h0046
+as well — the same borderline cells wobble batch-wide, confirming the variance
+read. (In-stage instruction lever — no `_artifacts/WORKFLOW-REFINE.md` entry.)
+
+Verdict/archive deferred to the FO batch conclude.
+
+## Stage Report: analyze
+
+- DONE: Strict audit the run-dir + score + paired delta vs @baseline h0043.
+  `rk audit --policy strict` → clean 48 / tainted 0 / coverage_missing 0, captured>0
+  every cell; `rk score` → 0.5833 (28/48); `rk runs diff` TypeErrored on null
+  query_id so computed paired delta from `per_trial_outcomes.json` (slug-paired,
+  10k bootstrap) → −0.0833 (−4/48), CI [−0.1667, −0.0208]. Recorded in `## Run result`.
+- DONE: Confirm OWN targets quickbooks002 + quickbooks004 HELD PASS, then classify
+  the 4 regressions (asana002, f1005, f1010-medium, f1011) by committed artifact.
+  Both targets PASS 1.0. All 4 regressions: precondition never fired — zero
+  `var('using_*')` in any committed patch, "feature boundary" appears only as
+  role=user prompt boilerplate, each cell touched only its own task model, each is a
+  one-check near-miss → independent single-trial variance, NOT lever damage.
+- DONE: Answer all §analyze required questions; write `## Behavioral analysis`.
+  Lead = NO-PROMOTE + the real finding (a provably-no-harm guard scoring −4 entirely
+  from off-construct variance is direct evidence trials:1 noise ~±4 dominates the
+  per-lever signal). Recommended do-NOT-file. Did NOT set verdict/archive — FO owns
+  the batch conclude.
+
+### Summary
+
+NO-PROMOTE, net −4 (28/48 vs @baseline 32/48), audit clean. ZERO gains by design;
+both named targets held PASS via the smoke-confirmed narrow edits. All 4
+regressions are off-construct passers the lever never touched (gate held — no
+`using_*` bleed, boilerplate-echo only, each a single-check near-miss) → the −4 is
+pure trials:1 variance, the cleanest such signal in the midnight batch. Recommend
+do-NOT-file: no lever defect, variance not chaseable at trials:1. @baseline stays
+h0043.
