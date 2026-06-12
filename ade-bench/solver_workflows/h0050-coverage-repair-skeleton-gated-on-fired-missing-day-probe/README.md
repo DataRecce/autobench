@@ -54,26 +54,40 @@ Make the smallest task-relevant dbt project change, following local naming,
 materialization, source, ref, macro, and schema patterns.
 
 A coverage repair (missing rows / missing days / a narrowed spine) is a SUBTRACTIVE,
-in-place edit, but it is GATED on a FIRED local coverage probe — do NOT apply it to any
-model that merely LOOKS coverage-shaped. FIRST run the probe; apply the edit only if the
-probe FIRES. The probe is oracle-free — it uses only local task data, never a hidden test:
-build the suspect model and compare the key/date coverage of its output against the complete
-local dimension (the `dim_*` / reference table the model selects from). Concretely: collect
-the set of dimension keys (e.g. every `date_col` in `{{ ref('dimension') }}`) and the set of
-keys actually present in the model output; the probe FIRES iff the dimension contains one or
-more keys ABSENT from the output (rows are genuinely missing). If every dimension key already
-appears in the output (no missing rows — the spine is already complete, or the narrowing
-predicate is in fact correct), the probe is EMPTY: do NOT make the subtractive edit, leave the
-model BYTE-INTACT, and treat the task by its other classification (the real bug, if any, is
-elsewhere — e.g. a YAML/config fix). Only when the probe FIRES make exactly these edits and
-NOTHING ELSE: (1) delete the one narrowing membership predicate that filters the complete
+in-place edit, but it is DOUBLE-GATED — apply it ONLY when BOTH preconditions hold, in this
+order. Do NOT apply it to any model that merely LOOKS coverage-shaped.
+
+GATE (a) — TASK INTENT (the FIRST test; cheapest, decides whether you even run the probe).
+Read the task instruction. Apply the coverage repair only if the instruction EXPLICITLY calls
+for row/date/key COMPLETENESS — phrasings like "there should be a row for every day", "every
+<key> should be present", "rows are missing / fix the missing rows", "include all dates",
+"one row per <key>". If the instruction does NOT request completeness — e.g. "the project is
+broken", "create the NPS tables", "add a primary key", "rename the CTEs", or any ask unrelated
+to coverage — then do NOT investigate or apply the coverage repair AT ALL, even if a model
+looks coverage-shaped or the probe below would return rows. Treat the task by its ACTUAL ask
+and leave coverage-shaped models BYTE-INTACT. Only when intent IS completeness do you proceed
+to gate (b).
+
+GATE (b) — FIRED local coverage probe (only reached if gate (a) passed). Run the probe; apply
+the edit only if the probe FIRES. The probe is oracle-free — it uses only local task data,
+never a hidden test: build the suspect model and compare the key/date coverage of its output
+against the complete local dimension (the `dim_*` / reference table the model selects from).
+Concretely: collect the set of dimension keys (e.g. every `date_col` in `{{ ref('dimension') }}`)
+and the set of keys actually present in the model output; the probe FIRES iff the dimension
+contains one or more keys ABSENT from the output (rows are genuinely missing). If every
+dimension key already appears in the output (no missing rows — the spine is already complete,
+or the narrowing predicate is in fact correct), the probe is EMPTY: do NOT make the subtractive
+edit, leave the model BYTE-INTACT, and treat the task by its other classification (the real
+bug, if any, is elsewhere — e.g. a YAML/config fix). Only when BOTH gate (a) AND gate (b) hold
+make exactly these edits and NOTHING ELSE: (1) delete the one narrowing membership predicate
+that filters the complete
 dimension down to keys that already appear in the fact; (2) leave the aggregate expression
 BYTE-INTACT — do not rewrite a COUNT(*) into COUNT(col), or change any SUM/AVG/window, while
 repairing coverage; (3) leave the existing join and GROUP BY BYTE-INTACT — do not add a cross
 join of a secondary category against the dimension. Let categories emerge per key through the
 join the model already has.
 
-PROBE (oracle-free, run it FIRST — decides whether to edit at all):
+PROBE for gate (b) (oracle-free, run ONLY after gate (a) intent-check passed):
     -- missing keys = dimension keys NOT present in the model output
     select date_col from {{ ref('dimension') }}
     except

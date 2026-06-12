@@ -9,7 +9,7 @@ agent:
     top_p: null
     seed: null
   solver_workflow: solver_workflows/h0050-coverage-repair-skeleton-gated-on-fired-missing-day-probe
-  solver_workflow_content_hash: sha256:e4556b4cb9434e9c74c09e4dc0698fab1270fbeac1590e7153dfb2b52732181f
+  solver_workflow_content_hash: sha256:3a98d5cd4d9631fb4cf200af4a04978253fc7c951f39f6d45bfff68215f5778c
   max_turns: 200
   max_budget_usd: null
   override_timeout_sec: 2400.0
@@ -21,7 +21,7 @@ agent:
   reasoning_effort: xhigh
   reasoning_summary: null
   resume_from_freeze: null
-  sealed_hash: 14addda5c9dd24d4e6f5a95c7f9599b4
+  sealed_hash: ad60c0f97b1c1ed2bb868b3f710372a5
   spacedock_skill_version: 1.0.0
   prompt_content_hashes: {}
 benchmark:
@@ -58,11 +58,11 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: 1ec9f9928dc8702dedbff503cc8c08a79f8b32e2
+  harness_git_sha: dfef19d60568911a38f8f18643e8fa4d3ee272e2
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
-  solver_workflow_hash: sha256:e4556b4cb9434e9c74c09e4dc0698fab1270fbeac1590e7153dfb2b52732181f
+  solver_workflow_hash: sha256:3a98d5cd4d9631fb4cf200af4a04978253fc7c951f39f6d45bfff68215f5778c
 experiment_meta:
   max_budget_usd: null
   estimated_cost_usd: null
