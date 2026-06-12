@@ -207,7 +207,32 @@ in its solo smoke; no precondition mis-fired and no lever's rule dominated or mu
 
 ## Follow-up Routing
 
+**file (DONE).** Superseded by h0051 (h0044 + h0050) and h0052 (h0044 + h0045 + h0050),
+the scoped, bleed-free re-dos filed 2026-06-12 — they carry the same flips (f1006/f1006-hard
+same-grain `max(points)`, airbnb009 coverage repair) without the airbnb008 bleed that h0049's
+unscoped h0046 component caused at h0046's full run. The composition-works learning (orthogonal
+construct-gated levers compose additively in one README; the precondition gate is the isolation
+mechanism) is already recorded in `_artifacts/WORKFLOW-REFINE.md`. No further routing from h0049.
+
 ## Verdict
+
+**REJECTED (superseded, not run at full).**
+
+h0049's central finding STANDS and is valuable: three orthogonal construct-gated levers
+(h0044 same-grain `max(points)`, h0045 feature-boundary, h0046 coverage-repair) stacked verbatim
+in ONE README composed additively at smoke (+3 flips — airbnb009 3/3, f1006, f1006-hard — all by
+committed artifact; qb002 held; 7/7 canaries held on a clean strict audit; the lone qb004
+regression was h0045's own single-trial coin-flip with both other levers provably silent, NOT
+cross-lever interference). The precondition gate IS the isolation mechanism — recorded in
+WORKFLOW-REFINE.
+
+It is NOT promoted and NOT run at full because h0049's **h0046 component is the UNSCOPED coverage
+skeleton** that bled the same-family passer **airbnb008** at h0046's own full run. The scoped,
+intent-gated **h0050** fixes that bleed (intent-first double-gate flips airbnb009 byte-consistent
+AND spares airbnb008 byte-intact, zero canary loss). The composition is therefore superseded by
+**h0051** (h0044 + h0050) and **h0052** (h0044 + h0045 + h0050), which carry the same flips
+bleed-free. Running h0049 at full would likely repeat the airbnb008 bleed for a smaller net than
+the scoped re-dos deliver. No promote.
 
 ## Stage Report: propose
 
@@ -236,3 +261,13 @@ Stacked the three smoke-verified construct-gated levers (h0044 same-grain max(po
 ### Summary
 
 GO. The combined three-lever README preserved each lever's solo effect: +3 flips composed (airbnb009 3/3, f1006, f1006-hard, all by committed artifact), qb002 held, all 7 canaries held on a clean strict audit. The single regression (qb004) is h0045's OWN single-trial coin-flip variance — a broken `{% if %}`-in-schema-yml guard the solver reverted in its solo smoke but not here — with the other two levers provably silent on that cell (0 lever-language hits), so it is NOT cross-lever interference. Headline finding: precondition-gated levers targeting disjoint construct families compose additively in one README; the gate is the isolation mechanism. Best case at full = +3 → 35/48 (qb004 at risk as a coin-flip, not a lever defect). Recommend advancing to full.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal ## Verdict + ## Follow-up Routing into the entity file (frontmatter untouched — FO owns verdict/archive).
+  ## Verdict = REJECTED (superseded, not run at full): composition finding stands (orthogonal construct-gated levers compose additively, gate is the isolation mechanism — in WORKFLOW-REFINE), but h0049's h0046 component is the UNSCOPED coverage skeleton that bled airbnb008 at h0046 full; superseded by the scoped bleed-free h0051 (h0044+h0050) + h0052 (h0044+h0045+h0050). No promote.
+  ## Follow-up Routing = file (DONE): superseded by h0051 + h0052 (filed 2026-06-12); composition-works learning already in _artifacts/WORKFLOW-REFINE.md.
+
+### Summary
+
+Terminal conclude for the smoke-GO-but-retired h0049. Recorded REJECTED (superseded, not run at full): the composition finding is real and kept (three construct-gated levers compose additively in one README — the precondition gate is the isolation mechanism, already in WORKFLOW-REFINE), but h0049's unscoped h0046 coverage component would repeat the airbnb008 same-family bleed seen at h0046's full run. The scoped intent-gated h0050 fixes that bleed, so the composition is superseded by h0051 and h0052 which carry the same flips bleed-free; routing = file, no promote.
