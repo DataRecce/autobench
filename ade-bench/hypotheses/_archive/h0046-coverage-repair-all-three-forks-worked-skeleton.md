@@ -5,6 +5,10 @@ kind: hypothesis
 source: concept-airbnb009-reproducible-fix (ideate 2026-06-11), grounded in the airbnb009 failed-attempt forensics h0019 (pinned forks #1+#3, left #2 free) / h0042 (pinned #2, left #1+#3 free). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 id: h0046
 started: 2026-06-11T00:00:00Z
+completed: 2026-06-12T09:09:32Z
+verdict: REJECTED
+worktree:
+archived: 2026-06-12T09:09:32Z
 ---
 
 ## Hypothesis

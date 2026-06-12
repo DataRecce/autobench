@@ -5,10 +5,11 @@ status: analyze
 kind: hypothesis
 source: Captain request 2026-06-10 after f1006 decision-fork analysis and C-variant subagent probe. Follows h0012 smoke pass / full regression evidence and h0037 full f1006/f1006-hard latest-row failure pattern. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-10T08:15:58Z
-completed:
-verdict:
+completed: 2026-06-12T09:09:32Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-12T09:09:32Z
 ---
 
 ## Hypothesis

@@ -5,10 +5,11 @@ status: analyze
 kind: hypothesis
 source: Captain request 2026-06-10 after generalized quickbooks002/quickbooks004 decision-fork probe. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-10T16:40:51Z
-completed:
-verdict:
+completed: 2026-06-12T09:09:32Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-12T09:09:32Z
 ---
 
 ## Hypothesis
