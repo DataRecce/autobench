@@ -91,9 +91,92 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
+**GO — the two verified bleed-free levers COMPOSE bleed-free at the artifact level. +3 real
+flips banked in one run, zero canary loss, airbnb008 byte-intact.** This is the lead +3
+promote candidate: f1006 + f1006-hard + airbnb009 all flip FAIL→PASS, every canary holds, and
+each lever fired ONLY on its own construct (gates mutually disjoint).
+
+**Run-dirs (all strict-audit clean, captured=1 every cell):**
+- PANEL (13 cells): `runs/ade-bench-h0051-compose-maxpoints-and-scoped-coverage/372f512fc7007ed8`
+  — strict audit `clean 13 / tainted 0 / coverage_missing 0`; score 13/13 = 1.0.
+- airbnb009-r2 (seed=42): `runs/ade-bench-h0051-compose-maxpoints-and-scoped-coverage-airbnb009-r2/af6a2d470d381266`
+  — clean 1/0/0; 1/1 PASS.
+- airbnb009-r3 (seed=43): `runs/ade-bench-h0051-compose-maxpoints-and-scoped-coverage-airbnb009-r3/6f6c4fb1940de386`
+  — clean 1/0/0; 1/1 PASS.
+
+**Paired delta vs @baseline (h0043, `7390e6adf44ba5ea`) on the 13-cell smoke set — net +3:**
+
+| Task | h0043 | h0051 | Δ | Role |
+|------|-------|-------|---|------|
+| f1006 | 0.0 FAIL | 1.0 PASS | **+1** | flip target (max-points) |
+| f1006-hard | 0.0 FAIL | 1.0 PASS | **+1** | flip target (max-points) |
+| airbnb009 | 0.0 FAIL | 1.0 PASS (3/3 draws) | **+1** | flip target (coverage) |
+| airbnb008 | 1.0 | 1.0 | hold | MANDATORY canary — mom_agg_reviews.sql BYTE-INTACT |
+| airbnb004 | 1.0 | 1.0 | hold | perturbable airbnb canary |
+| airbnb005 | 1.0 | 1.0 | hold | perturbable airbnb canary |
+| airbnb006 | 1.0 | 1.0 | hold | perturbable airbnb canary |
+| f1005 | 1.0 | 1.0 | hold | perturbable f1/standings canary |
+| f1005-medium | 1.0 | 1.0 | hold | perturbable f1/standings canary |
+| quickbooks002 | 1.0 | 1.0 | hold | cross-family passer |
+| quickbooks004 | 1.0 | 1.0 | hold | cross-family passer |
+| asana002 | 1.0 | 1.0 | hold | cross-family passer |
+| ana-eng001 | 1.0 | 1.0 | hold | cross-family passer |
+
+**Net = +3, 0 regressions. All 4 AC checks satisfied** (AC-2 clean audits + captured>0; AC-4
+per-lever artifact reads below; AC-5 panel holds incl. airbnb008 mandatory + ≥2 perturbable
+airbnb + ≥2 perturbable f1).
+
 ## Run result
 
 ## Behavioral analysis
+
+**Decisive committed-artifact reads (the only smoke question was composition/interference —
+both individual levers were already artifact-verified at h0044 / h0050).**
+
+**(a) f1006 + f1006-hard — same-grain `max(points)`, NO latest-row / QUALIFY / rank.** Both
+cells' committed `apply_patch` is the identical pure aggregate substitution and nothing else:
+```
+- sum(cs.points) AS total_points   →   + max(cs.points) AS total_points   (constructor_points.sql)
+- sum(ds.points) AS total_points   →   + max(ds.points) AS total_points   (driver_points.sql)
+```
+No window function, no `QUALIFY`, no latest-row/rank rewrite — exactly the h0044 lever. Worker
+validation in both cells: 0 mismatched rows vs source `max(points)`; spot-check Red Bull 2023
+`10,158`(sum)→`860`(max), Verstappen 2023 `6,453`→`575`. All 4 AUTO_*_equality/existence tests
+PASS (`verifier/test-stdout.txt`: actual_pass=4/4).
+
+**(b) airbnb009 — all THREE forks, byte-consistent across 3 seed-perturbed draws.** Each of
+panel / r2(seed42) / r3(seed43) committed the SAME single `mom_agg_reviews.sql` edit:
+- **Fork 1 (narrowing predicate DROPPED):** removed the
+  `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)` that was clipping
+  the date spine to only days with reviews — the date-completeness repair.
+- **Fork 2 (COUNT(*) / aggregate BYTE-INTACT):** no aggregate or GROUP BY touched; the edit is
+  confined to the `dates_cte` spine.
+- **Fork 3 (no cross-join):** no join introduced/rewritten; the `AND→WHERE` is the mechanical
+  consequence of dropping the leading predicate, leaving the incremental branch as the sole
+  filter. r3 differs only in leading whitespace on that one line — semantically byte-identical.
+The lever is reproducible, not a one-draw coin flip (the wall that sank the earlier airbnb009
+E2-alone attempt): 3/3 draws, same fork.
+
+**(c) airbnb008 — mom_agg_reviews.sql BYTE-INTACT; the intent gate did NOT fire (no bleed).**
+airbnb008's real task is a YAML parse error — a missing closing quote on the
+`mom_agg_reviews.DATE_SENTIMENT_ID` *description* in `models/agg/agg.yml`. The committed cell
+patched ONLY `models/agg/agg.yml` (one-line quote fix); `mom_agg_reviews.sql` was never in an
+`apply_patch`. `mom_agg_reviews` appears in the worker's reasoning (because the broken
+description belongs to that model) but the model SQL is untouched. This is precisely the bleed
+the UNSCOPED h0046 caused and h0050's task-intent gate fixed: airbnb008 is a fix-it task, not a
+row/date-completeness task, so the coverage gate correctly stayed shut. dbt build PASS=27/27.
+
+**Composition / mutual disjointness (the lead finding).** The two gates are mutually exclusive
+at the artifact level:
+- f1006 / f1006-hard committed patches touch ONLY `constructor_points.sql` + `driver_points.sql`
+  — the coverage gate did NOT fire on the standings tasks.
+- airbnb009 committed patch touches ONLY `mom_agg_reviews.sql` — the max-points gate did NOT
+  fire (no `sum→max` leak) on the coverage task.
+Neither lever degraded vs its solo result; neither mis-fired on the other's construct; airbnb008
+stayed byte-intact. The composition holds. This confirms the h0049 finding (precondition-gated
+levers on disjoint construct families compose additively — the gate IS the isolation mechanism),
+now on the SCOPED h0050 that does not bleed airbnb008. Falsification conditions (lever
+degradation, canary regression, net ≤ h0043) are all NOT met.
 
 ## Failure Review
 
@@ -113,3 +196,34 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 ### Summary
 
 Composed h0044's same-grain `max(points)` standings guard and h0050's double-gated (intent + fired-probe) scoped coverage skeleton onto the current @baseline (h0043), each added verbatim as a separate precondition-gated Implementation rule — no integration prose, no third knob, leak-guard intact. @baseline rewards resolved from h0043 run-dir 7390e6adf44ba5ea: f1006/f1006-hard/airbnb009 all FAIL (flip targets); airbnb008/004/005/006, f1005/f1005-medium, qb002/004, asana002, ana-eng001 all PASS (canaries/holds). Built + froze the FULL spec (two-field diff), the 13-task smoke spec (tasks-only diff), and two seed-perturbed airbnb009 single-task specs (r2 seed=42, r3 seed=43) for the ≥3-draw AC-4 requirement. Gatekeeper recommends APPROVE with zero FAILs/WARNs; the only smoke-time watch is gate disjointness, airbnb008 byte-intact, and the run-dir net clearing h0043. Propose stops here — no rk run launched; the FO presents the gate.
+
+## Stage Report: smoke
+
+- DONE: Strict audit each run-dir clean (tainted 0 / coverage_missing 0) + captured>0 every cell BEFORE trusting scores; rk score each.
+  PANEL `clean 13/0/0` score 13/13=1.0; r2 `1/0/0` 1/1; r3 `1/0/0` 1/1. All cells captured=1.
+- DONE: (a) f1006 + f1006-hard — committed model uses same-grain max(points), NO latest-row/QUALIFY/rank.
+  Both cells' only apply_patch: `sum(cs.points)→max(cs.points)` + `sum(ds.points)→max(ds.points)`, nothing else; 4/4 AUTO tests PASS.
+- DONE: (b) airbnb009 (3 draws) — committed mom_agg_reviews.sql shows all THREE forks; byte-consistent.
+  panel/r2/r3 all drop the narrowing `WHERE DATE_ACTUAL IN (… review_cte)` predicate; COUNT(*)/aggregate byte-intact; no cross-join. 3/3 same fork (r3 differs only in leading whitespace).
+- DONE: (c) airbnb008 — committed mom_agg_reviews.sql BYTE-INTACT (h0050 intent gate did not fire).
+  airbnb008's only patch = `models/agg/agg.yml` (one-line quote fix on a YAML description); mom_agg_reviews.sql never in any apply_patch. Build PASS=27/27.
+- DONE: (d) airbnb004/005/006 + f1005/f1005-medium + qb002/qb004 + asana002/ana-eng001 hold PASS, neither lever mis-fired.
+  All 10 holds = 1.0 (== baseline); f1006/-hard touch only stats/*_points.sql, airbnb009 touches only mom_agg_reviews.sql → gates mutually disjoint.
+- DONE: Write ## Smoke result + ## Behavioral analysis. Lead with GO/NO-GO; call out the composition holds at the artifact level.
+  Both sections written; GO; net +3 vs h0043 (`7390e6adf44ba5ea`), 0 regressions; composition/mutual-disjointness is the lead finding.
+- SKIPPED: Workflow-refinement evaluation / WORKFLOW-REFINE.md entry.
+  Not a workflow-structure change — two precondition-gated rule additions inside the existing Implementation stage (no new/reordered/replaced stage, no protocol-family). Rule-tweak-within-stage; the structural tell-tales are absent.
+
+### Summary
+
+GO. The two individually-verified bleed-free levers — h0044 same-grain `max(points)` and h0050
+intent+probe double-gated scoped coverage repair — COMPOSE bleed-free in one README on h0043,
+banking +3 artifact-real flips (f1006, f1006-hard, airbnb009) in a single run with zero canary
+loss. Decisive artifact reads all pass: f1006/-hard committed a pure `sum→max` substitution
+(no latest-row/QUALIFY/rank); airbnb009 committed the identical three-fork coverage edit across
+3 seed-perturbed draws (reproducible, not a coin flip); airbnb008's `mom_agg_reviews.sql` stayed
+BYTE-INTACT because its task is a YAML quote fix, not a completeness task, so the intent gate
+correctly did not fire (the bleed h0046 caused and h0050 fixed). The two gates are mutually
+disjoint at the artifact level — each fired only on its own construct — confirming construct-
+gated levers compose additively (h0049 finding) on the scoped h0050. This is the lead +3 promote
+candidate; the +3 should clear the ±4 single-trial variance band at full scale. Gate → full.
