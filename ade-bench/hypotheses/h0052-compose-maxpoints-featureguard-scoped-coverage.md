@@ -126,7 +126,14 @@ bite this run.
 
 ## Run result
 
-Not yet run at full scale — this is the smoke gate. GO → route to `full`.
+Full 48-task run LAUNCHED (detached) 2026-06-12T16:22 — Phase 1 of `full` stage.
+- handle: `runs/.rk-handles/h0052-full-20260612-162236/`
+- pid 1757974; ntfy `adebench-rk-381c976fe07465bf`
+- spec: `specs/h0052-compose-maxpoints-featureguard-scoped-coverage.frozen.yaml`
+- 2nd concurrent run (h0051-full also in flight). FO owns the wait.
+
+Phase 2 (on done rc=0): strict audit clean + captured>0 every cell BEFORE score;
+`rk score --format json`; record run-dir + headline + A/B vs h0051 here.
 
 ## Behavioral analysis
 
