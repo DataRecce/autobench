@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: captain request 2026-06-11 — the three levers each passed smoke solo (h0044 6/6, h0045 7/7, h0046 airbnb009 3/3 byte-identical); verify whether a SINGLE solver README composing all three resolves every target task at once, or whether stacking interferes / bloats the README so a precondition mis-fires. Forks the current @baseline h0043 (32/48).
 started: 2026-06-11T06:04:09Z
-completed:
-verdict:
+completed: 2026-06-12T09:25:41Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-12T09:25:41Z
 ---
 
 ## Hypothesis
