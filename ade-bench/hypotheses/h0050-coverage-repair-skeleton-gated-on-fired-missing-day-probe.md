@@ -138,6 +138,12 @@ fire here: its task ask is not completeness, so gate (a) kept it out.
 
 ## Run result
 
+**Phase 1 (launch) — full 48-task run launched DETACHED 2026-06-12T09:27:50Z.**
+- handle: `runs/.rk-handles/h0050-full-20260612-092750`
+- pid: 1359817; log: `runs/.rk-handles/h0050-full-20260612-092750/log`; done sentinel: `runs/.rk-handles/h0050-full-20260612-092750/done` (absent until finished, then carries rc/end/rundir)
+- spec: `specs/h0050-coverage-repair-skeleton-gated-on-fired-missing-day-probe.frozen.yaml`
+- Phase 2 (strict-audit clean + captured>0 → `rk score` → record run-dir + headline) pending FO re-engage on done rc=0.
+
 ## Behavioral analysis
 
 The intent-first double-gate is the mechanism that converts h0046's artifact-correct-but-too-eager
@@ -208,3 +214,14 @@ REVISE addressed: the coverage repair is now DOUBLE-GATED — TASK-INTENT first 
 ### Summary
 
 GO. The intent-first double-gate flips airbnb009 reproducibly (3/3 byte-consistent, all three forks) AND spares airbnb008 byte-intact (gate (a) blocked the coverage repair on a non-completeness task), with zero canary loss — projected net +1 → 33/48 at full, no same-family bleed. This is the artifact-level fix for the exact h0046 defect (h0046: +1 airbnb009 / −1 airbnb008 = net 0). The verdict rests on committed-artifact proof at trials:1, not aggregate reward: airbnb009's three forks present across 3 independent draws; airbnb008's `mom_agg_reviews.sql` provably untouched.
+
+## Stage Report: full
+
+- DONE: Phase 1 NOW — launch the FULL 48-task run DETACHED via `drivers/rk-run-detached.sh`; return the handle path and signal done immediately (FO owns the wait).
+  Launched 2026-06-12T09:27:50Z, pid 1359817, handle `runs/.rk-handles/h0050-full-20260612-092750` (done sentinel absent until finished). `RAZORBACK_SPACEDOCK_PLUGIN_DIR` exported to repo `spacedock/`. Spec `specs/h0050-coverage-repair-skeleton-gated-on-fired-missing-day-probe.frozen.yaml` confirmed present.
+- SKIPPED: Phase 2 — strict audit clean + captured>0 → `rk score --format json` → record run-dir + headline in `## Run result`.
+  Deferred by design: Phase 1 is launch-only, the FO re-engages for Phase 2 when the done sentinel reports rc=0. Behavioral deep-dive is the separate analyze stage.
+
+### Summary
+
+Phase 1 complete: full 48-task h0050 run launched detached (handle `runs/.rk-handles/h0050-full-20260612-092750`, pid 1359817). Spec and detached runner verified present; plugin-dir env exported. Run result section records the handle, log, and done-sentinel paths. Phase 2 (audit + score + record) is deferred to FO re-engage on done rc=0 per the launch-only assignment.
