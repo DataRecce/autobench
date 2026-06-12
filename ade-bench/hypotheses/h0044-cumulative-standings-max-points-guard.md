@@ -492,3 +492,57 @@ variance, not lever-caused damage. Verdict recommendation: NO-GO for promotion (
 straddles zero), no follow-up to file; bank the knowledge gain that the
 cumulative-standings max-points guard fires correctly and stays in its lane on a
 full run.
+
+## Verdict
+
+**REJECTED (no-promote).** Full audited 31/48 = 0.6458, net **−1** vs `@baseline`
+h0043 (32/48 = 0.6667); paired delta −0.0208, 95% bootstrap CI [−0.1042, +0.0625]
+straddles zero — fails the promote tripwire. Audit was clean (strict 48/48,
+`tainted: 0`, `coverage_missing: 0`). `@baseline` stays h0043.
+
+The lever is **artifact-correct AND inert off-target**, which is the whole story:
+- **BOTH named targets flipped FAIL→PASS on the artifact-proven mechanism.** f1006
+  AND f1006-hard committed same-grain `max(points)` (`sum(cs.points)`→`max(cs.points)`
+  in `constructor_points.sql`, `sum(ds.points)`→`max(ds.points)` in
+  `driver_points.sql`), with NO row_number/rank/QUALIFY/order-by/final-row and NO
+  race-results recompute. f1006-hard was itself FAIL at h0043 baseline, so the lever
+  scored two genuine flips, recovering the h0037/h0041 latest-row DROP cell onto the
+  simple aggregate — not a hold.
+- **All three regressions (asana002, f1011, quickbooks002) are off-construct
+  single-trial variance the lever provably never touched.** None is a
+  standings/points task; the precondition never fired; the README `max(points)`
+  tokens appear only as identical dispatch-prompt boilerplate (not task edits) in
+  each cell. The −1 net is dragged by run-to-run coin-flips on cells the lever
+  cannot reach, not by lever damage.
+
+This is the `edit-shape-without-oracle-target` family at its cleanest: a
+correct-shape, correctly-gated lever whose real gains are washed by trials:1 noise
+on unrelated cells.
+
+## Follow-up Routing
+
+**stop (do-NOT-file).** The lever is artifact-correct and provably inert
+off-target — there is nothing to fix and no visible fork to probe. The
+cumulative-standings flip-family is exhausted: f1006 + f1006-hard are the only
+standings-aggregate targets and both already land the intended `max(points)` fix.
+The −1 is pure measurement variance (per the single-trial-variance-masking wall),
+not a lever defect, and is not chaseable at trials:1. Knowledge banked: the
+max-points guard fires correctly and stays in its lane on a full 48-task run.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict` (REJECTED no-promote) into the entity file.
+  31/48, net −1; f1006 + f1006-hard flipped on artifact-proven `max(points)`; asana002/f1011/quickbooks002 regressed as off-construct variance (lever provably inert there). Evidence drawn from `## Run result` / `## Behavioral analysis`.
+- DONE: Write `## Follow-up Routing` = stop (do-NOT-file).
+  Lever is artifact-correct AND inert off-target; nothing to fix; standings flip-family exhausted (f1006 + f1006-hard are the only standings-aggregate targets, both land `max(points)`).
+- DONE: Cross-batch note added to `_artifacts/WORKFLOW-REFINE.md`.
+  Appended the trials:1-variance-dominates-per-lever-signal note covering h0044/h0045/h0046 (judge by artifact + held targets, not the single aggregate; bank only artifact-reproducible + gated flips).
+
+### Summary
+
+Concluded h0044 REJECTED (no-promote): full 31/48, net −1 vs `@baseline` h0043, CI
+straddles zero. Both named targets flipped FAIL→PASS on artifact-proven same-grain
+`max(points)`; all three regressions are off-construct single-trial variance the
+precondition-gated lever provably never touched. Routing: stop — artifact-correct,
+inert off-target, family exhausted. Cross-batch variance note added to WORKFLOW-REFINE.
+Did NOT set frontmatter verdict/archive (FO owns that).

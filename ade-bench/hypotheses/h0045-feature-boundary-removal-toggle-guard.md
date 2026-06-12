@@ -625,3 +625,58 @@ regressions are off-construct passers the lever never touched (gate held — no
 pure trials:1 variance, the cleanest such signal in the midnight batch. Recommend
 do-NOT-file: no lever defect, variance not chaseable at trials:1. @baseline stays
 h0043.
+
+## Verdict
+
+**REJECTED (no-promote).** Full audited 28/48 = 0.5833, net **−4** vs `@baseline`
+h0043 (32/48 = 0.6667); paired delta −0.0833, 95% bootstrap CI [−0.1667, −0.0208].
+The CI excludes zero, but every changed cell is an off-construct near-miss — the
+delta is variance, not a measured lever effect. Audit was clean (strict 48/48,
+`tainted: 0`, `coverage_missing: 0`). `@baseline` stays h0043.
+
+- **ZERO gains — by design.** h0045 is a pure no-harm feature-boundary guard; it
+  flips nothing. Both named targets (quickbooks002, quickbooks004) HELD PASS at 1.0,
+  reproducing the smoke via the artifact-proven narrow feature-boundary edits.
+- **All four regressions (asana002, f1005, f1010-medium, f1011) are off-construct
+  single-trial variance the guard never touched.** None is a remove/disable/toggle
+  task; zero `var('using_*')` gating in any committed patch; "feature boundary"
+  appears only as `role=user` prompt boilerplate; each cell edited only its own task
+  model; each is a one-check near-miss (asana002 Got 2, f1005 Got 2, f1010-medium Got
+  1092, f1011 check_option_b Got 1). The gate held — no bleed onto the four
+  non-feature tasks.
+
+This is the **cleanest variance signal in the midnight batch**: a lever that
+provably does nothing still moved the aggregate −4. That is direct evidence that
+trials:1 single-run noise (~±4 tasks) dominates the per-lever signal — the
+single-trial-variance-masking wall, made concrete by a no-harm guard.
+
+## Follow-up Routing
+
+**stop (do-NOT-file).** There is no lever defect: the gate held (zero `using_*`
+bleed), both targets stayed PASS, and the −4 is entirely off-construct variance,
+which is structural at trials:1 and not chaseable per-lever (the standing decision
+rejects multi-trial). The feature-boundary guard is a verified no-harm discipline
+available to **compose under a future flip-seeking lever** (cf. h0049's additive
+composition of disjoint gated levers), but it has no standalone protective value on
+the minimal `@baseline` — its targets already pass. A provable no-harm guard
+scoring −4 is the strongest single piece of evidence in this batch that the
+per-lever signal is below the trials:1 noise floor.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict` (REJECTED no-promote) into the entity file.
+  28/48, net −4; ZERO gains (no-harm guard flips nothing), targets qb002/qb004 held, all 4 regressions (asana002/f1005/f1010-medium/f1011) off-construct variance, lever silent (no `using_*` bleed). Evidence drawn from `## Run result — Phase 2` / `## Behavioral analysis`.
+- DONE: Write `## Follow-up Routing` = stop (do-NOT-file).
+  No lever defect; a no-harm guard scoring −4 is the cleanest evidence trials:1 variance (~±4) dominates the per-lever signal; composable under a future flip lever but no standalone value.
+- DONE: Cross-batch note added to `_artifacts/WORKFLOW-REFINE.md`.
+  h0045 is the anchor evidence in the note (provable no-harm guard still scored −4).
+
+### Summary
+
+Concluded h0045 REJECTED (no-promote): full 28/48, net −4 vs `@baseline` h0043. As a
+pure no-harm feature-boundary guard it flips nothing by design — both targets held,
+and all four regressions are off-construct single-trial variance the gate never
+touched (zero `using_*` in any committed patch). The cleanest variance signal in the
+batch: a provably-no-harm lever moving the aggregate −4. Routing: stop — no defect,
+compose-only. Cross-batch variance note added to WORKFLOW-REFINE. Did NOT set
+frontmatter verdict/archive (FO owns that).

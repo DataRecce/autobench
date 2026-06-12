@@ -494,3 +494,68 @@ ran airbnb008. f1011 is unrelated oracle-only answer-selection variance. Recomme
 promote; present to the captain. A scoped-precondition revision (fire the predicate-drop only on a
 non-zero missing-day probe) could plausibly bank the +1 without the −1, but the flip-portfolio is
 concluded, so spending that cycle is a captain decision.
+
+## Verdict
+
+**REJECTED (no-promote).** Full audited 31/48 = 0.6458, net **−1** vs `@baseline`
+h0043 (32/48 = 0.6667); paired delta −0.0208, 95% bootstrap CI [−0.104, +0.042]
+straddles zero — a statistical wash. Audit was clean (strict 48/48, `tainted: 0`,
+`coverage_missing: 0`, captured>0 on 48/48). `@baseline` stays h0043.
+
+The wash hides three artifact-decisive changes:
+- **airbnb009 flipped FAIL→PASS, byte-identical all-three-fork artifact — 4/4 now
+  across smoke+full.** This is the real, reproducible gain: the worked-example
+  skeleton drops the narrowing predicate, keeps `COUNT(*)` byte-intact, and adds no
+  cross-join. It **broke the h0019/h0042 non-reproducibility wall** — the first lever
+  to reach AND pin the committed SQL identically across every draw.
+- **airbnb008 PASS→FAIL is a real, lever-caused same-family bleed (NOT variance).**
+  The skeleton FIRED on a sibling where the coverage repair was NOT the bug: the
+  solver applied the identical predicate-drop hunk to both `mom_agg_reviews.sql` AND
+  `wow_agg_reviews.sql`, breaking `AUTO_mom_agg_reviews_equality` (Got 28631), when
+  airbnb008's actual fix was a one-line YAML quote balance in `agg.yml` (which
+  `@baseline` touched alone → PASS). This is the **G8 same-family blind spot flagged
+  at propose, now realized** — the smoke carried only airbnb001 (a non-firing stable
+  passer) and never ran airbnb008.
+- **f1011 PASS→FAIL is unrelated oracle-only answer-selection variance**
+  (`check_option_b` Got 1, ADE/ABDE-class); the skeleton has no coverage/date-spine
+  analog to act on there.
+
+The honest read is **correct, reproducible mechanism with a known generative scope
+defect** — the h0009/h0012-class "correct mechanism, generative collateral" outcome:
+the gain banks at the artifact level but not at the aggregate, because the same
+ungated rule damages a passer the smoke panel never sampled.
+
+## Follow-up Routing
+
+**file (DONE).** The scope defect is fixable and the fix is already filed and
+verified: **h0050** (intent-gated coverage-repair skeleton) gates the predicate-drop
+on a fired missing-day precondition (the task asks for per-day completeness AND a
+missing-day probe is non-zero) layered on h0046's all-three-fork skeleton. h0050 is
+**smoke-GO**: airbnb009 flips 3/3 byte-consistent AND airbnb008 stays byte-intact
+(the bleed is spared), with zero canary loss. So h0046's airbnb009 +1 is recoverable
+without the airbnb008 −1, via the double-gate (intent first, then the fired probe) —
+no further h0046 iteration is warranted (the bare skeleton is CAPPED one-shot per its
+own AC-4). The knowledge gain is banked in the instruction-lever taxonomy and the
+WORKFLOW-REFINE note below: a copyable worked-example skeleton reliably reaches and
+pins the committed SQL, but an *ungated* coverage-repair skeleton is generative and
+bleeds onto same-construct siblings — the missing piece is a firing precondition,
+which h0050 supplies.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict` (REJECTED no-promote) into the entity file.
+  31/48, net −1; airbnb009 flipped 4/4 byte-identical (broke the h0019/h0042 non-reproducibility wall) but bled onto same-family airbnb008 (real generative scope defect, NOT variance); f1011 variance. Evidence drawn from `## Run result` / `## Behavioral analysis`.
+- DONE: Write `## Follow-up Routing` = file (DONE).
+  The scoped fix h0050 (intent-gated coverage skeleton) is already filed and smoke-GO (airbnb009 3/3 + airbnb008 byte-intact); the bare skeleton is CAPPED one-shot, no further h0046 iteration.
+- DONE: Cross-batch note added to `_artifacts/WORKFLOW-REFINE.md`.
+  h0046 is the "file the gated variant" arm of the note (real lever-caused bleed that a precondition can gate → h0050).
+
+### Summary
+
+Concluded h0046 REJECTED (no-promote): full 31/48, net −1 vs `@baseline` h0043, a
+wash hiding one real reproducible gain (airbnb009 4/4 byte-identical all-three-fork —
+broke the h0019/h0042 wall), one real lever-caused same-family bleed (airbnb008, the
+G8 blind spot realized), and one variance loss (f1011). Routing: file — already DONE
+via h0050 (intent + fired-probe double-gate, smoke-GO: airbnb009 3/3 AND airbnb008
+byte-intact), which banks the +1 without the −1. Cross-batch variance note added to
+WORKFLOW-REFINE. Did NOT set frontmatter verdict/archive (FO owns that).

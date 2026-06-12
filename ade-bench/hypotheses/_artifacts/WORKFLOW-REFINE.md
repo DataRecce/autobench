@@ -1152,3 +1152,51 @@ or a dispatched worker, never a direct first-officer edit.
   `## Behavioral analysis` / `## Failure Review`); runs
   `runs/ade-bench-h0049-combined-three-lever-single-readme/{aa64c927c4f793bd,98f921121acc361b}`;
   source levers h0044/h0045/h0046; MEMORY cross-ref `ade-bench-instruction-lever-taxonomy`.
+
+### trials:1 single-run variance (~±4 tasks) dominates the per-lever +1 signal — judge by artifact + held targets, bank only artifact-reproducible flips with gated bleed (h0044/h0045/h0046 midnight-batch CONCLUDE, 2026-06-12)
+- **Layer:** autoresearch loop
+- **Refinement type:** gate-rule / methodology — how to JUDGE a lever's full-run result
+  (promote criterion + what counts as a flip) under the standing trials:1 decision.
+- **What happened:** all three midnight-batch levers ran full 48-task and ALL netted negative
+  vs `@baseline` h0043 (32/48), all REJECTED no-promote, all on CLEAN strict audits:
+  **h0044** (cumulative-standings max-points guard) 31/48 net −1 — both targets f1006 + f1006-hard
+  flipped FAIL→PASS on artifact-proven same-grain `max(points)`, but asana002/f1011/quickbooks002
+  regressed as off-construct variance (lever provably inert there); **h0045** (feature-boundary
+  no-harm guard) 28/48 net −4 with **ZERO gains by design** — both targets held, all four
+  regressions (asana002/f1005/f1010-medium/f1011) off-construct, gate held (no `using_*` bleed);
+  **h0046** (coverage-repair all-three-fork skeleton) 31/48 net −1 — airbnb009 flipped 4/4
+  byte-identical (broke the h0019/h0042 wall) but bled onto same-family airbnb008 (real generative
+  scope defect, not variance), f1011 variance.
+- **Finding:** a **provable no-harm guard (h0045) still scored −4.** A lever that flips nothing by
+  construction moved the aggregate four tasks purely on off-construct coin-flips — the cleanest
+  possible demonstration that trials:1 single-run noise (~±4 tasks) is WIDER than any single-lever
+  +1 signal. The same borderline cells (asana002 — h0043's own +1 coin-flip; f1011 — the oracle-only
+  ADE/ABDE answer cell) wobbled across h0044, h0045, AND h0046, confirming the variance read is
+  batch-wide, not lever-specific. This is the single-trial-variance-masking wall (h0034) realized
+  three more times.
+- **Learning:** **judge a lever by its committed artifact + held targets, NOT by the single
+  aggregate score** — the aggregate is below the noise floor at trials:1. A flip banks ONLY when
+  the gain is (a) artifact-reproducible across draws AND (b) same-family bleed is gated. h0044's
+  gains were artifact-real but the family is exhausted (stop); h0045 is a verified no-harm
+  discipline with no standalone value (stop, compose-only); h0046's gain was artifact-real (4/4
+  byte-identical) but ungated → it bled, so the bankable form is the GATED follow-up **h0050**
+  (intent + fired-probe double-gate, smoke-GO: airbnb009 3/3 AND airbnb008 byte-intact). The
+  discriminator between "stop" and "file" at conclude is exactly whether the negative net is pure
+  off-construct variance (stop — nothing to fix) or hides a real lever-caused same-family bleed
+  that a precondition can gate (file the scoped variant).
+- **Bears on:** every full-run promote/conclude decision under trials:1 (do not read a negative
+  aggregate as lever harm without the per-cell artifact read); the no-harm-guard composition path
+  (h0045 → compose under a future flip lever, cf. h0049 additive composition); the gated-skeleton
+  banking path (h0046 → h0050); any future batch of construct-gated levers (expect ~±4 aggregate
+  noise — size the smoke + judge by artifact, not net).
+- **Evidence:** `hypotheses/h0044-cumulative-standings-max-points-guard.md`,
+  `hypotheses/h0045-feature-boundary-removal-toggle-guard.md`,
+  `hypotheses/h0046-coverage-repair-all-three-forks-worked-skeleton.md` (each `## Run result` /
+  `## Behavioral analysis` / `## Verdict` / `## Follow-up Routing`); runs
+  `runs/ade-bench-h0044-cumulative-standings-max-points-guard/645f1f4dbca44ee0`,
+  `runs/ade-bench-h0045-feature-boundary-removal-toggle-guard/9cd7b6635a124c12`,
+  `runs/ade-bench-h0046-coverage-repair-all-three-forks-worked-skeleton/dfabb292560234ce`;
+  `@baseline` h0043 `runs/ade-bench-h0043-package-update-optional-resource-matrix/7390e6adf44ba5ea`;
+  follow-up `hypotheses/h0050-*` (smoke-GO); MEMORY `ade-bench-single-trial-judge-by-artifact`,
+  `ade-bench-oracle-program-concluded`, `ade-bench-instruction-lever-taxonomy`,
+  `ade-bench-gated-levers-compose`.
