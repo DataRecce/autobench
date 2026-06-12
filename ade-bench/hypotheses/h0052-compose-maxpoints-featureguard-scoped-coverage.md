@@ -94,15 +94,95 @@ contribution by per-cell artifact comparison (predicted net zero), not just the 
 
 ## Smoke result
 
+**GO.** 14/14 panel + 2/2 airbnb009 repeats all PASS, all audits strict-clean, captured>0
+every cell. All three flip targets flipped FAIL→PASS at the committed-artifact level; all
+holds and canaries held. The A/B vs h0051 is decisive: **the h0045 feature-boundary guard is
+FREE under composition** — it changed zero cells, zero verdicts, zero committed artifacts vs
+h0051.
+
+**Audit + score (AC-2):**
+- PANEL `f65c803f8713c00b` — 14/14 clean, 14/14 PASS, every cell captured=1.
+- airbnb009-r2 `1462fa6db3e876c8` — clean, PASS, captured=1.
+- airbnb009-r3 `1e0351c7ba0144f5` — clean, PASS, captured=1.
+- 0 tainted / 0 coverage_missing across all three run-dirs.
+
+**Flip / hold table (vs @baseline h0043 `7390e6adf44ba5ea`):**
+
+| Cell | Baseline | h0052 | Δ | Committed artifact (decisive read) |
+|------|----------|-------|---|------------------------------------|
+| f1006 | 0.0 FAIL | 1.0 PASS | FLIP | `sum(cs.points)→max(cs.points)` + `sum(ds.points)→max(ds.points)` on BOTH scored models (constructor_points + driver_points), same-grain, no latest-row/window/rank |
+| f1006-hard | 0.0 FAIL | 1.0 PASS | FLIP | identical `max(points)` repair on both models; 920 + 3190 rows, 0 mismatches |
+| airbnb009 (×3) | 0.0 FAIL | 1.0×3 PASS | FLIP | `mom_agg_reviews.sql` only: removed the `dates_cte` narrowing predicate (`WHERE DATE_ACTUAL IN (SELECT … review facts)`); aggregates/join/GROUP BY unchanged — 3/3 byte-consistent across seed-perturbed repeats |
+| airbnb008 | 1.0 PASS | 1.0 PASS | HOLD | edited `agg.yml` (its real task — unterminated YAML string); `mom_agg_reviews.sql` BYTE-INTACT — coverage gate did NOT mis-fire |
+| quickbooks002 | 1.0 PASS | 1.0 PASS | HOLD | narrow feature-boundary: removed `using_department` variable via `dbt_project.yml` + targeted `.sql` edits, no broad rewrite |
+| quickbooks004 | 1.0 PASS | 1.0 PASS | HOLD | same narrow `using_department` removal |
+| quickbooks003 | 1.0 PASS | 1.0 PASS | HOLD (h0052-only canary) | same feature-boundary construct, narrow edit |
+| airbnb004/005/006, ana-eng001, asana002, f1005, f1005-medium | PASS | PASS | HOLD | canaries clean |
+
+**G11 multi-model note resolved:** f1006/f1006-hard each have TWO scored models
+(constructor_points + driver_points). The `max(points)` artifact landed on BOTH in both cells
+(all four AUTO_*_equality + existence tests PASS); the historical multi-model flicker did not
+bite this run.
+
 ## Run result
+
+Not yet run at full scale — this is the smoke gate. GO → route to `full`.
 
 ## Behavioral analysis
 
+**The A/B (AC-3) — is the no-harm guard free?** YES. Cell-by-cell against h0051's panel
+(`372f512fc7007ed8`):
+- All 13 cells h0051 and h0052 share: IDENTICAL verdict (all PASS) AND identical committed
+  artifact — f1006/f1006-hard = `max(cs.points)`+`max(ds.points)`; airbnb009 = `dates_cte`
+  predicate removal on `mom_agg_reviews`; airbnb008 = `agg.yml` (mom_agg byte-intact);
+  qb002/qb004 = `using_department` feature-boundary removal. Confirmed at the token level in
+  both run-dirs' transcripts.
+- The ONLY structural difference is h0052's added quickbooks003 canary (the h0045
+  feature-boundary construct family), which also PASSED.
+- Net: adding h0045's feature-boundary block to h0051 changed **nothing** — 0 added flips, 0
+  interference, 0 artifact divergence. The no-harm guard is **free** under three-lever
+  composition, exactly as predicted.
+
+**Where did h0045's guard fire?** Its construct family (variable/feature removal) is exercised
+by qb002/qb004/qb003 — all narrow feature-boundary edits, none a broad rewrite, all PASS. The
+guard's edit-locality prose is carried in the solver prompt for those cells; the committed
+artifacts are byte-equivalent to h0051's (which lacks the guard), so the guard neither tightened
+nor loosened the already-correct narrow edits. It is genuinely inert-but-safe on this panel —
+consistent with its established solo no-flip / no-harm profile.
+
+**Per-lever composition health (AC-4):**
+- h0044 (max-points): fired correctly, same-grain, both scored models, +2 (f1006 + f1006-hard).
+- h0050 (intent-gated scoped coverage): fired on airbnb009 (3/3 byte-consistent scoped repair),
+  correctly DID NOT fire on airbnb008 (mom_agg_reviews byte-intact) — the double-gate held under
+  composition. This is the core of the scoped, bleed-free re-do of h0049.
+- h0045 (feature-boundary guard): no-harm, no-flip, no-interference — free.
+
+**Transcript-capture caveat (infra, not experiment):** within each run-dir, `agent/sessions/`
+is a shared copy of one cell's session pool across all cells; the authoritative per-cell record
+is the cell-root `agent/codex.txt` (verified distinct per cell — distinct task instructions +
+distinct committed-file reports). All decisive reads above were taken from the per-cell
+`codex.txt` and cross-checked against per-cell `verifier/test-stdout.txt`. No bearing on the
+verdict; flagged so future deep-dives read `codex.txt`, not `sessions/`.
+
 ## Failure Review
+
+N/A — GO, no NO-GO / canary regression / revise. All targets flipped at the artifact level,
+all holds and canaries held, A/B confirms the guard is free.
 
 ## Follow-up Routing
 
+`smoke → full`. Expected full-scale outcome: h0052 == h0051 (the guard adds nothing), with the
+three banked flips (f1006 + f1006-hard + airbnb009) lifting the targeted construct cells. The
+full A/B vs h0051's eventual full run isolates h0045's marginal contribution at scale (predicted
+net zero). Carry the G11 re-enumeration forward: at full credit, re-confirm `max(points)` landed
+on every scored model of f1006/f1006-hard.
+
 ## Verdict
+
+**GO** (smoke gate). Three-lever composition is clean: +3 flips at the artifact level (f1006,
+f1006-hard, airbnb009×3 byte-consistent), all holds/canaries pass, all audits strict-clean. The
+A/B vs h0051 shows the h0045 feature-boundary guard is FREE under composition — zero added flips,
+zero interference, zero artifact divergence. Route to `full`.
 
 ## Stage Report: propose
 
@@ -116,3 +196,25 @@ contribution by per-cell artifact comparison (predicted net zero), not just the 
 ### Summary
 
 h0052 is the SCOPED, bleed-free re-do of h0049: forked the current @baseline (h0043) and composed three individually-verified, precondition-gated levers verbatim — h0044 same-grain max(points), h0045 feature-boundary guard, h0050 double-gated intent-then-probe coverage skeleton. Built as an A/B vs h0051 (= h0044+h0050 only): the h0052−h0051 README diff is exactly the h0045 block, so the full-run delta isolates whether the no-harm feature-boundary guard is free under composition (predicted net zero). All four specs frozen; @baseline rewards resolved for the smoke table (3 targets FAIL, 11 canaries/holds PASS); gatekeeper APPROVE with one advisory G11 multi-model note.
+
+## Stage Report: smoke
+
+- DONE: Strict audit each h0052 run-dir clean (tainted 0 / coverage_missing 0) + captured>0 every cell BEFORE score; rk score each
+  All 3 run-dirs strict-clean (panel 14/14 clean, r2 + r3 clean), captured=1 every cell; panel 14/14 PASS, r2 + r3 airbnb009 PASS.
+- DONE: DECISIVE READS by committed artifact (f1006/f1006-hard max-points no-latest-row; airbnb009 ×3 all forks byte-consistent; airbnb008 byte-intact; qb002/qb004 narrow boundary)
+  f1006/f1006-hard = sum→max on BOTH scored models (G11 resolved); airbnb009 = dates_cte predicate removal 3/3 byte-consistent; airbnb008 edited agg.yml, mom_agg_reviews byte-intact; qb002/qb004 = narrow using_department removal. All in `## Smoke result` table.
+- DONE: THE A/B (AC-3) — compare h0052 vs h0051 cell-by-cell; did h0045's guard change any cell?
+  13 shared cells IDENTICAL verdict + artifact; only delta is h0052's added qb003 canary (PASS). Guard fired nowhere harmful — FREE under composition. Full read in `## Behavioral analysis`.
+- DONE: Write ## Smoke result + ## Behavioral analysis; lead with GO/NO-GO + A/B verdict; commit
+  GO; A/B verdict = no-harm guard is FREE (h0052 == h0051, zero interference). Sections written; WORKFLOW-REFINE.md ledger entry appended (composition A/B-isolation recipe).
+
+### Summary
+
+GO. Three-lever composition (h0044 max-points + h0045 feature-boundary guard + h0050 intent-gated
+scoped coverage) on @baseline h0043: 14/14 panel + 2/2 airbnb009 repeats PASS, all strict-clean.
+All three flip targets flipped at the committed-artifact level (f1006 + f1006-hard same-grain
+max(points) on both scored models; airbnb009 scoped dates_cte predicate removal, 3/3
+byte-consistent), holds held (airbnb008 mom_agg byte-intact, qb002/qb004 narrow boundary), canaries
+clean. The A/B vs h0051 is decisive: adding h0045's guard changed zero cells, zero verdicts, zero
+artifacts — the no-harm guard is FREE under composition. Route to full. One infra caveat: per-cell
+artifact lives in cell-root codex.txt (sessions/ is a shared copy) — no bearing on verdict.
