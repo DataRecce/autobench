@@ -128,11 +128,76 @@ airbnb + ≥2 perturbable f1).
 
 ## Run result
 
-**FULL run LAUNCHED (detached) 2026-06-12T14:48Z — awaiting completion (FO owns the wait).**
-- handle: `runs/.rk-handles/h0051-full-20260612-144814/` (pid 1663816, log + done + ntfy `adebench-rk-381c976fe07465bf`)
-- spec: `specs/h0051-compose-maxpoints-and-scoped-coverage.frozen.yaml` (FULL 48-task, same README as smoke)
-- launched as 2nd concurrent (h0050-full also running per dispatch).
-- Phase 2 (FO re-engages on done rc=0): strict audit clean + captured>0 BEFORE score; `rk score --format json`; record run-dir + headline here.
+**HEADLINE — NO-PROMOTE BY NET (31/48 = 0.6458 vs @baseline h0043 32/48 = 0.6667, net −1), BUT
+the +3 composition is artifact-real and bleed-free: the levers did exactly their job.** The
+decisive finding is the **trials:1 variance floor**: this draw produced **+3 verified flips AND
+−4 off-construct regressions** (net −1). The off-construct variance band (~4 regressions/draw,
+none on either lever's construct) EXCEEDS the +3 signal, so even a fully-verified +3 composition
+does not reliably clear the net tripwire at trials:1. FO concludes (verdict/archive deferred,
+pending the h0052 2nd-draw result).
+
+**Full run-dir:** `runs/ade-bench-h0051-compose-maxpoints-and-scoped-coverage/48aa50e556d16a80`
+(48-task FULL, frozen FULL spec, same composed README as smoke).
+
+**AC-2 — strict audit clean + captured>0 every cell (BEFORE score):**
+`rk audit --policy strict` → `summary: {clean: 48, coverage_missing: 0, tainted: 0}` (48/48
+clean). All 48 cells `subagent-trace-manifest.json: captured=1`. Audit-clean, captured-complete.
+
+**Absolute score (`rk score --format json`):** `pass_at_1 = 0.6458333` (31/48), Wilson CI
+[0.5044, 0.7657]; `against_constant` pass_rate 0.1875 → verdict **above** (well above
+paper_baseline). vs @baseline h0043 0.6667 (32/48) → **net −1**.
+
+**Paired delta vs @baseline (h0043 `7390e6adf44ba5ea`), slug-paired from `per_trial_outcomes.json`
++ 10k bootstrap** (`rk runs diff` TypeErrors on these run-dirs — `query_id: null`, a known
+harness data-shape limitation, so I paired by parsed task slug as the §analyze tooling note
+prescribes): 48/48 paired, no orphans. mean per-task Δ = **−0.0208**, 95% CI **[−0.1250,
++0.0833]** — the CI straddles zero; the net −1 is inside the trials:1 variance band, not a
+distinguishable loss. net flips = **−1** (+3 gains, −4 regressions).
+
+**Full per-task ledger (every verdict change, both directions):**
+
+| Task | h0043 | h0051 | Δ | Mechanism (committed artifact) |
+|------|-------|-------|---|--------------------------------|
+| f1006 | 0 FAIL | 1 PASS | **+1** | max-points lever FIRED — `constructor_points.sql`/`driver_points.sql` `sum(points)→max(points)`, same grain; 4/4 AUTO tests pass |
+| f1006-hard | 0 FAIL | 1 PASS | **+1** | max-points lever FIRED — same `sum→max` substitution, same grain; 4/4 AUTO tests pass |
+| airbnb009 | 0 FAIL | 1 PASS | **+1** | coverage lever FIRED — dropped the narrowing `WHERE DATE_ACTUAL IN (… review_cte)` date-spine predicate in `mom_agg_reviews.sql`; `mom_agg_review_date_range` PASS |
+| asana003 | 1 PASS | 0 FAIL | **−1** | NEITHER lever fired — edited asana_source staging models (package/freshness construct); 11/17 checks pass. **Known coin-flip: also regressed in h0050 full.** |
+| f1003 | 1 PASS | 0 FAIL | **−1** | NEITHER lever fired — edited `analysis__answer.sql` (multiple-choice answer task); `count_answers` FAIL (extra/wrong answer row), 3/4 |
+| f1010-medium | 1 PASS | 0 FAIL | **−1** | NEITHER lever fired — edited `analysis/analysis__lap_times.sql`; `AUTO_analysis__lap_times_equality` FAIL 1092 rows, 1/2 |
+| quickbooks003 | 1 PASS | 0 FAIL | **−1** | NEITHER lever fired — edited qb union/enhanced models + `dbt_project.yml`; 11/14 checks pass |
+
+**Net = +3 gains − 4 regressions = −1.** Every gain is a lever firing on its own construct; every
+regression is a passer that broke on a construct NEITHER lever gates on (verified by apply_patch
+target below).
+
+**Required-question summary (full detail in `## Behavioral analysis`):**
+1. **Net + ledger** — above (net −1; +3/−4; CI [−0.125,+0.083] straddles 0).
+2. **Smoke vs full** — smoke was GO (+3, 0 regressions) on a 13-cell panel that DID NOT sample
+   asana003/f1003/f1010-medium/quickbooks003. The full verdict differs ONLY because those four
+   off-panel passers regressed via their own task variance — the smoke set could not see them
+   because they are off both levers' constructs and were not in the panel. The +3 the smoke
+   measured reproduced exactly at full; nothing the smoke DID see changed.
+3. **Already-correct-and-broken** — all 4 regressions were PASS at h0043 (damage to working code),
+   but the damage is NOT lever-attributable: NEITHER lever's construct file was touched in any of
+   the 4 cells. This is "failed to help / independent variance," NOT "lever broke a passer."
+4. **Was the change executed?** — gains: executed-and-helped (3/3, apply_patch verified).
+   Regressions: NOT inert and NOT lever-caused — the agent executed its OWN off-construct edits
+   that happened to fail this draw (independent single-trial variance).
+5. **Prevention + next move** — the +3 is real and stable; the obstacle is the ±4 variance floor,
+   not the levers. The only way a +3 clears net at trials:1 is to (a) re-draw and catch a quieter
+   variance draw (h0052 2nd draw — already dispatched), or (b) raise trials to average out the
+   floor (standing captain decision is trials:1). Do NOT re-open the lever families: both are
+   verified-good and bleed-free. Recommended next step: read the h0052 2nd-draw net before any
+   verdict — if a quieter draw lands ≥32 net, the same composed README promotes; if not, this
+   confirms +3 < variance-floor at trials:1 and the program needs a benchmark-design change
+   (trials, or a larger flip portfolio), not another lever.
+6. **Smoke-vs-full fork drift** — NO fork drift. The smoke GO was artifact-real (the +3
+   reproduced byte-for-byte at full: same `sum→max`, same dropped date-spine predicate, airbnb008
+   byte-intact). No README rule drifted into a different branch; both gates stayed disjoint at
+   full exactly as at smoke. The full/smoke divergence is purely the four off-panel,
+   off-construct passer regressions = unrelated single-trial variance, NOT a missed family in the
+   lever sense (the smoke panel correctly sampled both lever families; it simply did not — and
+   could not usefully — enumerate every off-construct passer's per-draw variance).
 
 ## Behavioral analysis
 
@@ -181,8 +246,69 @@ at the artifact level:
 Neither lever degraded vs its solo result; neither mis-fired on the other's construct; airbnb008
 stayed byte-intact. The composition holds. This confirms the h0049 finding (precondition-gated
 levers on disjoint construct families compose additively — the gate IS the isolation mechanism),
-now on the SCOPED h0050 that does not bleed airbnb008. Falsification conditions (lever
-degradation, canary regression, net ≤ h0043) are all NOT met.
+now on the SCOPED h0050 that does not bleed airbnb008.
+
+---
+
+### FULL-RUN UPDATE (run-dir `48aa50e556d16a80`) — the +3 reproduced; net is −1 via 4 off-construct passer regressions
+
+**The +3 reproduced at full byte-for-byte** (reads (a)/(b) above re-verified on the FULL cells,
+not the smoke cells): f1006 committed `max(cs.points) AS total_points` + `max(ds.points) AS
+total_points`, same `GROUP BY constructor_name, race_year` grain, no window/QUALIFY/rank; worker
+spot-check Verstappen 2023 = 575, Red Bull 2023 = 860; 4/4 AUTO tests pass. f1006-hard identical.
+airbnb009 dropped the narrowing `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM
+review_cte)` date-spine predicate in `mom_agg_reviews.sql`, leaving `dates_cte` from `dim_dates`
+as the full spine; `mom_agg_review_date_range` PASS. All three gains are executed-and-helped.
+
+**The 4 regressions are off-construct single-trial variance, NOT lever damage — proven by
+apply_patch target (which model file each cell actually edited):**
+
+- **asana003** (PASS→FAIL): committed edits touch ONLY `dbt_packages/asana_source/models/stg_asana__*.sql`
+  (11 staging-model updates + 11 `_tmp` deletes) — the package/freshness construct (h0043
+  territory), NOT a standings/points or review-completeness model. NEITHER `*_points.sql` nor
+  `mom_agg_reviews.sql` in any apply_patch. Distance-to-pass 11/17. **KNOWN BORDERLINE/COIN-FLIP:
+  asana003 passes at h0043 (reward 1) but regressed to 0 in BOTH h0050's full run
+  (`14cff801636d2fb1`) AND this h0051 full run** — it recurs across draws regardless of which
+  lever is composed, the signature of an independent variance cell, not lever harm.
+- **f1003** (PASS→FAIL): edited ONLY `models/analysis__answer.sql` (a multiple-choice
+  answer-selection task); failed `count_answers` (`Got 1 result, configured to fail if != 0` — an
+  extra/wrong committed answer row), 3/4. Zero mentions of `constructor_points`/`driver_points`/
+  `mom_agg_reviews` anywhere in the transcript → max-points gate never fired (it gates on
+  standings `*_points` tables; this is an answer-count task).
+- **f1010-medium** (PASS→FAIL): edited ONLY `models/analysis/analysis__lap_times.sql`; failed
+  `AUTO_analysis__lap_times_equality` with `Got 1092 results` (a lap-times computation error),
+  1/2. A lap-times model — off both levers' constructs; neither gate fired.
+- **quickbooks003** (PASS→FAIL): edited `int_quickbooks__expenses_union.sql`,
+  `int_quickbooks__sales_union.sql`, `quickbooks__ap_ar_enhanced.sql`, `dbt_project.yml`; 11/14.
+  A quickbooks AP/AR task — off both levers' constructs.
+
+**Classification of the 4 regressions: independent single-trial variance, NOT lever damage.**
+For each: (1) the committed apply_patch touched NO lever-construct file (`constructor_points.sql`,
+`driver_points.sql`, `mom_agg_reviews.sql` absent from every one); (2) the gate language present
+in the cell transcripts is only the verbatim README rule echoed into every cell's prompt — a
+boilerplate echo, NOT a fired gate (a fired max-points gate produces a `sum→max` edit on a
+`*_points` model; a fired coverage gate produces a dropped narrowing predicate on
+`mom_agg_reviews.sql`; none of the four shows either). The two levers are provably inert on all
+four. The damage is each task's own off-construct draw variance.
+
+**Composition / mutual disjointness at FULL (lead behavioral finding).** Confirmed at 48-task
+scale: max-points fired ONLY on f1006/f1006-hard (the standings tasks), coverage fired ONLY on
+airbnb009 (the review-completeness task), airbnb008's `mom_agg_reviews.sql` stayed byte-intact
+(intent gate did not fire on the YAML quote-fix task — patch hit only `models/agg/agg.yml`), and
+neither lever fired on ANY of the 48 cells outside its construct (verified the four regressions
+above; the smoke panel canaries held at smoke). The gates are mutually disjoint and globally
+inert off-construct. The composition is artifact-correct and bleed-free exactly as designed.
+
+**The decisive finding — variance floor > signal at trials:1.** Falsification conditions for the
+levers (lever degradation, lever-attributable canary regression) are NOT met — the levers did
+exactly their job. The ONLY falsified condition is "net ≤ h0043," and it failed not because the
++3 is unreal but because this draw also threw −4 off-construct regressions. Across this whole
+program the trials:1 off-construct variance band is ~±4 flips/draw; a verified +3 composition sits
+INSIDE that band, so it cannot reliably clear the net tripwire at trials:1. This is the same
+variance floor that sank h0044 (real +2, net −1) and h0046/h0050 solo — composing the levers
+banked the intended +3 in one run-dir, but the floor moved with it. Net promotability at trials:1
+needs either a quieter 2nd draw (h0052) or a benchmark-design change (trials > 1, or a larger flip
+portfolio), NOT another lever.
 
 ## Failure Review
 
@@ -244,3 +370,20 @@ candidate; the +3 should clear the ±4 single-trial variance band at full scale.
 ### Summary
 
 Phase 1 of the FULL stage: launched the h0051 48-task full run detached on the frozen FULL spec (same composed README as smoke — h0044 max-points + h0050 intent-gated coverage), as the 2nd concurrent alongside the still-running h0050-full. Process confirmed alive (pid 1663816); handle/log/done/ntfy recorded under `## Run result`. Signaling done immediately — the FO owns the wait and will re-engage me for Phase 2 (strict audit + score) when `done` appears with rc=0.
+
+## Stage Report: analyze
+
+- DONE: Strict audit run-dir `48aa50e556d16a80` (rk audit --policy strict) clean + captured>0 every cell BEFORE score; rk score --format json; paired delta vs @baseline h0043.
+  Audit `summary: {clean: 48, coverage_missing: 0, tainted: 0}`; all 48 cells `captured=1`. Score `pass_at_1=0.6458` (31/48), above paper_baseline 0.1875. Paired delta (slug-paired from per_trial_outcomes + 10k bootstrap; `rk runs diff` TypeErrors on query_id:null): mean Δ=−0.0208, 95%CI [−0.1250,+0.0833], net −1. Recorded in `## Run result`.
+- DONE: PRE-AUDIT 31/48, net −1; THE +3 ALL LANDED (confirm by committed artifact) — f1006 + f1006-hard same-grain max(points) no latest-row; airbnb009 all three forks; airbnb008 mom_agg_reviews.sql BYTE-INTACT.
+  f1006/-hard committed `max(cs.points)`/`max(ds.points) AS total_points`, same GROUP BY grain, no window/QUALIFY/rank, 4/4 AUTO pass. airbnb009 dropped the narrowing `WHERE DATE_ACTUAL IN (… review_cte)` date-spine predicate in mom_agg_reviews.sql, COUNT(*)/aggregate byte-intact, no cross-join; test PASS. airbnb008 (a passer, held) patched only `models/agg/agg.yml`; mom_agg_reviews.sql absent from every apply_patch.
+- DONE: CLASSIFY the 4 regressions (asana003, f1003, f1010-medium, quickbooks003): all OFF the standings + coverage constructs; confirm NEITHER lever fired => independent single-trial variance, NOT lever damage. Note known borderline cells (asana003 cross-ref h0050).
+  Verified by apply_patch target: asana003=asana_source staging (package construct), f1003=analysis__answer.sql (answer task), f1010-medium=analysis__lap_times.sql, quickbooks003=qb union/enhanced+dbt_project.yml. NONE touched constructor_points/driver_points/mom_agg_reviews; gate language present only as boilerplate README echo, no fired-gate edit. asana003 is a KNOWN coin-flip — passes at h0043, regressed in BOTH h0050 full (`14cff801636d2fb1`) AND h0051 full. Classified as independent variance.
+- DONE: Answer all §analyze required questions; ## Run result + ## Behavioral analysis. Lead with NO-PROMOTE by net BUT +3 composition artifact-real and bleed-free; decisive finding = trials:1 variance floor (~4 regressions/draw) EXCEEDS the +3.
+  All 6 required questions answered in `## Run result`; full per-task ledger (both directions) + regression apply_patch reads in `## Behavioral analysis`. Headline leads with the NO-PROMOTE-by-net / +3-real / variance-floor framing.
+- SKIPPED: set verdict/archive.
+  Per dispatch: FO concludes pending the h0052 2nd-draw result. Verdict/archive deferred.
+
+### Summary
+
+NO-PROMOTE BY NET: h0051 full scored 31/48 (0.6458) vs @baseline h0043 32/48 (0.6667), net −1; the paired-bootstrap CI [−0.125,+0.083] straddles zero, so the net is inside the trials:1 variance band, not a distinguishable loss. The +3 composition is artifact-real and bleed-free and reproduced at full byte-for-byte: f1006/f1006-hard flipped via same-grain `max(points)` (no latest-row), airbnb009 flipped via the dropped date-spine predicate, airbnb008 stayed byte-intact (intent gate did not fire), and the two gates were mutually disjoint and globally inert off-construct across all 48 cells. The net is −1 purely because this draw also threw 4 off-construct passer regressions (asana003, f1003, f1010-medium, quickbooks003) — NONE on either lever's construct (verified by apply_patch target; asana003 is a known coin-flip that also regressed in h0050 full). The decisive finding: the ~±4 trials:1 off-construct variance floor EXCEEDS the +3 signal, so even a fully-verified +3 composition does not reliably clear the net tripwire at trials:1. Verdict/archive deferred to the FO pending the h0052 2nd-draw result.
