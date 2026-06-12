@@ -88,9 +88,79 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
+**GO.** The scoped fix for the h0046 same-family bleed WORKED at the artifact level. The
+intent-first double-gate flipped airbnb009 reproducibly (3/3 draws, all three forks,
+byte-consistent) AND spared airbnb008 (model byte-intact — gate (a) task-intent did not pass),
+with zero canary loss. Projected net **+1 → 33/48** at full, no bleed.
+
+**Runs (all strict-audit clean, captured>0 every cell):**
+- PANEL (9 cells) `runs/…h0050…/3fc58860c7b07ba2` — strict audit `{clean:9, coverage_missing:0, tainted:0}`; score stratified mean **1.0 (9/9 PASS)**.
+- airbnb009-r2 (seed 42) `…-airbnb009-r2/9e7661f313166cc5` — `{clean:1, coverage_missing:0, tainted:0}`; PASS.
+- airbnb009-r3 (seed 43) `…-airbnb009-r3/e59026184ca1c8db` — `{clean:1, coverage_missing:0, tainted:0}`; PASS.
+
+| Task | @baseline (h0043) | Smoke | Role | Artifact verdict |
+|------|------|-------|------|------------------|
+| airbnb009 (panel) | ❌ FAIL | ✅ PASS | 🎯 target | all 3 forks in committed `mom_agg_reviews.sql`; scored model `mom_agg_review_date_range` PASS |
+| airbnb009 r2 | ❌ FAIL | ✅ PASS | target repeat #2 | committed SQL byte-identical to panel draw |
+| airbnb009 r3 | ❌ FAIL | ✅ PASS | target repeat #3 | committed SQL shows identical fork |
+| airbnb008 | ✅ PASS | ✅ PASS | ✅ MANDATORY canary (h0046 broke it) | `mom_agg_reviews.sql` BYTE-INTACT (predicate kept); only `agg.yml` YAML-quote fixed |
+| airbnb004 | ✅ PASS | ✅ PASS | perturbable airbnb canary | coverage probe NOT run; skeleton did not fire |
+| airbnb005 | ✅ PASS | ✅ PASS | perturbable airbnb canary | coverage probe NOT run (false-fired 5/8 in runtime-only probe; gate (a) spared it) |
+| airbnb006 | ✅ PASS | ✅ PASS | perturbable airbnb canary | coverage probe NOT run; skeleton did not fire |
+| asana002 | ✅ PASS | ✅ PASS | canary (asana) | skeleton did not fire |
+| ana-eng001 | ✅ PASS | ✅ PASS | canary (ana-eng) | skeleton did not fire |
+| f1009 | ✅ PASS | ✅ PASS | canary (f1) | skeleton did not fire |
+| quickbooks002 | ✅ PASS | ✅ PASS | canary (quickbooks) | skeleton did not fire |
+
+**DECISIVE READS:**
+
+*airbnb009 — all three forks, 3 draws byte-consistent.* Committed `models/agg/mom_agg_reviews.sql`
+(panel / r2 / r3 identical):
+(1) **narrowing predicate DROPPED** — `dates_cte` now `SELECT DATE_ACTUAL FROM dim_dates` with no
+`WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)` (only the incremental
+predicate kept, as designed); (2) **COUNT(*) byte-intact** — `COUNT(*) AS REVIEW_TOTALS`, not
+rewritten to COUNT(col); (3) **no cross-join** — no `cats` CTE / no `cross join`; existing
+`dates_cte LEFT JOIN review_cte … GROUP BY REVIEW_SENTIMENT, AGGREGATION_DATE` unchanged. Both
+gates fired correctly: solver ran the coverage probe (gate b) — before `missing_dates=25434`
+(dim 29220 vs model 3786), after-fix `missing_dates=0` (model 29220).
+
+*airbnb008 — BYTE-INTACT (the h0046 bleed fixed).* Task ask was literally **"The project is
+broken."** — NO completeness wording → **gate (a) did not pass**, the solver never ran the
+coverage probe and never touched `mom_agg_reviews.sql` (its narrowing predicate is preserved).
+The solver's own final summary: *"The final source check shows only the intended YAML source file
+edit."* The real bug was fixed instead: `models/agg/agg.yml` had an unterminated quoted
+`description` for `mom_agg_reviews.DATE_SENTIMENT_ID` (dbt YAML parse error at line 73); fix =
+closed the string. This is exactly the 1-line YAML-quote bug h0046 mis-treated as a coverage gap.
+
+*Canaries.* All 7 non-target passers held PASS; none ran the coverage probe (skeleton inert on
+each). Notably airbnb005 — which false-fired 5/8 under the rejected runtime-only gate — did NOT
+fire here: its task ask is not completeness, so gate (a) kept it out.
+
 ## Run result
 
 ## Behavioral analysis
+
+The intent-first double-gate is the mechanism that converts h0046's artifact-correct-but-too-eager
+skeleton into a clean +1. h0046 PROVED the three-fork skeleton pins airbnb009 (4/4); its defect was
+firing on airbnb008 (whose predicate was already correct, real bug a YAML quote) and breaking
+`AUTO_mom_agg_reviews_equality`. h0050 adds GATE (a) — task-intent — as the FIRST test, ahead of
+the (unchanged) oracle-free coverage probe (gate b).
+
+Why gate (a) was necessary and gate (b) alone was not: the captain's pre-smoke fire/no-fire probe
+showed the runtime-only probe false-fired on airbnb008 (5/8) and airbnb005 (5/8), because the
+narrowing predicate — hence "missing days" under `dim_dates EXCEPT output` — exists in EVERY airbnb
+model. The probe cannot by itself distinguish "missing days = bug" (airbnb009, instruction asks for
+completeness) from "missing days = correct/irrelevant" (airbnb008, instruction is "the project is
+broken"). The probe cannot beat task intent. Gating on the instruction's explicit completeness ask
+FIRST — and refusing to even investigate coverage otherwise — is what separated genuine-gap from
+coverage-shaped-but-correct at trials:1. The committed artifacts confirm the separation held: on
+airbnb009 the solver ran the probe (fired, missing_dates 25434→0) and dropped exactly the predicate;
+on airbnb008/004/005/006 it never ran the probe at all.
+
+This is the first genuine same-family-clean coverage flip in the airbnb009 line (the h0019/h0042
+non-reproducibility wall was already broken by h0046's pinning; h0046's net was 0 from the bleed).
+At trials:1 the artifact proof — not aggregate reward — carries the verdict: airbnb009's three forks
+are present and byte-consistent across 3 independent draws, and airbnb008 is provably byte-intact.
 
 ## Failure Review
 
@@ -123,3 +193,18 @@ h0050 forks the current @baseline (h0043, 32/48) and adds h0046's proven all-thr
 ### Summary
 
 REVISE addressed: the coverage repair is now DOUBLE-GATED — TASK-INTENT first (apply only when the instruction explicitly asks for completeness; otherwise do not investigate or apply, leave coverage-shaped models byte-intact), then the existing oracle-free fired coverage probe. This directly targets the captain's separation failure (the runtime-only probe false-fired on airbnb008/005 because the narrowing predicate exists in every airbnb model, so "missing days" cannot by itself mean "bug"). Still exactly one README idea in the Implementation stage, leak-guard byte-intact, specs two-field; all four specs re-frozen (new content hash sha256:3a98d5cd…); re-gatekeeper APPROVE (WARN-only G7/G12). No `rk run` launched — the FO re-runs the fire/no-fire probe against the revised wording (expect airbnb009 FIRE; airbnb008/004/005/006 NO_FIRE) before any smoke.
+
+## Stage Report: smoke
+
+- DONE: Strict audit each run-dir clean (tainted 0 / coverage_missing 0) + captured>0 every cell BEFORE score; `rk score` each.
+  Panel `3fc58860c7b07ba2` strict `{clean:9, coverage_missing:0, tainted:0}`; r2 `9e7661f313166cc5` and r3 `e59026184ca1c8db` each `{clean:1,0,0}`. captured>0 confirmed (every cell's verifier/test-stdout = real PASS=N output, e.g. airbnb009 `actual_test_total=1, actual_pass=1`). `rk score` all three = stratified mean 1.0.
+- DONE: airbnb009 (3 draws) committed `mom_agg_reviews.sql` shows all THREE forks (predicate dropped / COUNT(*) byte-intact / no cross-join); report byte-consistency.
+  Panel/r2/r3 committed SQL byte-identical: `dates_cte` predicate dropped, `COUNT(*) AS REVIEW_TOTALS` intact, no cross-join. Probe fired (missing_dates 25434→0). All 3 draws consistent.
+- DONE: airbnb008 committed `mom_agg_reviews.sql` BYTE-INTACT (gate (a) did not pass; YAML-quote fix applied instead) — confirm the intent gate spared it for real.
+  Task ask = "The project is broken." (no completeness wording) → solver never ran the coverage probe, never touched `mom_agg_reviews.sql` (narrowing predicate preserved). Only `models/agg/agg.yml` changed (closed an unterminated quoted description). Solver summary: "only the intended YAML source file edit."
+- DONE: airbnb004/005/006 + per-family canaries hold PASS; confirm the coverage skeleton did NOT fire.
+  All 7 canaries PASS; 0 coverage-probe shell invocations on each (skeleton inert). airbnb005 (false-fired 5/8 under the rejected runtime-only gate) did NOT fire — gate (a) kept it out.
+
+### Summary
+
+GO. The intent-first double-gate flips airbnb009 reproducibly (3/3 byte-consistent, all three forks) AND spares airbnb008 byte-intact (gate (a) blocked the coverage repair on a non-completeness task), with zero canary loss — projected net +1 → 33/48 at full, no same-family bleed. This is the artifact-level fix for the exact h0046 defect (h0046: +1 airbnb009 / −1 airbnb008 = net 0). The verdict rests on committed-artifact proof at trials:1, not aggregate reward: airbnb009's three forks present across 3 independent draws; airbnb008's `mom_agg_reviews.sql` provably untouched.
