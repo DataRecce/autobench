@@ -138,11 +138,41 @@ fire here: its task ask is not completeness, so gate (a) kept it out.
 
 ## Run result
 
-**Phase 1 (launch) — full 48-task run launched DETACHED 2026-06-12T09:27:50Z.**
-- handle: `runs/.rk-handles/h0050-full-20260612-092750`
-- pid: 1359817; log: `runs/.rk-handles/h0050-full-20260612-092750/log`; done sentinel: `runs/.rk-handles/h0050-full-20260612-092750/done` (absent until finished, then carries rc/end/rundir)
-- spec: `specs/h0050-coverage-repair-skeleton-gated-on-fired-missing-day-probe.frozen.yaml`
-- Phase 2 (strict-audit clean + captured>0 → `rk score` → record run-dir + headline) pending FO re-engage on done rc=0.
+**HEADLINE — NO-PROMOTE, but the scoped lever WORKS at full.** Full 48-task run scored
+**30/48 = 0.625** vs `@baseline` h0043 **32/48 = 0.6667** → paired **net −2**, 95% bootstrap CI
+**[−7, +3]** straddles zero (washed by single-trial variance). The decisive finding is NOT the
+net: h0050's scoped coverage lever did **exactly** what it was designed to do at 48-task scale —
+**airbnb009 flips FAIL→PASS** (probe fired, all three forks) **AND airbnb008 stays byte-intact**
+(gate (a) declined; the h0046 same-family bleed is FIXED). The −2 is four off-construct regressions
+the coverage gate never touched, none of which are the airbnb coverage construct.
+
+**Run-dir:** `runs/ade-bench-h0050-coverage-repair-skeleton-gated-on-fired-missing-day-probe/14cff801636d2fb1`
+(done sentinel rc=0, end 2026-06-12T16:21Z; launch handle `runs/.rk-handles/h0050-full-20260612-092750`).
+
+**Strict audit (AC-2):** `{clean: 48, coverage_missing: 0, tainted: 0}` — all 48 cells clean,
+captured>0 every cell (verifier test-stdout = real `PASS=N` output on each). Score paired with a
+clean audit.
+
+**Score:** `rk score --format json` → stratified pass@1 **0.625** (30/48), Wilson CI
+[0.484, 0.748], above paper_baseline 0.1875.
+
+**Paired delta vs @baseline (AC-3):** `rk runs diff` TypeErrors on these run-dirs (`query_id: null`
+keyed on `trial_name` — the known harness data-shape limitation), so the delta was computed directly
+from `per_trial_outcomes.json`, slug-paired (48/48 common, no orphans) + 10k paired bootstrap.
+Net **−2 cells** (30 − 32); bootstrap mean −2.02, 95% CI **[−7, +3]**.
+
+**Full per-task ledger — every changed verdict, both directions:**
+
+| Task | @baseline | h0050 full | Direction | Coverage lever fired? | Mechanism |
+|------|-----------|-----------|-----------|----------------------|-----------|
+| airbnb009 | ❌ FAIL | ✅ PASS | 🎯 GAIN (target) | YES (correct) | probe fired missing_dates 25434→0; predicate dropped, COUNT(*) intact, no cross-join; `mom_agg_review_date_range` PASS 1/1 |
+| f1006 | ❌ FAIL | ✅ PASS | GAIN (incidental) | NO | off-construct (f1 family, max-points/answer task); h0050 has no f1 lever → variance gain |
+| asana003 | ✅ PASS | ❌ FAIL | REGRESSION | NO (gate (a) declined: "does not ask for coverage repair") | model build ERROR `asana__daily_metrics` cascading → 6/17 equality fails; off-construct |
+| f1001 | ✅ PASS | ❌ FAIL | REGRESSION | NO | `src_models_are_correct` fail (5/6); source-config, off-construct |
+| f1003-hard | ✅ PASS | ❌ FAIL | REGRESSION | NO (only a verbatim README skeleton-text mention, no edit) | `count_answers` fail (3/4); answer-count logic, off-construct |
+| f1011 | ✅ PASS | ❌ FAIL | REGRESSION | NO | `check_option_b` fail (5/6); option-selection, off-construct |
+
+All other 42 cells held their `@baseline` verdict. Net = +2 gains − 4 regressions = **−2**.
 
 ## Behavioral analysis
 
@@ -167,6 +197,77 @@ This is the first genuine same-family-clean coverage flip in the airbnb009 line 
 non-reproducibility wall was already broken by h0046's pinning; h0046's net was 0 from the bleed).
 At trials:1 the artifact proof — not aggregate reward — carries the verdict: airbnb009's three forks
 are present and byte-consistent across 3 independent draws, and airbnb008 is provably byte-intact.
+
+### The two core claims — confirmed by committed artifact at full scale
+
+**(1) airbnb009 = PASS, the scoped lever's flip HELD at full.** Cell
+`ade-bench-airbnb009__rfpWMgg`, reward 1. The agent transcript shows the oracle-free probe FIRED
+(`missing_dates=25434` before — dim 29220 vs model 3786 — then `missing_dates=0` after the fix), and
+the applied edit is exactly the three-fork shape: the narrowing predicate
+`WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)` was DROPPED from
+`dates_cte`, "the existing aggregate expressions, join condition, and `GROUP BY` were preserved; only
+the incremental `AND` was changed" (so `COUNT(*)` byte-intact, no cross-join introduced). Verifier:
+`mom_agg_review_date_range` ran, `expected_test_count=1`, `actual_pass=1, actual_fail=0`.
+
+**(2) airbnb008 = PASS, model BYTE-INTACT — the h0046 bleed is FIXED at 48-task scale.** Cell
+`ade-bench-airbnb008__uR3VBv2`, reward 1. `mom_agg_reviews.sql` is referenced **0 times** as an
+edit target in the transcript; the only edited file is `models/agg/agg.yml` (5 edit mentions). The
+agent's own gate-(a) reasoning is verbatim: the task ask is "the project is broken," so "do not
+investigate or apply a coverage repair merely because a model looks coverage-shaped" — gate (a)
+declined, the probe was never reached. The real bug was fixed instead: the `unterminated
+DATE_SENTIMENT_ID description string` (1-line YAML quote). The decisive proof of no-bleed:
+`AUTO_mom_agg_reviews_equality` — the exact test h0046 broke (Got 28631) — now **PASSES**
+(`expected_test_count=4`, `actual_pass=4, actual_fail=0`). h0046's net-0 (+airbnb009 / −airbnb008)
+is converted to a clean same-family separation.
+
+### Required analyze questions
+
+**Q1 — Net + full ledger (both directions).** Net −2 (30/48 vs 32/48), CI [−7, +3]. GAINS:
+airbnb009 (target, lever-fired, mechanism above) + f1006 (incidental, lever did NOT fire — f1 family,
+no h0050 f1 lever). REGRESSIONS: asana003, f1001, f1003-hard, f1011 — all four enumerated in the
+`## Run result` ledger with their concrete failing test and "coverage lever did NOT fire" confirmed.
+
+**Q2 — Smoke vs full.** Smoke was a clean GO (airbnb009 flip 3/3 byte-consistent, airbnb008
+byte-intact, 7 canaries held). Full differs only in net, NOT in the lever's behavior: both core
+claims reproduced identically at full. What the 9-cell smoke could not see: the four PASS→FAIL cells
+are on families the smoke did not perturb (asana003 was not in the panel — only asana002; f1001 /
+f1003-hard / f1011 were not sampled — only f1009). The smoke sampled one passer per family for
+canary coverage, which is correct for detecting *lever bleed*, but cannot estimate *off-construct
+single-trial variance* across the full 48 — and that variance is exactly the −2.
+
+**Q3 — Already-correct-and-broken.** All four regressions were PASSING at `@baseline`
+(asana003, f1001, f1003-hard, f1011 all ✅→❌). This is "broke a passer," NOT "failed to help" —
+BUT the damage is **not attributable to the h0050 lever**: the coverage gate never fired on any of
+them (gate (a) declined on asana003 explicitly; the only marker on f1003-hard is a verbatim quote of
+the README skeleton text, not an applied edit; f1001/f1011 have zero coverage markers). The failures
+are off-construct, model-build / source-config / answer-count / option-select errors with no relation
+to the airbnb coverage construct → independent single-trial variance, not lever-induced regression.
+
+**Q4 — Was the change executed?** Per-cell classification of the artifact (not chatter): airbnb009 =
+**executed-and-helped** (probe fired, predicate dropped, test PASS). f1006 = **inert / off-construct**
+(lever did not fire; flip is incidental variance). asana003/f1001/f1003-hard/f1011 =
+**inert w.r.t. the lever** (coverage gate did not fire); their regressions are off-construct variance,
+not executed-and-hurt by h0050. airbnb008 = **executed-and-correctly-declined** (gate (a) refused the
+coverage repair, model byte-intact, real YAML bug fixed) — the designed no-fire path.
+
+**Q5 — Prevention + next move.** The lever is clean and scoped — no guardrail change is needed for
+*it*; the variance is the issue, not the lever. To keep the gain without the noise: the only durable
+fix for ±off-construct single-trial swings is trials>1 (captain standing decision is trials:1 for
+budget/speed, judge by artifact — which is exactly why this is a NO-PROMOTE-by-net but
+lever-validated-by-artifact). Recommended next move: do NOT promote h0050 (net washes); DO carry the
+*validated scoped lever* forward — h0051/h0052 inherit a proven, bleed-free coverage-repair gate they
+can compose with other pre-verified flips (per the gated-levers-compose finding, h0049). The lever's
+value is banked as method even though the single-run net did not move @baseline.
+
+**Q6 — Smoke-vs-full fork drift.** The smoke GO was **artifact-real, not variance** — both core
+claims (airbnb009 three-fork flip, airbnb008 byte-intact) reproduced byte-for-byte at full. No fork
+drifted: the README rule did not branch into a different implementation at full, and the smoke panel
+did not miss a *coverage-construct* family (it carried the mandatory airbnb008 + airbnb004/005/006).
+What the smoke could not estimate is off-construct variance on the unsampled asana003/f1001/
+f1003-hard/f1011 — these are unrelated single-trial swings, the standard trials:1 noise floor, not a
+lever failure or a fork change. This is the "coverage-masks-oracle-value / edit-shape-correct" lesson
+inverted: here the edit shape is correct AND the oracle flipped (airbnb009 real PASS), and the net is
+masked by off-construct noise rather than by an inert green.
 
 ## Failure Review
 
@@ -225,3 +326,20 @@ GO. The intent-first double-gate flips airbnb009 reproducibly (3/3 byte-consiste
 ### Summary
 
 Phase 1 complete: full 48-task h0050 run launched detached (handle `runs/.rk-handles/h0050-full-20260612-092750`, pid 1359817). Spec and detached runner verified present; plugin-dir env exported. Run result section records the handle, log, and done-sentinel paths. Phase 2 (audit + score + record) is deferred to FO re-engage on done rc=0 per the launch-only assignment.
+
+## Stage Report: analyze
+
+- DONE: Strict audit the run-dir (rk audit --policy strict) clean (tainted 0 / coverage_missing 0) + captured>0 every cell BEFORE the score; rk score --format json; paired delta vs @baseline h0043 (per_trial_outcomes slug-paired + 10k bootstrap since rk runs diff TypeErrors).
+  Audit `{clean:48, coverage_missing:0, tainted:0}`, captured>0 every cell. Score 30/48=0.625 (Wilson [0.484,0.748]). `rk runs diff` TypeError (query_id null) → slug-paired per_trial_outcomes + 10k bootstrap: net −2, 95% CI [−7,+3]. Recorded in `## Run result`.
+- DONE: THE KEY VALIDATIONS — read committed artifacts: (1) airbnb009 PASS, all three forks; (2) airbnb008 PASS, byte-intact (intent gate did not fire) — the h0046 bleed FIXED at 48-task scale.
+  airbnb009 cell: probe fired (missing_dates 25434→0), predicate dropped / COUNT(*) intact / no cross-join, `mom_agg_review_date_range` PASS 1/1. airbnb008 cell: `mom_agg_reviews.sql` 0 edits (only `agg.yml` YAML-quote), gate (a) declined verbatim ("project is broken … do not investigate or apply a coverage repair"), `AUTO_mom_agg_reviews_equality` PASS 4/4 (the test h0046 broke).
+- DONE: CLASSIFY the regressions (asana003, f1001, f1003-hard, f1011) + the incidental gain (f1006): all OFF the coverage construct; confirm the coverage rule did NOT fire on any.
+  Coverage lever fired on ZERO of them: asana003 gate (a) declined explicitly; f1003-hard's only marker is a verbatim README-skeleton quote (no edit); f1001/f1011/f1006 zero coverage markers. Concrete fails are model-build (asana__daily_metrics ERROR) / src_models_are_correct / count_answers / check_option_b — all off-construct single-trial variance; f1006 incidental variance gain (no h0050 max-points/f1 lever).
+- DONE: Answer all §analyze required questions; `## Run result` + `## Behavioral analysis`; lead with NO-PROMOTE but the decisive scoped-lever-WORKS finding.
+  All six required questions answered in `## Behavioral analysis`. Headline NO-PROMOTE (30/48<32/48, washed by variance) + decisive finding: scoped lever WORKS at full (airbnb009 flips AND airbnb008 byte-intact, no bleed); −2 is off-construct variance, not lever failure; validates the lever h0051/h0052 carry.
+- SKIPPED: Set verdict / archive.
+  Per assignment: the FO concludes verdict/archive, not the analyze ensign.
+
+### Summary
+
+NO-PROMOTE by net (30/48 vs @baseline 32/48; paired −2, CI [−7,+3] washes through zero) — BUT the decisive finding is that h0050's scoped intent-first double-gate WORKS exactly as designed at 48-task scale: airbnb009 flips FAIL→PASS (probe fired, all three forks, coverage test PASS) AND airbnb008 stays byte-intact (gate (a) declined the coverage repair on the non-completeness "project is broken" ask; the exact test h0046 broke now PASSES 4/4). The −2 net is four off-construct PASS→FAIL regressions (asana003/f1001/f1003-hard/f1011) on which the coverage lever never fired — independent single-trial variance, not lever-induced damage. The lever is bleed-free and validated; recommend NOT promoting h0050 (net washes) but carrying the proven scoped coverage gate forward into h0051/h0052. Verdict/archive left to the FO.
