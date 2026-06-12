@@ -1,7 +1,7 @@
 ---
 id: h0045
 title: Feature-boundary removal/toggle guard -- keep remove/disable feature requests at the project-local feature boundary, not broad domain rewrites
-status: full
+status: analyze
 kind: hypothesis
 source: Captain request 2026-06-10 after generalized quickbooks002/quickbooks004 decision-fork probe. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 started: 2026-06-10T16:40:51Z
