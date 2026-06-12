@@ -128,6 +128,12 @@ airbnb + ≥2 perturbable f1).
 
 ## Run result
 
+**FULL run LAUNCHED (detached) 2026-06-12T14:48Z — awaiting completion (FO owns the wait).**
+- handle: `runs/.rk-handles/h0051-full-20260612-144814/` (pid 1663816, log + done + ntfy `adebench-rk-381c976fe07465bf`)
+- spec: `specs/h0051-compose-maxpoints-and-scoped-coverage.frozen.yaml` (FULL 48-task, same README as smoke)
+- launched as 2nd concurrent (h0050-full also running per dispatch).
+- Phase 2 (FO re-engages on done rc=0): strict audit clean + captured>0 BEFORE score; `rk score --format json`; record run-dir + headline here.
+
 ## Behavioral analysis
 
 **Decisive committed-artifact reads (the only smoke question was composition/interference —
@@ -227,3 +233,14 @@ correctly did not fire (the bleed h0046 caused and h0050 fixed). The two gates a
 disjoint at the artifact level — each fired only on its own construct — confirming construct-
 gated levers compose additively (h0049 finding) on the scoped h0050. This is the lead +3 promote
 candidate; the +3 should clear the ±4 single-trial variance band at full scale. Gate → full.
+
+## Stage Report: full
+
+- DONE: Phase 1 — export RAZORBACK_SPACEDOCK_PLUGIN_DIR; launch the FULL 48-task run DETACHED via `drivers/rk-run-detached.sh h0051-full specs/h0051-compose-maxpoints-and-scoped-coverage.frozen.yaml run`; return handle and signal done immediately.
+  Launched as 2nd concurrent (h0050-full still running). handle `runs/.rk-handles/h0051-full-20260612-144814/` (pid 1663816 confirmed alive). Recorded under `## Run result`. FO owns the wait.
+- SKIPPED: Phase 2 — strict audit clean + captured>0, `rk score --format json`, record run-dir + headline.
+  Deferred to FO re-engagement on `done` rc=0 per dispatch (Phase 1 was launch-only).
+
+### Summary
+
+Phase 1 of the FULL stage: launched the h0051 48-task full run detached on the frozen FULL spec (same composed README as smoke — h0044 max-points + h0050 intent-gated coverage), as the 2nd concurrent alongside the still-running h0050-full. Process confirmed alive (pid 1663816); handle/log/done/ntfy recorded under `## Run result`. Signaling done immediately — the FO owns the wait and will re-engage me for Phase 2 (strict audit + score) when `done` appears with rc=0.
