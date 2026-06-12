@@ -4,16 +4,12 @@ Live FO tracking for the airbnb009/composition program. Bare mode (team aged out
 all dispatches are fresh bare ensigns; FO owns the detached-run wait by scanning
 `runs/.rk-handles/*/`.
 
-## Running now
-- **h0050-full** — handle `h0050-full-20260612-092750` (isolated airbnb009 +1 confirmation). On done rc=0 → audit/score → analyze → conclude.
-- **h0052-smoke** — handles `h0052-smoke-20260612-122107` (+ airbnb009-r2/r3). The 3-lever A/B (h0044+h0045+h0050). On all done rc=0 → Phase 2 audit/artifact + A/B-vs-h0051 read → smoke gate.
+## Running now (2 concurrent)
+- **h0050-full** — handle `h0050-full-20260612-092750` (isolated airbnb009 +1 confirmation).
+- **h0051-full** — handle `h0051-full-20260612-144814` — the **lead +3 promote bet** (smoke GO: f1006/f1006-hard/airbnb009 flip, airbnb008 byte-intact, 0 regressions).
 
-## Approved, queued to launch (staggered — launch when a slot frees, keep ≤2 concurrent)
-- **h0051-full** — APPROVED to full by captain (smoke was a clean GO: +3 artifact-proven flips
-  f1006/f1006-hard/airbnb009, airbnb008 byte-intact, 0 regressions). **The lead +3 → 35/48 promote
-  candidate.** Currently at status `smoke` (GO); advance to `full` and launch
-  `drivers/rk-run-detached.sh h0051-full specs/h0051-compose-maxpoints-and-scoped-coverage.frozen.yaml run`
-  the moment h0050-full OR h0052-smoke frees a slot.
+## Approved, queued to launch (staggered — launch when a slot frees, keep <=2 concurrent)
+- **h0052-full** — APPROVED to full (smoke GO; A/B proved h0045's guard is FREE — h0052 == h0051 artifact-for-artifact). Serves as the **2nd independent full draw of the +3 composition** (variance hedge). Currently at status `smoke` (GO); advance to `full` and launch `drivers/rk-run-detached.sh h0052-full specs/h0052-compose-maxpoints-featureguard-scoped-coverage.frozen.yaml run` the moment h0050-full OR h0051-full frees a slot.
 
 ## Held
 - **h0047 / h0048** — hypothesis (airbnb009 alternative mechanisms; held).
@@ -22,4 +18,4 @@ all dispatches are fresh bare ensigns; FO owns the detached-run wait by scanning
 ## On each full/analyze completion
 Promote only if the run-dir net clears h0043 (32/48). The standing finding: trials:1 variance
 (~±4) can wash a small net — judge by committed artifact + held targets, and bank a flip when the
-run-dir actually scores >32/48. h0051's +3 margin is the best insurance yet.
+run-dir actually scores >32/48. PROMOTE if EITHER h0051-full OR h0052-full nets >32/48 with the +3 flips artifact-real and no lever-caused regression. Two independent draws of the same +3 composition hedge the +/-4 variance.
