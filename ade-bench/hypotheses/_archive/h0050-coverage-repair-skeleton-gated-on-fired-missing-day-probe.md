@@ -5,10 +5,11 @@ status: analyze
 kind: hypothesis
 source: "h0046 full analyze (2026-06-11) — h0046 proved airbnb009 is now REPRODUCIBLY pinnable (4/4 byte-identical, breaking the h0019/h0042 non-reproducibility wall) but bled onto same-family airbnb008 (the G8 risk realized): the subtractive skeleton fired on airbnb008 whose narrowing predicate was already correct (its real bug was a 1-line YAML quote). This follow-up scopes the skeleton to fire only when a local probe proves rows are genuinely missing. Forks the current @baseline h0043 (32/48). Captain-approved filing 2026-06-11."
 started: 2026-06-12T02:03:54Z
-completed:
-verdict:
+completed: 2026-06-12T16:30:57Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-12T16:30:57Z
 ---
 
 ## Hypothesis
