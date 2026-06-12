@@ -273,7 +273,45 @@ masked by off-construct noise rather than by an inert green.
 
 ## Follow-up Routing
 
+**file (DONE — no new file needed).** The validated bleed-free scoped-coverage lever is
+already carried forward in **h0051** (h0044 + h0050) and **h0052** (h0044 + h0045 + h0050),
+both running at full as the +3 composition-promote bet. The gated coverage repair is
+disjoint-construct from the package-update / variable-gating levers it composes with, so by
+the gated-levers-compose rule (h0049) the gate is the isolation mechanism — no interference
+expected. No new fork is warranted: the lever is verified at full and the productive next
+move is the composition runs, not another single-lever variant.
+
 ## Verdict
+
+**REJECTED (no-promote).** Full run 30/48, net **−2** vs @baseline h0043 (32/48); 10k-bootstrap
+paired delta CI **[−7, +3]** straddles 0 — washed by off-construct single-trial variance, does
+not clear the promote tripwire.
+
+**But the hypothesis's two core claims were CONFIRMED at full by committed artifact** — the
+lever WORKS, the −2 is noise off the construct:
+
+1. **airbnb009 flipped FAIL→PASS.** The oracle-free coverage probe FIRED (missing_dates
+   25434→0) and all three forks landed in the committed `mom_agg_reviews.sql`: `dates_cte`
+   narrowing predicate dropped, `COUNT(*) AS REVIEW_TOTALS` byte-intact, no cross-join.
+   `mom_agg_review_date_range` PASS 1/1.
+2. **airbnb008 stayed PASS byte-intact.** The TASK-INTENT gate (a) declined verbatim on the
+   non-completeness "the project is broken" task — the solver never investigated or applied
+   the coverage repair; `mom_agg_reviews.sql` had 0 edits (only the incidental `agg.yml`
+   YAML-quote fix). `AUTO_mom_agg_reviews_equality` PASS 4/4 — the exact test h0046 broke.
+
+This is the artifact-level fix for the h0046 same-family bleed (h0046 was +1 airbnb009 / −1
+airbnb008 = net 0): the intent-first double-gate keeps airbnb009 AND spares airbnb008 at
+48-task scale. The four regressions (asana003, f1001, f1003-hard, f1011) are OFF the coverage
+construct — the coverage lever fired on ZERO of them (gate (a) declined on asana003; the other
+three carry no coverage markers); their concrete fails are model-build / src-correctness /
+count-answer / option-check, all off-construct trials:1 variance. f1006 was an incidental
+variance gain, not an h0050 lever effect.
+
+**Transferable read:** a precondition-gated subtractive lever can be verified bleed-free by
+committed artifact (target flips, same-family canary byte-intact, gate-declined-verbatim
+trace) even when the trials:1 aggregate net is washed by off-construct variance — judge the
+lever by construct-touch, not by the headline reward. Not a workflow-structural change, so no
+`_artifacts/WORKFLOW-REFINE.md` entry.
 
 ## Stage Report: propose
 
@@ -343,3 +381,16 @@ Phase 1 complete: full 48-task h0050 run launched detached (handle `runs/.rk-han
 ### Summary
 
 NO-PROMOTE by net (30/48 vs @baseline 32/48; paired −2, CI [−7,+3] washes through zero) — BUT the decisive finding is that h0050's scoped intent-first double-gate WORKS exactly as designed at 48-task scale: airbnb009 flips FAIL→PASS (probe fired, all three forks, coverage test PASS) AND airbnb008 stays byte-intact (gate (a) declined the coverage repair on the non-completeness "project is broken" ask; the exact test h0046 broke now PASSES 4/4). The −2 net is four off-construct PASS→FAIL regressions (asana003/f1001/f1003-hard/f1011) on which the coverage lever never fired — independent single-trial variance, not lever-induced damage. The lever is bleed-free and validated; recommend NOT promoting h0050 (net washes) but carrying the proven scoped coverage gate forward into h0051/h0052. Verdict/archive left to the FO.
+
+## Stage Report: conclude
+
+- DONE: Write the terminal `## Verdict` + `## Follow-up Routing` into the entity file, drawing from `## Run result` / `## Behavioral analysis`; do NOT set frontmatter verdict/archive (FO owns that).
+  `## Verdict` = REJECTED (no-promote): full 30/48, net −2 vs @baseline h0043, CI [−7,+3] straddles 0 — washed by off-construct trials:1 variance; but BOTH core claims CONFIRMED by committed artifact (airbnb009 flipped, all three forks, probe fired 25434→0; airbnb008 byte-intact, intent gate (a) declined verbatim, the h0046-broken `AUTO_mom_agg_reviews_equality` PASS 4/4 — same-family bleed FIXED at 48-task scale). 4 regressions are off-construct (lever fired on zero). Transferable rule recorded (judge a gated subtractive lever by construct-touch, not headline net). `## Follow-up Routing` = file (DONE — lever already carried in h0051/h0052; no new file).
+- SKIPPED: Set frontmatter verdict / archive.
+  Per the conclude assignment, the FO sets frontmatter `verdict`/`archive`, not the ensign.
+- SKIPPED: Finalize a `_artifacts/WORKFLOW-REFINE.md` entry.
+  h0050 is a solver-README lever (experiment hypothesis), not a workflow-structural change (no new/removed/reordered/replaced stage or new protocol) — the WORKFLOW-REFINE finalization step does not apply.
+
+### Summary
+
+Concluded h0050 as REJECTED (no-promote): the trials:1 net washes (30/48, −2, CI [−7,+3]), so it does not clear the promote tripwire — but the hypothesis's two core claims were CONFIRMED at full by committed artifact, making this the verified bleed-free fix for the h0046 same-family defect (airbnb009 flips with all three forks AND airbnb008 stays byte-intact via the declined intent gate; the test h0046 broke now PASSES). Follow-up routing = file (DONE): the validated scoped-coverage lever is already carried forward in the h0051/h0052 composition runs, so no new fork is filed. No frontmatter or WORKFLOW-REFINE changes (FO owns the former; the latter does not apply to a non-structural lever).
