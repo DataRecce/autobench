@@ -20,7 +20,10 @@ instruction-lever taxonomy memory.
 - **4 are NOT README-addressable** — f1011, f1003, f1003-hard (oracle-only answer-selection,
   `count_answers`/`check_option_*`, no local signal — the solver-blind-to-oracle wall) and
   airbnb008 (already fixed; its only flip was the h0046 lever bleed, gated by h0050).
-- **7 are leverable** — the subject of this document.
+- **7 are candidate-leverable** — the subject of this document. Post-verification (2026-06-13,
+  see "Verification outcomes" below) this narrows to **5 buildable** new levers: quickbooks003
+  is already covered by h0045/h0052, and f1001 turned out to be a deeper dbt-registration error,
+  not a completeness fix. The 3 strongest to build: airbnb005, f1010-medium, ana-eng003.
 
 ## The banking caveat (read first)
 
@@ -67,21 +70,27 @@ inert). Every lever below should be:
 - **Confidence: HIGH.** Method artifact-confirmed both directions.
 - **Headroom:** low (already 89%) — marginal score value, but a clean, knowable fix.
 
-## CARD 2 — f1010-medium (11/15, 73%) — method known, VERIFY convention
+## CARD 2 — f1010-medium (11/15, 73%) — CONFIRMED method (verified 2026-06-13)
 
 - **Construct:** `analysis__lap_times` by track/year, accounting for pit stops.
-- **Failure mode (from flip-map history; NOT yet re-read on a fresh artifact):** keep
-  pit-stop laps and subtract pit-stop duration vs the oracle's exclude-them-before-averaging.
-- **Oracle-correct (per flip-map):** EXCLUDE pit-stop laps before averaging.
+- **Failure (artifact, verified):** failing run KEPT the full lap spine and SUBTRACTED
+  pit-stop duration per lap (`avg(lap_time - pit_duration)`, with anomalous rows left
+  unadjusted) → `AUTO_analysis__lap_times_equality` Got 1092 mismatches.
+- **Oracle-correct (confirmed):** EXCLUDE pit-stop laps before averaging. Passing run (h0043)
+  committed exactly this (e.g. "101 pit laps excluded" for Zandvoort 2023; recomputed
+  non-pit avg matched the oracle).
+- **Important verifier detail:** the equality test compares the submission against TWO seed
+  tables — `solution__analysis__lap_times.csv` and
+  `solution__analysis__lap_times_exclude_pit_stops.csv` — and passes if it matches EITHER.
+  The EXCLUDE convention matches the exclude-seed; the SUBTRACT approach matches NEITHER seed
+  (it is a third computation), which is why it fails. So pinning EXCLUDE is safe and sufficient.
 - **Proposed lever (worked-example skeleton):**
   > When averaging lap times with pit stops, FILTER OUT pit-stop laps before the aggregate.
   > Do not retain pit-stop laps and subtract pit-stop duration.
   > BEFORE:  `avg(lap_time - pit_stop_duration)` over all laps
   > AFTER:   `avg(lap_time)` where `is_pit_lap = false`
 - **Gate:** fires on lap-time averages that account for pit stops. **Bleed risk: LOW** (narrow).
-- **Confidence: MEDIUM-HIGH on method, but VERIFY FIRST** — read a failing vs passing
-  `analysis__lap_times.sql` to confirm exclude-vs-subtract before filing (flip-map is the
-  only current source).
+- **Confidence: HIGH** (method artifact-confirmed both directions).
 - **Headroom:** moderate. Cleanest single-construct win; same shape as the proven max-points lever.
 
 ## CARD 3 — ana-eng003 (15/16, 94%) — CONFIRMED method
@@ -119,33 +128,39 @@ inert). Every lever below should be:
 - **Oracle-correct:** delete the ENTIRE guarded block including the column body, not just the
   `{% if %}` wrapper. This is exactly what **h0045 (feature-boundary removal/toggle guard)**
   prescribes — and h0045 is already composed into h0052.
-- **Action — NOT a new lever:**
-  1. Confirm h0052 (which carries h0045) stabilizes quickbooks003 (it passed in h0052; all 5
-     historical failures were in runs WITHOUT h0045).
+- **Action — NOT a new lever (CONFIRMED 2026-06-13):**
+  1. ✅ h0052 (which carries h0045) DOES stabilize quickbooks003: PASS=1.0 in BOTH h0052 full
+     run-dirs (`dcb1a62ef4066133`, `f65c803f8713c00b`). In h0051 (same composition WITHOUT
+     h0045) it FAILED (`48aa50e556d16a80` = 0.0). h0043 baseline = 1.0. The h0045 guard is the
+     differentiator → already covered.
   2. Optionally SHARPEN the existing h0045 block with a worked-example skeleton showing the
      delete-whole-block edit (h0045 is currently prose, flagged G7 inert-risk):
      > BEFORE: `{% if var('using_feature') %} feature_col, {% endif %}`  -- removing the guard only
      > AFTER:  (entire line deleted)                                      -- remove guard AND column
-- **Confidence: HIGH.** Same construct as an already-working lever.
-- **Headroom:** moderate (77%).
+- **Confidence: HIGH.** Same construct as an already-working lever; coverage confirmed.
+- **Headroom:** moderate (77%) — but no new file needed.
 
-## CARD 5 — f1001 (23/28, 82%) — completeness-style, leverable
+## CARD 5 — f1001 (23/28, 82%) — DOWNGRADED: not cleanly leverable (verified 2026-06-13)
 
 - **Construct:** re-wire the F1 staging layer onto the correct `src` models / sources.
-- **Failure (artifact):** some `stg_*` models left on the old/wrong source →
-  `stg_models_use_src_models` (Got 11), `stg_races/stg_results_uses_correct_sources`,
-  `src_models_are_correct` (compile error). Incomplete or incorrect source-rewiring.
-- **Oracle-correct:** every `stg_*` references its corresponding `src` model; none left on
-  the prior source.
-- **Proposed lever (worked-example + completeness check):**
-  > When re-wiring staging onto sources/src models, EVERY `stg_*` must reference its
-  > corresponding `src` model. Before finalizing, list the staging models and verify none
-  > still reference the old/raw source directly.
-- **Gate:** fires on staging-source-rewiring tasks. **Bleed risk: LOW-MODERATE.**
-- **Confidence: MEDIUM** — it's a completeness sweep, not a single SQL shape, so less reliable
-  than a worked-example. *Re-read a fresh failing artifact to confirm whether the failures are
-  "left a stg on the old source" vs a deeper src-definition error before finalizing wording.*
-- **Headroom:** moderate.
+- **Failure (artifact, verified — NOT what Card 5 originally assumed):** the failure is NOT
+  "a stg left on the old source." BOTH the passing and failing runs created the 14 `src_*`
+  models AND repointed all 13 staging models. The failing run's `src_*` models were not
+  discoverable in dbt's graph at TEST-compile time: `src_models_are_correct` threw a
+  compilation error ("no attribute 'model.f1.src_circuits'"), and `stg_models_use_src_models`
+  Got 11. The local `dbt build` succeeded (14 sources) but the verifier's test macros could not
+  resolve the `src_*` models — a registration/manifest-visibility problem, not a completeness gap.
+- **Classification: (b) DEEPER — src-model-definition/registration error.** A "repoint every
+  stg to its src" completeness lever would NOT fix this (both runs already repointed). The
+  difference is in how the `src_*` models are declared/registered (schema YAML / config /
+  naming), which is brittle dbt-internals, hard to pin with a generic README rule without
+  leaking, and not a clean local convention.
+- **Verdict: do NOT file a lever for f1001 from this construct.** It joins the not-cleanly-
+  leverable set alongside the build-path brittleness of asana003. Revisit only if a concrete,
+  generic registration rule can be expressed (e.g. "ensure each new `src_*` view is registered
+  in the project's model config so downstream refs resolve") — but confidence that this banks
+  is LOW.
+- **Headroom:** moderate, but not actionable via lever.
 
 ## CARD 6 — asana003 (14/20, 70%) — known mechanism, brittle to pin
 
@@ -204,26 +219,35 @@ inert). Every lever below should be:
 
 ## Recommended filing order (for the hypotheses we build from this)
 
-| # | Task | Confidence | New lever? | Verify before filing? |
-|---|------|-----------|-----------|----------------------|
-| 1 | airbnb005 | HIGH | yes (gated inner-join) | no — confirmed |
-| 2 | f1010-medium | MED-HIGH | yes (gated exclude-laps) | YES — re-read a failing artifact |
-| 3 | ana-eng003 | HIGH mech / MED gate | yes (gated preserve-columns) | no — confirmed; design the gate carefully |
-| 4 | quickbooks003 | HIGH | NO — confirm h0052/h0045 covers; optionally sharpen | confirm h0052 result |
-| 5 | f1001 | MED | yes (completeness) | YES — confirm failure is "stg on old source" |
-| 6 | asana003 | LOW-MED | yes (restraint+build-verify) | — brittle, lower priority |
-| 7 | airbnb007 | LOW (resistant) | yes (calendar-window+dual-model) | — moonshot, file last |
+Post-verification (2026-06-13), the leverable set narrows to **5 buildable** (3 strong + 2
+hard) — quickbooks003 is already covered, and f1001 is not cleanly leverable.
+
+| # | Task | Confidence | New lever? | Status |
+|---|------|-----------|-----------|--------|
+| 1 | airbnb005 | HIGH | yes (gated inner-join) | ready — method confirmed |
+| 2 | f1010-medium | HIGH | yes (gated exclude-laps) | ready — method confirmed (was: verify) |
+| 3 | ana-eng003 | HIGH mech / MED gate | yes (gated preserve-columns) | ready — design the gate carefully |
+| — | quickbooks003 | HIGH | NO | **covered by h0045/h0052 (confirmed)** — optional sharpen only |
+| — | f1001 | LOW | NO | **DOWNGRADED — deeper src-registration error, not leverable** |
+| 4 | asana003 | LOW-MED | yes (restraint+build-verify) | brittle, lower priority |
+| 5 | airbnb007 | LOW (resistant) | yes (calendar-window+dual-model) | moonshot, file last |
+
+**Build first: airbnb005, f1010-medium, ana-eng003** — all three are HIGH-confidence
+"pin-the-correct-convention" levers (the proven max-points shape), methods artifact-confirmed.
 
 **Composition note:** per h0049/h0052, disjoint precondition-gated levers compose additively
 in one README without interference. Once 2–3 of cards 1–3 pass solo smoke, compose them onto
 @baseline (as h0052 did) rather than promoting singly. Watch the ana-eng003 gate especially —
 its "preserve all columns" rule is the most generative and needs the strongest canary.
 
-## Open verification items (do before filing the affected card)
+## Verification outcomes (all resolved 2026-06-13)
 
-- [ ] f1010-medium: read a failing + passing `analysis__lap_times.sql` to confirm
-      exclude-vs-subtract (Card 2 relies on flip-map history, not a fresh artifact).
-- [ ] f1001: confirm the failing mechanism is "stg left on old source" vs a deeper
-      src-definition error (Card 5 wording depends on it).
-- [ ] quickbooks003: confirm h0052 (with h0045) actually stabilizes it before deciding
-      whether any new work is needed (Card 4).
+- [x] **f1010-medium** — CONFIRMED: oracle wants EXCLUDE pit-stop laps; the failing run
+      SUBTRACTED duration (Got 1092). The equality test accepts either the exclude-seed or the
+      base-seed; SUBTRACT matches neither. Card 2 upgraded to HIGH, ready to file.
+- [x] **f1001** — RESOLVED as **(b) deeper, not completeness**: both pass and fail runs
+      repointed all stg + created 14 src models; the fail differs by `src_*` models not being
+      resolvable in the verifier's test-macro graph (registration/manifest issue). A
+      completeness lever would not fix it. Card 5 DOWNGRADED — do not file.
+- [x] **quickbooks003** — CONFIRMED covered: PASS in both h0052 run-dirs (carry h0045), FAIL in
+      h0051 (no h0045). Card 4 → no new lever; optional sharpen of h0045 only.
