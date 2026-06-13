@@ -146,3 +146,93 @@ Forked the live @baseline (h0052 3-lever composition) into h0054 and added exact
 
 ### Summary
 Phase 1 launch complete. The smoke run is detached and running; the FO scans runs/.rk-handles/h0054-smoke-20260613-144543/ for the `done` file and re-dispatches for Phase 2 (audit/score/deep-dive). Nothing else is running — this is the only run.
+
+## Smoke result
+
+Run-dir: `runs/ade-bench-h0054-lap-time-average-exclude-pit-stop-laps/e2df61b167f316a2` (rc=0).
+Strict audit CLEAN: `tainted: 0`, `coverage_missing: 0`, `clean: 10`; `captured: 1` every cell (AC-2).
+Score: **10/10 PASS** (pass@1 = 1.0). @baseline = h0052 (`dcb1a62ef4066133`).
+
+| Task | Role | Baseline (h0052) | Smoke | Verifier |
+|------|------|------------------|-------|----------|
+| f1010-medium | 🎯 target | ~73% (PASS on h0052 draw) | ✅ PASS reward=1 | `AUTO_analysis__lap_times_equality` PASS; existence PASS |
+| airbnb009 | h0052 banked flip (coverage) | PASS | ✅ PASS reward=1 | `mom_agg_review_date_range` 1/1 PASS |
+| f1006 | h0052 banked flip (max-points) | PASS | ✅ PASS reward=1 | constructor/driver points 4/4 PASS |
+| f1006-hard | h0052 banked flip (max-points) | PASS | ✅ PASS reward=1 | 4/4 PASS |
+| f1005 | f1 canary (perturbable) | PASS | ✅ PASS reward=1 | PASS |
+| f1007 | f1 canary (stable passer) | PASS | ✅ PASS reward=1 | PASS |
+| airbnb001 | cross-family canary | PASS | ✅ PASS reward=1 | PASS |
+| ana-eng001 | cross-family canary | PASS | ✅ PASS reward=1 | PASS |
+| asana002 | cross-family canary | PASS | ✅ PASS reward=1 | PASS |
+| quickbooks002 | cross-family canary | PASS | ✅ PASS reward=1 | PASS |
+
+Zero canary loss. README diff vs parent h0052 = single hunk `166a167,181` (the gated lap-time
+exclude block); all 4 prior levers + leak-guard byte-identical (AC-1 holds).
+
+## Behavioral analysis
+
+**DECISIVE READ — f1010-medium committed the EXCLUDE shape (AC-3 GO signal).** The committed
+`models/analysis/analysis__lap_times.sql` (from the solver's `apply_patch`, call_id
+`call_Rxd2UN22MTX4Xmc4zwT5ddxu`) is:
+
+```sql
+pit_stop_laps as ( select distinct race_id, driver_id, lap
+    from {{ ref('stg_f1_dataset__pit_stops') }} ),
+non_pit_laps as ( select l.race_id, l.milliseconds
+    from lap_times as l
+    left join pit_stop_laps as p
+      on l.race_id = p.race_id and l.driver_id = p.driver_id and l.lap = p.lap
+   where p.race_id is null ),                       -- pit-stop laps FILTERED OUT
+final as ( select r.circuit_name, r.race_year,
+           cast(round(avg(l.milliseconds)) as integer) as avg_lap_time_in_ms
+    from non_pit_laps as l join races as r using (race_id) group by 1,2 )
+select * from final
+```
+
+This is the EXCLUDE form: it drops pit-stop laps (anti-join `where p.race_id is null`) BEFORE
+the `avg(l.milliseconds)` aggregate. It does NOT use the SUBTRACT-duration shape
+(`avg(lap_time - pit_duration)`) that produced the h0037 FAIL (`Got 1092`). Verifier line:
+`AUTO_analysis__lap_times_equality .......... PASS` (matched against the
+`solution__analysis__lap_times_exclude_pit_stops` seed; both seed tables loaded INSERT 532).
+The correct EXCLUDE convention was pinned by the gated worked-example skeleton — flip-credit
+granted: exclude shape landed AND verifier passed.
+
+**h0052 banked flips intact, lever did not disturb them.** f1006/f1006-hard run the
+constructor/driver POINTS construct (zero `lap_times` mention in their verifier output) and
+airbnb009 runs the review-date-range COVERAGE construct — all distinct from lap-time. Each
+committed its correct artifact and passed (4/4, 4/4, 1/1). The precondition gate ("when a task
+asks for an average of lap times accounting for pit stops") is the isolation mechanism: it did
+not fire on the points/coverage/cross-family canaries, all of which held PASS.
+
+**Reproducibility (AC-5).** Single smoke draw this run; f1010-medium is a ~73% cell. The GO
+rests on the EXCLUDE artifact landing + verifier pass + clean audit (AC-3), per the standing
+single-trial / judge-by-artifact decision, not on a single reward alone. The artifact is the
+correct-convention proof the lever was designed to pin.
+
+## GO/NO-GO: **GO**
+
+f1010-medium committed the EXCLUDE artifact (anti-join filters out pit laps before
+`avg(milliseconds)`; not the subtract-duration shape) AND its verifier passed; the three h0052
+banked flips (airbnb009 / f1006 / f1006-hard) committed their correct construct artifacts and
+held PASS; every canary held PASS on a clean strict audit (tainted 0 / coverage_missing 0,
+captured>0 all 10). README diff is the single gated lap-time block (AC-1). Advance `smoke → full`.
+
+## Stage Report: smoke (Phase 2 — audit/score/deep-dive)
+
+- DONE: Strict audit clean (tainted 0 / coverage_missing 0) + captured>0 every cell BEFORE score; rk score.
+  `rk audit --policy strict` = clean 10 / tainted 0 / coverage_missing 0; captured=1 all 10 cells; `rk score` = 10/10 PASS (pass@1 1.0).
+- DONE: DECISIVE READ — open f1010-medium committed analysis__lap_times.sql; confirm EXCLUDE shape (filters OUT pit laps before avg), not subtract-duration; quote SQL + verifier line.
+  Committed SQL uses anti-join `where p.race_id is null` then `avg(milliseconds)` (EXCLUDE); verifier `AUTO_analysis__lap_times_equality PASS`. Quoted in Behavioral analysis. GO signal present.
+- DONE: Confirm h0052 banked flips (airbnb009 coverage / f1006 + f1006-hard max-points) committed correct artifacts (lever did NOT disturb) + all canaries hold on clean audit.
+  airbnb009 1/1, f1006 4/4, f1006-hard 4/4 PASS; distinct constructs (points/coverage, zero lap_times touch); 6 canaries all PASS on clean audit.
+- DONE: Write ## Smoke result + ## Behavioral analysis + GO/NO-GO; GO = exclude artifact + zero canary loss + h0052 flips intact. Commit before signaling.
+  All three written above; verdict GO; committing now.
+
+### Summary
+h0054 smoke is a clean GO. The gated lap-time worked-example skeleton pinned the correct
+EXCLUDE convention: f1010-medium's committed `analysis__lap_times.sql` filters out pit-stop
+laps via anti-join BEFORE averaging (not the subtract-duration shape that produced h0037's
+`Got 1092`), and its verifier passed. The three h0052 banked flips held with their correct
+construct artifacts (the precondition gate kept the lap-time rule from firing on them), and all
+six canaries held PASS on a clean strict audit (10/10, tainted 0 / coverage_missing 0). Advance
+to `full`.
