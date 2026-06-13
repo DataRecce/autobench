@@ -1,7 +1,7 @@
 ---
 id: h0052
 title: Three-lever composition — h0044 standings max(points) + h0045 feature-boundary guard + h0050 intent-gated scoped coverage skeleton on h0043 (the scoped, bleed-free re-do of h0049); A/B vs h0051 isolates whether the no-harm guard is free
-status: full
+status: analyze
 kind: hypothesis
 source: "Captain request 2026-06-12 alongside h0051. Same composition as h0049 (h0044+h0045+h0046) but with the UNSCOPED bleeding h0046 swapped for the intent-gated scoped h0050. Run as an A/B against h0051 (h0044+h0050 only): the delta isolates h0045's no-harm feature-boundary guard — it should contribute zero flips and zero interference (its targets qb002/qb004 already pass; full showed it flips nothing and its losses were pure off-construct variance). Tests whether stacking a third no-harm guard is free or adds bloat/interference."
 started: 2026-06-12T09:38:44Z
