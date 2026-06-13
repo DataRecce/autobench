@@ -155,3 +155,51 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ### Summary
 Forked @baseline h0052 into the h0053 solver and added exactly one Implementation-stage gated block — the per-key-aggregate INNER-JOIN-from-fact worked-example skeleton — which is the explicit DUAL of the h0050 coverage lever (fires only when completeness is NOT requested; defers to the coverage rule when it IS). Full spec differs from baseline only in experiment:+solver_workflow:; smoke adds only a benchmark.tasks panel (target airbnb005 @baseline 0.0 FAIL + the airbnb009 collision MUST-HOLD canary + h0052 banked flips f1006/f1006-hard + same-family 001/004/006/008 + cross-family asana002/ana-eng001/quickbooks002/f1007). Both specs frozen; gatekeeper APPROVEs with two WARN-only flags — G7 (verify the committed listing_agg_nps_reviews.sql actually adopts the inner-join shape, AC-3, not chatter) and G11 (airbnb005's scored-model count is unverifiable static; re-enumerate from verifier/test-stdout.txt if it flips). No rk run launched, per dispatch.
+
+## Smoke result
+
+**Verdict: GO.** Run-dir `runs/ade-bench-h0053-per-key-aggregate-inner-join-exclude-zero-fact-keys/bc3d76e716365ef1` (rc=0). Strict audit clean (`tainted: 0`, `coverage_missing: 0`, `clean: 12`); `captured=1` every cell. `rk score` = **12/12 PASS, pass_at_1 = 1.0** (above the 0.1875 constant).
+
+| Task | Role | @baseline (h0052) | Smoke | Scored tests | Read |
+|------|------|-------------------|-------|--------------|------|
+| airbnb005 | 🎯 target | 0.0 FAIL | **1.0 PASS** | 4/4 (2 models: listing_agg + daily_agg equality+existence) | **FLIP — inner-join-from-fact artifact landed** |
+| airbnb009 | ✅ collision MUST-HOLD | 1.0 | 1.0 PASS | 1/1 mom_agg_review_date_range | **coverage lever still fired — narrowing predicate dropped** |
+| airbnb008 | ✅ same-family | 1.0 | 1.0 PASS | 4/4 | hold |
+| airbnb001 | ✅ same-family | 1.0 | 1.0 PASS | 10/10 | hold |
+| airbnb004 | ✅ same-family | 1.0 | 1.0 PASS | 2/2 | hold |
+| airbnb006 | ✅ same-family | 1.0 | 1.0 PASS | 7/7 | hold |
+| f1006 | ✅ h0052 banked flip | 1.0 | 1.0 PASS | 4/4 | hold |
+| f1006-hard | ✅ h0052 banked flip | 1.0 | 1.0 PASS | 4/4 | hold |
+| asana002 | ✅ cross-family | 1.0 | 1.0 PASS | 3/3 | hold |
+| ana-eng001 | ✅ cross-family | 1.0 | 1.0 PASS | 1/1 | hold |
+| f1007 | ✅ cross-family | 1.0 | 1.0 PASS | 6/6 | hold |
+| quickbooks002 | ✅ cross-family | 1.0 | 1.0 PASS | 8/8 | hold |
+
+Net: **+1 target flip (airbnb005), zero canary loss, collision canary holds.**
+
+## Behavioral analysis
+
+**DECISIVE READ (a) — airbnb005 (AC-3, the GO target).** The committed `models/agg/listing_agg_nps_reviews.sql` (apply_patch in the dispatched solver Ensign session `rollout-2026-06-13T14-57-55-...jsonl`) is the INNER-JOIN-from-fact shape, verbatim core:
+
+```
+FROM review_cte                          -- review_cte = {{ref('fct_reviews')}}
+INNER JOIN listing_cte                   -- listing_cte = {{ref('dim_listings')}}
+	ON review_cte.LISTING_ID = listing_cte.LISTING_ID
+GROUP BY review_cte.LISTING_ID, listing_cte.LISTING_NAME, listing_cte.ROOM_TYPE
+```
+
+Driven FROM the reviews fact, INNER JOIN to listing metadata — only listings with reviews appear. There is NO `LEFT JOIN {{ref('dim_listings')}}` keep-all, NO zero-fact NULL-NPS rows. This is shape A (oracle-correct), the dual of h0052's failing left-join-keep-all (17,499 rows incl ~3,256 NULL-NPS). The verifier seed `solution__listing_agg_nps_reviews` loaded **14,243 rows** — matching the h0043 inner-join oracle exactly. The lever reached the committed artifact; this is not transcript chatter.
+
+**G11 RESOLVED (scored-model count).** airbnb005 is scored by FOUR tests across TWO models — `listing_agg_nps_reviews_equality_with_tolerance`, `daily_agg_nps_reviews_equality_with_tolerance`, and both `AUTO_*_existence` — all PASS (PASS=4 ERROR=0 FAIL=0). The second model `daily_agg_nps_reviews.sql` was also committed (rolling-28d window via a self-join on `daily_counts`; its internal LEFT JOIN is the rolling-window self-join, not a keep-all-listings dimension join — correct in form, and its equality test PASSED). The flip is NOT variance on an unaddressed model: the inner-join artifact + correct daily model landed on EVERY scored model. The G11 WARN is closed.
+
+**DECISIVE READ (b) — airbnb009 (THE COLLISION CHECK, AC-4).** The committed `models/agg/mom_agg_reviews.sql` apply_patch DROPS the narrowing date predicate — it removes `WHERE DATE_ACTUAL IN (SELECT DISTINCT REVIEW_DATE::DATE FROM review_cte)` so `dates_cte` keeps every calendar day from `dim_dates` (incremental branch retained). This is exactly the h0050 coverage-repair / keep-all-days lever firing on a completeness-requested task. The h0053 inner-join rule did NOT mis-fire here and did NOT suppress completeness. Scored test `mom_agg_review_date_range` PASS. **Both gates coexist: h0053 fires on no-completeness airbnb005 (inner-join-from-fact), h0050 fires on completeness airbnb009 (keep-all-days). No collision.** This is the precondition-gated-dual composing additively, as hypothesized.
+
+**Canaries + banked flips.** All ten non-target/non-collision cells PASS on full test sets (actual_fail=0 each): same-family airbnb001/004/006/008, h0052 banked flips f1006/f1006-hard, cross-family asana002/ana-eng001/f1007/quickbooks002. Zero regression; the new aggregate rule introduced no same-family collateral (the cell h0046 bled onto, airbnb008, holds 4/4).
+
+**Honest notes.**
+- **AC-5 (≥2 seed-perturbed airbnb005 repeats) NOT satisfied as specified.** The smoke panel ran airbnb005 once (12 cells = 12 distinct tasks, one trial each), not as ≥2 repeats. The GO rests on the committed-artifact proof (AC-3) — inner-join shape landed, 14,243-row oracle match, 4/4 scored tests PASS, clean audit — per the standing single-trial / judge-by-artifact captain decision, NOT on a multi-repeat reproducibility number. airbnb005 is ~89% at @baseline so the marginal score is low; the real, durable win is closing the join-shape construct with an artifact-confirmed correct shape.
+- **Workflow-refinement log: N/A.** This lever is an in-stage rule tweak (a new gated Implementation-stage worked-example block), NOT a structural workflow change (no new/removed/reordered stage, no new protocol-family). Per the smoke stage's structural-change tell-tales it does not require a `_artifacts/WORKFLOW-REFINE.md` entry; the in-stage rule lands in the instruction-lever taxonomy via the gated-levers-compose note (h0049/h0050 family).
+
+## GO/NO-GO
+
+**GO.** airbnb005 flips FAIL→PASS via the committed INNER-JOIN-from-fact `listing_agg_nps_reviews.sql` (artifact-confirmed, 14,243-row oracle match, 4/4 scored tests on BOTH scored models — G11 closed); the airbnb009 collision canary holds PASS with the h0050 coverage lever STILL firing (narrowing predicate dropped, keep-all-days) — proving the new inner-join rule did not conflict with or suppress completeness; zero canary loss across all ten regression/banked cells (12/12 PASS, clean strict audit). The two gates compose additively on opposite sides of the completeness-intent signal exactly as hypothesized. Route smoke → full.
