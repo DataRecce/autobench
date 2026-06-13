@@ -1,10 +1,10 @@
 ---
 id: h0056
 title: Six-lever composition — stack the three new smoke-verified levers (h0053 per-key inner-join + h0054 lap-time exclude-pit-laps + h0055 build/rename preserve-columns) onto @baseline h0052's three (max-points + feature-boundary + coverage) in ONE README
-status: hypothesis
+status: propose
 kind: hypothesis
 source: "Captain request 2026-06-13 — merge the three individually smoke-verified levers (h0053 airbnb005 inner-join GO; h0054 f1010-medium exclude-pit-laps GO; h0055 ana-eng003 preserve-columns, smoke in progress / ana-eng003 artifact passing) into one composition on the current @baseline h0052 (runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133). Same compose-verified-bleed-free-levers play that promoted h0052; each new lever is precondition-gated and explicitly non-colliding with an existing one."
-started:
+started: 2026-06-13T17:45:52Z
 completed:
 verdict:
 score:
