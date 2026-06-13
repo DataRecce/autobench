@@ -126,50 +126,149 @@ bite this run.
 
 ## Run result
 
-Full 48-task run LAUNCHED (detached) 2026-06-12T16:22 — Phase 1 of `full` stage.
-- handle: `runs/.rk-handles/h0052-full-20260612-162236/`
-- pid 1757974; ntfy `adebench-rk-381c976fe07465bf`
-- spec: `specs/h0052-compose-maxpoints-featureguard-scoped-coverage.frozen.yaml`
-- 2nd concurrent run (h0051-full also in flight). FO owns the wait.
+**HEADLINE: +3 artifact-real AGAIN, net +0 (TIE). 32/48 = 0.6667 — dead level with @baseline
+h0043 (32/48). The same verified +3 composition lands for the SECOND independent draw (== h0051's
++3), yet does not clear the lucky-32 baseline because each draw loses ~3 off-construct coin-flips.
+The trials:1 noise floor consumes the construct signal.** airbnb005 verdict: scoped coverage gate
+is **PERFECTLY CLEAN — no mis-fire** (its NPS task failed for an unrelated reason; mom_agg_reviews
+byte-untouched). The h0045 no-harm guard is **FREE on a 2nd draw** — it added zero flips and zero
+NEW interference vs h0051.
 
-Phase 2 (on done rc=0): strict audit clean + captured>0 every cell BEFORE score;
-`rk score --format json`; record run-dir + headline + A/B vs h0051 here.
+**Run-dir:** `runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133`
+(rc=0, 6h57m, 0 exceptions).
+
+**Strict audit (AC-2):** CLEAN — 48 clean / 0 tainted / 0 coverage_missing; captured>0 every
+cell (subagent-trace-manifest captured==0 count = 0/48). Ran BEFORE scoring.
+
+**Absolute score (`rk score --format json`):** stratified pass@1 = **0.6667** (32/48), Wilson CI
+[0.5254, 0.7832], n=48, 0 errored. Verdict vs paper_baseline 0.1875 = **above**.
+
+**Paired delta vs @baseline h0043 (`7390e6adf44ba5ea`).** `rk runs diff` TypeError'd on the known
+`query_id: null` data-shape limitation — computed the paired delta directly from
+`per_trial_outcomes.json`, slug-paired (strip `__short`) + 10k paired bootstrap.
+
+| Comparison | sum | net flips | mean per-task Δ | 95% bootstrap CI |
+|------------|-----|-----------|-----------------|------------------|
+| h0052 vs @baseline h0043 | 32 vs 32 | **+0** (3 gains, 3 losses) | +0.0000 | [−0.1042, +0.1042] |
+| h0051 vs @baseline h0043 | 31 vs 32 | −1 (3 gains, 4 losses) | −0.0208 | [−0.1250, +0.0833] |
+| h0052 vs h0051 (A/B = h0045 guard) | 32 vs 31 | +1 (3 gains, 2 losses) | +0.0208 | [−0.0625, +0.1042] |
+
+CI straddles zero in all three — every delta is within the single-trial noise band. The +1 of
+h0052 over h0051 is NOT the guard helping; it is a wash among off-construct coin-flips (see A/B).
+
+**Full per-task ledger — both directions (Q1).**
+
+GAINS (FAIL→PASS vs @baseline), all artifact-confirmed:
+| Cell | Δ | Committed artifact |
+|------|---|--------------------|
+| f1006 | 0→1 | `sum(points)→max(points)` on BOTH scored models (constructor_points.sql + driver_points.sql), same-grain; 0 mismatches |
+| f1006-hard | 0→1 | identical max(points) repair on both models; 920/920 + 3190/3190, max_abs_diff=0.0 |
+| airbnb009 | 0→1 | `mom_agg_reviews.sql` only: removed `dates_cte` narrowing predicate; anti-join 722-in-span→0; join/COUNT/GROUP BY preserved |
+
+REGRESSIONS (PASS→FAIL vs @baseline), all off-construct coin-flips (NOT lever damage):
+| Cell | baseline→h0052 | Mechanism / classification |
+|------|----------------|----------------------------|
+| airbnb005 | 1→0 | CRITICAL-CHECK target. Pure variance — coverage gate UNTOUCHED (see below). Its NPS task: edited only daily/listing_agg_nps_reviews.sql, 2/4 equality_with_tolerance tests fail (self-anchored false-green). PASSED in h0051. |
+| asana003 | 1→0 | known program-wide flip-flop cell; off-construct; lever-silent; lost in BOTH h0051 and h0052. Variance. |
+| f1011 | 1→0 | known program-wide coin-flip (fails 4/5 prior variant draws); off-construct; lever-silent. PASSED in h0051+baseline. Variance. |
+
+**CRITICAL CHECK — airbnb005 (Q: gate clean vs rare mis-fire?): GATE CLEAN, no mis-fire.** Its
+committed artifact (cell `ade-bench-airbnb005__BfmqfGY`, reward 0) shows the agent edited ONLY its
+own task's models — `models/agg/daily_agg_nps_reviews.sql` and `models/agg/listing_agg_nps_reviews.sql`
+— with ZERO mention of `mom_agg_reviews`, `dates_cte`, missing-day/anti-join, or the coverage gate
+anywhere in `agent/codex.txt`. The h0050 intent+probe coverage gate did NOT fire on airbnb005. It
+failed for an unrelated reason: its NPS-aggregate task is complex, and the two hidden
+`*_equality_with_tolerance` tests FAILED (2/4, the two existence tests passed) — the agent
+self-validated "max NPS diff 0, review count mismatches 0" against its own derivation but the actual
+aggregate values are wrong (classic self-anchored false-green, the oracle-problem wall, NOT a gate
+artifact). mom_agg_reviews.sql is byte-untouched in this cell. **Verdict: pure trials:1 variance;
+the scoped double-gate is perfectly clean — it fired only on airbnb009 (true target) and stayed
+silent on both airbnb008 (correct hold) and airbnb005 (off-target). No residual bleed risk.**
+
+**Smoke vs full (Q2/Q6).** Smoke was a 14/14 GO and was artifact-real — the +3 flips reproduced
+exactly at full (same committed artifacts) and the A/B finding (guard is free) held. What smoke
+could not see: the off-construct coin-flip families (airbnb005-NPS, asana003, f1011) that the smoke
+panel didn't sample as the deciding cells. No fork drifted; no README rule changed branch. The
+full≠smoke gap is purely that smoke can't sample the ~3 single-trial losses elsewhere on the board
+that net the construct +3 back to a tie. Not a defect, not interference — the trials:1 noise floor.
 
 ## Behavioral analysis
 
-**The A/B (AC-3) — is the no-harm guard free?** YES. Cell-by-cell against h0051's panel
-(`372f512fc7007ed8`):
-- All 13 cells h0051 and h0052 share: IDENTICAL verdict (all PASS) AND identical committed
-  artifact — f1006/f1006-hard = `max(cs.points)`+`max(ds.points)`; airbnb009 = `dates_cte`
-  predicate removal on `mom_agg_reviews`; airbnb008 = `agg.yml` (mom_agg byte-intact);
-  qb002/qb004 = `using_department` feature-boundary removal. Confirmed at the token level in
-  both run-dirs' transcripts.
-- The ONLY structural difference is h0052's added quickbooks003 canary (the h0045
-  feature-boundary construct family), which also PASSED.
-- Net: adding h0045's feature-boundary block to h0051 changed **nothing** — 0 added flips, 0
-  interference, 0 artifact divergence. The no-harm guard is **free** under three-lever
-  composition, exactly as predicted.
+### Full-run analysis (analyze stage)
 
-**Where did h0045's guard fire?** Its construct family (variable/feature removal) is exercised
-by qb002/qb004/qb003 — all narrow feature-boundary edits, none a broad rewrite, all PASS. The
-guard's edit-locality prose is carried in the solver prompt for those cells; the committed
-artifacts are byte-equivalent to h0051's (which lacks the guard), so the guard neither tightened
-nor loosened the already-correct narrow edits. It is genuinely inert-but-safe on this panel —
-consistent with its established solo no-flip / no-harm profile.
+**Method adherence (Q4 — was the change executed?).** All three flip targets are
+EXECUTED-AND-HELPED, confirmed by committed artifact, not chatter:
+- **h0044 max-points** — f1006 + f1006-hard each edited BOTH scored models
+  (`models/stats/constructor_points.sql` + `driver_points.sql`), `sum(points)→max(points)`,
+  same-grain, no latest-row/window/rank. Worker validation: 920/920 + 3190/3190 rows, max_abs_diff
+  0.0. The historical G11 multi-model flicker did NOT bite: both 4-test verdicts are 4/4 PASS, so
+  the artifact landed on every scored model.
+- **h0050 intent-gated scoped coverage** — airbnb009 edited `models/agg/mom_agg_reviews.sql` ONLY;
+  removed the `dates_cte` narrowing predicate (was filtering dim_dates to dates already in reviews);
+  rolling join + COUNT(*) + GROUP BY preserved. Anti-join evidence: pre-fix 722 missing dates within
+  the review span → post-fix 0. The double-gate (completeness intent AND fired missing-key probe)
+  fired correctly here.
+- The scoped gate's restraint is the headline: it fired on airbnb009 (true target) and stayed
+  silent on BOTH airbnb008 (its real task = agg.yml unclosed-quote fix; mom_agg_reviews
+  byte-untouched) AND airbnb005 (its NPS task; mom_agg_reviews byte-untouched). This is the
+  scoped, bleed-free re-do of h0049 working exactly as designed — zero false fires.
 
-**Per-lever composition health (AC-4):**
-- h0044 (max-points): fired correctly, same-grain, both scored models, +2 (f1006 + f1006-hard).
-- h0050 (intent-gated scoped coverage): fired on airbnb009 (3/3 byte-consistent scoped repair),
-  correctly DID NOT fire on airbnb008 (mom_agg_reviews byte-intact) — the double-gate held under
-  composition. This is the core of the scoped, bleed-free re-do of h0049.
-- h0045 (feature-boundary guard): no-harm, no-flip, no-interference — free.
+**Already-correct-and-broken (Q3).** All 3 regressions were PASSING at @baseline (1→0) — i.e. the
+run broke working passers, NOT failed-to-help. BUT none is lever damage: airbnb005 (gate untouched,
+its NPS equality-tolerance tests fail on the agent's own wrong aggregates — self-anchored
+false-green), asana003 (off-construct flip-flop), f1011 (program-wide coin-flip). These are the
+trials:1 noise floor, not interference from any of the three levers. The committed artifacts of all
+three target levers are unchanged on these cells.
 
-**Transcript-capture caveat (infra, not experiment):** within each run-dir, `agent/sessions/`
-is a shared copy of one cell's session pool across all cells; the authoritative per-cell record
-is the cell-root `agent/codex.txt` (verified distinct per cell — distinct task instructions +
-distinct committed-file reports). All decisive reads above were taken from the per-cell
-`codex.txt` and cross-checked against per-cell `verifier/test-stdout.txt`. No bearing on the
-verdict; flagged so future deep-dives read `codex.txt`, not `sessions/`.
+**The A/B (AC-3) — is the no-harm guard free? YES, on a 2nd independent draw.** Comparing h0052's
+full run (`dcb1a62ef4066133`) against h0051's full run (`48aa50e556d16a80`) cell-by-cell, exactly
+**5 cells differ** — precisely the dispatch's prediction (airbnb005, f1003, f1010-medium, f1011,
+quickbooks003):
+
+| Cell | baseline | h0051 | h0052 | construct? | nature |
+|------|----------|-------|-------|-----------|--------|
+| airbnb005 | 1 | 1 | 0 | off (NPS task) | coin-flip; gate untouched |
+| f1003 | 1 | 0 | 1 | off | coin-flip |
+| f1010-medium | 1 | 0 | 1 | off | coin-flip |
+| f1011 | 1 | 1 | 0 | off | program-wide coin-flip |
+| quickbooks003 | 1 | 0 | 1 | h0045 family | coin-flip — but the guard's OWN family cell PASSED in h0052 |
+
+Critically: every cell h0051 and h0052 share a VERDICT on that is touched by any lever has the
+IDENTICAL committed artifact — f1006/f1006-hard = max(points) on both models; airbnb009 = dates_cte
+removal; airbnb008 = agg.yml (mom_agg byte-intact); qb002/qb004 = `using_department` removal. The
+5 differing cells are ALL off-construct (or, for quickbooks003, the guard's own family passing
+where h0051 lost it — the opposite of interference). So adding h0045's feature-boundary block:
+- added **zero** new flips on its own targets (qb002/qb004 already pass in both),
+- added **zero** new interference (no shared lever-touched cell diverged),
+- and the net +1 of h0052 over h0051 is a coin-flip wash (recovered f1003/f1010-medium/qb003,
+  lost airbnb005/f1011), NOT a guard effect.
+
+**The no-harm feature-boundary guard is FREE under three-lever composition — confirmed on a 2nd
+draw.** This is the A/B verdict the hypothesis set out to test.
+
+**Why net +0 despite a real +3 (the core finding).** This is now the SECOND independent draw of the
+identical verified +3 composition (h0051 was the first). Both drew the +3 construct flips and both
+failed to clear the lucky-32 @baseline, because each draw independently loses 3–4 off-construct
+coin-flip cells. @baseline h0043 happens to hold all of airbnb005/asana003/f1011/f1003/
+f1010-medium/qb003 simultaneously (32/48) — a favorable single-trial draw on those volatile cells.
+At trials:1, the construct +3 signal sits entirely inside the ±3-cell noise band (CI [−0.10, +0.10]),
+so it cannot move the aggregate above the baseline's lucky draw. The lever works; the measurement
+floor swallows it. Consistent with the oracle-program-concluded memory: 75% needs a benchmark-design
+change (more trials / variance reduction), not another lever.
+
+**Prevention + next move (Q5).** Gains are scoping-clean and need no new guardrail — the double-gate
+already prevents the h0046-style bleed (proven again: 0 false fires on airbnb008/airbnb005). To keep
+the construct gains visible above the noise, the only lever is trials>1 (variance reduction), which
+the standing captain decision (single-trial, judge-by-artifact) currently declines on budget grounds.
+The +3 is real and banked-by-artifact; whether it ever banks-by-reward depends on a baseline re-draw,
+not on the lever. Recommended next step is a CAPTAIN decision, not a reflexive new file: the flip
+portfolio is exhausted (no 6th target), the composition is twice-verified clean, and this family has
+reached its measurement ceiling. Do NOT re-open the dead oracle/flip families.
+
+**Transcript-capture caveat (infra, not experiment):** within each run-dir, `agent/sessions/` is a
+shared copy of one cell's session pool; the authoritative per-cell record is cell-root
+`agent/codex.txt`. All decisive reads above were taken from per-cell `codex.txt` + cross-checked
+against per-cell `verifier/test-stdout.txt`.
 
 ## Failure Review
 
@@ -225,3 +324,22 @@ byte-consistent), holds held (airbnb008 mom_agg byte-intact, qb002/qb004 narrow 
 clean. The A/B vs h0051 is decisive: adding h0045's guard changed zero cells, zero verdicts, zero
 artifacts — the no-harm guard is FREE under composition. Route to full. One infra caveat: per-cell
 artifact lives in cell-root codex.txt (sessions/ is a shared copy) — no bearing on verdict.
+
+## Stage Report: analyze
+
+- DONE: Strict audit run-dir dcb1a62ef4066133 clean + captured>0 every cell BEFORE score; rk score --format json; paired delta vs @baseline h0043
+  Audit strict: 48 clean / 0 tainted / 0 coverage_missing; captured>0 all 48 cells. Score 0.6667 (32/48), Wilson [0.5254,0.7832], above paper 0.1875. rk runs diff TypeError'd (query_id null) → paired delta from per_trial_outcomes slug-paired + 10k bootstrap: net +0 vs baseline, CI [−0.1042,+0.1042]. In ## Run result.
+- DONE: PRE-AUDIT confirm +3 ALL LANDED by committed artifact
+  f1006 + f1006-hard = sum→max(points) on BOTH scored models (920/920, 3190/3190, max_abs_diff 0); airbnb009 = mom_agg_reviews.sql dates_cte predicate removal (anti-join 722-in-span→0); airbnb008 = agg.yml only, mom_agg byte-intact. All 4/4 (existence+equality) or 1/1 PASS.
+- DONE: CRITICAL CHECK airbnb005 — did the coverage gate fire (mis-fire) or fail unrelated?
+  GATE CLEAN, no mis-fire. Cell BfmqfGY edited ONLY daily/listing_agg_nps_reviews.sql; zero mention of mom_agg_reviews/dates_cte/coverage in codex.txt; the 2 hidden *_equality_with_tolerance tests fail on the agent's own wrong NPS aggregates (self-anchored false-green). Pure variance; mom_agg byte-untouched.
+- DONE: CLASSIFY asana003 + f1011 as known program-wide coin-flips, off-construct, lever-silent, variance
+  asana003 = flip-flop (lost in BOTH h0051 and h0052); f1011 = fails 4/5 prior draws, passed in h0051+baseline. Both off-construct, no lever artifact touched. In ## Run result ledger.
+- DONE: A/B vs h0051 — 5 cells differ (airbnb005, f1003, f1010-medium, f1011, quickbooks003), all coin-flips; guard added zero flips + zero NEW interference
+  h0052 full dcb1a62ef4066133 vs h0051 full 48aa50e556d16a80: exactly the 5 predicted cells differ, all off-construct coin-flips; every shared lever-touched cell has IDENTICAL artifact. Guard FREE on 2nd draw. quickbooks003 (h0045 family) PASSED in h0052. In ## Behavioral analysis.
+- DONE: Answer all §analyze questions; ## Run result + ## Behavioral analysis; lead with +3 artifact-real AGAIN net +0 (tie); state airbnb005 verdict
+  All 6 required questions answered. Headline leads ## Run result. airbnb005 = gate clean. Verdict/archive NOT set (FO concludes).
+
+### Summary
+
+h0052 full run dcb1a62ef4066133 = 32/48 (0.6667), strict-audit clean, net +0 vs @baseline h0043. The verified +3 composition (f1006 + f1006-hard max-points; airbnb009 scoped dates_cte removal) landed AGAIN at the committed-artifact level — the 2nd independent draw of the same +3 (== h0051) — but ties the lucky-32 baseline because each draw loses ~3 off-construct coin-flips inside the trials:1 noise band (CI straddles zero). The critical airbnb005 check resolved CLEAN: the scoped coverage gate did NOT mis-fire (it edited only its own NPS models, mom_agg byte-untouched; failed on self-anchored false-green NPS aggregates). The A/B vs h0051 confirms h0045's feature-boundary guard is FREE under three-lever composition on a 2nd draw — exactly the 5 predicted off-construct cells differ, zero added flips, zero new interference. Verdict/archive left to the FO.
