@@ -1,0 +1,59 @@
+version: 1
+experiment: ade-bench-h0056-compose-six-levers-on-h0052
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/h0056-compose-six-levers-on-h0052
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+  override_timeout_sec: 2400
+  max_timeout_sec: 2400
+  reasoning_effort: xhigh # held constant across all hypotheses
+  tools_allowed: []
+  tools_denied: []
+benchmark:
+  kind: harbor
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+  # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
+  # baseline / first run: skip smoke, run full directly.
+  tasks: # h0056 SIX-LEVER COMPOSITION smoke = union of the three sibling smoke panels (h0053 + h0054 + h0055), deduped. Fork parent = @baseline h0052 (runs/.../dcb1a62ef4066133); the merged README adds three precondition-GATED levers verbatim. THREE FLIP/PIN TARGETS — airbnb005 (h0053 per-key inner-join: @baseline draw committed LEFT-JOIN keep-all 17,499 rows incl ~3,256 NULL-NPS -> FAIL; want INNER-JOIN-from-fact 14,243 rows 0 NULL -> FAIL->PASS), f1010-medium (h0054 lap-time: want the EXCLUDE-pit-laps artifact on every repeat, NOT subtract-duration; pins a ~73% coin-flip cell), ana-eng003 (h0055 preserve-columns: @baseline narrows dim_customer to 5 of 18 upstream cols -> AUTO_dim_customer_equality "has less columns" FAIL; want all-18-column artifact -> FAIL->PASS). BOTH COLLISION-CANARY PAIRS must hold: airbnb009 (h0050<->h0053 — completeness IS requested, coverage lever keeps all days, inner-join rule must NOT fire) AND quickbooks002+quickbooks003 (h0045<->h0055 — feature removal, columns SHOULD drop, preserve-columns rule must NOT over-fire). MUST-HOLD h0052 banked flips f1006/f1006-hard (max-points). Per-family perturbable passers: airbnb001/004/006/008 (h0053 panel), f1005/f1007 (h0054 panel), asana002, ana-eng001. ade-bench- prefixed (bare slugs rejected by rk run). The three targets each also run as >=2 seed-perturbed repeats (AC-5) via separate frozen draws the FO spins after the gate; judge by committed-artifact shape (AC-3/AC-4) not single reward. NO intercom canary: intercom has no @baseline passer.
+    - ade-bench-airbnb005     # FLIP TARGET 1 (h0053 per-key inner-join) — @baseline draw committed LEFT-JOIN keep-all -> FAIL; want INNER-JOIN-from-fact artifact -> FAIL->PASS; @baseline 0.0 FAIL; ~89% cell so judge by committed join-shape artifact across >=2 repeats
+    - ade-bench-f1010-medium  # FLIP/PIN TARGET 2 (h0054 lap-time exclude-pit-laps) — want the EXCLUDE artifact on every repeat (NOT subtract-duration); @baseline h0052 draw 1.0 PASS, ~73% cell — judge by committed artifact shape
+    - ade-bench-ana-eng003    # FLIP TARGET 3 (h0055 preserve-columns) — narrows dim_customer to 5 of 18 upstream cols -> want FAIL->PASS; @baseline ~0.94 (near-stable passer, low headroom)
+    - ade-bench-airbnb009     # CRITICAL collision canary (h0050<->h0053) — completeness IS requested; coverage lever must keep all days AND inner-join rule must NOT fire; also an h0052 banked flip; @baseline 1.0; must stay PASS (gate-conflict tripwire)
+    - ade-bench-quickbooks002 # CRITICAL collision canary (h0045<->h0055) — feature removal: columns SHOULD drop; preserve-columns rule must NOT over-fire; @baseline 1.0; must stay PASS
+    - ade-bench-quickbooks003 # CRITICAL collision canary (h0045<->h0055) — feature-removal-shaped sibling; preserve-columns rule must NOT over-fire; @baseline 1.0; must stay PASS
+    - ade-bench-f1006         # MUST-HOLD h0052 banked flip (max-points construct) — the three new levers must NOT disturb it; @baseline 1.0; must stay PASS
+    - ade-bench-f1006-hard    # MUST-HOLD h0052 banked flip (max-points construct, harder) — must NOT be disturbed; @baseline 1.0; must stay PASS
+    - ade-bench-f1005         # PERTURBABLE f1 canary — standings/points-shaped f1 sibling; lap-time rule must not bleed onto other f1 constructs; @baseline 1.0; must stay PASS
+    - ade-bench-f1007         # PERTURBABLE f1 canary (stable passer) — cross-family/f1 tripwire; @baseline 1.0; must stay PASS
+    - ade-bench-airbnb008     # PERTURBABLE same-family canary — the cell h0046 bled onto; the aggregate rule must not re-introduce same-family collateral; @baseline 1.0; must stay PASS
+    - ade-bench-airbnb001     # PERTURBABLE same-family canary (airbnb) — regression tripwire; @baseline 1.0; must stay PASS
+    - ade-bench-airbnb004     # PERTURBABLE same-family canary (airbnb, coverage-shaped sibling) — inner-join rule must NOT fire; @baseline 1.0; must stay PASS
+    - ade-bench-airbnb006     # PERTURBABLE same-family canary (airbnb, coverage-shaped sibling) — inner-join rule must NOT fire; @baseline 1.0; must stay PASS
+    - ade-bench-asana002      # cross-family canary (asana family) — regression tripwire; @baseline 1.0; must stay PASS
+    - ade-bench-ana-eng001    # cross-family canary (ana-eng family) — regression tripwire; @baseline 1.0; must stay PASS
+                              # NO intercom canary: intercom has no @baseline passer (intercom001/002/003 all FAIL), so that family cannot supply one.
+trials: 1 # one trial per task — applies to BOTH smoke and full
+concurrency:
+  trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
+            # task identity on the harbor path), so concurrent stage commits race on
+            # `git HEAD` ("cannot lock ref 'HEAD'"). 1 = no concurrent commits.
+observers:
+  - kind: jsonl
+    path: events.jsonl
+  - kind: stdout
+experiment_meta:
+  # max_budget_usd deferred — first loops run on a flat OpenAI subscription, not metered API.
+  paper_baseline:
+    name: pass_rate # ade-bench is scored by simple pass rate = #pass / #total
+    value: 0.1875   # 9/48 — initial spacedock baseline. rk score compares its stratified_pass_at_1,
+                    # which for ade-bench's single Harbor dataset (one stratum) equals #pass/#total.
+provenance:
+  pin_model_version: false
+  pin_image_digest: false
