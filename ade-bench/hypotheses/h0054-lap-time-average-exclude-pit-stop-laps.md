@@ -1,7 +1,7 @@
 ---
 id: h0054
 title: Lap-time average — when accounting for pit stops, EXCLUDE pit-stop laps before averaging; do not keep them and subtract pit-stop duration
-status: propose
+status: smoke
 kind: hypothesis
 source: Captain request 2026-06-13 from _proposal/leverable-flipped-tasks-research-2026-06-13.md (CARD 2, f1010-medium). Method artifact-confirmed 2026-06-13 (h0043 PASS = exclude pit laps; h0037 FAIL = subtract pit duration, Got 1092). Forks the current @baseline h0052 (runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133).
 started: 2026-06-13T00:00:00Z
