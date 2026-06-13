@@ -136,3 +136,13 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ### Summary
 Forked the live @baseline (h0052 3-lever composition) into h0054 and added exactly one precondition-gated Implementation rule: when averaging lap times "accounting for" pit stops, EXCLUDE pit-stop laps before the aggregate (do NOT keep them and subtract pit duration). README diff is a single byte-clean hunk with all 4 prior levers and the leak-guard intact (AC-1). FULL and smoke specs differ from baseline only in the allowed fields; both frozen. Notable: in the h0052 single @baseline draw f1010-medium already PASSED (it is a ~73% cell), so the smoke GO must rest on the EXCLUDE artifact landing across ≥2 seed-perturbed repeats (AC-3/AC-5), not on a single reward flip — flagged in the gate table below and by the gatekeeper. Gatekeeper recommends APPROVE with no FAILs.
+
+## Stage Report: smoke (Phase 1 — launch)
+
+- DONE: Phase 1 NOW (launch only, do NOT wait): export RAZORBACK_SPACEDOCK_PLUGIN_DIR; launch DETACHED via drivers/rk-run-detached.sh; return the handle, signal done immediately, FO owns the wait.
+  Launched h0054-smoke (pid 2564597) on specs/h0054-lap-time-average-exclude-pit-stop-laps.smoke.frozen.yaml; handle: runs/.rk-handles/h0054-smoke-20260613-144543/ (pid · log · done = rc/end/rundir; ntfy adebench-rk-381c976fe07465bf).
+- SKIPPED: Phase 2 (strict audit + score + deep-dive + GO/NO-GO).
+  Deferred by design — FO re-engages on `done` rc=0; Phase 1 is launch-only.
+
+### Summary
+Phase 1 launch complete. The smoke run is detached and running; the FO scans runs/.rk-handles/h0054-smoke-20260613-144543/ for the `done` file and re-dispatches for Phase 2 (audit/score/deep-dive). Nothing else is running — this is the only run.
