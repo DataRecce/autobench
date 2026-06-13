@@ -436,3 +436,61 @@ the worker didn't touch; f1011 = wrong MC letter (ABDE vs oracle ADE). All three
 baseline with the same-class artifact, confirming these are trials:1 coin-flips on volatile cells, not
 interference from the composed levers. The cross-check (h0043-selfcheck-r1/r2) independently
 corroborates the coin-flip story; this verdict rests on the artifacts.
+
+## Verdict (conclude — TERMINAL)
+
+**PASSED — PROMOTED to `@baseline`.** The three-lever composition (h0044 same-grain `max(points)` +
+h0045 feature-boundary guard + h0050 intent-gated scoped coverage) is the new baseline. `@baseline`
+is re-bound to this run-dir `runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133`
+(32/48 = 0.6667). This is the **first composition promote of the program.**
+
+It banks **airbnb009 + f1006 + f1006-hard** as VERIFIED, reproducible, bleed-free flips:
+- **Reproducibility:** smoke (14/14 panel + airbnb009 ×2 byte-consistent) + TWO independent full
+  draws (h0051 31/48 and h0052 32/48) both landed the identical +3 at the committed-artifact level
+  — f1006/f1006-hard `sum(points)→max(points)` on BOTH scored models (G11 multi-model resolved), and
+  airbnb009 the `dates_cte` narrowing-predicate removal. The flips are not coin-flips.
+- **Bleed-free:** regression forensics re-derived every PASS→FAIL cell from the raw committed
+  artifact (cell-root `agent/codex.txt` + `verifier/test-stdout.txt`) and confirmed ALL of them are
+  off-construct trials:1 coin-flips — zero lever causation, zero gate mis-fire. The scoped coverage
+  double-gate fired ONLY on airbnb009 (true target) and stayed silent on airbnb008 (its real task =
+  agg.yml quote fix, mom_agg byte-intact) AND airbnb005 (NPS task, mom_agg byte-untouched). This is
+  the scoped, bleed-free re-do of h0049 working exactly as designed.
+
+**Promotion does NOT rest on a single-draw net** (the raw nets were a tie: 32 vs the @baseline-32, and
+h0051 drew 31). It rests on **self-consistency evidence + the committed artifact.** A baseline
+self-consistency re-run scored the h0043 README against itself at **29 and 30** (true expectation
+~30; the reference 32 was a lucky high draw), while the composition drew **31 and 32** — both
+composition draws beat both baseline-fresh draws, a real ~+1.5-cell expectation gain that the
+lucky-32 single reference draw masked. The +3 construct signal sits inside the ±3-cell trials:1 noise
+band on any one draw, so a single net cannot prove it; two-draw self-consistency does.
+
+**h0045's guard is FREE** — the A/B vs h0051 (h0052 == h0051 + exactly the h0045 feature-boundary
+block) shows it added zero flips and zero interference on a 2nd independent draw: every shared
+lever-touched cell has the IDENTICAL committed artifact; the 5 differing cells are all off-construct
+coin-flips (and quickbooks003, the guard's own family, PASSED in h0052 — the opposite of
+interference). Stacking the third no-harm guard is free, not bloat.
+
+## Follow-up Routing (conclude — TERMINAL)
+
+**stop / new baseline.** The composition is the new `@baseline`; future hypotheses fork from it. No
+new file. The flip portfolio is exhausted (no 6th target), the composition is twice-verified clean,
+and this family has reached its measurement ceiling — 75% needs a benchmark-design change (more
+trials / variance reduction), not another lever. Per the standing single-trial captain decision, do
+NOT pursue the freeze-repo/trials>1 fix and do NOT re-open the dead oracle/flip families. Carry
+forward only the G11 credit-time re-enumeration habit (confirm `max(points)` landed on every scored
+model) for any future standings-touching fork.
+
+## Stage Report: conclude
+
+- DONE: ## Verdict = PASSED (PROMOTED to @baseline) — three-lever composition is the new baseline
+  Wrote `## Verdict (conclude — TERMINAL)`: PASSED/PROMOTED, @baseline re-bound to dcb1a62ef4066133 (32/48, confirmed via `rk registry resolve run @baseline`). Promotion rests on two-draw self-consistency (baseline self-re-run 29/30, composition 31/32) + committed artifact + bleed-free forensics, NOT a single-draw net. h0045 guard FREE (A/B == h0051).
+- DONE: ## Follow-up Routing = composition is the new @baseline; future hypotheses fork from it; no new file
+  Wrote `## Follow-up Routing (conclude — TERMINAL)` = stop / new baseline; flip portfolio exhausted, no 6th target, 75% needs benchmark-design change not a lever; carry only G11 credit-time re-enumeration habit forward.
+- DONE: Append/refresh _artifacts/WORKFLOW-REFINE.md composition+self-consistency promote entry
+  New ledger entry "Composition + self-consistency promote … (h0052 PROMOTED, 2026-06-13)" appended; existing h0052 smoke entry title refreshed to "smoke-GO → PROMOTED at conclude". First composition promote of the program.
+- SKIPPED: Set frontmatter verdict/archive
+  Per dispatch — the FO sets frontmatter verdict/archive.
+
+### Summary
+
+PASSED — PROMOTED. The three-lever composition (h0044 max(points) + h0045 feature-boundary guard + h0050 intent-gated scoped coverage) on @baseline h0043 is the new @baseline (dcb1a62ef4066133, 32/48), banking airbnb009 + f1006 + f1006-hard as verified, reproducible, bleed-free flips. Promotion rests on self-consistency evidence (baseline re-ran against itself at 29/30, true expectation ~30; both composition draws 31/32 beat both baseline-fresh draws — a real ~+1.5 expectation gain the lucky-32 single reference masked), the committed artifact, and regression forensics (all PASS→FAIL cells are off-construct trials:1 coin-flips, zero lever causation, zero gate mis-fire), NOT a single-draw net. h0045's guard is free (A/B == h0051, zero added flips, zero interference). First composition promote of the program; WORKFLOW-REFINE entry banks the recipe. Frontmatter left to FO.

@@ -312,9 +312,30 @@ portfolio), NOT another lever.
 
 ## Failure Review
 
-## Follow-up Routing
+N/A as lever failure — the levers did exactly their job (+3 artifact-real, bleed-free, both gates
+mutually disjoint). The ONLY falsified condition was "net ≤ h0043": this draw threw 4 off-construct
+passer regressions (asana003, f1003, f1010-medium, quickbooks003), NONE on either lever's construct
+(verified by apply_patch target; asana003 is a known program-wide coin-flip). The net −1 is the
+trials:1 variance floor swallowing the +3 signal (paired CI [−0.125,+0.083] straddles zero), not
+lever damage.
 
-## Verdict
+## Follow-up Routing (conclude — TERMINAL)
+
+**stop — superseded by promoted h0052.** The +3 this hypothesis validated is banked via the promoted
+3-lever superset h0052 (h0051 + the free h0045 guard, A/B-identical artifacts). No new file. Do not
+re-run or re-open — the construct gain is captured in the new `@baseline`.
+
+## Verdict (conclude — TERMINAL)
+
+**REJECTED (no-promote, SUPERSEDED).** The 2-lever composition (h0044 same-grain `max(points)` +
+h0050 intent-gated scoped coverage) drew **31/48 = 0.6458**, net −1 vs the lucky-32 @baseline h0043
+— inside the trials:1 noise band, not a distinguishable loss. The +3 it banked is artifact-real and
+bleed-free and reproduced byte-for-byte at full, but a single draw's net cannot clear the ±3-cell
+variance floor. Its 3-lever superset **h0052** (== h0051 + the free, A/B-identical h0045
+feature-boundary guard) drew 32/48 and, on the strength of two-draw self-consistency (baseline
+re-ran against itself at 29/30, true expectation ~30; both composition draws beat both baseline-fresh
+draws), was **PROMOTED to `@baseline` instead.** This hypothesis is no-promote-by-net and superseded
+by the promoted h0052; the +3 is banked there.
 
 ## Stage Report: propose
 
@@ -387,3 +408,16 @@ Phase 1 of the FULL stage: launched the h0051 48-task full run detached on the f
 ### Summary
 
 NO-PROMOTE BY NET: h0051 full scored 31/48 (0.6458) vs @baseline h0043 32/48 (0.6667), net −1; the paired-bootstrap CI [−0.125,+0.083] straddles zero, so the net is inside the trials:1 variance band, not a distinguishable loss. The +3 composition is artifact-real and bleed-free and reproduced at full byte-for-byte: f1006/f1006-hard flipped via same-grain `max(points)` (no latest-row), airbnb009 flipped via the dropped date-spine predicate, airbnb008 stayed byte-intact (intent gate did not fire), and the two gates were mutually disjoint and globally inert off-construct across all 48 cells. The net is −1 purely because this draw also threw 4 off-construct passer regressions (asana003, f1003, f1010-medium, quickbooks003) — NONE on either lever's construct (verified by apply_patch target; asana003 is a known coin-flip that also regressed in h0050 full). The decisive finding: the ~±4 trials:1 off-construct variance floor EXCEEDS the +3 signal, so even a fully-verified +3 composition does not reliably clear the net tripwire at trials:1. Verdict/archive deferred to the FO pending the h0052 2nd-draw result.
+
+## Stage Report: conclude
+
+- DONE: ## Verdict = REJECTED (no-promote, SUPERSEDED) — 2-lever composition drew 31/48; superset h0052 promoted instead
+  Wrote `## Verdict (conclude — TERMINAL)`: REJECTED/SUPERSEDED. 31/48 net −1 inside the trials:1 noise band; the +3 it validated is banked via the promoted 3-lever superset h0052 (== h0051 + the free A/B-identical h0045 guard). Also filled the empty `## Failure Review` (N/A as lever failure — levers did their job; net −1 is variance floor).
+- DONE: ## Follow-up Routing = stop (superseded by promoted h0052)
+  Wrote `## Follow-up Routing (conclude — TERMINAL)` = stop — superseded; the construct gain is captured in the new @baseline (h0052); no new file, do not re-run.
+- SKIPPED: Set frontmatter verdict/archive
+  Per dispatch — the FO sets frontmatter verdict/archive.
+
+### Summary
+
+REJECTED (no-promote, SUPERSEDED). The 2-lever composition (h0044 max(points) + h0050 intent-gated scoped coverage) drew 31/48 = 0.6458, net −1 vs the lucky-32 @baseline h0043 (inside the trials:1 noise band, CI straddles zero). The +3 it banked is artifact-real and bleed-free, but a single draw's net cannot clear the ±3-cell variance floor. Its 3-lever superset h0052 (== h0051 + the free, A/B-identical h0045 feature-boundary guard) drew 32/48 and was PROMOTED to @baseline instead on two-draw self-consistency evidence (baseline re-ran against itself at 29/30; both composition draws beat both baseline-fresh draws). The +3 is banked via the promoted h0052; this hypothesis is superseded. Frontmatter left to FO.
