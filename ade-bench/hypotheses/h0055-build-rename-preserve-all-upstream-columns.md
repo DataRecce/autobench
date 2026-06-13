@@ -190,3 +190,132 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ### Summary
 Authored the h0055 propose variant: forked @baseline h0052 and added a single gated BUILD/RENAME PRESERVE-THE-COLUMN-SET Implementation rule (the inverse of the h0045 feature-boundary DROP rule), gated to fire only on build/create/rename tasks that neither remove a feature nor enumerate a column subset. Both specs built (FULL = 2-field diff, smoke = +benchmark.tasks only) and frozen; gatekeeper APPROVED. KEY TENSION for the captain: at the @baseline draw the flip target ana-eng003 is already PASS=1.0 (not FAIL) — consistent with AC-5's ~94% near-stable-passer framing; the GO bar is the full-18-column committed ARTIFACT + clean audit per repeat plus the collision-free hold on the quickbooks002/003 inverse canaries, NOT a 0→1 pass-rate flip. Did NOT launch rk run; FO drives smoke after the gate.
+
+## Smoke result
+
+**Run-dir:** `runs/ade-bench-h0055-build-rename-preserve-all-upstream-columns/3af2a30b196e24e2`
+(landed rc=0, 2026-06-13 17:22). **Baseline ref:** `@baseline` = h0052
+`runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133`.
+
+- **Strict audit CLEAN:** `tainted: 0`, `coverage_missing: 0`, `clean: 10/10`; `captured: 1` every cell.
+- **Score:** stratified mean **0.9 (9/10 PASS)**; one FAIL = `quickbooks003` (reward 0.0).
+
+| Task | @baseline | h0055 smoke | Δ | Role / read |
+|---|---|---|---|---|
+| ana-eng003 | 1.0 | **1.0** | hold | 🎯 TARGET — committed `dim_customer.sql` carries ALL 18 columns (id→customer_id rename + PK only). AC-3 met. |
+| quickbooks002 | 1.0 | **1.0** | hold | inverse canary — feature-removal; worker correctly DROPPED department CTE/`department_name`/join + yml/docs. Gate respected. |
+| quickbooks003 | 1.0 | **0.0** | **FAIL** | inverse canary — SAME task text as qb002; worker kept department content → "has LESS columns than solution" ×3. VARIANCE (see Failure Review). |
+| airbnb009 | 1.0 | 1.0 | hold | h0052 banked coverage flip. |
+| f1006 | 1.0 | 1.0 | hold | h0052 banked max-points flip. |
+| f1006-hard | 1.0 | 1.0 | hold | h0052 banked max-points-hard flip. |
+| ana-eng001 | 1.0 | 1.0 | hold | same-family canary. |
+| airbnb001 | 1.0 | 1.0 | hold | cross-family (airbnb). |
+| asana002 | 1.0 | 1.0 | hold | cross-family (asana). |
+| f1007 | 1.0 | 1.0 | hold | cross-family (f1). |
+
+## Behavioral analysis
+
+**DECISIVE qb003 READ — VARIANCE, not COLLISION (GO).**
+
+qb003 (and qb002) task instruction is identical: *"We are no longer using departments in our
+billing, so we should remove the `using_department` variable and all references to it. Do not
+remove it in the Fivetran source package."* This is a FEATURE-REMOVAL task — the oracle DROPS
+the department columns. The gate excludes the preserve-columns rule here (clause (a)
+remove/disable a feature).
+
+Three independent lines of evidence put this on the VARIANCE branch (gate (b) of the dispatch),
+NOT the COLLISION branch (gate (a)):
+
+1. **The preserve-columns rule never fired.** The qb003 worker's own messages
+   (`agent/sessions/.../rollout-…16-27-26….jsonl`) contain ZERO of the rule's distinctive
+   tokens (build / rename / upstream / "preserve every" / "column set" / "relevant subset").
+   It explicitly framed the task as feature removal and chose *"the narrowest change… drop the
+   `using_department` config entry and its Jinja guards, which preserves the current compiled
+   SQL shape… unwrap the guarded department CTE/column/join sections."* That is a
+   feature-boundary MISREAD (kept the toggle's content while removing the toggle), a pre-existing
+   solver failure mode — not an invocation of the build/rename preserve-columns lever.
+
+2. **The committed artifact is an OVER-KEEP, the OPPOSITE of a preserve-rule over-fire.** The
+   qb003 `apply_patch` only stripped the `{% if var('using_department', True) %}` wrappers and
+   LEFT the `departments` CTE, `department_name` column, and `left join departments` in all three
+   models; it did NOT touch `quickbooks.yml`/`docs.md`. The verifier returned "has LESS columns
+   than solution" on `int_quickbooks__expenses_union`, `int_quickbooks__sales_union`,
+   `quickbooks__ap_ar_enhanced` — the oracle DROPS department + its docs and the unwrapped/kept
+   shape diverged from the solution's column set. A genuine preserve-rule collision would have
+   force-preserved the removed-feature columns *by citing the rule*; here the rule is absent and
+   the divergence is the solver's own department-toggle mishandling.
+
+3. **The asymmetry tie-breaker resolves to variance.** qb002 — SAME task text, SAME lever, same
+   run — HELD PASS: its worker FULLY DROPPED the department CTE / `department_name` / join AND
+   updated `quickbooks.yml` + `docs.md`, byte-matching the @baseline winner's patch. If h0055
+   systematically collided on feature-removal tasks, qb002 would have failed identically. It did
+   not. One of two identical-instruction cells dropping correctly and the other over-keeping is
+   the gpt-5.5 coin-flip on a feature-removal MISREAD — exactly the variance the standing
+   single-trial decision anticipates — not a lever-induced collision.
+
+**Target (ana-eng003) — flip mechanism reached the artifact (AC-3 met).** Committed
+`models/dim_customer.sql`: `select id as customer_id, company, last_name, first_name,
+email_address, job_title, business_phone, home_phone, mobile_phone, fax_number, address, city,
+state_province, zip_postal_code, country_region, web_page, notes, attachments` (+ `schema.yml`
+contract with `customer_id` PK) — ALL 18 upstream columns, only the named rename/key applied. No
+narrowing to a "relevant" subset. Verifier PASS, clean audit. The over-narrowing construct is
+closed on the committed artifact.
+
+**Gate-collision verdict: NO COLLISION.** The build/rename preserve-columns rule and the h0045
+feature-boundary DROP rule did not interfere: qb002 (feature removal) dropped correctly with the
+rule present; ana-eng003 (build/rename) preserved correctly. The qb003 FAIL is unrelated
+feature-removal variance.
+
+**Workflow-refinement note (auto-eval):** the lever is a rule-tweak INSIDE the existing
+Implementation stage (not a new/removed/reordered stage or a protocol-family), so the structural
+WORKFLOW-REFINE.md entry is not triggered; the in-stage instruction-lever learning is recorded
+here and routes to the instruction-lever taxonomy.
+
+## Failure Review (quickbooks003 canary FAIL — artifact-proven variance)
+
+Primary type: **variance-unclear** (resolved to non-lever feature-removal variance via the
+qb002 same-task contrast; NOT `canary-bleed`).
+
+1. **Original hypothesized fork.** Build/rename preserve-columns rule fires only on build/create/
+   rename tasks lacking a feature-removal or enumerated-subset precondition; on feature-removal
+   tasks the h0045 feature-boundary DROP rule applies (gate clause (a)).
+2. **What the committed artifact revealed.** qb003 worker treated the feature-removal task as
+   "remove the toggle, keep its content" — unwrapped the `{% if using_department %}` guards but
+   retained `department_name`/CTE/join and skipped the yml/docs drop → "has LESS columns than
+   solution" ×3. The preserve-columns rule's tokens are absent from its reasoning.
+3. **Did the README rule fire, and where is the artifact evidence?** NO. Distinctive
+   preserve-columns tokens absent from the qb003 worker session; the over-KEEP shape is the
+   inverse of a preserve-rule over-fire; and qb002 (identical task) dropped correctly WITH the
+   rule present. Evidence: qb003 `apply_patch` (keeps department content) vs qb002 `apply_patch`
+   (drops it) vs @baseline n7jCL2x `apply_patch` (drops it).
+4. **New fork / mechanism to test next.** Pre-existing feature-removal MISREAD: solvers
+   occasionally strip the toggle but keep the toggled content on `using_*` var-removal tasks.
+   This is an h0045-family hardening candidate (feature-boundary rule could add an explicit
+   "removing a `using_*` variable means DROP its guarded outputs + their yml/docs, not just
+   unwrap the guard"), independent of h0055's preserve-columns lever.
+5. **Next step:** `file` the feature-removal-misread observation against the h0045 family;
+   h0055 itself is GO (target artifact + collision-free gate proven). Do NOT route h0055 back to
+   hypothesis on this — the FAIL is artifact-proven non-lever variance.
+
+## Stage Report: smoke
+
+- DONE: Strict audit clean (tainted 0 / coverage_missing 0) + captured>0 every cell BEFORE score; rk score.
+  `rk audit --policy strict`: clean 10/10, tainted 0, coverage_missing 0; captured=1 all 10 cells; `rk score`: stratified mean 0.9 (9/10 PASS).
+- DONE: THE DECISIVE qb003 READ (GO/NO-GO) — classify COLLISION vs VARIANCE from committed artifact + codex.txt.
+  VARIANCE (GO). Preserve-columns rule did NOT fire on qb003 (zero distinctive tokens in worker session); over-KEEP shape is the inverse of a preserve over-fire; qb002 (identical task) DROPPED correctly with the rule present. qb003 FAIL = pre-existing feature-removal MISREAD (unwrapped guards, kept department content), artifact-proven non-lever.
+- DONE: Confirm ana-eng003 committed dim_customer.sql carries ALL 18 columns; canaries hold.
+  ana-eng003 `dim_customer.sql` = 18 cols (id→customer_id rename + PK only); 8/8 other canaries PASS (airbnb009/f1006/f1006-hard/ana-eng001/airbnb001/asana002/f1007 + qb002 inverse-construct HOLD).
+- DONE: ## Smoke result + ## Behavioral analysis + ## Failure Review; lead with GO + qb003 verdict.
+  All three sections appended; verdict = GO, qb003 = VARIANCE (no h0045<->h0055 collision).
+
+### Summary
+GO. Target ana-eng003 committed the full 18-column `dim_customer.sql` (rename/key only, no
+narrowing) on a clean audit — AC-3 met, over-narrowing construct closed. The single canary FAIL
+(quickbooks003, 0.0) is artifact-proven VARIANCE, NOT an h0045<->h0055 collision: the
+preserve-columns rule never fired (absent from the worker's reasoning), the worker's over-KEEP of
+department content is the inverse of a preserve over-fire, and qb002 — the SAME feature-removal
+task text with the rule present — DROPPED the department columns correctly and HELD PASS. qb003 is
+a pre-existing feature-removal MISREAD (stripped the `using_department` toggle but kept its guarded
+content), filed as an h0045-family hardening candidate. The gate is collision-free: build/rename
+preserves (ana-eng003), feature-removal drops (qb002). GO bar (full-column artifact + clean audit +
+collision-free quickbooks hold) met.
