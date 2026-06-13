@@ -343,3 +343,96 @@ artifact lives in cell-root codex.txt (sessions/ is a shared copy) — no bearin
 ### Summary
 
 h0052 full run dcb1a62ef4066133 = 32/48 (0.6667), strict-audit clean, net +0 vs @baseline h0043. The verified +3 composition (f1006 + f1006-hard max-points; airbnb009 scoped dates_cte removal) landed AGAIN at the committed-artifact level — the 2nd independent draw of the same +3 (== h0051) — but ties the lucky-32 baseline because each draw loses ~3 off-construct coin-flips inside the trials:1 noise band (CI straddles zero). The critical airbnb005 check resolved CLEAN: the scoped coverage gate did NOT mis-fire (it edited only its own NPS models, mom_agg byte-untouched; failed on self-anchored false-green NPS aggregates). The A/B vs h0051 confirms h0045's feature-boundary guard is FREE under three-lever composition on a 2nd draw — exactly the 5 predicted off-construct cells differ, zero added flips, zero new interference. Verdict/archive left to the FO.
+
+## Regression Forensics (h0052, raw-log)
+
+Forensic re-derivation from raw cell artifacts (committed SQL via cell-root `agent/codex.txt`
+worker-completion payloads, `verifier/test-stdout.txt`, and head-to-head vs the h0043 baseline
+cell). Run dir `dcb1a62ef4066133`. Baseline = `runs/ade-bench-h0043-package-update-optional-resource-matrix/7390e6adf44ba5ea`.
+Not trusted: prior `## Run result` summary; all claims re-cited below.
+
+**Lever-construct token sweep (all three cells).** Greps of each cell-root `codex.txt` for
+`max(points)`, `sum(points)`, `using_*`, `mom_agg_reviews`, `dates_cte`, `coverage`, `missing-day`,
+`anti-join`, `feature-boundary`, `standings` returned ZERO lever hits in all three. The only
+`coverage` match is the string `AC coverage cross-check` from the first-officer SKILL.md boilerplate
+the FO reads at startup — unrelated to h0050's coverage lever. (The lever README text rides in the
+worker prompt, not the FO log; what matters is the worker's committed edit, examined per-cell below.)
+
+### airbnb005 — cell `ade-bench-airbnb005__BfmqfGY` (reward 0) — VERDICT: not-lever-caused
+
+- **Committed artifact** (worker payload, codex.txt item_17/item_19): ONLY
+  `/app/models/agg/daily_agg_nps_reviews.sql` and `/app/models/agg/listing_agg_nps_reviews.sql`.
+  Worker self-report: "Positive sentiment = promoter, negative = detractor, neutral counted in totals
+  only … max NPS diff `0`, review count mismatches `0`." No `mom_agg_reviews`, `dates_cte`,
+  anti-join, or coverage probe anywhere — `mom_agg_reviews.sql` byte-untouched.
+- **Lever precondition check (h0050 gate (a) intent):** the task instruction (codex.txt item_13
+  prompt) is "Create two NPS score tables for reviews using sentiment …" — a CREATE/derive task, NOT
+  a row/date/key COMPLETENESS ask. Gate (a) intent-check legitimately FAILS; the coverage gate cannot
+  fire. The other two levers (h0044 points / h0045 feature-var) also have no matching construct here.
+- **Verifier** (`test-stdout.txt` L89-104): `daily_agg_nps_reviews_equality_with_tolerance` PASS,
+  both `AUTO_*_existence` PASS, but `listing_agg_nps_reviews_equality_with_tolerance` **FAIL 2**
+  ("Got 2 results, configured to fail if != 0", L92/L99). Self-anchored false-green: the worker's own
+  "mismatches 0" derivation disagrees with the hidden oracle on 2 listing rows.
+- **Head-to-head vs baseline** (`ade-bench-airbnb005__veWdCj2`, reward 1, PASS 4/4): the baseline
+  worker edited the SAME two NPS models (11 mentions each, 0 mention of mom_agg/dates_cte) and got a
+  byte-correct listing aggregate. h0052 is a different, noisier solve of the identical NPS task — same
+  files, wrong listing values. The difference is solve quality on the cell's OWN task model, not a
+  lever intrusion.
+- **Verdict: not-lever-caused.** No lever construct in the committed edit; h0050 gate (a) legitimately
+  did not match (not a completeness ask); failure is on the cell's own `listing_agg_nps_reviews` model.
+  This is the highest-priority airbnb-family check and the scoped coverage gate is clean — no mis-fire.
+
+### asana003 — cell `ade-bench-asana003__yG9ybjW` (reward 0) — VERDICT: not-lever-caused
+
+- **Committed artifact** (worker payload, codex.txt item_14/item_16): worker edited 11
+  `dbt_packages/asana_source/models/stg_asana__*.sql` to read sources directly and deleted 11
+  `tmp/stg_asana__*_tmp.sql`. (FO's first `spawn_agent` call errored at L21 —
+  `Provide either message or items, but not both` — then RETRIED as a plain-message dispatch L22-24
+  which succeeded; the worker DID run.) This is exactly the package/tmp-model repair the task asks for
+  ("Fivetran is updating their Asana package … Remove all of the models in the tmp folder and have the
+  `stg_asana__[name].sql` models reference the source tables directly", codex.txt item_12 prompt).
+- **Lever precondition check:** none of the three levers' constructs match a package-staging-rewire
+  task — no points aggregate, no feature var, no completeness/coverage ask. No lever can fire.
+- **Verifier** (`test-stdout.txt` L93-99): root failure is model `asana__daily_metrics`
+  (`models/asana__daily_metrics.sql`) — `Conversion Error: invalid date field format: "None"` at
+  `date_diff('day', cast('None' as date) …`. This is a date-cast bug in a downstream model the worker
+  did NOT edit; it cascades to 6 `AUTO_*_equality` FAILs (L213-282). Task-intrinsic, not a lever edit.
+- **Head-to-head vs baseline** (`ade-bench-asana003__qFHtRKn`, reward 1, PASS 17/17): the baseline
+  worker edited the SAME `stg_asana__*` staging set and PASSED — so the task is solvable and the
+  `daily_metrics` None-date is reachable-or-avoidable depending on how the staging/source wiring
+  flows date columns. h0052 wired the rewire such that a null/None date reached the cast; the baseline
+  did not. A noisier solve of the same package-repair task, not a lever effect.
+- **Verdict: not-lever-caused.** Zero lever construct in the committed edit; no lever precondition
+  matches a package-repair task; failure is the cell's own `asana__daily_metrics` date-cast error.
+  Known program-wide flip-flop (lost in both h0051 and h0052).
+
+### f1011 — cell `ade-bench-f1011__3btSusN` (reward 0) — VERDICT: not-lever-caused
+
+- **Committed artifact** (worker payload item_18 + on-disk read item_47): `/app/models/stats/
+  analysis__answer.sql` = `select 'ABDE' as answer` (24 bytes). Worker reasoning: "supported problems
+  are A, B, D, E. Pit duplicate keys were `0`, so C was excluded; model groups by circuit/year, so F
+  was excluded." Pure F1 lap/pit reasoning — no points aggregate, no feature var, no coverage probe.
+- **Lever precondition check:** an oracle-only multiple-choice answer-selection task; none of the
+  three levers' constructs are present. No lever can fire.
+- **Verifier** (`test-stdout.txt` L45-65): `check_option_a/c/d/e/f` all PASS; only `check_option_b`
+  **FAIL 1** ("Got 1 result"). The oracle answer is ADE — including B (incomplete/unfinished laps) was
+  the worker's wrong judgment call.
+- **Head-to-head vs baseline** (`ade-bench-f1011__XktKy6d`, reward 1, PASS 6/6): baseline committed
+  `select 'ADE' as answer` — correct. The ONLY difference is the worker's opinion on option B; same
+  one-line model, different letter set. A coin-flip on a subjective MC option, not a lever.
+- **Verdict: not-lever-caused.** Zero lever construct; no precondition matches an MC-answer task;
+  failure is a wrong answer letter on the cell's own task. Known program-wide coin-flip (fails 4/5
+  prior variant draws; passed in h0051 + baseline).
+
+### Overall conclusion
+
+**All 3 regressions are NOT lever-caused.** None of h0052's three levers (h0044 max-points, h0045
+feature-boundary, h0050 intent-gated coverage) appears in any of the three committed edits, and each
+lever's precondition legitimately does not match the cell's task family (NPS-create / asana
+package-repair / oracle-MC). Each failure is task-intrinsic, on the cell's own scored model: airbnb005
+= self-anchored false-green on its `listing_agg_nps_reviews` (oracle disagrees on 2 rows; coverage gate
+clean, `mom_agg_reviews` byte-untouched); asana003 = `asana__daily_metrics` None-date cast in a model
+the worker didn't touch; f1011 = wrong MC letter (ABDE vs oracle ADE). All three PASSED in the h0043
+baseline with the same-class artifact, confirming these are trials:1 coin-flips on volatile cells, not
+interference from the composed levers. The cross-check (h0043-selfcheck-r1/r2) independently
+corroborates the coin-flip story; this verdict rests on the artifacts.
