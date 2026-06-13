@@ -1,7 +1,7 @@
 ---
 id: h0053
 title: Per-key metric aggregate — when the task does NOT ask for completeness, build the aggregate FROM the fact via INNER JOIN; do not LEFT JOIN the full dimension and emit zero-fact keys with NULL metrics
-status: propose
+status: smoke
 kind: hypothesis
 source: Captain request 2026-06-13 from _proposal/leverable-flipped-tasks-research-2026-06-13.md (CARD 1, airbnb005). Method artifact-confirmed both directions (h0043 PASS = inner-join/14,243 rows; h0052 FAIL = left-join keep-all/17,499 rows incl 3,256 NULL-NPS). Forks the current @baseline h0052 (runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133).
 started: 2026-06-13T00:00:00Z
