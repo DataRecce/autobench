@@ -1,0 +1,55 @@
+version: 1
+experiment: ade-bench-h0053-per-key-aggregate-inner-join-exclude-zero-fact-keys
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/h0053-per-key-aggregate-inner-join-exclude-zero-fact-keys
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+  override_timeout_sec: 2400
+  max_timeout_sec: 2400
+  reasoning_effort: xhigh # held constant across all hypotheses
+  tools_allowed: []
+  tools_denied: []
+benchmark:
+  kind: harbor
+  dataset: dbt-labs/ade-bench@sha256:2c1f9e6966d01b0a5de2235d1a0b64089c7eead42c85c3b7b61d0929405c2bd5
+  # full: whole dataset (all 48). smoke: a sibling *.smoke.yaml adds benchmark.tasks.
+  # baseline / first run: skip smoke, run full directly.
+  tasks: # h0053 PER-KEY METRIC AGGREGATE inner-join lever (precondition-GATED on "BUILD a per-key metric aggregate AND completeness NOT requested" — NOT generative; inert on every model that does not match). It is the DUAL of the h0050 coverage lever (which fires only WHEN completeness IS requested); the new rule explicitly defers to the coverage rule on completeness-intent tasks so they cannot collide. Fork parent = @baseline h0052 (runs/.../dcb1a62ef4066133). FLIP TARGET airbnb005: the @baseline draw committed the LEFT-JOIN keep-all shape (17,499 rows incl ~3,256 NULL-NPS) and FAILED; want the INNER-JOIN-from-fact artifact (14,243 rows, 0 NULL) -> FAIL->PASS. CRITICAL collision canary airbnb009: completeness IS requested there, so the coverage lever must STILL keep all days and the new inner-join rule must NOT fire -> MUST stay PASS (the gate-conflict tripwire). MUST-HOLD the other h0052 banked flips (f1006/f1006-hard) + same-family airbnb perturbable canaries (001/004/006/008) the new aggregate rule must not bleed onto + per-family cross canaries (asana/ana-eng/quickbooks/f1). ade-bench- prefixed (bare slugs rejected by rk run). airbnb005 also runs as >=2 seed-perturbed repeats (AC-5) via separate frozen draws the FO spins after the gate.
+    - ade-bench-airbnb005     # FLIP TARGET (h0053 per-key inner-join) — @baseline draw committed LEFT-JOIN keep-all -> FAIL; want INNER-JOIN-from-fact artifact -> FAIL->PASS; @baseline 0.0 FAIL; ~89% cell so judge by committed join-shape artifact across >=2 repeats
+    - ade-bench-airbnb009     # CRITICAL collision canary (inverse construct) — completeness IS requested; coverage lever must keep all days AND new inner-join rule must NOT fire; @baseline 1.0; must stay PASS (gate-conflict tripwire)
+    - ade-bench-airbnb008     # PERTURBABLE same-family canary — the cell h0046 bled onto; proves the new aggregate rule does not re-introduce same-family collateral; @baseline 1.0; must stay PASS
+    - ade-bench-airbnb001     # PERTURBABLE same-family canary (airbnb) — regression tripwire; @baseline 1.0; must stay PASS
+    - ade-bench-airbnb004     # PERTURBABLE same-family canary (airbnb, coverage-shaped sibling) — inner-join rule must NOT fire; @baseline 1.0; must stay PASS
+    - ade-bench-airbnb006     # PERTURBABLE same-family canary (airbnb, coverage-shaped sibling) — inner-join rule must NOT fire; @baseline 1.0; must stay PASS
+    - ade-bench-f1006         # MUST-HOLD h0052 banked flip (max-points construct) — inner-join lever must NOT disturb it; @baseline 1.0; must stay PASS
+    - ade-bench-f1006-hard    # MUST-HOLD h0052 banked flip (max-points construct, harder) — inner-join lever must NOT disturb it; @baseline 1.0; must stay PASS
+    - ade-bench-f1007         # cross-family canary (f1 stable passer) — regression tripwire; @baseline 1.0; must stay PASS
+    - ade-bench-asana002      # cross-family canary (asana family) — regression tripwire; @baseline 1.0; must stay PASS
+    - ade-bench-ana-eng001    # cross-family canary (ana-eng family) — regression tripwire; @baseline 1.0; must stay PASS
+    - ade-bench-quickbooks002 # cross-family canary (quickbooks family) — regression tripwire; @baseline 1.0; must stay PASS
+                              # NO intercom canary: intercom has no @baseline passer (intercom001/002/003 all FAIL), so that family cannot supply one.
+trials: 1 # one trial per task — applies to BOTH smoke and full
+concurrency:
+  trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
+            # task identity on the harbor path), so concurrent stage commits race on
+            # `git HEAD` ("cannot lock ref 'HEAD'"). 1 = no concurrent commits.
+observers:
+  - kind: jsonl
+    path: events.jsonl
+  - kind: stdout
+experiment_meta:
+  # max_budget_usd deferred — first loops run on a flat OpenAI subscription, not metered API.
+  paper_baseline:
+    name: pass_rate # ade-bench is scored by simple pass rate = #pass / #total
+    value: 0.1875   # 9/48 — initial spacedock baseline. rk score compares its stratified_pass_at_1,
+                    # which for ade-bench's single Harbor dataset (one stratum) equals #pass/#total.
+provenance:
+  pin_model_version: false
+  pin_image_digest: false
