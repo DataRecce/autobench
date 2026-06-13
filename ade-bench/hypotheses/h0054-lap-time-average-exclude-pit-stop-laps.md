@@ -102,3 +102,37 @@ clean audit.
   Judge by committed artifact (AC-3), not the single reward.
 
 Method/README change only. Forks @baseline h0052 (`solver_workflows/h0052-compose-maxpoints-featureguard-scoped-coverage`, runtime codex); no dataset, harness, or runtime change.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — clean single-stage gated worked-example skeleton, leak-guard byte-identical, specs two-field, both frozen, no FAILs; G11 single-model count is hypothesis-asserted (not in taxonomy) but the lever covers the only scored model, so it cannot mis-credit.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). Reviewed 2026-06-13T00:00:00Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff = one hunk `166a167,181`, the lap-time exclude-pit-laps block; inserted at line 167, between `## Stage: Implementation` (L50) and `## Stage: Validation` (L182) → one stage, one idea. |
+| G2 leak-guard intact | PASS | `diff` lines 1-166 IDENTICAL to parent (leak-guard prose byte-identical); grep of the added range (167-181) for `AUTO_*`/`solution__*`/`check_*`/`verifier`/`equality test`/`expected`/`curl`/`wget`/`git clone`/`analysis__lap_times`/`exclude_pit_stops` = empty (the token hits at L9-26 are the unchanged baseline guardrail). |
+| G3 spec two fields | PASS | `diff baseline.yaml h0054.yaml` shows only `experiment:` (L2) and `solver_workflow:` (L11); `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | smoke diff adds only a `benchmark.tasks:` block; all 10 slugs `ade-bench-` prefixed; target `ade-bench-f1010-medium` present; includes h0052 banked-flip must-holds (airbnb009/f1006/f1006-hard) + per-family canaries. |
+| G5 both frozen | PASS | `ls` confirms both `…frozen.yaml` and `…smoke.frozen.yaml` exist; both carry `agent.kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text ("EXCLUDE the pit-stop laps before the aggregate … do NOT keep … and subtract pit-stop duration") matches the Falsifiable claim exactly; generative-mechanical filter (`where not is_pit_lap`), not self-anchored verification; no scope creep (rest of README + tail byte-identical). |
+| G7 actionability/inert-risk | PASS | Carries a worked-example BEFORE/AFTER SQL skeleton (the copyable `where not is_pit_lap` filter form), not abstract structural prose — the favored mechanical form. |
+| G8 regression-canary coverage | N/A | Lever is precondition-GATED ("when a task asks for an average/aggregate of lap times … that must account for pit stops"), NOT generative → N/A; panel nonetheless carries ≥1 passing canary per non-target family (airbnb001/asana002/ana-eng001/quickbooks002) + 2 perturbable f1 canaries (f1005/f1007). |
+| G9 selector independence | N/A | Not a multi-candidate / selector protocol — single derivation. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever — a generative-but-gated construct substitution. |
+| G11 multi-model-target risk | N/A (taxonomy-unverified) | f1010-medium is NOT in the taxonomy's multi-model list (only airbnb007 is); the hypothesis's verified note states it is scored by a single equality test (`AUTO_analysis__lap_times_equality`, matched against either of two seed tables = one model) and the lever covers that model → lever covers all scored models. Scored-model count is hypothesis-asserted, not independently confirmed from the dataset tests by the gatekeeper. |
+| G12 decision-fork probe quality | N/A | No `## Pre-smoke Decision-Fork Probe` block, but the hypothesis explicitly states why one was skipped: the method is artifact-confirmed from prior runs (h0043 PASS committed the EXCLUDE artifact; h0037 FAIL committed the SUBTRACT artifact, `Got 1092`) — the fork is already observed in committed SQL, not a simulated probe. |
+
+**For the captain:** No FAILs — clear to advance to `smoke`. Two WARN-adjacent notes to glance at: (1) G11 — the single-scored-model claim for f1010-medium is the hypothesis's own "verified" note, not independently re-enumerated by the gatekeeper from the dataset tests; if you want belt-and-suspenders, confirm the scored-model count from `…/verifier/test-stdout.txt` at smoke before crediting. (2) f1010-medium already passed the h0052 single draw (~73% cell), so the smoke GO must rest on the EXCLUDE artifact landing across the ≥2 seed-perturbed repeats (AC-3/AC-5), not on a single reward.
+
+## Stage Report: propose
+
+- DONE: Fork the CURRENT @baseline solver (h0052) → solver_workflows/h0054-lap-time-average-exclude-pit-stop-laps; add ONLY the lap-time exclude-pit-laps worked-example skeleton as a new precondition-gated Implementation rule.
+  `rk registry resolve run @baseline` = h0052 (dcb1a62ef4066133); `diff` vs parent README = one hunk (166a167,181), the gated lap-time block in `## Stage: Implementation`; all 4 existing levers + leak-guard byte-unchanged (AC-1).
+- DONE: Build FULL spec (cp baseline.yaml; set ONLY experiment + solver_workflow) AND smoke spec (FLIP TARGET f1010-medium + MUST-HOLD h0052 banked flips airbnb009/f1006/f1006-hard + per-family canaries + 2nd perturbable f1 canary f1005); resolve each smoke task @baseline reward; freeze both with --allow-missing.
+  FULL diff vs baseline.yaml = only `experiment:` + `solver_workflow:`; smoke diff = only `benchmark.tasks` (10 tasks). All 10 smoke tasks @baseline (h0052 dcb1a62ef4066133) = 1.0 PASS. Both frozen files written.
+- DONE: Run the gatekeeper and write `## Gatekeeper review` (per-rule PASS/WARN/FAIL + APPROVE/REVISE/REJECT). Did NOT launch any rk run.
+  Gatekeeper recommendation = APPROVE; no FAILs; G1-G7 PASS, G8/G9/G10/G11/G12 N/A (gated, not generative; not a selector; not self-correcting; single scored model; artifact-confirmed in place of probe).
+
+### Summary
+Forked the live @baseline (h0052 3-lever composition) into h0054 and added exactly one precondition-gated Implementation rule: when averaging lap times "accounting for" pit stops, EXCLUDE pit-stop laps before the aggregate (do NOT keep them and subtract pit duration). README diff is a single byte-clean hunk with all 4 prior levers and the leak-guard intact (AC-1). FULL and smoke specs differ from baseline only in the allowed fields; both frozen. Notable: in the h0052 single @baseline draw f1010-medium already PASSED (it is a ~73% cell), so the smoke GO must rest on the EXCLUDE artifact landing across ≥2 seed-perturbed repeats (AC-3/AC-5), not on a single reward flip — flagged in the gate table below and by the gatekeeper. Gatekeeper recommends APPROVE with no FAILs.
