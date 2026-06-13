@@ -60,11 +60,39 @@ f1006-hard, qb002, qb004 (hold).
 
 ## Pre-smoke Decision-Fork Probe
 
-Skipped — each of the three new levers is individually smoke-verified at the committed-artifact
-level (h0053 GO, h0054 GO, h0055 GO-pending) and each was already shown non-colliding with its dual
-in its solo smoke (h0053: airbnb009 held; h0055: qb002/003 held). The only new question is the
-six-way composition / mutual interference, which the combined smoke tests directly (and the h0052
-promotion already established that construct-gated levers compose). No new probe owed.
+The FO ran a six-way mutual-non-interference simulation on the COMMITTED merged six-lever
+Implementation rulebook (full writeup: `_artifacts/h0056-decision-fork-simulation.md`). Method: 8
+tasks × 6 fresh isolated decision agents, each given ONLY the merged rulebook + that task's clean
+visible starting context (instruction + starting model SQL, stripped of any solver patch / verifier
+/ oracle), classified DESIRED iff the expected gated rule fires AND no collision rule fires. 48
+isolated decisions total.
+
+**Result — 48/48 desired branch, 0 collisions:**
+
+| Task | Role | Expected rule | Must NOT fire | Result |
+|------|------|---------------|---------------|--------|
+| airbnb005 | FLIP target (h0053) | per-key-inner-join | coverage-repair | 6/6 desired, 0 coll |
+| f1010-medium | FLIP/PIN (h0054) | lap-time-exclude-pit | — | 6/6 desired, 0 coll |
+| ana-eng003 | FLIP target (h0055) | preserve-columns | feature-boundary | 6/6 desired, 0 coll |
+| airbnb009 | COLLISION canary (h0050↔h0053) | coverage-repair | per-key-inner-join | 6/6 desired, 0 coll |
+| f1006 | HOLD (h0044) | max-points | — | 6/6 desired, 0 coll |
+| f1006-hard | HOLD (h0044) | max-points | — | 6/6 desired, 0 coll |
+| quickbooks002 | COLLISION canary (h0045↔h0055) | feature-boundary | preserve-columns | 6/6 desired, 0 coll |
+| quickbooks003 | COLLISION canary (h0045↔h0055) | feature-boundary | preserve-columns | 6/6 desired, 0 coll |
+
+**Both collision dual-pairs hold their correct sides:** (a) h0050↔h0053 (completeness-intent) —
+airbnb009 (completeness asked) routed all 6 draws to COVERAGE-REPAIR with the per-key rule silent,
+while airbnb005 (no completeness ask) routed all 6 to PER-KEY-INNER-JOIN with coverage silent;
+(b) h0045↔h0055 (build-vs-remove) — quickbooks002+003 (feature removal) routed all 12 draws to
+FEATURE-BOUNDARY (not preserve-all), while ana-eng003 (plain build/rename) routed all 6 to
+PRESERVE-COLUMNS (all 18 upstream cols, not feature-drop).
+
+**Caveat (per the method):** this is PROXY evidence — it shows the longer six-rule rulebook has no
+detectable decision-policy interference (every target routes to its intended rule, every collision
+canary holds), clearing the captain's "enough probability" bar to skip smoke. It does NOT prove the
+solver finds the bug, writes the committed artifact, and passes the hidden grader, nor the
+off-construct trials:1 ~±3-cell variance on the 40 untouched cells. The promote decision rests on
+the full run-dir clearing h0052's expectation + committed-artifact reads (AC-3/AC-4/AC-5).
 
 ## Acceptance criteria
 
@@ -116,6 +144,25 @@ Fork parent resolved: `@baseline` = h0052 (`rk registry resolve run @baseline` �
 
 ## Run result
 
+**Smoke skipped per captain** (2026-06-13) on the strength of the 48/48 six-way decision-fork
+simulation (`_artifacts/h0056-decision-fork-simulation.md`, 0 collisions across both dual-pairs) +
+the gatekeeper APPROVE (no FAILs, only the two standing predictive WARNs). Went straight to full.
+
+**Two concurrent independent full 48-task draws launched** (the h0052 self-consistency precedent —
+two independent draws beat single-draw trials:1 variance). CAS-buster: each variant differs from the
+base full spec ONLY in `experiment:` + `sampling.seed:` (distinct seeds → distinct sealed_hash →
+distinct run-dirs; behaviorally still temp=0 codex). Both detached via `drivers/rk-run-detached.sh`,
+FO owns the sentinel scan + audit/score/paired-delta when `done` lands.
+
+- r1: seed 42, spec `specs/h0056-compose-six-levers-on-h0052-r1.frozen.yaml` (sealed_hash
+  22e998fa95bb0a313ed600aea936ce7f); handle
+  `runs/.rk-handles/h0056-full-r1-20260613-181358/` (pid 2714347, log .../log)
+- r2: seed 43, spec `specs/h0056-compose-six-levers-on-h0052-r2.frozen.yaml` (sealed_hash
+  0eb370abee3244354ba6f53dd6437e98); handle
+  `runs/.rk-handles/h0056-full-r2-20260613-181403/` (pid 2714516, log .../log)
+
+Both confirmed live at launch (nohup pid alive, `rk run` child process spawned and running).
+
 ## Behavioral analysis
 
 ## Failure Review
@@ -135,3 +182,17 @@ Fork parent resolved: `@baseline` = h0052 (`rk registry resolve run @baseline` �
 
 ### Summary
 Built the six-lever composition by forking @baseline h0052's solver and inserting the three smoke-verified lever blocks (h0053 per-key inner-join, h0054 lap-time exclude-pit-laps, h0055 build/rename preserve-columns) byte-verbatim at their Implementation-stage anchors. Full spec differs from baseline only in experiment+solver_workflow; smoke spec adds a 16-task integration panel (union of the three sibling smoke panels, deduped, with both collision-canary pairs). Both specs frozen. Gatekeeper recommendation APPROVE — no FAILs, only the two standing predictive WARNs. Per dispatch the captain intends to skip smoke and go straight to full after the FO decision-fork simulation.
+
+## Stage Report: full
+
+- DONE: Two seed-variant FULL specs built from the 48-task base (NO benchmark.tasks): r1 = experiment ...-r1 + seed 42; r2 = experiment ...-r2 + seed 43; each differs from the base full spec ONLY in experiment: + sampling.seed: (CAS-buster); both frozen with rk freeze --allow-missing.
+  `diff` of each variant vs base = exactly the experiment: + seed: lines (0 benchmark.tasks). Frozen specs carry distinct sealed_hash (r1 22e998fa..., r2 0eb370ab...) → two genuinely-independent run-dirs.
+- DONE: Both full runs launched CONCURRENTLY and DETACHED via drivers/rk-run-detached.sh (keys h0056-full-r1 and h0056-full-r2, mode run); the two handle dirs returned with pid/log; ensign returned immediately, did NOT wait.
+  r1 handle runs/.rk-handles/h0056-full-r1-20260613-181358 (pid 2714347); r2 handle runs/.rk-handles/h0056-full-r2-20260613-181403 (pid 2714516).
+- DONE: Both handles confirmed live (pid alive, rk run child process spawned) before returning; exact two handle-dir paths reported.
+  ps --ppid showed the `uv run ... rk run` child alive under each nohup pid; log 0 bytes is normal startup buffering (uv resolve + harbor/docker spin-up before first flush). FO owns the sentinel scan.
+- DONE: Body updated — `## Pre-smoke Decision-Fork Probe` carries the 48/48 six-way sim summary (cites _artifacts/h0056-decision-fork-simulation.md, both dual-pairs + proxy caveat); `## Run result` notes smoke-skipped-per-captain + the two launch handles.
+  Replaced the prior "Skipped" text with the 8-task table + two-dual-pair non-collision finding; Run result records both handles, seeds, sealed_hashes, spec paths.
+
+### Summary
+Launched the h0056 six-lever composition as TWO concurrent independent full 48-task draws per captain (skip smoke). Built r1/r2 seed-variant specs (seeds 42/43) from the AC-1-verified 48-task base differing only in experiment:+sampling.seed: — distinct sealed_hashes confirm the CAS-buster yields two separate run-dirs (single-draw trials:1 variance washes a flip; two draws is the h0052 self-consistency precedent). Both frozen, launched detached, confirmed live (child rk processes running). Body updated with the 48/48 six-way decision-fork sim summary + both launch handles. Did NOT audit/score — the FO owns the sentinel scan + paired-delta when the two `done` files land.
