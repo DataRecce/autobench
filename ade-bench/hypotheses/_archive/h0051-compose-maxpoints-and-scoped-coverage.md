@@ -5,10 +5,11 @@ status: analyze
 kind: hypothesis
 source: "h0044 + h0050 full/smoke analyses (2026-06-12). h0044's max(points) lever is artifact-correct and provably inert off-target (real +2 on f1006/f1006-hard; its full net -1 was off-construct variance, NOT lever damage — so it cannot promote alone but the lever is verified-good). h0050's intent-gated scoped coverage skeleton is smoke-GO (airbnb009 3/3 + airbnb008 byte-intact, no same-family bleed). Both are bleed-free on disjoint constructs; h0049 already proved construct-gated levers compose. Composing them lands +3 real flips in one run-dir to clear the ~±4 trials:1 variance band. Supersedes h0049 (which used the UNSCOPED h0046 that bleeds airbnb008). Captain-approved filing 2026-06-12."
 started: 2026-06-12T09:29:05Z
-completed:
-verdict:
+completed: 2026-06-13T14:06:33Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-13T14:06:33Z
 ---
 
 ## Hypothesis
