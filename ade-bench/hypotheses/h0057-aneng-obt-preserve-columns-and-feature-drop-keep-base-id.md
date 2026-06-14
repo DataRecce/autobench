@@ -1,7 +1,7 @@
 ---
 id: h0057
 title: Two-move composition on @baseline h0056 — (A) generalize the build/rename preserve-columns gate to multi-upstream OBT/join models so ana-eng004 flips; (B) sharpen the feature-boundary removal rule with a worked example (drop the feature-only column, KEEP the shared base id) to lock quickbooks002/003 against the over-drop coin-flip
-status: smoke
+status: propose
 kind: hypothesis
 source: "Captain request 2026-06-14 from the h0056 two-draw analysis (r1=32/r2=35; the r1 shortfall = f1001+qb002+qb003 coin-flips). Forks the current @baseline h0056 (runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a, 35/48). Both moves artifact-grounded — Move A: ana-eng004 forensic = same dropped-column construct as the banked ana-eng003 (build OBT from fact-join-dim, solution = all 22 cols, hist 0/23). Move B: qb002/qb003 r1-vs-r2 forensic = OVER-DROP of the base department_id column; correct boundary (drop department_name, keep department_id) is cleanly expressible."
 started: 2026-06-14T00:00:00Z
@@ -442,3 +442,27 @@ Cycle 2: re-forked @baseline h0056 fresh and re-applied the two scoped in-place 
 
 ### Summary
 Cycle-2 re-smoke launched detached. Foreground `--explain` confirmed the 14-task target+canary panel and that the spec points at the h0057 solver workflow (the revised Move A with column-audit teeth + byte-unchanged Move B). Detached run is live under runs/.rk-handles/h0057-smoke-c2-20260614-093919/ (pid 3223045, child rk run spawned, done absent). Did NOT wait/audit/score — the FO scans the sentinel and owns the deep-dive on completion.
+
+### Cycle 2 — re-smoke NO-GO (ana-eng004 still FAIL) → REVISE Move A again (captain stopped the run 2026-06-14)
+Cycle-2 re-smoke (run-dir `…/e6ed4c9a70420b3f`) was STOPPED by the captain after ana-eng004 failed again
+(same "less columns than solution"). Forensic of the cycle-2 committed `obt_product_inventory.sql`:
+- The worker DID run the audit and committed a structurally complete 23 columns (all 9 fact + all 14 dim,
+  attachments present, both join-key copies kept). BUT it **re-aliased the keys**: it named the FACT key
+  `product_id` and aliased the DIM key to `product_details_product_id`. The starting model's convention
+  (= the solution's) is the opposite: FACT key `i.product_id AS ipd`, DIM key kept as `product_id`.
+- Net: the worker's column-NAME set has `product_details_product_id` (solution lacks it) and is MISSING
+  `ipd` (solution has it) → name-set mismatch → AUTO_obt_product_inventory_equality still errors "less
+  columns". Count was right (23); NAMES were wrong.
+- Root cause: cycle-2's audit step ("read each upstream's own select list, don't trust the existing
+  model") pushed the worker to RE-DERIVE the SELECT from scratch and invent fresh aliases, instead of
+  PRESERVING the existing model's exact column names and making a minimal additive completion. The
+  starting model already encoded the solution's naming and was ONE column (`attachments`) from correct.
+
+**REVISE direction for cycle 3 (Move A only; Move B byte-unchanged):** flip the audit emphasis from
+"re-derive from upstreams" to "**preserve the existing model's exact column names/aliases and complete it
+minimally**." When the target model ALREADY EXISTS and selects from its upstream(s): do NOT rewrite the
+SELECT, do NOT rename or re-alias any existing column, do NOT collapse or re-key. Use the upstream-column
+audit ONLY to find columns the existing model OMITS, and ADD those (with the same style the model uses)
+in place. The existing model's column names are the contract — preserve them; the only change is adding
+the missing upstream column(s). Keep the keep-both-join-keys point but subordinate it to "preserve the
+existing aliases as-is". Then re-probe/re-smoke per captain.
