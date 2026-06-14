@@ -1,7 +1,7 @@
 ---
 id: h0057
 title: Two-move composition on @baseline h0056 — (A) generalize the build/rename preserve-columns gate to multi-upstream OBT/join models so ana-eng004 flips; (B) sharpen the feature-boundary removal rule with a worked example (drop the feature-only column, KEEP the shared base id) to lock quickbooks002/003 against the over-drop coin-flip
-status: smoke
+status: propose
 kind: hypothesis
 source: "Captain request 2026-06-14 from the h0056 two-draw analysis (r1=32/r2=35; the r1 shortfall = f1001+qb002+qb003 coin-flips). Forks the current @baseline h0056 (runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a, 35/48). Both moves artifact-grounded — Move A: ana-eng004 forensic = same dropped-column construct as the banked ana-eng003 (build OBT from fact-join-dim, solution = all 22 cols, hist 0/23). Move B: qb002/qb003 r1-vs-r2 forensic = OVER-DROP of the base department_id column; correct boundary (drop department_name, keep department_id) is cleanly expressible."
 started: 2026-06-14T00:00:00Z
@@ -512,3 +512,17 @@ Cycle 3: re-forked @baseline h0056 fresh and re-applied the two scoped in-place 
 
 ### Summary
 Built the ana-eng004-only cycle-3 re-smoke spec (full h0057 spec + single-task benchmark.tasks, diff = experiment suffix + one task line), froze it, sanity-checked via `rk run --explain` (1 task = ana-eng004, solver = h0057), and launched it detached under key h0057-ana004. Confirmed the handle live (worker→uv→rk python chain, done absent) and committed the two spec files path-scoped. Returned immediately without waiting; the FO owns the ~9 min sentinel scan and the deep-dive on the sentinel.
+
+### Cycle 3 — single-task ana-eng004 re-smoke NO-GO → REVISE Move A cycle 4 (captain: revise + validate by sim first)
+Cycle-3 ana-eng004-only smoke (run-dir `…-ana004/e2d30f8f811e92b7`) FAILED again, same "less columns".
+Committed SQL: the worker AGAIN rewrote the SELECT — dropped the scaffold's `i.product_id AS ipd` alias and
+re-aliased the dim key to `product_detail_product_id` (vs the solution's `ipd` + `product_id`). Three
+distinct mechanisms (collapse → re-alias → re-alias), all the same root: the solution requires reproducing
+a NON-OBVIOUS existing alias (`ipd`) the model keeps "cleaning up", with no visible signal it is
+load-bearing. Even cycle-3's explicit "do not re-alias" prose lost to the clean-up prior.
+**Cycle-4 revise (Move A only; Move B byte-unchanged):** ADDITIVE-PATCH-ONLY completion — the only
+permitted edit on an existing model is ADDING omitted upstream columns; freeze every existing alias as a
+contract EVEN IF it looks cryptic/abbreviated/wrong; explicit PROCEDURE + post-edit self-check (diff vs
+original; revert any modified/removed existing line). VALIDATED by a faithful decision-fork sim measuring
+the exact column-name set: ana-eng004 8/8 keep ipd + add attachments + rename nothing; ana-eng003 4/4 hold;
+qb002/003 8/8 feature-boundary (no bleed). See _artifacts/h0057-decision-fork-simulation.md cycle-4 section.

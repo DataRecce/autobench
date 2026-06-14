@@ -40,3 +40,19 @@ run-cell paths; extended schema captures the COLUMN-SET outcome, the load-bearin
   artifacts (ana-eng004 full-column OBT; qb002/003 keep-department_id) pass the hidden grader.
 
 Raw per-draw edits: workflow output `w5rtbxrb6`.
+
+## Cycle-4 validation sim (2026-06-14) — workflow output `wrksaiduh`
+
+After cycles 1-3 smoke-failed ana-eng004 (collapse key / re-alias / re-alias again — all "less
+columns"), Move A was revised to ADDITIVE-PATCH-ONLY (freeze every existing alias even if cryptic/ugly
+like `ipd`; the only allowed edit is ADDING omitted upstream columns; post-edit self-check). The sim now
+measures the EXACT column-name decision (the precise failure), not "preserve all":
+- **ana-eng004: 8/8 desired** — every draw kept `ipd` + the dim `product_id` (no re-alias) + ADDED
+  `attachments` + renamed nothing (renamed_or_removed_any_existing=false, 23 cols). The forceful rule
+  overcomes the model's clean-up-the-ugly-alias prior that beat cycles 1-3.
+- **ana-eng003: 4/4 hold** (single-upstream preserve, 18 cols, customer_id rename, no re-alias).
+- **quickbooks002/003: 8/8 fired FEATURE-BOUNDARY** (drop department_name, keep department_id) — ZERO
+  draws fired the additive-patch Move A → no bleed onto feature-removal. (The nobleed classifier's raw
+  desired-count is a free-form-column-listing artifact; the unanimous reasoning is the real signal.)
+Validated → build cycle-4 into the fork + single-task ana-eng004 re-smoke (the real-run confirmation,
+since the sim is decision-tendency only and the cycle-3 ensign ignored a weaker preserve rule).
