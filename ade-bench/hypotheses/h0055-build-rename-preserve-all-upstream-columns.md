@@ -1,12 +1,12 @@
 ---
 id: h0055
 title: Build/rename a model — when the task does not enumerate a restricted column set, PRESERVE every upstream column; apply only the named renames/keys, do not narrow to a "relevant" subset
-status: smoke
+status: conclude
 kind: hypothesis
 source: Captain request 2026-06-13 from _proposal/leverable-flipped-tasks-research-2026-06-13.md (CARD 3, ana-eng003). Method artifact-confirmed 2026-06-13 (h0043 PASS = all 18 stg_customer columns; h0012 FAIL = only 5 columns → AUTO_dim_customer_equality "has less columns than solution"). Forks the current @baseline h0052 (runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133).
 started: 2026-06-13T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-14T01:01:38Z
+verdict: passed
 score:
 worktree:
 ---
