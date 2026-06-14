@@ -33,16 +33,22 @@ both baseline-fresh draws → a real ~+1.5 gain. Promote rested on **expectation
 + regression forensics** (all PASS→FAIL cells proven off-construct trials:1 coin-flips), not the
 single-draw net. Noise floor measured: ~±3 cells/draw.
 
-## h0057 — at propose CYCLE 3 (revised Move A; awaiting captain re-smoke go)
-Cycle-1 smoke NO-GO (Move A collapsed a join key → ana-eng004 22<23). Cycle-2 re-smoke NO-GO + captain
-STOPPED it: worker ran the audit, committed 23 cols, but RE-ALIASED keys (fact `product_id` / dim
-`product_details_product_id`) vs the solution's `ipd`+`product_id` → name-set mismatch → still "less
-columns". Cycle-3 Move A flips the framing to PRESERVE THE EXISTING MODEL'S EXACT names + MINIMAL ADDITIVE
-completion (the existing OBT already encodes the solution's names, was 1 col [`attachments`] short — add
-only the omitted upstream col, never rewrite/re-alias). Move B byte-unchanged (qb002/003 held both smokes).
-Gatekeeper APPROVE. NOT launched — awaiting captain go for cycle-3 re-smoke. RISK: 3rd cycle on a single
-0/23 target whose failure mode keeps shifting — if cycle-3 fails too, ana-eng004 is likely oracle-sensitive
-(exact solution schema/naming not robustly inferable) → conclude rather than cycle further.
+## h0057 — REJECTED on the Move-A flip (ARCHIVED 2026-06-14); Move B spun out as h0058
+ana-eng004 = ORACLE-BLIND. Four real smoke cycles, four distinct failure modes (collapse key / re-alias /
+re-alias / add-col-but-collapse-key), always "less columns than solution". The 23-col solution needs an
+oracle-only exact schema (preserve the cryptic `ipd` alias + both product_id copies) with no visible
+grading signal → the production solver "cleans up" every draw. KEY: a de-leaked HONEST decision-fork sim
+scored ana-eng004 10/10 (fresh agents generalize the additive-patch rule) yet the production ensign failed
+4/4 — a sim-validated NEW lever can still fail the real run (the sim measures decision tendency, not
+production-solver clean-up judgment). See WORKFLOW-REFINE "sim-as-smoke-substitute CAVEAT" +
+_artifacts/h0057-decision-fork-simulation.md. Move B (feature-removal keep-base-id) VALIDATED — qb002/003
+held PASS both 14-task smokes — and is now h0058.
+
+## QUEUED (filed, no captain go): h0058 — Move-B-only feature-removal stabilizer
+Forks @baseline h0056. ONE change = add the h0057-validated drop-feature-col / KEEP-base-id worked example
+to the feature-removal block. Targets quickbooks002/003 (STABILIZE the over-drop coin-flip — judged by the
+committed keep-department_id artifact + two-draw expectation, NOT a single flip; it lowers PASS->FAIL rate,
+a more reproducible baseline). Status hypothesis; awaiting captain go.
 
 ## (prior) h0057 RE-SMOKE cycle 2 — STOPPED by captain
 Move A widens preserve-columns to multi-upstream/OBT joins (flip ana-eng004); Move B = drop-feature-col-
