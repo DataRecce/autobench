@@ -56,3 +56,18 @@ measures the EXACT column-name decision (the precise failure), not "preserve all
   desired-count is a free-form-column-listing artifact; the unanimous reasoning is the real signal.)
 Validated → build cycle-4 into the fork + single-task ana-eng004 re-smoke (the real-run confirmation,
 since the sim is decision-tendency only and the cycle-3 ensign ignored a weaker preserve rule).
+
+## Cycle-4 HONEST re-sim (de-leaked) — workflow output `w0bll43k4`
+
+The cycle-4 sim (`wrksaiduh`, 8/8) was CONTAMINATED: the rulebook's worked example was ana-eng004's own
+table (`i.product_id as ipd … p.attachments` = the literal answer), so agents copied it. De-leaked the
+worked example to a DIFFERENT domain (orders/customers, alias `co`, omitted `loyalty_tier` — zero
+ana-eng004 tokens) and re-ran fresh:
+- **ana-eng004: 10/10 desired** — every draw GENERALIZED the additive-patch principle to ana-eng004's
+  UNSEEN schema: kept `ipd`, kept dim `product_id`, added `attachments`, renamed nothing (23 cols,
+  renamed=false, re_alias=false, keys_kept=[true,true]). The rule transfers; it was NOT the leak.
+- **ana-eng003: 4/4 hold**; **qb002/003: all fired feature-boundary, no additive-patch bleed.**
+HONEST GAP: the sim measures fresh-agent decision tendency; the REAL ensign failed ana-eng004 in 3 prior
+smokes (kept cleaning up `ipd`). Cycle-4's mechanical post-edit SELF-CHECK is the new variable. The real
+single-task smoke is the true test. The committed README must be DE-LEAKED to this generic worked example
+before smoke (integrity: no task-overfit answer embedded).
