@@ -204,3 +204,19 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ### Summary
 Forked @baseline h0056 to h0057 and applied the two scoped in-place README edits (Move A: widen preserve-columns precondition to multi-upstream/OBT joins; Move B: add the drop-feature-col-keep-base-id worked example to the feature-removal block), both inside `## Stage: Implementation`. AC-1 verified: README diff = exactly those two edits, everything else byte-identical, no leaked oracle tokens; full spec differs only in the two allowed fields; smoke spec carries the 14-task target+canary panel; both specs frozen. Gatekeeper recommends APPROVE with two advisory WARNs (G8 canary breadth for the join-build construct / no intercom canary; G11 unverifiable scored-model counts for the three targets).
+
+## Smoke result
+
+LAUNCHED (detached) 2026-06-14 06:59. Handle dir: `runs/.rk-handles/h0057-smoke-20260614-065900/`. Worker pid 3151900; rk run child 3151915→3151918→harbor 3152038 confirmed alive. 14-task panel + h0057 solver_workflow resolved via `--explain`. Serial ~9 min/task × 14 ≈ ~2 hr. FO owns the sentinel scan (`<handle>/done` = rc/end/rundir); pending.
+
+## Stage Report: smoke
+
+- DONE: `rk run --explain` sanity-checked on specs/h0057-...smoke.frozen.yaml (confirms the 14-task panel + solver resolve) before the real launch.
+  Explain exit 0: Tasks=14, Concurrency=1, Solver workflow=solver_workflows/h0057-aneng-obt-preserve-columns-and-feature-drop-keep-base-id, README found=True (RAZORBACK_SPACEDOCK_PLUGIN_DIR=/home/kent/autobench/spacedock).
+- DONE: Smoke run launched DETACHED via drivers/rk-run-detached.sh (key h0057-smoke, the smoke.frozen.yaml spec, mode run); handle dir returned with pid + log; ensign returns immediately, FO owns the sentinel scan.
+  Handle: /home/kent/autobench/ade-bench/runs/.rk-handles/h0057-smoke-20260614-065900/ ; pid 3151900 ; log runs/.rk-handles/h0057-smoke-20260614-065900/log ; ntfy adebench-rk-381c976fe07465bf.
+- DONE: Handle confirmed live (pid alive + rk run child process spawned) before returning; the exact handle-dir absolute path reported.
+  Process tree alive: 3151900 (worker) → 3151915 (uv rk run) → 3151918 (rk python) → 3152038 (harbor run); `done` sentinel absent (run in flight).
+
+### Summary
+Ran the foreground `--explain` sanity check (exit 0; 14-task panel, concurrency 1, h0057 solver_workflow + README all resolve), then launched the smoke run detached via drivers/rk-run-detached.sh under key h0057-smoke. Confirmed the handle live — full process tree from worker pid 3151900 down to harbor run 3152038, `done` sentinel absent. Returned immediately without waiting; the FO owns the sentinel scan and the ~2 hr run is in flight.
