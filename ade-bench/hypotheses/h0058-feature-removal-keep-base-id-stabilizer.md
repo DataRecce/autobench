@@ -138,3 +138,68 @@ proven by the two-draw expectation, not a headline +1.
 Method/README change only. Forks @baseline h0056
 (`solver_workflows/h0056-compose-six-levers-on-h0052`, runtime codex); no dataset, harness, or
 runtime change.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — one scoped Implementation-stage worked example (generic
+`using_feature`/`feature_fk_id`/`feature_name` skeleton, no target schema), leak-guard byte-intact,
+spec two-field, gated to remove-feature requests with a build/rename over-fire tripwire (ana-eng003)
+and two cross-family canaries in the panel; no FAIL on any rule.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). Reviewed 2026-06-14T12:24:00Z.
+
+Fork parent resolved: `source:` names h0056; `rk registry resolve run @baseline` →
+`runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a`, whose `spec.frozen.yaml`
+`solver_workflow: solver_workflows/h0056-compose-six-levers-on-h0052` — the dir forked. Agree.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | `diff h0056/README.md h0058/README.md` = one hunk (67a68,83): the drop-feature-col/keep-base-id worked example inside `## Stage: Implementation`'s feature-removal block, after the "Preserve ordinary raw/source attributes…" paragraph. No other `## Stage:` touched; exactly the one idea the Falsifiable claim names. |
+| G2 leak-guard intact | PASS | Added lines carry no `AUTO_*`/`solution__*`/`check_*`/`expected-count`/web-fetch token; the only `curl`/`wget` hits are the unchanged leak-guard prose (README L9–10), byte-identical to parent. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0058.yaml` = only `experiment:` + `solver_workflow:`. `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | `diff h0058.yaml h0058.smoke.yaml` = only an added `benchmark.tasks:` block; all six slugs `ade-bench-` prefixed; both named `## Hypothesis` targets (quickbooks002, quickbooks003) present. |
+| G5 both frozen | PASS | `h0058…frozen.yaml` + `…smoke.frozen.yaml` both exist; both carry `kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text = the body's generic skeleton verbatim ("drop the feature-ONLY derived column and its conditional join, but KEEP the shared base id / foreign-key column"; BEFORE/AFTER using `using_feature`/`feature_fk_id`/`feature_name`). Generative build-guidance, NOT self-anchored verification. No target `department_*` schema (h0057 leak-catch satisfied). |
+| G7 actionability/inert-risk | PASS | Worked-example skeleton (the recommended copyable form, not abstract structural prose) — the G7 PASS class. Move B already produced the committed keep-base-id artifact across four h0057 cycles, so it is empirically non-inert here. |
+| G8 regression-canary coverage | N/A (PASS) | Instruction is GATED — fires only on "removing a feature" (remove/disable-a-feature requests), not on every task; classify gated → N/A. Panel nonetheless carries cross-family passers (asana001, f1007) + the build/rename over-fire tripwire (ana-eng003) + same-construct canary quickbooks004; all `@baseline` r2 1.0. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever; it is build-time guidance on the removal boundary, no verify-and-act-on-disagreement instruction. |
+| G11 multi-model-target risk | WARN (unverifiable) | qb002/qb003 scored-model counts are NOT in the taxonomy's multi-model-target list (only listed as h0009 bleed-family canaries) and were not enumerated from the dataset tests — surface as unknown. Mitigated: this is a STABILIZER judged by the committed drop-`department_name`/keep-`department_id` artifact across ≥2 draws (AC-3/AC-4), not a single-run flip credit — the exact G11 mitigation. |
+| G12 decision-fork probe quality | N/A (PASS) | Not a fresh flipped-task follow-up needing a new probe: Move B is a component VALIDATED across four real h0057 `rk` cycles (qb002/003 held PASS on both 14-task smokes, worked example byte-unchanged), orphaned only by h0057's independent Move-A rejection. The hypothesis states this explicitly. |
+
+**For the captain:** No blocking FAILs — APPROVE to advance to smoke. One WARN (G11): qb002/qb003 scored-model counts are unverified, so do not credit a lone PASS reward — judge strictly by the committed keep-`department_id` artifact on the transaction/union models across the ≥2 seed-perturbed draws (AC-4), which the hypothesis already requires. Watch ana-eng003 as the over-fire tripwire (the worked example must NOT fire on a build to over-preserve) and asana001 as a known package-family coin-flip (do not over-read a wobble).
+
+## Propose stage report
+
+**Outcome: propose artifacts built, AC-1 verified, gatekeeper APPROVE.**
+
+What was done:
+- Forked `solver_workflows/h0056-compose-six-levers-on-h0052` (the @baseline-h0056 r2 resolver,
+  confirmed via `rk registry resolve run @baseline` →
+  `runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a`) →
+  `solver_workflows/h0058-feature-removal-keep-base-id-stabilizer`.
+- Applied the ONE edit: the generic drop-feature-col / KEEP-base-id worked example (the body's
+  `using_feature`/`feature_fk_id`/`feature_name` skeleton, verbatim) inserted inside the
+  Implementation feature-removal block, immediately after the "Preserve ordinary raw/source
+  attributes…" paragraph.
+
+AC-1 verified:
+- `diff h0056/README.md h0058/README.md` = ONE hunk (`67a68,83`) — the worked-example insertion
+  only, inside `## Stage: Implementation`'s feature-removal block. Other six levers + leak-guard
+  prose + every other stage byte-identical.
+- Leak grep clean: no `AUTO_`/`solution__`/`check_`/`department_id`/`department_name`/expected-count
+  token; `curl`/`wget` appear ONLY in the unchanged leak-guard prose (README L9–10). GENERIC
+  identifiers only — no target schema (the h0057 leak-catch).
+
+Specs:
+- `specs/h0058-feature-removal-keep-base-id-stabilizer.yaml` — diff vs `baseline.yaml` = only
+  `experiment:` + `solver_workflow:` (kind/runtime/trials preserved).
+- `specs/h0058-feature-removal-keep-base-id-stabilizer.smoke.yaml` — adds only `benchmark.tasks:`
+  = quickbooks002 + quickbooks003 (stabilize), quickbooks004 (narrow-toggle hold), ana-eng003
+  (BUILD-PRESERVE over-fire tripwire), asana001 + f1007 (cross-family canaries). All six confirmed
+  `@baseline` r2 reward 1.0 (read from the r2 `per_trial_outcomes.json`).
+- Both frozen with `rk freeze --allow-missing`.
+
+Gatekeeper: APPROVE — no FAIL; one WARN (G11 multi-model-target unverifiable, mitigated by the
+AC-3/AC-4 committed-artifact judgment). Full per-rule table in `## Gatekeeper review` above.
+
+Committed path-scoped (solver_workflows/h0058-*, specs/h0058-*, hypothesis file).
