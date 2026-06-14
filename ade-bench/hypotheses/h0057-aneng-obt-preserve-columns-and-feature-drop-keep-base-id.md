@@ -207,7 +207,148 @@ Forked @baseline h0056 to h0057 and applied the two scoped in-place README edits
 
 ## Smoke result
 
-LAUNCHED (detached) 2026-06-14 06:59. Handle dir: `runs/.rk-handles/h0057-smoke-20260614-065900/`. Worker pid 3151900; rk run child 3151915→3151918→harbor 3152038 confirmed alive. 14-task panel + h0057 solver_workflow resolved via `--explain`. Serial ~9 min/task × 14 ≈ ~2 hr. FO owns the sentinel scan (`<handle>/done` = rc/end/rundir); pending.
+**Headline: NO-GO.** Zero flips (ana-eng004 MISSED) and one regression (asana001 PASS@baseline → FAIL).
+Move B held (qb002/qb003 both PASS). 9/14 PASS (stratified pass@1 = 0.643). Run complete rc=0,
+14 cells, audit clean (14/14 `clean`, 0 findings), `captured = 1` on every cell.
+
+- Smoke run-dir: `runs/ade-bench-h0057-aneng-obt-preserve-columns-and-feature-drop-keep-base-id/0d63e37e05bae208` (rc=0).
+- @baseline = h0056 r2: `runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a`.
+
+| Task | @baseline (h0056 r2) | h0057 smoke | Role | Verdict | Distance / why |
+|------|----------------------|-------------|------|---------|----------------|
+| ana-eng004 | FAIL (0/23 hist) | **FAIL** | 🎯 Move A flip | MISSED | committed obt = 22 cols; verifier wants 23 ("less columns"). Move A FIRED + reached the SQL (full fact⋈dim join, `attachments` PRESENT) but worker collapsed the duplicate join key — kept `i.product_id`, dropped `p.product_id` → 22 not 23 |
+| quickbooks002 | PASS | **PASS** | 🎯 Move B stabilize | HELD | kept department base id; no "less columns" error |
+| quickbooks003 | PASS | **PASS** | 🎯 Move B stabilize | HELD | kept department base id; no "less columns" error |
+| ana-eng003 | PASS | PASS | ✅ h0055 base case | HELD | widened precondition did not break it |
+| airbnb005 | PASS | PASS | ✅ h0053 collision pair | HELD | — |
+| airbnb009 | PASS | PASS | ✅ h0050 collision pair | HELD | — |
+| f1006 | PASS | PASS | ✅ banked max(points) | HELD | — |
+| f1010-medium | PASS | PASS | ✅ banked exclude-pit | HELD | — |
+| f1007 | PASS | PASS | ✅ cross-family canary | HELD | — |
+| quickbooks004 | PASS | PASS | ✅ banked narrow toggle | HELD | — |
+| asana001 | **PASS** (stable r1+r2) | **FAIL** | ✅ cross-family canary | **REGRESSION** | committed asana__task.sql gated `tags`/`number_of_tags` behind `{% if var('asana__using_tags') and var('asana__using_task_tags') %}` → vars resolved disabled → dropped 2 cols → "less columns" |
+| ana-eng006 | FAIL | FAIL | ✅ watch (not expected to flip) | held FAIL | baseline-FAIL, mixed failure modes — NOT a regression |
+| ana-eng007 | FAIL | FAIL | ✅ opportunistic watch | held FAIL | baseline-FAIL — NOT a regression |
+| ana-eng007-medium | FAIL | FAIL | ✅ opportunistic watch | held FAIL | baseline-FAIL — NOT a regression |
+
+Audit/capture: `rk audit --policy strict` → all 14 `clean`, 0 findings; `captured = 1` on every cell.
+ana-eng006/007/007-medium were baseline-FAIL (not regressions); the widened Move-A rule did NOT
+opportunistically flip them.
+
+## Behavioral analysis
+
+### ana-eng004 (Move A flip target — MISSED) — incomplete-artifact / wrong-construct in the pre-diagnosis
+Committed `models/analytics_obt/obt_product_inventory.sql` (from the worker-session apply_patch,
+`rollout-…019ec4ef…jsonl`):
+```
+SELECT i.inventory_id, i.transaction_type, i.transaction_created_date, i.transaction_modified_date,
+       i.product_id, i.quantity, i.purchase_order_id, i.customer_order_id, i.comments,        -- 9 from fact_inventory
+       p.product_code, p.product_name, p.description, p.supplier_company, p.standard_cost,
+       p.list_price, p.reorder_level, p.target_level, p.quantity_per_unit, p.discontinued,
+       p.minimum_reorder_quantity, p.category, p.attachments                                  -- 13 from dim_products
+FROM {{ ref('fact_inventory') }} i LEFT JOIN {{ ref('dim_products') }} p ON p.product_id = i.product_id
+```
+= **22 columns**; verifier wants **23**.
+
+**Move A FIRED and reached the committed artifact** — the worker built the full fact⋈dim OBT, used a
+`SELECT`-style carry-through (no "judged-relevant" prune), and `p.attachments` IS present (so the
+dispatch's pre-diagnosis that `attachments` was dropped is WRONG for this draw). The actual miss: the
+worker collapsed the **duplicate join key** — it kept `i.product_id` but dropped `p.product_id` from
+dim_products. `fact_inventory` = 9 cols, `dim_products` = 14 cols (`product_id` + the 13 carried
+`product_code…attachments`); the solution keeps **both** product_id columns → 9 + 14 = 23. The worker
+kept 9 + 13 = 22 because de-duplicating the join key felt natural. Move A's BEFORE/AFTER skeleton
+(`select f.*, p.*`) says "preserve every column from ALL upstreams" but has no teeth to force an
+explicit **upstream-vs-output column AUDIT** — the worker read "preserve" as "carry the obvious union",
+silently dropping the second copy of the join key. Classify: incomplete-artifact (one short, audit-miss
+on the duplicate-key column).
+
+### asana001 (the REGRESSION) — decisive bleed-vs-variance forensic
+1. **h0057 committed edit (FAIL).** Worker edited 4 files: `dbt_project.yml`, `int_asana__task_tags.sql`,
+   `asana__tag.sql`, **and `asana__task.sql`**. The `asana__task.sql` hunk wraps the `tags` and
+   `coalesce(...number_of_tags...)` select columns AND the `left join task_tags` behind
+   `{% set using_tags = var('asana__using_tags', True) and var('asana__using_task_tags', True) %}` /
+   `{% if using_tags %}`. At verifier time those vars resolved to a disabled state → the 2 tags columns
+   were dropped from asana__task → `"asana__task has less columns than solution__asana__task"`.
+2. **h0056 r2 committed edit (PASS).** Worker edited ONLY `int_asana__task_tags.sql` and `asana__tag.sql`
+   — it did **NOT touch `asana__task.sql` at all**. The fix lived entirely upstream (tags intermediate +
+   tag model), so asana__task kept its `tags`/`number_of_tags` columns intact → 23 cols → PASS.
+   The drop is exactly the columns h0057 additionally gated in asana__task that h0056 r2 left alone.
+3. **What rule shaped the drop?** The worker's reasoning is overwhelmingly the **h0043 package-migration /
+   optional-resource gating** lever (keyword counts in the reasoning text: package×82, disable×26,
+   optional×17, using_tags/using_task_tags×8 each), with the explicit diagnostic: *"first classify package
+   vars and optional-resource behavior. If a downstream model unconditionally refs a package resource that
+   can be disabled by an existing package var, prefer a package-migration compatibility diagnostic and
+   repair."* The worker validated with `--vars '{asana__using_tags: true, asana__using_task_tags: true}'`
+   (compiles PASS) — a self-anchored false-green. The h0057-NEW phrasings (feature-only, shared base id,
+   preserve all, PRESERVE every column, feature boundary) DO appear in the text, but **every occurrence is
+   inside the README BEFORE/AFTER skeletons echoed in the prompt** — none appears in the worker's own
+   reasoning shaping the asana__task gate. Move A says PRESERVE all columns (the *opposite* of what the
+   worker did); Move B's worked example is a feature-removal task with a derived column + conditional join,
+   and the worker did not cite it to motivate gating `tags`. The h0057 README diff left the h0043 package
+   rule **byte-identical**.
+4. **VERDICT: `variance-unclear`** (off-construct, asana package-migration coin-flip). The committed edit is
+   pure h0043 optional-resource gating; the two NEW h0057 edits are ABSENT from the shaping. asana001 admits
+   multiple column outcomes — fix tags upstream-only (h0056 r2 → PASS) vs additionally gate them in
+   asana__task with a var that resolves disabled (h0057 → FAIL). This is a same-rule, different-draw outcome
+   on a byte-identical package rule = variance, NOT h0057 interference. (Caveat per the dispatch: asana001
+   was stably PASS in BOTH h0056 draws, so this is a noticeable wobble — but the committed-artifact + reasoning
+   forensic shows no Move-A/Move-B firing, so it is not classifiable as a bleed.)
+
+## Failure Review
+
+Primary classification per failure:
+
+- **ana-eng004 = incomplete-artifact.** Move A fired and reached the committed SQL (full fact⋈dim OBT,
+  no relevance-prune, `attachments` present), but the worker collapsed the duplicate join key — kept
+  `i.product_id`, dropped `p.product_id` → 22 cols vs the solution's 23. The pre-diagnosis (attachments
+  omitted) was wrong for this draw; the real one-column miss is the second copy of the join key. Move A
+  lacks teeth to force an explicit upstream-vs-output column audit.
+- **asana001 = variance-unclear.** Committed asana__task.sql gates `tags`/`number_of_tags` behind a
+  package var (`asana__using_tags`/`asana__using_task_tags`) that resolved disabled → "less columns".
+  Pure h0043 package-migration optional-resource gating; the two NEW h0057 edits did not fire (all
+  Move-A/Move-B tokens are README prose echoed in the prompt). h0056 r2 PASSED by fixing tags upstream
+  only and never touching asana__task. Byte-identical package rule → same-rule different-draw = variance.
+
+Failure-review questions:
+1. **Original hypothesized fork.** Move A: widening the preserve-columns precondition to multi-upstream
+   OBT/join builds makes the committed obt_product_inventory.sql carry the full column set → ana-eng004
+   FAIL→PASS. Move B: the keep-base-id worked example holds qb002/qb003.
+2. **Fork the committed artifact revealed.** Move A DID change the artifact (full join, no prune) but the
+   real fork is one layer deeper: an OBT that joins on a key shared by both upstreams must keep BOTH
+   copies of the key column (the solution does); "preserve every column" without an explicit upstream-vs-
+   output column count lets the worker silently de-dup the join key and land one short. For asana001 the
+   fork is unchanged-h0043 package gating with a self-anchored `--vars true` false-green, plus the asana
+   package admitting an upstream-only vs asana__task-gated repair (the coin-flip).
+3. **Did the README rule fire, where is the evidence?** Move A: YES — committed obt SQL is the full
+   fact⋈dim join (worker-session apply_patch). Move B: YES (held) — qb002/qb003 kept the department base
+   id, no "less columns". asana001: the NEW rules did NOT fire — only the byte-identical h0043 package
+   rule shaped the asana__task gate (reasoning keyword forensic).
+4. **New fork to test next.** REVISE Move A with an explicit upstream-column-AUDIT step that forces a
+   count: list each upstream model's FULL column set, confirm every column (INCLUDING a join key that
+   exists in more than one upstream — keep both copies unless the task says otherwise) appears in the
+   output, and diff against the upstream rather than trusting an existing or "natural" SELECT.
+5. **Next step:** `file` — REVISE Move A (smoke → hypothesis), re-smoke. Move B needs no change. asana001
+   is variance, not a bleed, so it does not block a re-smoke; but it is a live reminder that the asana
+   package family is a coin-flip and should stay in the canary panel.
+
+## Follow-up Routing
+
+**Route: smoke → hypothesis (REVISE Move A), then re-smoke (hypothesis → propose → smoke).**
+
+- **REVISE Move A — add an upstream-column-AUDIT step.** Before finalizing a BUILD/RENAME, the rule must
+  force: *"list each upstream model's full column set and confirm every column appears in your output. An
+  existing model may have pre-pruned columns — diff against the upstream and add any missing; do not trust
+  the current SELECT. When two upstreams share a join-key column, KEEP BOTH copies (qualify them) unless
+  the task says to collapse them — the solution's wide table retains the duplicate key."* This directly
+  attacks the ana-eng004 miss (22 vs 23 = the dropped second `product_id`). The existing
+  `select f.*, p.*` skeleton already implies both copies; make the audit step explicit so the worker
+  counts rather than carrying the "natural" de-duplicated union.
+- **Move B: no change.** It held (qb002/qb003 PASS, department base id kept). Do NOT scope it to asana001
+  — asana001 was variance (off-construct package gating), not a Move-B bleed.
+- **Recommendation: re-smoke after the Move-A revision** (it is artifact-grounded: Move A demonstrably
+  reaches the SQL and is one column short for a nameable, fixable reason). NOT conclude — the lever is not
+  inert; it is under-specified by exactly one audit step. Keep asana001 + f1007 as cross-family canaries
+  and add a second asana canary if breadth allows (the package family is a known coin-flip).
 
 ## Stage Report: smoke
 
@@ -220,3 +361,14 @@ LAUNCHED (detached) 2026-06-14 06:59. Handle dir: `runs/.rk-handles/h0057-smoke-
 
 ### Summary
 Ran the foreground `--explain` sanity check (exit 0; 14-task panel, concurrency 1, h0057 solver_workflow + README all resolve), then launched the smoke run detached via drivers/rk-run-detached.sh under key h0057-smoke. Confirmed the handle live — full process tree from worker pid 3151900 down to harbor run 3152038, `done` sentinel absent. Returned immediately without waiting; the FO owns the sentinel scan and the ~2 hr run is in flight.
+
+## Stage Report: smoke (cycle 2 — post-run analysis)
+
+- DONE: `## Smoke result` written: full 14-task panel vs @baseline (h0056 r2) with per-target flip/distance/why; headline NO-GO (zero flips — ana-eng004 missed; one regression — asana001). Move B held (qb002/qb003 PASS). ana-eng006/007/007-medium stayed FAIL (baseline-FAIL, not regressions). Audit clean (14/14), captured=1 every cell.
+  Run-dir 0d63e37e05bae208, rc=0; `rk audit --policy strict` → all clean / 0 findings; `rk score` → stratified pass@1 0.643 (9/14); per-cell reward.txt + subagent-trace-manifest captured read.
+- DONE: asana001 BLEED-vs-VARIANCE verdict from committed artifacts = `variance-unclear`.
+  h0057 asana__task.sql gates `tags`/`number_of_tags` behind `var('asana__using_tags')`/`var('asana__using_task_tags')` (resolved disabled → less columns); h0056 r2 PASSED by editing ONLY the tags intermediate + tag model, never touching asana__task. Reasoning is pure h0043 package-migration gating (package×82); all Move-A/Move-B tokens are README prose echoed in the prompt, none shaped the drop. Byte-identical package rule → same-rule different-draw = variance.
+- DONE: `## Failure Review` block written — ana-eng004 = incomplete-artifact (Move A fired + reached SQL, full fact⋈dim join with attachments present, but collapsed the duplicate join key → kept i.product_id, dropped p.product_id → 22<23); asana001 = variance-unclear; all five failure-review questions answered; follow-up routing recommends REVISE Move A with an upstream-column-AUDIT step (count every upstream column, keep BOTH copies of a shared join key), Move B unchanged, re-smoke.
+
+### Summary
+NO-GO: zero flips and one regression on a clean audit (14/14 clean, captured>0 every cell). ana-eng004 missed by exactly one column — Move A fired and reached the committed OBT (full fact⋈dim join, attachments PRESENT, contradicting the dispatch's attachments pre-diagnosis), but the worker collapsed the duplicate join key (kept i.product_id, dropped p.product_id → 22 vs the solution's 23). asana001's regression is `variance-unclear`: the committed asana__task.sql gated the tags columns behind a package var that resolved disabled (pure h0043 package-migration gating), the byte-identical package rule fired differently than h0056 r2 (which fixed tags upstream-only and never touched asana__task), and neither Move A nor Move B shaped the drop (all their tokens are README prose). Routing: REVISE Move A with an explicit upstream-column-AUDIT step (keep both copies of a shared join key), Move B unchanged, re-smoke.
