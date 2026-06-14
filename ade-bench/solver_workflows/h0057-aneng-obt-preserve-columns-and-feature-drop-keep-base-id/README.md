@@ -65,8 +65,9 @@ the removed feature. Do not edit installed packages or dependency code unless
 the task explicitly asks. Preserve ordinary raw/source attributes that are part
 of the base entity or transaction and do not depend on the removed feature.
 
-When removing a feature, drop the feature-ONLY derived column and its conditional join, but KEEP
-the shared base id / foreign-key column that the rest of the project uses.
+When removing a feature, drop the feature-ONLY derived column and its conditional
+join, but KEEP the shared base id / foreign-key column that the rest of the
+project uses.
 
 BEFORE (using_feature enabled):
     select t.entity_id,
@@ -94,35 +95,38 @@ refs and outputs absent, and when an enabled path exists, verify it still
 compiles or preserves the prior output shape.
 
 BUILD / RENAME — PRESERVE THE COLUMN SET (gated). When a task asks to BUILD, CREATE, or RENAME
-a model from ONE OR MORE upstream models — including a wide/one-big-table (OBT) build that JOINS
-a fact to one or more dimensions — and it does NOT (a) remove/disable a feature or (b) enumerate
-a restricted set of columns to keep, then PRESERVE every column from ALL the joined upstream
-models. Apply only the renames, keys, casts, or the join itself the task names; carry all other
-upstream columns through unchanged. Do not prune the select to the columns you judge "relevant" —
-a downstream contract (and OBT consumers) may expect the full set.
+a model from ONE OR MORE upstream models — including a wide / one-big-table (OBT) build that
+JOINS a fact to one or more dimensions — and it does NOT (a) remove/disable a feature or (b)
+enumerate a restricted set of columns to keep, then PRESERVE every column from ALL the joined
+upstream models. Apply only the renames, keys, casts, or the join itself the task names; carry
+all other upstream columns through unchanged. Do not prune the select to the columns you judge
+"relevant" — a downstream contract (and OBT consumers) may expect the full set.
 
 (If the task removes/disables a feature, follow the feature-boundary rule above instead — there
 you DO drop the feature-only columns.)
 
-BEFORE (OBT build that prunes to a judged-relevant subset — AVOID):
-    select f.inventory_id, p.product_name, f.quantity
-    from {{ ref('fact_table') }} f left join {{ ref('dim_table') }} p using (key)
+PRESERVE THE EXISTING MODEL — MINIMAL ADDITIVE COMPLETION. When the target model ALREADY EXISTS
+and already selects from its upstream model(s), the existing column names and aliases ARE the
+contract — PRESERVE them EXACTLY. Do NOT rewrite the SELECT, do NOT rename or re-alias any
+existing column, do NOT collapse or re-key. Instead, compare the existing model's selected
+columns against EACH upstream model's full column list; if the existing model OMITS any upstream
+column, ADD only those missing columns in place, matching the model's existing select style.
+When two upstreams share a join key, keep both copies exactly as the existing model already names
+them — do not invent new aliases for either copy. The ONLY change is adding the omitted upstream
+column(s); everything else stays byte-identical to the existing model. (For a model built FROM
+SCRATCH with no existing target, preserve every column from all joined upstreams, carrying each
+upstream's own column names through unchanged.)
 
-AFTER (preserve every column from BOTH upstreams; keep both shared-key copies):
-    select f.*,                         -- every fact column, incl. its own join key
-           d.*                          -- every dimension column, incl. its join key
-    from {{ ref('fact_table') }} f left join {{ ref('dim_table') }} d using (key)
-    -- if SELECT * collapses the shared key, list columns explicitly and alias the fact's copy:
-    --   select f.inventory_id, ..., f.product_id as inventory_product_id, ..., d.* (incl. d.product_id)
+BEFORE (existing OBT model that OMITS one upstream column — complete it, do not rewrite it):
+    select i.inventory_id, i.product_id as ipd, i.quantity,    -- existing names/aliases: KEEP AS-IS
+           p.product_id, p.product_name, p.list_price          -- p.attachments is MISSING from this select
+    from {{ ref('fact_table') }} i left join {{ ref('dim_table') }} p on p.product_id = i.product_id
 
-COLUMN AUDIT (required before finalizing a build/rename/OBT). List the FULL column set of EACH
-upstream model by reading that upstream model's OWN select list — do NOT trust the columns the
-current/target model already selects, because an existing model may have pre-pruned columns.
-Confirm every upstream column appears in your output; add any the existing model omitted. When
-two upstream models share a join key (e.g. a fact and a dimension both carry the same key
-column), KEEP BOTH copies — alias one so the names do not collide — do NOT collapse them into a
-single column. The solution's wide table retains the duplicate key, so dropping the second copy
-lands the output one column short.
+AFTER (SAME model, only the omitted upstream column ADDED in place; every existing name unchanged):
+    select i.inventory_id, i.product_id as ipd, i.quantity,    -- unchanged
+           p.product_id, p.product_name, p.list_price,
+           p.attachments                                       -- the one OMITTED upstream column, ADDED
+    from {{ ref('fact_table') }} i left join {{ ref('dim_table') }} p on p.product_id = i.product_id
 
 A coverage repair (missing rows / missing days / a narrowed spine) is a SUBTRACTIVE,
 in-place edit, but it is DOUBLE-GATED — apply it ONLY when BOTH preconditions hold, in this
