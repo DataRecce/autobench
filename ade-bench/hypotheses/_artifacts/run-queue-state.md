@@ -44,11 +44,18 @@ production-solver clean-up judgment). See WORKFLOW-REFINE "sim-as-smoke-substitu
 _artifacts/h0057-decision-fork-simulation.md. Move B (feature-removal keep-base-id) VALIDATED — qb002/003
 held PASS both 14-task smokes — and is now h0058.
 
-## QUEUED (filed, no captain go): h0058 — Move-B-only feature-removal stabilizer
-Forks @baseline h0056. ONE change = add the h0057-validated drop-feature-col / KEEP-base-id worked example
-to the feature-removal block. Targets quickbooks002/003 (STABILIZE the over-drop coin-flip — judged by the
-committed keep-department_id artifact + two-draw expectation, NOT a single flip; it lowers PASS->FAIL rate,
-a more reproducible baseline). Status hypothesis; awaiting captain go.
+## RUNNING — h0058 two-draw FULL (Move-B-only feature-removal stabilizer on @baseline h0056)
+ONE scoped edit = the h0057-validated generic drop-feature-col / KEEP-base-id worked example added to the
+feature-removal block. Captain approved SKIP-SMOKE (Move B already real-smoke-validated 2x in h0057 — qb002/003
+held PASS both 14-task smokes). STABILIZER, not a flip: judged by committed keep-department_id artifact +
+TWO-DRAW expectation (does it raise the qb002/003 hold rate vs h0056's r1=32/r2=35, where the qb pair was the
+r1 shortfall?). Gatekeeper APPROVE; AC-1 clean (generic skeleton, no target-schema leak).
+- **r1** seed 42 → runs/.rk-handles/h0058-full-r1-20260614-125122 (pid 3259659), sealed_hash baf3a33abb93eda7b130c141ba4e286d
+- **r2** seed 43 → runs/.rk-handles/h0058-full-r2-20260614-125122 (pid 3259689), sealed_hash 2f95b61fb52b7a6b9dae5ac47507d42c
+When BOTH land rc=0: audit strict + score each; paired delta vs @baseline h0056; AC-3 committed-artifact read
+(qb002/003 drop department_name KEEP department_id; ana-eng003 build-preserve NOT over-fired); AC-4 two-draw
+expectation. Promote only if it raises the expectation collision-free; a pure stabilizer may show ~flat net
+with tighter variance — judge by the qb hold-rate + artifacts, not single-draw net.
 
 ## (prior) h0057 RE-SMOKE cycle 2 — STOPPED by captain
 Move A widens preserve-columns to multi-upstream/OBT joins (flip ana-eng004); Move B = drop-feature-col-
