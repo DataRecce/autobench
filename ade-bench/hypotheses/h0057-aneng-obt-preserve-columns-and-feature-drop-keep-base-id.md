@@ -500,3 +500,15 @@ existing aliases as-is". Then re-probe/re-smoke per captain.
 
 ### Summary
 Cycle 3: re-forked @baseline h0056 fresh and re-applied the two scoped in-place README edits — Move A REVISED to lead with PRESERVE-EXISTING-NAMES + MINIMAL-ADDITIVE (preserve the existing model's exact column names/aliases, add ONLY the omitted upstream column(s) in place, keep both shared-key copies as the model already names them; the new BEFORE/AFTER shows `i.product_id as ipd` + `p.product_id` preserved with only `p.attachments` added), replacing cycle-2's "re-derive from upstreams" framing that caused the re-alias miss; Move B byte-unchanged from cycle 1 (held: qb002/qb003 PASS). AC-1 re-verified: README diff = exactly those two edits, both inside `## Stage: Implementation`, everything else byte-identical, no leaked oracle tokens; full spec differs only in experiment:+solver_workflow:; smoke spec carries the same 14-task target+canary panel; both specs re-frozen. Gatekeeper re-run recommends APPROVE (two advisory WARNs: G8 canary breadth / no intercom canary; G11 unverifiable scored-model counts). Did NOT launch smoke — the FO presents the revised rule to the captain for the re-smoke go.
+
+## Stage Report: smoke (cycle 3 — ana-eng004-only re-smoke launch)
+
+- DONE: A single-task smoke spec specs/h0057-...ana004.smoke.yaml built = full h0057 spec (solver_workflow h0057, cycle-3 revised README) + benchmark.tasks: [ade-bench-ana-eng004] only, trials:1; differs from the h0057 full spec ONLY in experiment: (suffix -ana004) + benchmark.tasks; frozen with rk freeze --allow-missing.
+  `diff` of full vs ana004 spec = exactly the experiment suffix line + the added `tasks:`/`- ade-bench-ana-eng004` block; frozen → specs/h0057-...ana004.smoke.frozen.yaml. `rk run --explain` exit 0: Tasks=1, Concurrency=1, Sample task=ade-bench-ana-eng004, Solver workflow=h0057, README found=True.
+- DONE: 1-task smoke launched DETACHED via drivers/rk-run-detached.sh (key h0057-ana004, the ana004 smoke.frozen.yaml, mode run); handle dir under runs/.rk-handles/ returned with pid+log; ensign returns immediately, does NOT wait.
+  Handle: /home/kent/autobench/ade-bench/runs/.rk-handles/h0057-ana004-20260614-100824/ ; pid 3235472 ; log runs/.rk-handles/h0057-ana004-20260614-100824/log ; ntfy adebench-rk-381c976fe07465bf. Returned without waiting (~9 min; FO owns the sentinel scan).
+- DONE: Handle confirmed live (pid alive + rk run child spawned) before returning; exact handle-dir path reported.
+  Process chain alive: worker 3235472 (S) → uv 3235487 (Sl) → rk python 3235490; `done` sentinel absent (run in flight).
+
+### Summary
+Built the ana-eng004-only cycle-3 re-smoke spec (full h0057 spec + single-task benchmark.tasks, diff = experiment suffix + one task line), froze it, sanity-checked via `rk run --explain` (1 task = ana-eng004, solver = h0057), and launched it detached under key h0057-ana004. Confirmed the handle live (worker→uv→rk python chain, done absent) and committed the two spec files path-scoped. Returned immediately without waiting; the FO owns the ~9 min sentinel scan and the deep-dive on the sentinel.
