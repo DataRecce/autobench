@@ -168,3 +168,39 @@ audit, with the two-draw mean clearing ~33.5.
   committed keep-department_id artifact, not one reward.
 
 Method/README change only. Forks @baseline h0056 (`solver_workflows/h0056-compose-six-levers-on-h0052`, runtime codex); no dataset, harness, or runtime change.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — clean two-move scoped edit confined to `## Stage: Implementation`; both integrity rules (G2/G3/G6) PASS, leak-guard byte-identical, full preserve-columns skeleton present, strong canary panel with the qb002/qb003 bleed tripwire in place. Only advisory WARNs (G8/G11) remain.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). Reviewed 2026-06-14T00:00:00Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff = two hunks only: Move-B insert at parent L67→child L68-83 and Move-A replace at parent L81-97→child L97-113. Both fall strictly inside `## Stage: Implementation`. No other stage, no leak-guard/dependency prose touched. Per AC-1 note, the two scoped edits judged as ONE coherent two-move change. |
+| G2 leak-guard intact | PASS | Leak-guard region (README L1-33) IDENTICAL to parent. Forbidden-oracle grep (`AUTO_`/`solution__`/`check_`/`obt_product_inventory`/`department_id`/`department_name`/expected-count): NONE. `curl`/`wget`/`git clone` only at L9-10 = the unchanged PROHIBITION prose. Not-feature-removal guard sentence KEPT INTACT at child L104. |
+| G3 spec two fields | PASS | `diff baseline.yaml h0057.yaml` = exactly `experiment:` (L2) and `solver_workflow:` (L11). `kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved. |
+| G4 smoke tasks-only | PASS | Smoke diff = only an added `benchmark.tasks:` block (14 tasks, all `ade-bench-` prefixed). Both targets present: ana-eng004 + quickbooks002/003. Regression sentinels present. Nothing else differs. |
+| G5 both frozen | PASS | Both frozen files exist; both carry `kind: spacedock_solver`, `runtime: codex`, `trials: 1`. |
+| G6 resolver fidelity | PASS | Fork parent = h0056 (`source:` and registry agree). Move A widens "single upstream"→"ONE OR MORE … OBT JOIN … PRESERVE every column from ALL", BEFORE/AFTER `select f.*, p.*`. Move B adds drop-feature-col/keep-base-id worked example. Both generative-authoring/build guidance — NOT self-anchored; no dead-family phrasings; no scope creep. |
+| G7 actionability/inert-risk | PASS | Move A carries a copyable BEFORE/AFTER SQL skeleton (the PASS few-shot form); Move B is itself a BEFORE/AFTER worked example. Generalizes a *banked* preserve-columns lever (h0055 flipped ana-eng003), inheriting a demonstrated-actionable mechanism. |
+| G8 regression-canary coverage | WARN | Generative (build/rename incl. join, fires broadly). Panel has cross-family canaries asana001, f1007 + same-construct perturbable canaries ana-eng003, airbnb005, and the Move-A BLEED TRIPWIRE qb002/qb003. WARN: no intercom canary, and only one airbnb perturbable canary (005) for the join-build construct — a different airbnb build passer could regress unseen. Not FAIL: ≥1 non-target passer from each touchable family present. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol. |
+| G10 self-correcting false-positive | N/A | Neither move is a check/reconcile/validate-and-fix lever; both are generative authoring guidance. |
+| G11 multi-model-target risk | WARN (unverifiable) | Taxonomy + dataset verifier sets not statically readable; ana-eng004/qb002/qb003 scored-model counts unconfirmed. If any target is multi-model, treat a single-run flip on the unaddressed model as variance and judge by the committed artifact on every scored model (airbnb007/h0034 lesson). |
+| G12 decision-fork probe quality | N/A | Not a flipped-task follow-up; two-draw forensic on a promoted baseline, grounded in committed-artifact forensics, no subagent-count overclaim. |
+
+**For the captain:** APPROVE — clean scoped two-move modify-in-place edit, both hunks inside Implementation, leak-guard byte-identical, integrity rules all PASS, Move-A bleed tripwire (qb002/qb003 must still DROP department_name / KEEP department_id) seated in the smoke panel. Two advisory WARNs at smoke: (G8) widened preserve-columns is more generative — confirm at full no non-target airbnb/f1 build passer regresses (only airbnb005 covers the join-build construct; no intercom canary); (G11) ana-eng004/qb002/qb003 scored-model counts unverified — if multi-model, credit by committed artifact on every scored model. Per AC-5 judge over ≥2 draws against ~33.5; read Move-B stabilization by the keep-department_id artifact, not a single reward.
+
+## Stage Report: propose
+
+- DONE: Move A + Move B applied to the forked @baseline h0056 README per the EXACT edit text in the hypothesis body
+  Forked `solver_workflows/h0057-aneng-obt-preserve-columns-and-feature-drop-keep-base-id/`; Move A replaced the BUILD/RENAME preserve-columns precondition + BEFORE/AFTER skeleton with the multi-upstream/OBT-join version (kept the not-feature-removal guard intact); Move B inserted the drop-feature-col-keep-base-id worked example after the "Preserve ordinary raw/source attributes…" paragraph.
+- DONE: AC-1 verified — `diff h0056/README.md h0057/README.md` = exactly the two scoped edits, both inside `## Stage: Implementation`
+  Diff shows only the Move-A precondition+skeleton replacement and the Move-B worked-example insertion; the other five levers + leak-guard prose + all other stages byte-identical; oracle-token grep (AUTO_*/solution__*/check_*/obt_product_inventory/department_id/department_name/expected-count) returned 0; curl/wget hits are the unchanged leak-guard prohibition prose.
+- DONE: Full spec differs from baseline.yaml ONLY in `experiment:` + `solver_workflow:`; smoke spec adds the `## Target dataset` panel; both frozen
+  `diff baseline.yaml h0057.yaml` = exactly 2 lines; smoke adds a 14-task `benchmark.tasks` block (ana-eng004 flip; qb002/003 stabilize+collision; ana-eng003 must-hold; ana-eng006/007/007-medium watch; airbnb005/009 + f1010-medium/f1006/quickbooks004 holds; asana001/f1007 canaries). Both frozen via `rk freeze --allow-missing`.
+- DONE: Gatekeeper run; `## Gatekeeper review` block written with per-rule PASS/WARN/FAIL table + overall recommendation
+  Recommendation APPROVE; G1/G6 judged the two scoped edits as one coherent two-move MODIFY-existing-blocks change; G8 confirmed the smoke panel + Move-A bleed tripwire (qb002/qb003); no FAILs, two advisory WARNs (G8 canary breadth, G11 unverifiable scored-model counts).
+
+### Summary
+Forked @baseline h0056 to h0057 and applied the two scoped in-place README edits (Move A: widen preserve-columns precondition to multi-upstream/OBT joins; Move B: add the drop-feature-col-keep-base-id worked example to the feature-removal block), both inside `## Stage: Implementation`. AC-1 verified: README diff = exactly those two edits, everything else byte-identical, no leaked oracle tokens; full spec differs only in the two allowed fields; smoke spec carries the 14-task target+canary panel; both specs frozen. Gatekeeper recommends APPROVE with two advisory WARNs (G8 canary breadth for the join-build construct / no intercom canary; G11 unverifiable scored-model counts for the three targets).
