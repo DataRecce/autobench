@@ -319,3 +319,29 @@ a pre-existing feature-removal MISREAD (stripped the `using_department` toggle b
 content), filed as an h0045-family hardening candidate. The gate is collision-free: build/rename
 preserves (ana-eng003), feature-removal drops (qb002). GO bar (full-column artifact + clean audit +
 collision-free quickbooks hold) met.
+
+## Verdict
+
+**PASSED — smoke-validated (GO) lever, MERGED into the h0056 six-lever composition which PROMOTED to
+@baseline.**
+
+This lever did not run its own full; per captain it was composed with h0053 + h0054 onto @baseline
+h0052 in the single six-lever README of **h0056**, which PROMOTED (35/48 = 0.7292, the first six-lever
+baseline; @baseline rebound to
+`runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a`).
+
+**Banked solo effect (now live verbatim in the @baseline README):** the build/rename
+preserve-all-upstream-columns rule — on a plain build/rename task (no feature-removal, no requested
+column-subset), PRESERVE the full upstream column set rather than dropping columns. Solo smoke committed
+the all-18-column artifact on **ana-eng003**. In h0056 ana-eng003 PASSED both full draws.
+
+**Collision-free, confirmed from the h0056 committed artifacts — the decisive forensic:** the
+h0045↔h0055 dual-pair (build-vs-remove) held in both draws. The r1-only qb002+qb003 regressions were
+h0045-family feature-removal **over-DROP** coin-flips (the solver scrubbed the base `department_id`
+column → verifier "less columns than solution"); preserve-columns **NEVER fired** there — 0
+firing-language hits, and the failure mode is "too FEW columns", the exact OPPOSITE of an h0055
+over-KEEP. Both held PASS in r2 and at baseline → variance, not a collision. This directly confirmed
+the decision-fork sim's "preserve-columns silent on qb002/qb003" proxy from the actual artifacts. Cited
+evidence: the h0056 promotion + the 48/48 six-way decision-fork simulation
+(`_artifacts/h0056-decision-fork-simulation.md`, this lever scored 6/6 desired on its ana-eng003
+target, 0 collisions).

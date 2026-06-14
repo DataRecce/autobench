@@ -203,3 +203,27 @@ Driven FROM the reviews fact, INNER JOIN to listing metadata — only listings w
 ## GO/NO-GO
 
 **GO.** airbnb005 flips FAIL→PASS via the committed INNER-JOIN-from-fact `listing_agg_nps_reviews.sql` (artifact-confirmed, 14,243-row oracle match, 4/4 scored tests on BOTH scored models — G11 closed); the airbnb009 collision canary holds PASS with the h0050 coverage lever STILL firing (narrowing predicate dropped, keep-all-days) — proving the new inner-join rule did not conflict with or suppress completeness; zero canary loss across all ten regression/banked cells (12/12 PASS, clean strict audit). The two gates compose additively on opposite sides of the completeness-intent signal exactly as hypothesized. Route smoke → full.
+
+## Verdict
+
+**PASSED — smoke-validated (GO) lever, MERGED into the h0056 six-lever composition which PROMOTED to
+@baseline.**
+
+This lever did not run its own full; per captain it was composed with h0054 + h0055 onto @baseline
+h0052 in the single six-lever README of **h0056**, which PROMOTED (35/48 = 0.7292, the first six-lever
+baseline; @baseline rebound to
+`runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a`).
+
+**Banked solo effect (now live verbatim in the @baseline README):** the per-key inner-join-from-fact
+rule — build the per-key aggregate FROM the fact table and `INNER JOIN` the dimension (no
+left-join-from-dim that emits zero-fact NULL rows). Solo smoke flipped **airbnb005** (committed
+INNER-JOIN-from-`fct_reviews` `listing_agg_nps_reviews.sql`, 14,243-row oracle match, 4/4 scored). In
+h0056 this lever fired with the SAME committed shape in BOTH full draws AND **generalized** to the
+sibling NPS task **airbnb007** (per-listing aggregate from `fct_reviews` + `INNER JOIN dim_listings`,
+11/11) — a +2 reproduced flip over h0052, the strongest banked gain of the composition.
+
+**Collision-free, confirmed from the h0056 committed artifacts:** the h0050↔h0053 dual-pair (opposite
+sides of the completeness-intent signal) held in both draws — airbnb009 routed to coverage-repair with
+the inner-join silent, airbnb005 routed to inner-join with coverage silent. Cited evidence: the h0056
+promotion + the 48/48 six-way decision-fork simulation (`_artifacts/h0056-decision-fork-simulation.md`,
+this lever scored 6/6 desired on its airbnb005 target, 0 collisions).

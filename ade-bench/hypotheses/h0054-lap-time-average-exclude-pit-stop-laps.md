@@ -236,3 +236,26 @@ laps via anti-join BEFORE averaging (not the subtract-duration shape that produc
 construct artifacts (the precondition gate kept the lap-time rule from firing on them), and all
 six canaries held PASS on a clean strict audit (10/10, tainted 0 / coverage_missing 0). Advance
 to `full`.
+
+## Verdict
+
+**PASSED — smoke-validated (GO) lever, MERGED into the h0056 six-lever composition which PROMOTED to
+@baseline.**
+
+This lever did not run its own full; per captain it was composed with h0053 + h0055 onto @baseline
+h0052 in the single six-lever README of **h0056**, which PROMOTED (35/48 = 0.7292, the first six-lever
+baseline; @baseline rebound to
+`runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a`).
+
+**Banked solo effect (now live verbatim in the @baseline README):** the lap-time exclude-pit-stop-laps
+rule — when averaging lap/duration, EXCLUDE pit-stop laps via an anti-join BEFORE the `avg`, not the
+subtract-duration shape that produced h0037's wrong `Got 1092`. Solo smoke committed the EXCLUDE
+artifact on **f1010-medium**. In h0056 this lever fired with its intended committed shape in BOTH full
+draws — `lap_times_without_pit_stops` via `left join pit_stop_laps … where psl.race_id is null` then
+`avg(milliseconds)` (EXCLUDE-then-aggregate), f1010-medium PASS both draws. As a precondition-gated
+noise-reducer it pinned a previously coin-flipping cell, tightening the trials:1 variance band.
+
+**Collision-free:** the lap-time gate stayed silent on every non-lap construct (the three h0052 banked
+flips kept their own committed artifacts in both draws). Cited evidence: the h0056 promotion + the
+48/48 six-way decision-fork simulation (`_artifacts/h0056-decision-fork-simulation.md`, this lever
+scored 6/6 desired on its f1010-medium target, 0 collisions).

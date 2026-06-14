@@ -356,7 +356,87 @@ verdict from `verifier/test-stdout.txt`.
 
 ## Follow-up Routing
 
+**Routing: `escalate`** — surface the candidate edit-shape directions to the captain for strategy.
+
+The construct-gated edit-shape lever family (h0044 max-points + h0045 feature-boundary + h0050
+scoped-coverage + h0053 per-key-inner-join + h0054 lap-exclude + h0055 preserve-columns) is now
+clearly **PRODUCTIVE**, not exhausted: it carried @baseline 32→35 across this composition and banks
+multiple reproduced flips (airbnb009/f1006/f1006-hard from h0052; airbnb005 + airbnb007 new here).
+This is the OPPOSITE of the concluded oracle-flip family — there is live signal in adding precondition-
+disjoint gated shape rules. So this does not route `stop`. But it also does not cleanly route `file`:
+no single remaining FAIL stands out as a one-target slam-dunk, and several plausible new gates would
+each be their own experiment. That is a strategy fork for the captain → `escalate`.
+
+**Remaining @baseline (h0056 r2) FAIL set — 13 of 48** (from r2 `per_trial_outcomes.json`,
+`runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a`):
+
+| Slug | Family | Edit-shape-tractable? | Note |
+|------|--------|------------------------|------|
+| ana-eng004 | ana-eng (build/rename) | **MAYBE** | h0055-adjacent; preserve/derive-column construct — probe whether a gated build-shape rule fits |
+| ana-eng006 | ana-eng (build/rename) | **MAYBE** | same family as the banked ana-eng003 (h0055) — candidate sibling generalization |
+| ana-eng007 / -medium | ana-eng | **MAYBE** | same family; the -medium twin suggests a difficulty-pair that a gated rule could move together |
+| asana003 | asana | MAYBE | h0009 once causal-flipped asana002 (package-copy); asana may have a narrow gated construct |
+| asana004 | asana | MAYBE | same family — needs an artifact read to see if it is edit-shape or oracle-blocked |
+| asana005 / -hard | asana | MAYBE | difficulty-pair; same caveat |
+| f1002 | f1 (formula1) | MAYBE | f1 family carries the banked max-points + lap-exclude wins — f1002 may host another grain/aggregate shape |
+| quickbooks001 | quickbooks | LIKELY oracle/build-variance | qb002/qb003 are feature-removal coin-flips; qb001 likely the same large-build variance pool, not a clean gate |
+| intercom001 / 002 / 003 | intercom | **oracle-blocked** | no intercom passer exists at all (per gatekeeper G8) — the whole family looks oracle-blind; do NOT file a gated lever here |
+
+**Read:** the tractable bets all live in the **ana-eng build/rename** family (ana-eng004/006/007/-medium
+— direct h0055 siblings, the strongest single-construct cluster) and the **f1 grain/aggregate** family
+(f1002, adjacent to the banked h0044/h0054 f1 wins). The asana cluster is uncertain (needs an artifact
+read first). intercom (001/002/003) is oracle-blocked — explicitly do NOT spend a gated-lever
+hypothesis there. quickbooks001 is most likely in the feature-removal/large-build variance pool that
+h0045 already covers, not a new gate.
+
+**Recommendation to the captain:** the cleanest next bet is an **ana-eng build/rename sibling
+generalization** — probe whether the h0055 preserve-columns gate (or a close sibling build-shape rule)
+already fires correctly on ana-eng004/006/007 the way h0053 generalized from airbnb005 to airbnb007.
+If a quick artifact/decision-fork probe shows one of those routes cleanly, `file` ONE
+`h<NNNN>` forking the NEW @baseline h0056 README. Escalating rather than auto-filing because (a) the
+choice between the ana-eng cluster and the f1 grain bet is a strategy call, and (b) the right move may
+be a small artifact probe first (does the existing six-lever README already half-fire on ana-eng004?)
+rather than a fresh full run.
+
 ## Verdict
+
+**PASSED / PROMOTED.** h0056 is the first SIX-lever baseline. @baseline rebound from h0052
+(`runs/ade-bench-h0052-compose-maxpoints-featureguard-scoped-coverage/dcb1a62ef4066133`, 32/48 = 0.6667)
+to the h0056 r2 draw
+`runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a` = **35/48 = 0.7292**.
+
+**Promotion basis (the h0052 self-consistency precedent, not single-draw net):** two strict-clean
+independent draws — r1 (seed 42) = 32/48, r2 (seed 43) = 35/48, **mean 33.5**, both above h0052's
+measured ~30 expectation; 48/48 captured, 0 errored, every score paired with a clean strict audit
+(AC-2). The decisive evidence is the committed artifacts (AC-4), not the net: all three NEW levers
+fired with their intended committed shape in BOTH draws — airbnb005 inner-join-from-`fct_reviews`,
+f1010-medium `lap_times_without_pit_stops` EXCLUDE-then-`avg`, ana-eng003 all-18-columns — and h0053
+**generalized** from its solo target airbnb005 to the sibling NPS task airbnb007 (reproduced across
+both seeds). Both collision dual-pairs held their correct sides in both draws (AC-5): h0050↔h0053
+(airbnb009 routed to coverage-repair / airbnb005 to inner-join), h0045↔h0055 (qb002/qb003 dropped
+feature columns with preserve-columns SILENT). The r1 net of +0 is the standing trials:1 ~±3-cell
+floor — the r1-only qb002/qb003/f1001 regressions are off-construct / feature-removal-boundary
+coin-flips (all held PASS in r2 and at baseline), NONE lever-caused; verified from committed artifacts
+(qb002/qb003 failed with "less columns than solution" — an over-DROP, the exact OPPOSITE of an h0055
+preserve-columns over-KEEP, so preserve-columns demonstrably never fired).
+
+**Banks over h0052:** airbnb005 + airbnb007 (h0053 per-key inner-join-from-fact, +2 reproduced in BOTH
+draws); f1011's both-draw gain is an oracle multiple-choice coin-flip, not lever-caused, so it is NOT
+counted as banked value.
+
+**Transferable lesson:** six construct-gated edit-shape levers compose **additively AND collision-free**
+in one README when each gate is **precondition-disjoint** — the gate IS the isolation mechanism, so
+stacking does not require pairwise re-verification, only that no two gates share a firing precondition
+(here the two risky dual-pairs sit on OPPOSITE sides of one signal each: completeness-intent for
+h0050↔h0053, build-vs-remove for h0045↔h0055). Methodologically: a **48/48 mutual-non-interference
+decision-fork simulation** (8 tasks × 6 fresh isolated decision agents on the committed merged
+rulebook, 0 collisions across both dual-pairs) **validly substituted for a smoke run** on a merge of
+levers that were EACH already solo-smoke-verified — it is a sound proxy for the only NEW question a
+merge introduces (decision-policy interference between the longer rulebook's rules). Its boundary is
+equally clear: the sim is silent exactly where the trials:1 variance lives (feature-removal boundary
+judgment, off-construct large-build cells, oracle MC) because those are not rule-routing questions —
+so the promote still rested on the full-run committed-artifact reads + the two-draw expectation
+clearing h0052's ~30, never on the sim alone.
 
 ## Stage Report: propose
 
@@ -395,3 +475,15 @@ Launched the h0056 six-lever composition as TWO concurrent independent full 48-t
 
 ### Summary
 Both h0056 draws landed strict-clean (48/48 captured, 0 errored): r1=32/48, r2=35/48 (mean 33.5). The three new levers all fired with their intended committed shape in both draws and h0053 banked +2 new flips (airbnb005 + airbnb007) over h0052. The decisive forensic: the r1-only qb002+qb003 double-regression is h0045-family feature-removal OVER-DROP variance (the solver scrubbed the base department_id column; preserve-columns never fired — failure mode is "too few columns", the exact opposite of an h0055 over-KEEP), confirming the decision-fork sim's no-collision proxy from the actual artifacts. No regression is lever-caused. Recommendation: PROMOTE candidate (collision-free, clears h0052's expectation on the two-draw + committed-artifact precedent); the promote decision is the captain's.
+
+## Stage Report: conclude
+
+- DONE: h0056 `## Verdict` written: PASSED / PROMOTED — @baseline rebound to the r2 run-dir (runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a, 35/48 = 0.7292); distilled transferable lesson recorded.
+  Verdict states the rebind, the two-draw (r1=32/r2=35, mean 33.5) + committed-artifact basis (same h0052 self-consistency methodology), banks airbnb005 + airbnb007 as NEW reproduced flips over h0052, and the lesson: precondition-disjoint gated edit-shape levers compose additively + collision-free in one README (gate = isolation), and a 48/48 decision-fork sim validly substitutes for smoke on a merge of already-solo-verified levers (sound proxy for decision-policy interference; silent where trials:1 variance lives).
+- DONE: h0056 `## Follow-up Routing` written with escalate + rationale and concrete next-bet candidates.
+  Routing = escalate (family is PRODUCTIVE 32->35, not exhausted; no single slam-dunk target). Listed all 13 r2 FAILs by family with tractability: ana-eng004/006/007/-medium = strongest gated build/rename cluster (h0055 siblings); f1002 = f1 grain/aggregate; asana003/004/005 uncertain (needs artifact read); intercom001/002/003 oracle-blocked (do NOT file); quickbooks001 likely feature-removal variance. Recommended captain probe the ana-eng build/rename sibling generalization, file ONE h<NNNN> forking @baseline h0056 if it routes clean.
+- DONE: h0053 + h0054 + h0055 each get a `## Verdict`: PASSED — smoke-validated lever (GO), MERGED into the h0056 six-lever composition which PROMOTED; solo effect banked in the baseline README; cites the h0056 promotion. Commit all four entity files path-scoped.
+  h0053 (airbnb005 inner-join-from-fact, generalized to airbnb007 +2 banked), h0054 (f1010-medium exclude-pit-then-avg), h0055 (ana-eng003 all-18-cols; qb002/qb003 over-DROP confirms preserve-columns never fired). Each cites the h0056 promotion + its 6/6-desired-0-collision line in the 48/48 decision-fork sim.
+
+### Summary
+Wrote the record-of-verdict for the promoted six-lever composition and its three merged building blocks (no re-runs; all from the existing analyze evidence). h0056 = PASSED/PROMOTED, first six-lever baseline, @baseline rebound to the r2 run-dir at 35/48; transferable lesson is that precondition-disjoint gated edit-shape levers compose additively and collision-free in one README, and a 48/48 mutual-non-interference decision-fork simulation validly substitutes for smoke on a merge of already-solo-verified levers. Routing = escalate: the gated edit-shape family is productive (32->35, banks airbnb005+airbnb007), the cleanest next bet is an ana-eng build/rename sibling generalization, but the ana-eng-vs-f1 choice plus a probe-first option is a captain strategy call. h0053/h0054/h0055 each got a PASSED verdict naming its banked solo effect now live verbatim in the baseline README.
