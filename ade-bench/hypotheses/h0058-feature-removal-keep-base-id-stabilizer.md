@@ -215,3 +215,203 @@ Committed path-scoped (solver_workflows/h0058-*, specs/h0058-*, hypothesis file)
 
 ### Summary
 Launched the h0058 stabilizer promote test as two concurrent independent full 48-task draws (seed 42 / seed 43) against @baseline h0056 (35/48; qb002/qb003 the dominant r1 shortfall). Built two two-field seed-variant specs from the AC-1-verified base, froze both to DISTINCT sealed_hashes (CAS-buster confirmed → two separate run-dirs), and launched both detached via rk-run-detached.sh. Both handles confirmed live with rk children spawned. Did NOT audit/score — the FO owns audit + score + paired-delta when both sentinels (runs/.rk-handles/*/done) land. Each run is budgeted up to ~7hr.
+
+## Run result
+
+**Headline (plain words):** h0058 is a clean variance-reducer. The drop-feature-col/keep-base-id
+worked example did exactly what it was built for — it locked `quickbooks002` and `quickbooks003`
+to PASS in BOTH independent draws, where the baseline coin-flipped them (both FAILED in the
+baseline's bad draw). No collision, no same-construct regression, no over-fire on the build/rename
+tripwire, both draws strict-clean. The headline mean barely moved (34/48 vs the baseline's 33.5/48)
+because off-construct f1 trials:1 noise ate into the seed-42 draw, but the qb-pair hold-rate rose
+from **2-of-4 baseline draw-cells → 4-of-4**, which is the stabilizer's actual value.
+
+**Scores (both strict-clean — re-confirmed `clean=48 / coverage_missing=0 / tainted=0` on BOTH):**
+
+| Run | seed | run-dir | score | audit |
+|-----|------|---------|-------|-------|
+| @baseline h0056 (named) | 43 | runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a | 35/48 (0.7292) | — |
+| @baseline h0056 r1 draw | 42 | runs/ade-bench-h0056-compose-six-levers-on-h0052-r1/deff5d8a9c10c92f | 32/48 (0.6667) | — |
+| h0058 r1 | 42 | runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r1/c1a7e3195d18a55c | **33/48 (0.6875)** | clean=48/cm=0/tainted=0 |
+| h0058 r2 | 43 | runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e | **35/48 (0.7292)** | clean=48/cm=0/tainted=0 |
+
+Absolute vs paper_baseline 0.1875: both draws far above (`against_constant: above`).
+
+**Paired ledger (paired by slug from `per_trial_outcomes.json`; `rk runs diff` TypeErrors on
+ade-bench run-dirs — query_id null — so computed directly, as the tooling note prescribes).**
+
+The decisive comparison for a *stabilizer* is SAME-SEED: h0058 vs @baseline at the same seed, so
+the only difference is the worked example.
+
+- **Same-seed-42 (h0058 r1 vs h0056 r1):** qb002 **F→P**, qb003 **F→P** (the stabilizer firing),
+  f1003 **P→F** (off-construct f1 variance). f1001 stays F→F (seed-42 coin-flip in BOTH).
+  Net +1 → 33/48.
+- **Same-seed-43 (h0058 r2 vs h0056 r2 = the named @baseline):** **ZERO verdict changes.**
+  Identical 35/48, paired bootstrap delta +0.0 [CI +0.0,+0.0]. The worked example was inert-safe on
+  the seed where the baseline already kept department_id.
+
+Cross-seed (h0058 r1 vs the named @baseline r2) paired bootstrap delta = −2.0 tasks
+[95% CI −5.0,+0.0]: this is NOT a regression of the lever — it is the baseline's own seed-42→43
+swing (f1001, f1003) reappearing in h0058's seed-42 draw, with qb002/003 already PASS in the
+seed-43 baseline so they show no gain there. Within CI of zero; the lever's effect is seen on the
+same-seed pairing, not this cross-seed one.
+
+**Every verdict change, both directions, with mechanism:**
+
+| Task | base→h0058 | seed | direction | mechanism |
+|------|-----------|------|-----------|-----------|
+| quickbooks002 | F→P | 42 (r1) | GAIN (stabilize) | worked example fired: dropped `department_name` + its conditional `using_department` join, KEPT `department_id` → no "less columns" error; 8/8 checks |
+| quickbooks003 | F→P | 42 (r1) | GAIN (stabilize) | same: removed `department_name` outputs/docs, preserved base `department_id` FK; 14/14 checks |
+| f1003 | P→F | 42 (r1) | REGRESSION | off-construct f1 variance: `count_answers` test "Got 1 result, configured to fail if != 0" (3/4 checks); the feature-removal worked example is ABSENT from the cell — not lever-caused |
+| (f1001 F→F both seed-42 cells; P→P both seed-43 cells — NOT a change vs same-seed baseline) | | | seed coin-flip | identical `src_models_are_correct` FAIL 14 ("Got 14 results") in BOTH h0056 r1 AND h0058 r1; worked example absent |
+
+**Held PASS across base + both draws:** qb004 (narrow toggle), ana-eng003 (build/preserve
+tripwire), asana001 + f1007 (cross-family canaries), airbnb005/007/009, f1006, f1011, and the rest
+of the 35-strong stable core. **Stable FAIL (unchanged):** ana-eng004 (Move A was dropped — h0058
+is Move-B only), ana-eng006/007/007-medium, asana003/004/005/005-hard, intercom001/002/003,
+quickbooks001, f1002.
+
+### The six required analyze questions
+
+1. **Net + full per-task ledger.** Above. h0058 = 33 (r1) / 35 (r2); two-draw mean **34/48 vs
+   h0056 33.5/48**. Same-seed-42 net +1 (qb +2, f1003 −1); same-seed-43 net 0 (identical). Both
+   gains (qb002, qb003) and the lone regression (f1003) named with mechanism; f1001 is a seed
+   coin-flip, not a change vs same-seed baseline.
+2. **Smoke vs full.** Smoke was **SKIPPED** for h0058 — Move B was already real-smoke-validated
+   TWICE in h0057 (qb002/qb003 held PASS across both 14-task smokes, the worked example
+   byte-unchanged through all four h0057 cycles, zero bleed). The full run confirms the smoke read:
+   the worked example fires on the qb removal tasks and is silent elsewhere. No smoke→full fork
+   drift to explain because there was no h0058 smoke; the f1003 r1 wobble is on a family the h0057
+   smokes never sampled (f1) and is unrelated to the lever.
+3. **Already-correct-and-broken.** The one regression, f1003, WAS passing at @baseline (P in
+   b_r1, b_r2, and h_r2). It broke ONLY in the seed-42 draw, on its own f1 `count_answers` model,
+   with the feature-removal worked example absent. This is "failed to be immune to off-construct
+   trials:1 variance," NOT "the lever broke a passer" — the lever never touched f1003's construct.
+   qb002/qb003 were PASS@baseline *coin-flips* (F in the seed-42 baseline) that the lever
+   stabilized; no working code was damaged by the lever.
+4. **Was the change executed?** YES, verified on the committed artifact (apply_patch hunks in the
+   cell-root agent transcript + ensign session jsonl), not chatter:
+   - qb002 (both draws): apply_patch deletes `departments.fully_qualified_name as department_name`
+     and the `{% if var('using_department') %} left join departments … {% endif %}` blocks in
+     `int_quickbooks__expenses_union.sql`, `int_quickbooks__sales_union.sql`,
+     `quickbooks__ap_ar_enhanced.sql`; `expense_union.department_id` / `sales_union.department_id`
+     remain (no `-` deletion of the base column). `dbt show` against `information_schema.columns`:
+     "only `department_id` remains … no `department_name`." → **executed-and-helped.**
+   - qb003 (both draws): ensign summary "Removed `department_name` outputs/docs. Preserved base
+     `department_id` foreign-key columns where already propagated." Verifier 14/14, no "less
+     columns" error. → **executed-and-helped.**
+   - f1003 r1 regression: feature-removal worked example ABSENT (no `department`/`feature_fk_id`
+     token in the cell); failure is on the cell's own f1 `count_answers` model →
+     **off-construct variance, not inert and not lever-caused.**
+   - ana-eng003 (build tripwire): no feature-removal worked-example token in the cell, normal build
+     artifact, 2/2 → **lever correctly did NOT fire** (gated to remove-feature requests).
+5. **Prevention + next move.** Gains kept without harm BY CONSTRUCTION: the worked example is gated
+   to remove/disable-a-feature requests (ana-eng003 build/preserve confirms zero bleed in both
+   draws; qb004 narrow toggle held). The residual harm (f1003/f1001 seed wobble) is off-construct
+   trials:1 variance the lever can't touch and the panel can't cheaply suppress at trials:1 — it is
+   the known f1 coin-flip noise floor (f1001 regressed in an h0057 draw too). Recommended next move:
+   the captain decides promote (this is a variance-reducer, see closing rec); if not promoted, the
+   qb keep-base-id boundary is now a proven, banked, non-bleeding component available to any future
+   feature-removal composition.
+6. **Smoke-vs-full fork drift.** N/A in the usual sense (no h0058 smoke). The h0057 smoke read of
+   Move B held at full: qb002/qb003 keep-base-id artifact reproduced in both full draws. The f1003
+   seed-42 wobble is single-trial variance on a family (f1) the lever does not touch and the h0057
+   smokes did not sample — not a README rule drifting into a different branch, not a lever effect.
+
+## Behavioral analysis
+
+### quickbooks002 — STABILIZE target — F→P (seed 42), P→P (seed 43); committed keep-base-id artifact BOTH draws
+Method adherence: the main agent dispatched a `spacedock:ensign` implementation worker that executed
+the README's feature-removal method exactly. **Committed artifact (apply_patch, cell-root
+`agent/codex.txt` + ensign session jsonl), seed-42 cell:** in all three affected union/enhanced
+models the patch removes ONLY `departments.fully_qualified_name as department_name` and the
+`{% if var('using_department', True) %} … left join departments on departments.department_id = …
+{% endif %}` conditional joins, plus the `department_name` entries in `quickbooks.yml`/`docs.md`.
+The base column `expense_union.department_id` / `sales_union.department_id` is NOT in any deletion —
+it stays in the select. Worker `dbt show` on `information_schema.columns`: "only `department_id`
+remains in the affected output path, with no `department_name`." Why it works: the verifier's
+AUTO_*_equality "has less columns than solution" error (the over-drop failure mode) is ABSENT;
+verifier `Done. PASS=8 … ERROR=0 TOTAL=8`, expected_test_count=8, the two department guard checks
+(`check_if_models_use_department_var`, `check_if_project_has_department_var`) PASS. Seed-43 cell
+identical shape (`deletes department_name: True`, no base-id deletion), 8/8. Distance-to-pass: 8/8
+both draws.
+
+### quickbooks003 — STABILIZE target — F→P (seed 42), P→P (seed 43); keep-base-id artifact BOTH draws
+Method adherence: ensign worker, feature-removal method executed. Committed-artifact evidence: ensign
+final report "Removed `department_name` outputs/docs. Preserved base `department_id` foreign-key
+columns where already propagated"; project-local search for `department_name`/`department_table`/
+`ref('stg_quickbooks__department')` returned no matches while `department_id` was retained. Verifier
+`Done. PASS=14 … ERROR=0 TOTAL=14`, expected_test_count=14, both department guard checks PASS, no
+"less columns" error. (The apply_patch body in qb003 was applied via the ensign's edit path that
+didn't surface a literal `-department_name` select line in the extracted hunk — confirmed instead by
+the ensign's explicit drop-`department_name`/keep-`department_id` report and the full 14/14 verifier
+with the over-drop error absent.) Distance-to-pass: 14/14 both draws.
+
+### ana-eng003 — BUILD/PRESERVE over-fire tripwire (AC-5) — P→P both draws, NO over-fire
+Method adherence + over-fire check: the cell carries NO feature-removal worked-example token
+(`drop the feature-only`, `feature_fk_id`, `keep the shared base`, `feature-removal` all absent in
+both draws) — the gated worked example correctly did NOT fire on a build/rename task, so there was
+no column over-preservation. Normal build artifact, verifier 2/2 (expected_test_count=2,
+`Done. PASS=2 ERROR=0`) both draws. The h0045↔h0055 boundary held: feature-removal guidance fires
+only on remove/disable-a-feature requests.
+
+### quickbooks004 — narrow-toggle MUST-HOLD — P→P both draws
+Reward 1 in both draws; the worked example did not perturb the narrow-toggle behavior.
+
+### asana001 + f1007 — cross-family canaries — P→P both draws
+Both held PASS across base + both draws. (asana001 is a known package-family coin-flip per the h0057
+forensic; it did not wobble here.)
+
+### f1003 — REGRESSION (seed 42 only) — off-construct variance, NOT lever-caused
+Method adherence: feature-removal worked example ABSENT from the cell (f1003 is an f1 standings/
+aggregate task, not a feature-removal task — the gated example correctly never fired). Failure
+mechanism: 3 of 4 checks pass; the `count_answers` test fails — "Got 1 result, configured to fail
+if != 0" (`Done. PASS=3 ERROR=1 TOTAL=4`). This is a bug on the cell's OWN f1 aggregate model, on
+the seed-42 draw only (P in b_r1, b_r2, h_r2). Classification: off-construct trials:1 variance, not
+lever-caused, not inert. Distance-to-pass: 3/4.
+
+### f1001 — seed-42 coin-flip — NOT a change vs same-seed baseline
+Identical failure in BOTH the @baseline seed-42 cell AND the h0058 seed-42 cell:
+`src_models_are_correct` FAIL 14 ("Got 14 results, configured to fail if != 0"), 5/6 checks
+(`Done. PASS=5 ERROR=1 TOTAL=6`). Passes in both seed-43 cells. The feature-removal worked example
+is absent. This is a pure seed coin-flip in the baseline itself (f1001 also regressed in an h0057
+draw), reproduced identically under h0058 — it is NOT a verdict change attributable to the lever.
+
+## Promote recommendation
+
+**Recommend PROMOTE as a variance-reducer (decision is the captain's).** Judged by the standard the
+hypothesis sets — the committed keep-`department_id` artifact across ≥2 draws plus the hold-rate
+lift, NOT the modest headline net — h0058 is a clean, collision-free stabilizer: (1) qb002 AND
+qb003 committed the drop-`department_name`/keep-`department_id` artifact with the over-drop "less
+columns" error absent in BOTH seed-perturbed draws (AC-3); (2) the qb-pair hold rate rose from
+2-of-4 baseline draw-cells (both FAILED in the seed-42 baseline, the dominant r1 shortfall) to
+4-of-4 (AC-4); (3) the seed-43 draw is byte-for-byte identical to the named @baseline (delta 0,
+CI [0,0]) — zero interference with the other six levers; (4) the build/preserve over-fire tripwire
+(ana-eng003) and the narrow toggle (qb004) held P/P with the worked example provably not firing
+(AC-5); (5) both draws strict-clean. The two-draw expectation rises 33.5→34/48 and, more to the
+point, the worst-case draw improves (the baseline's bad seed-42 draw goes 32→33 because the qb pair
+stops coin-flipping). Honest caveat: the headline mean moved only +0.5 because off-construct f1
+trials:1 variance (f1003, f1001) is noise the lever cannot touch; this is a reproducibility
+improvement on the qb removal boundary, not a pass-count flip. As a banked, proven-non-bleeding
+component it is worth promoting; if the captain prefers to hold for a larger net, the keep-base-id
+worked example remains a de-risked component for future feature-removal compositions.
+
+## Stage Report: analyze
+
+- DONE: `## Run result` written — paired per-task ledger for BOTH draws (r1 c1a7e319 = 33/48, r2 eba9295f = 35/48) vs @baseline h0056, both strict-clean (clean=48/coverage_missing=0/tainted=0 RE-CONFIRMED on BOTH via `rk audit`); every verdict change in both directions with mechanism; all SIX analyze required questions answered; smoke SKIPPED stated (Move B real-smoke-validated 2x in h0057).
+  Scores `rk score`: r1 0.6875, r2 0.7292, both `against_constant: above`. rk runs diff TypeErrored (query_id null) → paired delta from per_trial_outcomes.json; same-seed-43 delta +0.0 [CI 0,0], same-seed-42 net +1 (qb +2, f1003 −1).
+- DONE: STABILIZER VERDICT (AC-3/AC-4) — qb002 + qb003 committed keep-`department_id` artifact in BOTH draws, confirmed from committed apply_patch + ensign session, NOT just reward.
+  qb002 apply_patch deletes only `department_name` + `using_department` conditional joins, keeps `department_id` (dbt show: "only department_id remains, no department_name"); qb003 ensign "Removed department_name…Preserved base department_id"; "less columns" error absent, 8/8 + 14/14. Hold-rate lift 2/4 baseline draw-cells (both FAILED seed-42) → 4/4. AC-5: ana-eng003 P/P with no feature-removal token (did not fire on build), qb004 P/P.
+- DONE: f1001 + f1003 r1-only regressions classified as off-construct variance vs lever-caused.
+  Both cells carry NO feature-removal worked-example token. f1003 fails own f1 `count_answers` ("Got 1 result", 3/4); f1001 fails identically in BOTH baseline-seed-42 AND h0058-seed-42 cells (`src_models_are_correct` FAIL 14, 5/6) → seed coin-flip, not a change vs same-seed baseline. Closed with the PROMOTE recommendation (variance-reducer: qb hold 2/4→4/4, mean 34>33.5, collision-free, no over-fire; honest the headline net is modest; decision is the captain's).
+
+### Summary
+h0058 is a clean variance-reducer: the gated drop-feature-col/keep-base-id worked example fired on
+qb002+qb003 and committed the drop-`department_name`/keep-`department_id` artifact (over-drop "less
+columns" error absent) in BOTH seed-perturbed draws, lifting the qb-pair hold rate from 2-of-4
+baseline draw-cells to 4-of-4. The seed-43 draw is byte-identical to the named @baseline (delta 0);
+the seed-42 draw is 33/48 (qb +2, f1003 −1 off-construct f1 variance). Build/preserve tripwire
+(ana-eng003) and narrow toggle (qb004) held P/P with the worked example provably not firing; both
+draws strict-clean. Recommended PROMOTE as a banked, non-bleeding reproducibility improvement on the
+qb removal boundary (two-draw mean 34 vs 33.5), honest that the headline net is modest — the captain
+decides.
