@@ -128,16 +128,16 @@ existing line, you over-edited — revert that change and keep only the addition
 (For a model built FROM SCRATCH with no existing target, preserve every column from all joined
 upstreams, carrying each upstream's own column names through unchanged.)
 
-BEFORE (existing OBT model that OMITS one upstream column — complete it, do not rewrite it):
-    select i.inventory_id, i.product_id as ipd, i.quantity,    -- existing names/aliases: KEEP AS-IS
-           p.product_id, p.product_name, p.list_price          -- p.attachments is MISSING from this select
-    from {{ ref('fact_table') }} i left join {{ ref('dim_table') }} p on p.product_id = i.product_id
+BEFORE (existing model that OMITS one upstream column — complete it, do not rewrite it):
+    select o.order_id, o.customer_id as co, o.amount,          -- existing names/aliases: KEEP AS-IS (even the terse "co")
+           c.customer_id, c.full_name, c.region                -- c.loyalty_tier is MISSING from this select
+    from {{ ref('fact_table') }} o left join {{ ref('dim_table') }} c on c.customer_id = o.customer_id
 
 AFTER (SAME model, only the omitted upstream column ADDED in place; every existing name unchanged):
-    select i.inventory_id, i.product_id as ipd, i.quantity,    -- unchanged
-           p.product_id, p.product_name, p.list_price,
-           p.attachments                                       -- the one OMITTED upstream column, ADDED
-    from {{ ref('fact_table') }} i left join {{ ref('dim_table') }} p on p.product_id = i.product_id
+    select o.order_id, o.customer_id as co, o.amount,          -- unchanged (the cryptic "co" alias kept verbatim)
+           c.customer_id, c.full_name, c.region,
+           c.loyalty_tier                                      -- the one OMITTED upstream column, ADDED
+    from {{ ref('fact_table') }} o left join {{ ref('dim_table') }} c on c.customer_id = o.customer_id
 
 A coverage repair (missing rows / missing days / a narrowed spine) is a SUBTRACTIVE,
 in-place edit, but it is DOUBLE-GATED — apply it ONLY when BOTH preconditions hold, in this

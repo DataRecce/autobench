@@ -1,7 +1,7 @@
 ---
 id: h0057
 title: Two-move composition on @baseline h0056 — (A) generalize the build/rename preserve-columns gate to multi-upstream OBT/join models so ana-eng004 flips; (B) sharpen the feature-boundary removal rule with a worked example (drop the feature-only column, KEEP the shared base id) to lock quickbooks002/003 against the over-drop coin-flip
-status: propose
+status: smoke
 kind: hypothesis
 source: "Captain request 2026-06-14 from the h0056 two-draw analysis (r1=32/r2=35; the r1 shortfall = f1001+qb002+qb003 coin-flips). Forks the current @baseline h0056 (runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a, 35/48). Both moves artifact-grounded — Move A: ana-eng004 forensic = same dropped-column construct as the banked ana-eng003 (build OBT from fact-join-dim, solution = all 22 cols, hist 0/23). Move B: qb002/qb003 r1-vs-r2 forensic = OVER-DROP of the base department_id column; correct boundary (drop department_name, keep department_id) is cleanly expressible."
 started: 2026-06-14T00:00:00Z
@@ -560,3 +560,17 @@ qb002/003 8/8 feature-boundary (no bleed). See _artifacts/h0057-decision-fork-si
 
 ### Summary
 Cycle 4: re-forked @baseline h0056 fresh and rebuilt the forked README's Implementation section to be byte-identical to the SIM-VALIDATED /tmp/h0057-sim4/rulebook.md. The only change vs cycle 3 is Move A's reframe from "MINIMAL ADDITIVE COMPLETION" to "ADDITIVE-PATCH-ONLY COMPLETION" + a numbered PROCEDURE (set-difference → add-only → post-edit SELF-CHECK diff) — forbidding any modify/rename/reorder of existing lines to attack the cycle-2/3 re-alias / duplicate-key-collapse miss; Move B byte-unchanged. AC-1 re-verified (README diff = exactly the two scoped edits inside Implementation, everything else byte-identical, no leaked oracle tokens); full + single-task ana004 + 14-task smoke specs all re-frozen. Gatekeeper recommends APPROVE (two standing advisory WARNs). Did NOT launch smoke — the FO launches the single-task ana-eng004 re-smoke.
+
+## Stage Report: smoke (cycle 4 — de-leak + single-task ana-eng004 launch)
+
+- DONE: README DE-LEAKED — forked h0057 solver README's Move-A worked example no longer contains ana-eng004's schema; `## Stage: Implementation` byte-identical to /tmp/h0057-sim4/rulebook.md.
+  Replaced the inventory/product BEFORE/AFTER (`i.product_id as ipd`/`p.product_name`/`p.list_price`/`p.attachments`) with the generic orders/customers example (`o.order_id, o.customer_id as co, o.amount … c.loyalty_tier`). `diff <(sed -n '/## Stage: Implementation/,/## Stage: Validation/p' README.md | sed '$d') /tmp/h0057-sim4/rulebook.md` = NO DIFF; `grep -nE 'ipd|attachments|inventory_id|list_price|product_name' README.md` = NONE.
+- DONE: AC-1 still holds — diff vs h0056 = only the two scoped edits; leak-guard + other stages byte-identical; no AUTO_/solution__/check_/obt_product_inventory/department_id/department_name/expected-count token.
+  README diff h0056→h0057 = Move-B insert (`67a68,84`) + Move-A precondition+ADDITIVE-PATCH-ONLY+PROCEDURE+skeleton replace (`81,85c98,103` + `90,97c108,140`), all inside Implementation. Pre-Implementation L1-49 byte-identical; Validation→EOF byte-identical; oracle-token grep NONE; not-feature-removal guard intact (child L99). All three specs re-frozen via `rk freeze --allow-missing` (full content_hash sha256:2c9c0c6e…).
+- DONE: Single-task ana-eng004 smoke launched DETACHED via drivers/rk-run-detached.sh (key h0057-ana004-c4, the ana004.smoke.frozen.yaml, mode run); handle returned with pid+log; returned immediately, did NOT wait.
+  Handle: /home/kent/autobench/ade-bench/runs/.rk-handles/h0057-ana004-c4-20260614-105728/ · pid 3245175 · log <handle>/log · ntfy adebench-rk-381c976fe07465bf. `rk run --explain` confirmed Tasks=1, Sample task=ade-bench-ana-eng004, README found=True.
+- DONE: Handle confirmed live (pid alive + rk run child spawned); exact handle-dir path reported.
+  Process tree alive: worker 3245175 (S) → uv 3245190 (Sl) → rk python 3245193; `done` sentinel absent (run in flight).
+
+### Summary
+Cycle-4 de-leak + launch. Made the forked README's Implementation section byte-identical to the sim-validated /tmp/h0057-sim4/rulebook.md — the only change vs the prior committed README is Move A's BEFORE/AFTER worked example, now the generic orders/customers example instead of ana-eng004's exact inventory/product schema (removed ipd/attachments/inventory_id/list_price/product_name). AC-1 re-verified (diff vs h0056 = only the two scoped edits, leak-guard + Validation→EOF byte-identical, no oracle tokens); all three specs re-frozen. Launched the single-task ana-eng004 cycle-4 smoke detached under key h0057-ana004-c4 (~9 min); handle confirmed live (worker→uv→rk python chain, done absent). Did NOT wait — the FO owns the sentinel scan.
