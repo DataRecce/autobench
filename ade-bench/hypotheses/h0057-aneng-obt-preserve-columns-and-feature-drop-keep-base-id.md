@@ -430,3 +430,15 @@ join-key copies retained. Then re-probe (sim context must NOT pre-surface the om
 
 ### Summary
 Cycle 2: re-forked @baseline h0056 fresh and re-applied the two scoped in-place README edits — Move A REVISED (cycle-1 precondition widening to multi-upstream/OBT joins PLUS the new COLUMN-AUDIT teeth that force counting each upstream's own column set and keeping BOTH copies of a shared join key, aliasing one), Move B byte-unchanged from cycle 1 (it held: qb002/qb003 PASS). AC-1 re-verified: README diff = exactly those two edits, both inside `## Stage: Implementation`, everything else byte-identical, no leaked oracle tokens; full spec differs only in experiment:+solver_workflow:; smoke spec carries the same 14-task target+canary panel; both specs re-frozen. Gatekeeper re-run recommends APPROVE (two advisory WARNs: G8 canary breadth for the join-build construct / no intercom canary; G11 unverifiable scored-model counts).
+
+## Stage Report: smoke (cycle 2 — launch only)
+
+- DONE: `rk run --explain` sanity-checked on the smoke.frozen.yaml
+  14-task panel resolves; solver_workflow = solver_workflows/h0057-... (content_hash sha256:06ee376d…); sample task ana-eng004; mode spacedock-codex-first-officer. $0 foreground, clean.
+- DONE: Smoke run launched DETACHED via drivers/rk-run-detached.sh (CYCLE-2 key h0057-smoke-c2, smoke.frozen.yaml, mode run)
+  Handle: /home/kent/autobench/ade-bench/runs/.rk-handles/h0057-smoke-c2-20260614-093919/ · pid 3223045 · log <handle>/log · ntfy adebench-rk-381c976fe07465bf. Returned immediately; FO owns the sentinel scan.
+- DONE: Handle confirmed live before returning
+  Parent worker pid 3223045 alive (etime running); `rk run` child spawned (pids 3223060/3223063); `done` file absent (still running). ~14 tasks ~2hr.
+
+### Summary
+Cycle-2 re-smoke launched detached. Foreground `--explain` confirmed the 14-task target+canary panel and that the spec points at the h0057 solver workflow (the revised Move A with column-audit teeth + byte-unchanged Move B). Detached run is live under runs/.rk-handles/h0057-smoke-c2-20260614-093919/ (pid 3223045, child rk run spawned, done absent). Did NOT wait/audit/score — the FO scans the sentinel and owns the deep-dive on completion.
