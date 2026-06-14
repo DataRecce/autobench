@@ -33,16 +33,19 @@ both baseline-fresh draws → a real ~+1.5 gain. Promote rested on **expectation
 + regression forensics** (all PASS→FAIL cells proven off-construct trials:1 coin-flips), not the
 single-draw net. Noise floor measured: ~±3 cells/draw.
 
-## RUNNING — h0057 SMOKE (two-move edit on @baseline h0056)
-Move A widens the preserve-columns gate to multi-upstream/OBT joins (flip ana-eng004); Move B adds a
-drop-feature-col-keep-base-id worked example to lock the qb002/003 over-drop coin-flip. Pre-smoke
-decision-fork sim was GO (ana-eng004 6/6 flip, qb002/003 6/6 keep-base-id, 0 bleed, all collision pairs
-held; ana-eng007/-medium are different failure modes — won't flip but no regression — see
-_artifacts/h0057-decision-fork-simulation.md). Gatekeeper APPROVE. Smoke handle:
-runs/.rk-handles/h0057-smoke-20260614-065900/ (pid 3151900, 14 tasks ~2hr). When `done` rc=0: audit
-strict + score + per-target deep-dive (ana-eng004 full-column OBT artifact? qb002/003 keep-department_id?
-collision pairs held?) → smoke go/no-go gate to the captain. NOTE the smoke spec is generative-ish (Move A
-widened) — judge canaries hard.
+## RUNNING — h0057 RE-SMOKE cycle 2 (two-move edit on @baseline h0056)
+Move A widens preserve-columns to multi-upstream/OBT joins (flip ana-eng004); Move B = drop-feature-col-
+keep-base-id worked example (lock qb002/003 over-drop). **Cycle 1 smoke = NO-GO**: Move A fired + built the
+full fact⋈dim OBT but COLLAPSED the duplicate join key (kept i.product_id, dropped p.product_id → 22 vs
+solution 23) → ana-eng004 FAIL; Move B HELD (qb002/003 PASS); asana001 regression = package-migration
+VARIANCE not bleed (committed gate was the byte-identical h0043 lever). Captain → REVISE Move A. **Cycle 2**
+adds COLUMN-AUDIT teeth to Move A (list each upstream's full column set, keep BOTH copies of a shared join
+key); Move B byte-unchanged; gatekeeper APPROVE. Re-smoke handle:
+runs/.rk-handles/h0057-smoke-c2-20260614-093919/ (pid 3223045, 14 tasks ~2hr). When `done` rc=0: audit
+strict + score + deep-dive — does ana-eng004 now commit ALL 23 cols (both product_id copies)? qb002/003
+hold? canaries (asana001 = known package coin-flip)? → smoke go/no-go gate to the captain. Sim caveat
+banked: the cycle-1 sim 6/6 OVERSTATED because its context pre-surfaced the omitted column — the real
+bottleneck was column DISCOVERY, which the audit step now forces (see _artifacts/h0057-decision-fork-simulation.md).
 
 ## Held (no captain go):
 - **h0047** — coverage-repair "delete one predicate, touch nothing else" (airbnb009 alt mechanism).
