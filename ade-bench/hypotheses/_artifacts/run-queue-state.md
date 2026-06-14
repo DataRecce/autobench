@@ -33,7 +33,18 @@ both baseline-fresh draws → a real ~+1.5 gain. Promote rested on **expectation
 + regression forensics** (all PASS→FAIL cells proven off-construct trials:1 coin-flips), not the
 single-draw net. Noise floor measured: ~±3 cells/draw.
 
-## Nothing running. Active queue (all HELD — no captain go):
+## RUNNING — h0057 SMOKE (two-move edit on @baseline h0056)
+Move A widens the preserve-columns gate to multi-upstream/OBT joins (flip ana-eng004); Move B adds a
+drop-feature-col-keep-base-id worked example to lock the qb002/003 over-drop coin-flip. Pre-smoke
+decision-fork sim was GO (ana-eng004 6/6 flip, qb002/003 6/6 keep-base-id, 0 bleed, all collision pairs
+held; ana-eng007/-medium are different failure modes — won't flip but no regression — see
+_artifacts/h0057-decision-fork-simulation.md). Gatekeeper APPROVE. Smoke handle:
+runs/.rk-handles/h0057-smoke-20260614-065900/ (pid 3151900, 14 tasks ~2hr). When `done` rc=0: audit
+strict + score + per-target deep-dive (ana-eng004 full-column OBT artifact? qb002/003 keep-department_id?
+collision pairs held?) → smoke go/no-go gate to the captain. NOTE the smoke spec is generative-ish (Move A
+widened) — judge canaries hard.
+
+## Held (no captain go):
 - **h0047** — coverage-repair "delete one predicate, touch nothing else" (airbnb009 alt mechanism).
 - **h0048** — exploration protect-list (airbnb009 alt mechanism).
 - **h0028** — answer decision-table selector adversarial re-fire (candidate-selector family, G9-gated).
