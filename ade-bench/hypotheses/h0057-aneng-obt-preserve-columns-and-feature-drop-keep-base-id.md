@@ -574,3 +574,77 @@ Cycle 4: re-forked @baseline h0056 fresh and rebuilt the forked README's Impleme
 
 ### Summary
 Cycle-4 de-leak + launch. Made the forked README's Implementation section byte-identical to the sim-validated /tmp/h0057-sim4/rulebook.md — the only change vs the prior committed README is Move A's BEFORE/AFTER worked example, now the generic orders/customers example instead of ana-eng004's exact inventory/product schema (removed ipd/attachments/inventory_id/list_price/product_name). AC-1 re-verified (diff vs h0056 = only the two scoped edits, leak-guard + Validation→EOF byte-identical, no oracle tokens); all three specs re-frozen. Launched the single-task ana-eng004 cycle-4 smoke detached under key h0057-ana004-c4 (~9 min); handle confirmed live (worker→uv→rk python chain, done absent). Did NOT wait — the FO owns the sentinel scan.
+
+## Verdict
+
+**REJECTED on the Move-A flip. ana-eng004 is oracle-blind.**
+
+Four real-run cycles, four distinct failure modes — all the same root: the production ensign
+"cleans up" the schema every draw and the exact 23-column solution is invisible to it.
+
+| Cycle | Move-A wording | Committed obt failure | Cols |
+|-------|----------------|-----------------------|------|
+| 1 | widen precondition to multi-upstream/OBT join | collapsed the duplicate join key (kept `i.product_id`, dropped `p.product_id`) | 22 |
+| 2 | + COLUMN-AUDIT teeth (count each upstream, keep both copies) | re-aliased the keys (fact `product_id`, dim `product_details_product_id`; lost `ipd`) — count right, NAMES wrong | 23 (wrong names) |
+| 3 | flip to PRESERVE-EXISTING-NAMES + minimal-additive | re-aliased again (dim key `product_detail_product_id`; dropped `ipd`) | 23 (wrong names) |
+| 4 | ADDITIVE-PATCH-ONLY + numbered PROCEDURE + post-edit self-check | added `attachments` but collapsed dim `product_id` AND dropped the `ipd` alias | 22 |
+
+The exact 23-col solution requires PRESERVING a non-obvious cryptic existing alias (`ipd`) AND
+keeping BOTH `product_id` copies, with NO visible signal those exact names are graded. The
+`AUTO_obt_product_inventory_equality` test is a hidden oracle; "less columns than solution" is the
+only feedback. The production solver treats a cryptic abbreviation as cruft to normalize and
+de-duplicates a redundant join key as natural cleanup — every draw, even against explicit
+"do not re-alias / freeze every existing alias as a contract" prose. ana-eng004 joins
+solver-blind-to-oracle: a target whose pass requires reproducing an oracle-only exact output
+schema the solver has no honest reason to keep.
+
+**DECISIVE METHOD LEARNING — the sim↔real gap is unbridgeable for oracle-only-exact-schema targets.**
+A DE-LEAKED honest decision-fork sim (fresh agents given only the proposed README wording, with the
+omitted/aliased column NOT pre-surfaced) scored ana-eng004 10/10 in the cycle-4 re-sim: fresh
+literal agents faithfully generalize the additive-patch rule, keep `ipd`, add the missing column,
+rename nothing. Yet the production ensign failed 4/4. A sim-validated README rule does NOT guarantee
+the real run when the target needs an oracle-only exact output schema. The sim measures a fresh
+*literal* agent's decision tendency on the rule text; the production ensign exercises an "improve /
+clean up the schema" judgment the sim agent lacks — and that judgment is exactly what drops the
+cryptic alias. No README wording reachable from here closes that gap, because nothing visible signals
+the cryptic alias is load-bearing. (See `_artifacts/h0057-decision-fork-simulation.md` cycle-4 section.)
+
+**LEAK-CATCH (recorded so it does not recur).** The cycle-3/4 worked example embedded ana-eng004's
+OWN columns (`ipd`/`attachments`) — task-overfit that hard-codes the answer into the README AND
+contaminated the first cycle-4 sim (the 8/8 was the agents COPYING the example, not generalizing).
+The de-leaked re-sim (generic orders/customers example) and the de-leaked smoke (cycle 4) are the
+honest reads. A worked example MUST use a foreign domain; a target's own schema in the README is a
+double leak (README overfit + sim contamination).
+
+**Move B VALIDATED.** quickbooks002 + quickbooks003 held PASS across BOTH 14-task smokes
+(cycle 1 + the byte-unchanged Move B in every later cycle), keeping the department base id and the
+"less columns" error absent — zero bleed, the keep-department_id artifact committed each time. Move B
+is a clean stabilizer worth banking on its own; it is what survives this hypothesis.
+
+Net on the flip: +0 (ana-eng004 stays 0/24 stable-FAIL). Move-B stabilizer salvageable.
+
+## Follow-up Routing (conclude — terminal)
+
+**Route: file → h0058 (Move-B-only stabilizer forking @baseline h0056).**
+
+Move A is dead on ana-eng004 (oracle-blind; do NOT re-open it — four real-run cycles exhausted the
+README-wording space, and the failure is the solver's clean-up judgment vs an invisible oracle, not
+an under-specified rule). Move B is validated and orphaned by the rejection. Carry it forward alone:
+author **h0058 — the Move-B-only feature-removal keep-base-id stabilizer** forking @baseline h0056,
+adding ONLY the (h0057-validated, foreign-domain) drop-feature-col-keep-base-id worked example to the
+h0056 feature-removal block. It is a pure stabilizer (lowers the qb002/qb003 PASS→FAIL over-drop
+rate), judged by the committed keep-base-id artifact + a two-draw expectation, not a single flip.
+(The cycle-1 `## Follow-up Routing` section above is the superseded mid-run REVISE route; this
+terminal route supersedes it.)
+
+## Stage Report: conclude
+
+- DONE: h0057 `## Verdict` written: REJECTED on the Move-A flip; ana-eng004 oracle-blind (4 real-run cycles, 4 distinct failure modes — collapse key / re-alias / re-alias / add-attachments-but-collapse-key)
+  Per-cycle table in `## Verdict`; the production ensign never reproduces the exact 23-col solution requiring the cryptic `ipd` alias + both product_id copies; decisive sim↔real learning recorded (de-leaked honest sim 10/10 yet production 4/4 FAIL — unbridgeable for oracle-only-exact-schema targets); leak-catch recorded (worked example must use a foreign domain). Move B VALIDATED (qb002/qb003 held PASS both 14-task smokes).
+- DONE: h0057 `## Follow-up Routing` = file: route to a NEW Move-B-only stabilizer hypothesis (h0058) forking @baseline h0056
+  Appended terminal `## Follow-up Routing (conclude — terminal)` (supersedes the cycle-1 mid-run REVISE route): Move A dead/do-not-reopen, Move B salvaged into h0058.
+- DONE: NEW hypothesis h0058 authored as hypotheses/h0058-feature-removal-keep-base-id-stabilizer.md (status: hypothesis, id h0058, source line QUOTED)
+  Frontmatter parses (yaml.safe_load → status='hypothesis', id=h0058, kind=hypothesis, source non-empty — no colon-space blanking). ONE change = the foreign-domain drop-feature-col-keep-base-id worked example added to the h0056 feature-removal block; targets qb002/qb003 (STABILIZE the over-drop coin-flip, judged by the committed keep-department_id artifact + two-draw expectation, NOT a single flip); falsifiable ACs + canaries (qb004 + ana-eng003 build MUST-HOLD + cross-family); forks @baseline h0056 (runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a).
+
+### Summary
+Record-writing only (no re-runs). Concluded h0057 REJECTED on the Move-A flip: ana-eng004 is oracle-blind — four real-run cycles each produced a distinct schema-cleanup failure (collapse the duplicate join key / re-alias / re-alias / add attachments but collapse the key + drop the cryptic `ipd` alias), and the exact 23-col solution needs an oracle-only output schema (preserve the non-obvious `ipd` alias + both product_id copies) with no visible grading signal. Decisive learning: a de-leaked honest decision-fork sim said 10/10 yet the production ensign failed 4/4 — the sim↔real gap is unbridgeable when the grader needs an oracle-only exact schema, because the production solver's clean-up judgment (absent in the literal sim agent) drops the cryptic alias every draw. Move B was validated and orphaned by the rejection, so it is forked forward as a new pure-stabilizer hypothesis h0058 (Move-B-only, foreign-domain worked example, two-draw + committed-artifact judging). h0057 terminal frontmatter + archival left to the FO.
