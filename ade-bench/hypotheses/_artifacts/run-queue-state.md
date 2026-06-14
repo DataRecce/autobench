@@ -33,7 +33,18 @@ both baseline-fresh draws → a real ~+1.5 gain. Promote rested on **expectation
 + regression forensics** (all PASS→FAIL cells proven off-construct trials:1 coin-flips), not the
 single-draw net. Noise floor measured: ~±3 cells/draw.
 
-## RUNNING — h0057 RE-SMOKE cycle 2 (two-move edit on @baseline h0056)
+## h0057 — at propose CYCLE 3 (revised Move A; awaiting captain re-smoke go)
+Cycle-1 smoke NO-GO (Move A collapsed a join key → ana-eng004 22<23). Cycle-2 re-smoke NO-GO + captain
+STOPPED it: worker ran the audit, committed 23 cols, but RE-ALIASED keys (fact `product_id` / dim
+`product_details_product_id`) vs the solution's `ipd`+`product_id` → name-set mismatch → still "less
+columns". Cycle-3 Move A flips the framing to PRESERVE THE EXISTING MODEL'S EXACT names + MINIMAL ADDITIVE
+completion (the existing OBT already encodes the solution's names, was 1 col [`attachments`] short — add
+only the omitted upstream col, never rewrite/re-alias). Move B byte-unchanged (qb002/003 held both smokes).
+Gatekeeper APPROVE. NOT launched — awaiting captain go for cycle-3 re-smoke. RISK: 3rd cycle on a single
+0/23 target whose failure mode keeps shifting — if cycle-3 fails too, ana-eng004 is likely oracle-sensitive
+(exact solution schema/naming not robustly inferable) → conclude rather than cycle further.
+
+## (prior) h0057 RE-SMOKE cycle 2 — STOPPED by captain
 Move A widens preserve-columns to multi-upstream/OBT joins (flip ana-eng004); Move B = drop-feature-col-
 keep-base-id worked example (lock qb002/003 over-drop). **Cycle 1 smoke = NO-GO**: Move A fired + built the
 full fact⋈dim OBT but COLLAPSED the duplicate join key (kept i.product_id, dropped p.product_id → 22 vs
