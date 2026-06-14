@@ -1,7 +1,7 @@
 ---
 id: h0057
 title: Two-move composition on @baseline h0056 — (A) generalize the build/rename preserve-columns gate to multi-upstream OBT/join models so ana-eng004 flips; (B) sharpen the feature-boundary removal rule with a worked example (drop the feature-only column, KEEP the shared base id) to lock quickbooks002/003 against the over-drop coin-flip
-status: smoke
+status: propose
 kind: hypothesis
 source: "Captain request 2026-06-14 from the h0056 two-draw analysis (r1=32/r2=35; the r1 shortfall = f1001+qb002+qb003 coin-flips). Forks the current @baseline h0056 (runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a, 35/48). Both moves artifact-grounded — Move A: ana-eng004 forensic = same dropped-column construct as the banked ana-eng003 (build OBT from fact-join-dim, solution = all 22 cols, hist 0/23). Move B: qb002/qb003 r1-vs-r2 forensic = OVER-DROP of the base department_id column; correct boundary (drop department_name, keep department_id) is cleanly expressible."
 started: 2026-06-14T00:00:00Z
@@ -372,3 +372,25 @@ Ran the foreground `--explain` sanity check (exit 0; 14-task panel, concurrency 
 
 ### Summary
 NO-GO: zero flips and one regression on a clean audit (14/14 clean, captured>0 every cell). ana-eng004 missed by exactly one column — Move A fired and reached the committed OBT (full fact⋈dim join, attachments PRESENT, contradicting the dispatch's attachments pre-diagnosis), but the worker collapsed the duplicate join key (kept i.product_id, dropped p.product_id → 22 vs the solution's 23). asana001's regression is `variance-unclear`: the committed asana__task.sql gated the tags columns behind a package var that resolved disabled (pure h0043 package-migration gating), the byte-identical package rule fired differently than h0056 r2 (which fixed tags upstream-only and never touched asana__task), and neither Move A nor Move B shaped the drop (all their tokens are README prose). Routing: REVISE Move A with an explicit upstream-column-AUDIT step (keep both copies of a shared join key), Move B unchanged, re-smoke.
+
+## Feedback Cycles
+
+### Cycle 1 — smoke NO-GO → REVISE Move A (captain approved 2026-06-14)
+Smoke (run-dir `…/0d63e37e05bae208`, clean audit) returned NO-GO: zero flips + one regression.
+- **ana-eng004 (Move-A flip target) MISSED by one column.** Move A fired and reached the committed OBT
+  (full fact⋈dim join, `attachments` present — the pre-smoke sim's attachments guess was wrong), but the
+  worker **collapsed the duplicate join key**: kept `i.product_id`, dropped `p.product_id` → 22 cols vs the
+  solution's 23. Move A is directionally right but under-specified: it has no teeth to (a) audit each
+  upstream's FULL column set against the output, or (b) keep BOTH copies of a shared join key.
+- **asana001 regression = VARIANCE, not a bleed.** Committed `asana__task.sql` gated the tags columns
+  behind the package optional-resource var (the byte-identical h0043 lever); neither Move A nor Move B
+  shaped it. Stays a canary; does not block a re-smoke.
+- **Move B HELD** — qb002/qb003 both PASS (keep-base-id lock works, zero bleed). Keep Move B unchanged.
+
+**REVISE direction for cycle 2 (Move A only; Move B byte-unchanged):** add a COLUMN-AUDIT step to the
+preserve-columns block — before finalizing a build/rename/OBT, list the FULL column set of EACH upstream
+model (read the upstream model's own SELECT, NOT just the current target model's columns — an existing
+target may have pre-pruned columns), confirm every upstream column appears in the output, and **when two
+upstream models share a join key (e.g. a fact and a dimension both carry `product_id`), KEEP BOTH copies
+(alias one) — do not collapse them to a single column.** Update the BEFORE/AFTER skeleton to show both
+join-key copies retained. Then re-probe (sim context must NOT pre-surface the omitted column) + re-smoke.
