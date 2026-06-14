@@ -203,3 +203,15 @@ Gatekeeper: APPROVE — no FAIL; one WARN (G11 multi-model-target unverifiable, 
 AC-3/AC-4 committed-artifact judgment). Full per-rule table in `## Gatekeeper review` above.
 
 Committed path-scoped (solver_workflows/h0058-*, specs/h0058-*, hypothesis file).
+
+## Stage Report: full
+
+- DONE: Two seed-variant FULL specs built from the 48-task base (NO benchmark.tasks selector); r1 = experiment ...-r1 + sampling.seed 42; r2 = experiment ...-r2 + sampling.seed 43; each differs from the base full spec ONLY in experiment: + sampling.seed:; both frozen with rk freeze --allow-missing.
+  `diff base.yaml r1.yaml` / `r2.yaml` = exactly the two lines (experiment + seed); `grep tasks:` on both = none (full 48). Frozen sealed_hash DISTINCT — r1 baf3a33abb93eda7b130c141ba4e286d, r2 2f95b61fb52b7a6b9dae5ac47507d42c (CAS-buster worked → two independent run-dirs).
+- DONE: Both full runs launched CONCURRENTLY and DETACHED via drivers/rk-run-detached.sh (keys h0058-full-r1 / h0058-full-r2, mode run); two handle dirs returned; ensign returns immediately, does NOT wait (FO owns the sentinel scan).
+  r1 handle runs/.rk-handles/h0058-full-r1-20260614-125122 (worker pid 3259659, rk child 3259680/3259684); r2 handle runs/.rk-handles/h0058-full-r2-20260614-125122 (worker pid 3259689, rk child 3259704/3259707). RAZORBACK_SPACEDOCK_PLUGIN_DIR exported before launch.
+- DONE: Both handles confirmed live (pid alive + rk run child spawned) before returning; exact two handle-dir paths reported.
+  Both worker pids alive, both rk-run children present in pgrep, no premature `done` sentinel after a 20s recheck (log still buffering through Harbor startup — expected). ntfy topic adebench-rk-381c976fe07465bf armed on both.
+
+### Summary
+Launched the h0058 stabilizer promote test as two concurrent independent full 48-task draws (seed 42 / seed 43) against @baseline h0056 (35/48; qb002/qb003 the dominant r1 shortfall). Built two two-field seed-variant specs from the AC-1-verified base, froze both to DISTINCT sealed_hashes (CAS-buster confirmed → two separate run-dirs), and launched both detached via rk-run-detached.sh. Both handles confirmed live with rk children spawned. Did NOT audit/score — the FO owns audit + score + paired-delta when both sentinels (runs/.rk-handles/*/done) land. Each run is budgeted up to ~7hr.
