@@ -108,9 +108,21 @@ BEFORE (OBT build that prunes to a judged-relevant subset — AVOID):
     select f.inventory_id, p.product_name, f.quantity
     from {{ ref('fact_table') }} f left join {{ ref('dim_table') }} p using (key)
 
-AFTER (preserve all columns from BOTH upstreams; apply only the join the task asks for):
-    select f.*, p.*            -- or every column of f and p listed explicitly, unchanged
-    from {{ ref('fact_table') }} f left join {{ ref('dim_table') }} p using (key)
+AFTER (preserve every column from BOTH upstreams; keep both shared-key copies):
+    select f.*,                         -- every fact column, incl. its own join key
+           d.*                          -- every dimension column, incl. its join key
+    from {{ ref('fact_table') }} f left join {{ ref('dim_table') }} d using (key)
+    -- if SELECT * collapses the shared key, list columns explicitly and alias the fact's copy:
+    --   select f.inventory_id, ..., f.product_id as inventory_product_id, ..., d.* (incl. d.product_id)
+
+COLUMN AUDIT (required before finalizing a build/rename/OBT). List the FULL column set of EACH
+upstream model by reading that upstream model's OWN select list — do NOT trust the columns the
+current/target model already selects, because an existing model may have pre-pruned columns.
+Confirm every upstream column appears in your output; add any the existing model omitted. When
+two upstream models share a join key (e.g. a fact and a dimension both carry the same key
+column), KEEP BOTH copies — alias one so the names do not collide — do NOT collapse them into a
+single column. The solution's wide table retains the duplicate key, so dropping the second copy
+lands the output one column short.
 
 A coverage repair (missing rows / missing days / a narrowed spine) is a SUBTRACTIVE,
 in-place edit, but it is DOUBLE-GATED — apply it ONLY when BOTH preconditions hold, in this

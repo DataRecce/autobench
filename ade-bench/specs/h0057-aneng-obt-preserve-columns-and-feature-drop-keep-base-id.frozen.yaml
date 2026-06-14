@@ -9,7 +9,7 @@ agent:
     top_p: null
     seed: null
   solver_workflow: solver_workflows/h0057-aneng-obt-preserve-columns-and-feature-drop-keep-base-id
-  solver_workflow_content_hash: sha256:c4c2742d2820828d9ba3c3841005314879019acdb6b089a8292e27a6b290d42c
+  solver_workflow_content_hash: sha256:06ee376d64e793cb7be0ffb04467c073efd61b58e474e96ac7cb487abc98109f
   max_turns: 200
   max_budget_usd: null
   override_timeout_sec: 2400.0
@@ -21,7 +21,7 @@ agent:
   reasoning_effort: xhigh
   reasoning_summary: null
   resume_from_freeze: null
-  sealed_hash: aa4b89f8157c357bedc8853a713dccd3
+  sealed_hash: 9b17cfa386d1e5c60c0f768ac57cb4b2
   spacedock_skill_version: 1.0.0
   prompt_content_hashes: {}
 benchmark:
@@ -49,11 +49,11 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: aac17eafee798e5c0063e25777e3f08fbd4424ee
+  harness_git_sha: 8f876cf26c0a962de7218256a02304f0fe8a7be6
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
-  solver_workflow_hash: sha256:c4c2742d2820828d9ba3c3841005314879019acdb6b089a8292e27a6b290d42c
+  solver_workflow_hash: sha256:06ee376d64e793cb7be0ffb04467c073efd61b58e474e96ac7cb487abc98109f
 experiment_meta:
   max_budget_usd: null
   estimated_cost_usd: null
