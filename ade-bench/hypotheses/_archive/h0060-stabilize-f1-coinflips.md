@@ -9,6 +9,7 @@ completed: 2026-06-15T16:20:33Z
 verdict: PASSED
 score:
 worktree:
+archived: 2026-06-15T16:20:33Z
 ---
 
 ## Hypothesis
