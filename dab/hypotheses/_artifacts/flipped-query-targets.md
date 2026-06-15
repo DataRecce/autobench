@@ -51,20 +51,24 @@ Two filters → two buckets:
 
 ## Primary targets — overcome these
 
-Flipped across the 5 Opus runs **and** failing in run-003 (`@baseline`), so each is a clean
-bankable FAIL→PASS:
+Every target **fails in run-003 (`@baseline`)**, so each is a clean bankable FAIL→PASS. They come
+from two sources: **rescued** (codex-5.5 proven to solve it elsewhere — see "Cross-experiment
+rescue"; log-audited legitimate, no cheating) and **flipped** (Opus passed it 1/5–4/5 in the run
+group → solvable, has headroom):
 
-| Priority | Query | 5-run rate | run-003 | Weight (pts) | Bankable lift | Nature of the flip |
-|---|---|---:|---:|---:|---:|---|
-| 1 | `stockmarket-q4` | 3/5 | FAIL | 1.67 | +1.67 | Top-5 NYSE non-ETF "up>down days 2017" — ordering/tie/filter variance. Opus gets it >half the time. |
-| 2 | `yelp-q6` | 1/5 | FAIL | 1.19 | +1.19 | Highest-avg-rating business + category, ≥5 reviews, H1-2016 window — flaky category/rating join; latest Opus run passed (trending up). |
-| 3 | `agnews-q4` | 1/5 | FAIL | 2.08 | +2.08 | "2015 region with most World-category articles" — argmax behind noisy category inference. Highest weight but **integrity-sensitive** (AG-News labels stripped); treat as a stretch. |
-| 4 | `crmarenapro-q3` | 3/5 | FAIL | 0.64 | +0.64 | 5-way stage-label correctness classification for one opportunity — flaky label choice; small weight. |
+| Priority | Query | Source | run-003 | Weight (pts) | Bankable lift | Nature / lever |
+|---|---|---|---:|---:|---:|---|
+| 1 | `GITHUB_REPOS-q4` | rescued (codex 5/5) | FAIL | 2.08 | +2.08 | Top-5 non-Python repos by commits. **codex-5.5 nails it 5/5 on our exact spacedock surface** (log-verified genuine SQL, excluded NULL-language `torvalds/linux`). Likely flips via the anchor with **no lever** (model-capability). |
+| 2 | `googlelocal-q2` | rescued (codex-capable) | FAIL | 2.08 | +2.08 | Massage businesses avg-rating ≥4.0. **codex computes the correct businesses every run**; 4/5 fail only on output shape (JSON-dicts vs `name - rating` string) → **output-contract lever**. |
+| 3 | `stockmarket-q4` | flipped 3/5 | FAIL | 1.67 | +1.67 | Top-5 NYSE non-ETF "up>down days 2017" — ordering/tie/filter variance. Opus gets it >half the time. |
+| 4 | `yelp-q6` | flipped 1/5 | FAIL | 1.19 | +1.19 | Highest-avg-rating business + category, ≥5 reviews, H1-2016 window — flaky category/rating join; latest Opus run passed (trending up). |
+| 5 | `agnews-q4` | flipped 1/5 | FAIL | 2.08 | +2.08 | "2015 region with most World-category articles" — argmax behind noisy category inference. High weight but **integrity-sensitive** (AG-News labels stripped); treat as a stretch. |
+| 6 | `crmarenapro-q3` | flipped 3/5 | FAIL | 0.64 | +0.64 | 5-way stage-label correctness classification for one opportunity — flaky label choice; small weight. |
 
-**Max bankable lift if all four flip vs `@baseline`: +5.58 stratified points** (0.6536 → ~0.709).
-Order above blends flip-confidence (3/5 > 1/5: the approach is better-established) with weight;
-`agnews-q4` carries the most weight but the least confidence + an integrity hazard, so it ranks
-below the two 3/5 / trending targets.
+**Max bankable lift if all six flip vs `@baseline`: +9.74 stratified points** (0.6536 → ~0.751).
+`GITHUB_REPOS-q4` and `googlelocal-q2` lead: highest weight (2.08) **and** the strongest evidence
+codex can do them (5/5 / correct-but-misformatted on our surface). `crmarenapro-q8` (+0.64,
+README-suppressed, see rescue section) is a secondary target → ~+10.4 pts if included.
 
 ## Cross-experiment rescue — queries Opus-4.8 never solved but others did
 
@@ -138,6 +142,14 @@ listed in the flip/fail tables (those passed 5/5 in the run group).
   overturns them.
 
 ## Target prompts (primary)
+
+`GITHUB_REPOS-q4`:
+> List the repository names for the top five GitHub repositories whose main language is not
+> Python, ordered by the highest number of commits.
+
+`googlelocal-q2`:
+> Which massage therapy businesses have an average rating of at least 4.0, and what are their
+> respective average ratings?
 
 `stockmarket-q4`:
 > What are the names (not symbol) of the top 5 non-ETF stocks listed on the New York Stock
