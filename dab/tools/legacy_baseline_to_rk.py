@@ -145,7 +145,11 @@ def write_run_dir(out_root: Path, artifacts: dict) -> Path:
 
 
 def pick_median_run(experiment_dir: Path) -> Path:
-    """Among run-* subdirs, pick the one whose summary.stratified_score is the median."""
+    """Among run-* subdirs, pick the one whose summary.stratified_score is the median.
+
+    Reads the LEGACY run summaries (field `stratified_score`) — distinct from rk's
+    `stratified_pass_at_1` emitted by build_artifacts.
+    """
     runs = []
     for rd in sorted(experiment_dir.glob("run-*")):
         sp = rd / "summary.json"
@@ -157,7 +161,7 @@ def pick_median_run(experiment_dir: Path) -> Path:
     if not runs:
         raise FileNotFoundError(f"no run-*/summary.json with stratified_score in {experiment_dir}")
     runs.sort(key=lambda x: x[0])
-    return runs[len(runs) // 2][1]  # median (lower-middle for even counts)
+    return runs[len(runs) // 2][1]  # median (upper-middle for even counts)
 
 
 def convert(source_run: Path, out_root: Path, experiment: str) -> Path:

@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from legacy_baseline_to_rk import (
     build_artifacts,
     load_per_query_rewards,
+    pick_median_run,
     write_run_dir,
 )
 
@@ -19,9 +20,13 @@ def test_load_per_query_rewards_reads_latest_attempt(tmp_path):
         "q1": {"pass": True, "answer": "x"},
         "q2": {"pass": False, "answer": "y"},
         "q3": {"pass": True},
+        "meta": {"model": "opus"},
+        "q1x": {"pass": True},
     }))
     rewards = load_per_query_rewards(ds)
     assert rewards == {1: 1.0, 2: 0.0, 3: 1.0}
+    # junk keys ("meta", "q1x") are skipped, not coerced into the reward dict
+    assert "meta" not in rewards and 0 not in rewards
 
 
 def test_build_artifacts_shapes_and_stratified_math():
@@ -71,3 +76,14 @@ def test_write_run_dir_emits_score_consumable_trial_dirs(tmp_path):
     rj = json.loads((run_dir / "agnews-q1__opusbase" / "result.json").read_text())
     assert rj["exception_info"] is None
     assert rj["verifier_result"]["rewards"]["reward"] == 1.0
+
+
+def test_pick_median_run_selects_median_by_stratified_score(tmp_path):
+    # LEGACY-shaped summaries (field `stratified_score`); median of {0.50, 0.70, 0.60} is 0.60
+    scores = {"run-001": 0.50, "run-002": 0.70, "run-003": 0.60}
+    for name, score in scores.items():
+        rd = tmp_path / name
+        rd.mkdir()
+        (rd / "summary.json").write_text(json.dumps({"stratified_score": score}))
+    picked = pick_median_run(tmp_path)
+    assert picked == tmp_path / "run-003"
