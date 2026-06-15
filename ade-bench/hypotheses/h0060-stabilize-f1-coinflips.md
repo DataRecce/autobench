@@ -157,6 +157,56 @@ the reward — the GO rests on committed-SQL proof, not a lucky draw.
 
 ## Run result
 
+**36/48 = 0.7500** (`stratified_pass_at_1`), all 48 cells strict-clean, rc=0, **0 infra/freeze
+errors** (concurrency.trials:4 held at 48-task scale — the per-cell freeze isolation fix works).
+Run-dir `runs/ade-bench-h0060-stabilize-f1-coinflips/861d18e790c72047`.
+
+- **Absolute vs paper_baseline:** 0.7500 vs 0.1875 (+0.5625; 4.0× the initial 9/48 anchor).
+- **Paired vs @baseline** (h0059 r1, `…/97c03e6c467742f8`, 35/48 = 0.7292): `rk runs diff`
+  TypeErrors on ade-bench (outcomes carry `query_id: null`, keyed on `trial_name`) — **I computed
+  the paired delta directly from `per_trial_outcomes.json`, paired by task slug over all 48 shared
+  tasks, with a 10k paired bootstrap.** Net **+1 task** (35→36). Mean paired delta **+0.0208**,
+  95% bootstrap CI **[+0.0000, +0.0625]** (net-task CI ~ **[0, +3]**). McNemar exact on the single
+  discordant pair (1 gain, 0 regressions): two-sided p = 1.0, n_discordant = 1.
+
+**Q1 — Net + FULL per-task ledger (both directions).** The ONLY verdict change across all 48
+tasks is **f1003-hard FAIL→PASS**. **Zero regressions** in either the f1 family or any other
+family. Full f1-family ledger (16 tasks, the lever's home): f1001 P→P, f1002 F→F, f1003 P→P,
+**f1003-hard F→P**, f1004 P→P, f1005 P→P, f1005-medium P→P, f1006 P→P, f1006-hard P→P, f1007 P→P,
+f1007-hard P→P, f1007-medium P→P, f1009 P→P, f1010 P→P, f1010-medium P→P, f1011 P→P — no bleed.
+The 32 non-f1 tasks are byte-for-byte verdict-identical to @baseline.
+
+**Q2 — Smoke vs full.** Consistent. Smoke was 9/9 GO (f1003-hard flipped, f1001 + all canaries
+held, both targets artifact-confirmed). Full reproduces exactly: f1003-hard flipped with the same
+3-answer-table artifact (count_answers 4/4), f1001 held with the same bare-`src_<table>` artifact
+(6/6), and the 3 perturbable f1 canaries the smoke sampled held — and so did the **8 other f1
+passers the smoke did NOT sample** (f1003, f1004, f1005-medium, f1006-hard, f1007-hard,
+f1007-medium, f1009, f1010, f1010-medium, f1011). So the smoke's blind spot (the unsampled f1
+members — the h0012 failure mode) was clean at full: the src-naming gate did not bleed.
+
+**Q3 — Already-correct-and-broken.** No regressions, so no damage to passers. f1001 was a
+PASS-at-@baseline-r1 (and the stabilizer kept it PASS on its construct-correct branch); f1003-hard
+was a FAIL-at-@baseline-r1 that the lever flipped. Nothing that passed went to FAIL.
+
+**Q6 — Smoke-vs-full fork drift.** None — no smoke GO that failed at full. The fork the lever
+targets (f1003-hard inclusion criterion; f1001 src naming) landed identically at smoke and full,
+artifact-confirmed both times. No README rule drifted into a different implementation branch.
+
+**Q6 (variance honesty — the load-bearing caveat).** Both f1001 AND f1003-hard were **coin-flips
+at @baseline**, not stable cells: h0059 r1 = f1001 PASS / f1003-hard FAIL; r2 = f1001 FAIL /
+f1003-hard PASS. So neither is a novel hard-flip of an unreachable cell — this is a **STABILIZER
+LOCKING both coin-flips to PASS simultaneously** (this draw got both right → 36). The +1 net sits
+**inside the ±3 single-draw noise floor** (trials:1, bootstrap CI lower bound = 0, McNemar
+p=1.0): a statistician alone could not call it. The promotion case does NOT rest on the net — it
+rests on the **artifact-grounded construct flip + reproducibility** (same basis as h0058/h0059):
+(a) f1003-hard committed the construct-correct 3-table set, count_answers distance 1→0, the
+membership-criterion fork the hypothesis predicted, reproduced at smoke AND full; (b) f1001
+committed bare `src_<table>` on the variance-resistant branch at smoke AND full; (c) both rules
+are precondition-gated and provably did not perturb the other 15 f1 passers or any other family.
+The lever removes two known coin-flip MODES from the README at zero observed downside — a
+reproducible 36 is more likely on the next draw than under @baseline, even if this single draw's
++1 is noise-floor.
+
 ## Behavioral analysis
 
 **Both rules reached the committed artifact (not just the chatter).** Verified against the
@@ -206,11 +256,83 @@ refinement evaluation is N/A for the lever itself. The split-smoke INFRASTRUCTUR
 nonetheless recorded in `_artifacts/WORKFLOW-REFINE.md` (it bears on how smoke is run, not on the
 solver workflow).
 
+### Full-run artifact reads (Q4 — was the change executed?)
+
+- **f1003-hard (full, cell `…861d18e790c72047/ade-bench-f1003-hard__Hvr5rXF`) — EXECUTED-AND-HELPED.**
+  The committed workspace builds **exactly 3 answer tables** (most_retirements / most_wins /
+  oldest_race_winner): all 3 `check_option_*` PASS and `count_answers` **PASS** (4/4, distance
+  1→0 vs the @baseline r1 FAIL-1). The transcript shows the agent engaged the rule — 5 mentions
+  each of "cutoff", "inconsisten(t)", and the prompt's "most_fastest_laps" worked-example
+  exclusion — and propagated it into the spawned ensign. Artifact, not chatter: the committed
+  answer-table set is the membership-criterion branch the hypothesis predicted.
+- **f1001 (full, cell `…/ade-bench-f1001__…`) — EXECUTED-AND-HELD.** Committed src models all
+  bare `src_<table>` (**0 `src_f1_dataset__` occurrences**); both name-keyed hidden tests
+  (`src_models_are_correct`, `stg_models_use_src_models`) PASS, 6/6. Same construct-correct
+  artifact as smoke. The src-naming rule locked the variance-resistant branch.
+- **Persistent failure sample — f1002 (full) — INSTRUCTION-INAPPLICABLE / oracle-blind.** 9/10:
+  the lone failure is the hidden `AUTO_most_podiums_equality` equality test (a Compilation Error
+  in the hidden test, not in the solver's models). This is the documented solver-blind-to-oracle
+  wall (an `AUTO_*_equality` cell), entirely unrelated to h0060's two gates — neither precondition
+  matches f1002's task. Confirms the lever is correctly scoped: it does not touch the persistent
+  f1 oracle-blind FAILs (f1002 is not a tie/top-N "inconsistent" question and not a src-build it
+  perturbs).
+
+**Q4 verdict:** both gains/holds are EXECUTED (committed-artifact-confirmed), neither inert nor
+premise-falsified; the one persistent f1 FAIL sampled is an oracle-blind hidden-equality cell the
+lever does not (and should not) address.
+
 ## Failure Review
+
+N/A — no NO-GO, no canary regression, no revise. The full run is a clean GO (net +1, zero
+regressions, both targets artifact-confirmed). The `## Failure Review` block is only required for a
+NO-GO / regression / revision; nothing to classify here. (The smoke-stage airbnb001 infra race was
+already reviewed and recovered — see `## Behavioral analysis`; it is not an experiment failure.)
 
 ## Follow-up Routing
 
+**Q5 — prevention + next move.**
+
+- **Keep the gains without harm (scoping).** Both rules are already precondition-gated and the
+  full run proves they did NOT bleed: the src-naming gate fired only on f1 src-build tasks (held
+  all 16 f1 passers), the tie-crosses-cutoff gate fired only on the top-N "inconsistent given
+  current data" question (touched only f1003-hard). No additional guardrail is needed; the gates
+  ARE the isolation (the gated-levers-compose pattern, h0049/h0056).
+- **Catch it earlier (smoke / G8).** The smoke panel already carried the right perturbable f1
+  canaries (f1005/f1006/f1007) and the full run confirmed the smoke's blind spot (the 8 unsampled
+  f1 passers) was also clean — so the G8 panel was sufficient here. No panel change recommended.
+- **Recommended next step: `stop` (after the captain's promote call).** This was the captain's
+  named coin-flip-stabilizer hunch; it is now banked at the artifact level. The flip program is
+  EXHAUSTED (h0059 banked the last bankable flipped-FAIL; the remaining 12 FAILs are oracle-blind
+  0/N — e.g. f1002's `AUTO_*_equality`, ana-eng004, intercom). Do NOT reflexively file a follow-up
+  on the dead oracle-blind families. If anything, the only remaining variance-reduction headroom
+  is OTHER @baseline coin-flips (the off-construct f1001/f1003/qb004 flip-flops seen across
+  h0058/h0059 draws), but those are not h0060's construct and should be a separate hypothesis only
+  if a future draw shows a reproducible regression mode worth locking. For now: promote (captain's
+  call) and stop.
+
+Route: **`stop`** (no probe/file/escalate). Recommend the captain run `rk baseline promote` on
+this run-dir.
+
 ## Verdict
+
+**Recommendation: PROMOTE** (captain makes the call; I do not run `rk baseline promote`).
+
+h0060 = **36/48 (0.7500)**, net **+1** vs @baseline 35/48 (0.7292), **zero regressions**, all 48
+cells strict-clean, 0 infra/freeze errors at concurrency.trials:4. The +1 is inside the ±3
+single-draw noise floor (bootstrap CI [0,+3], McNemar p=1.0), so the promotion does NOT rest on
+the net — it rests, like h0058/h0059, on **artifact-grounded construct reproducibility**:
+
+1. **f1003-hard** committed the construct-correct **3-answer-table** set (count_answers 1→0), the
+   exact membership-criterion fork predicted, reproduced at smoke AND full.
+2. **f1001** committed the construct-correct bare **`src_<table>`** naming (6/6 name-keyed tests),
+   reproduced at smoke AND full.
+3. Both rules are precondition-gated and provably inert on the other 15 f1 passers and all other
+   families (no bleed at 48-task scale).
+
+This is a STABILIZER that LOCKS two @baseline coin-flips (f1001 + f1003-hard) to their
+construct-correct PASS branch — removing two known variance MODES from the README at zero observed
+downside. A reproducible 36 is the expected outcome going forward. Promote on construct + artifact
++ reproducibility + zero-regression, per the h0058/h0059 stabilizer basis.
 
 ## Stage Report: propose
 
@@ -270,3 +392,27 @@ did not recur). The lone airbnb001 failure was a pre-fix freeze-repo race recove
 a regression. Lever is in-stage rule tweaks (no workflow-structure change); the split-smoke infra
 finding is recorded in WORKFLOW-REFINE with the corrected "race is fixed, split hack obsolete"
 framing.
+
+## Stage Report: analyze
+
+- DONE: Quantitative — `rk audit --policy strict` + `rk score --format json`; paired delta vs @baseline.
+  48/48 strict-clean; score 0.7500 (36/48) vs paper_baseline 0.1875. `rk runs diff` TypeErrors on ade-bench (query_id null) → computed paired delta from per_trial_outcomes.json (pair-by-slug, 10k bootstrap): net +1, mean delta +0.0208, 95% CI [0,+0.0625] (~[0,+3] tasks), McNemar p=1.0 (n_discordant=1). In ## Run result.
+- DONE: Behavioral read of the verdict-changed task (f1003-hard) + a persistent-failure sample.
+  f1003-hard full: committed exactly 3 answer tables, count_answers PASS 4/4 (distance 1→0); f1001 held with bare src_<table> (6/6); f1002 persistent FAIL = hidden AUTO_most_podiums_equality (oracle-blind, lever-inapplicable). In ## Behavioral analysis (Full-run artifact reads).
+- DONE: Answer ALL SIX required analyze questions (esp. Q2 smoke-vs-full, Q4 executed-not-chatter, Q6 variance honesty).
+  All six answered in ## Run result + ## Behavioral analysis. Q6: both targets were @baseline coin-flips (r1 f1001 P/f1003-hard F; r2 flipped) → framed as a STABILIZER locking both, +1 inside ±3 noise floor, promotion on artifact+reproducibility (h0058/h0059 basis).
+- DONE: Write ## Run result + extend ## Behavioral analysis; commit.
+  Both written; committed.
+- DONE: Recommend a verdict + ## Follow-up Routing.
+  Verdict: PROMOTE (captain's call; did NOT run rk baseline promote). Follow-up Routing: stop (flip program exhausted; do not file on dead oracle-blind families).
+
+### Summary
+
+Full run 36/48 (0.7500), net +1 vs @baseline (f1003-hard FAIL→PASS), ZERO regressions, all 48
+cells strict-clean, 0 infra/freeze errors at concurrency.trials:4 (per-cell freeze isolation held
+at scale). Both targets are artifact-confirmed at full (f1003-hard = 3 answer tables / count_answers
+1→0; f1001 = bare src_<table> / 6/6) and reproduce the smoke result exactly; the 8 f1 passers the
+smoke could not sample also held (no h0012-style bleed). The +1 is within the single-draw ±3 noise
+floor, so the PROMOTE recommendation rests on construct + artifact + reproducibility + zero-regression
+(the h0058/h0059 stabilizer basis), not the net. Recommended next: promote (captain) then stop —
+the flip program is exhausted, remaining FAILs are oracle-blind 0/N.
