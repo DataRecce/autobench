@@ -1,6 +1,18 @@
 # Run-queue state — 2026-06-15
 
-## RUNNING — h0059 two-draw FULL (tmp-tier-removal inline+reconcile; asana003 flip on @baseline h0058)
+## @baseline = h0059 (PROMOTED 2026-06-15) — h0058 + tmp-tier-removal inline+reconcile, 35/48 = 0.7292
+`runs/ade-bench-h0059-tmp-tier-removal-inline-reconcile-full-r1/97c03e6c467742f8`. Banks **asana003** via a
+behavior-preserving-refactor lever (inline the deleted tmp model's exact select, ref→source swap only,
+RECONCILE before==after — oracle-free double-entry). asana003 flipped 6/6 draws, artifact-confirmed. Promoted
+on construct+artifact+reproducibility at the same 35 headline (NOT strict-≥; the +1 is in the ±3 noise floor,
+r1=35/r2=34, off-construct f1001/qb004 dilution). **KEY: the way PAST the oracle-blind wall** — a refactor's
+correct output is locally computable (the before-state), so the lever needs no sight of the hidden oracle
+(contrast ana-eng004). asana003 was the LAST bankable flipped-FAIL → **flip program EXHAUSTED**, follow-up
+STOP/ESCALATE (remaining 12 FAILs all 0/N never-passed; gains need a benchmark-design change to expose the
+hidden AUTO_* oracle, or the refactor+reconcile pattern on another refactor-shaped 0/N cell). Method banked in
+WORKFLOW-REFINE + memory. New hypotheses fork from THIS README.
+
+## (superseded) RUNNING — h0059 two-draw FULL (tmp-tier-removal inline+reconcile; asana003 flip on @baseline h0058)
 Behavior-preserving-refactor lever: a tmp-tier removal is a rewire — inline the deleted tmp model's EXACT
 select, swap only ref→source, and RECONCILE before==after (double-entry, oracle-free). Smoke: asana003 PASS
 in ALL 3 seed draws (42/43/44) + the pre-smoke probe = 4/4, deep-dive CONFIRMED every draw flipped via the
