@@ -126,9 +126,85 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
+**GO.** Smoke = **9/9 PASS**, both targets flipped/held with the **construct-correct committed
+artifact**, all 7 canaries held PASS, all 9 cells strict-clean with `captured=1`. Smoke was run
+as a 2-way parallel split (smoke-f1 + smoke-xfam) plus a serial airbnb001 recovery (the original
+airbnb001 cell hit a pre-fix freeze-repo `index.lock` race — see Behavioral analysis + WORKFLOW-REFINE).
+
+**Clean-audit attestations (`rk audit --policy strict`):**
+- `runs/ade-bench-h0060-stabilize-f1-coinflips-smoke-f1/6ace508f5d61bcd9` — 5/5 cells `clean`.
+- `runs/ade-bench-h0060-stabilize-f1-coinflips-smoke-xfam/158141b07bcc74d3` — ana-eng001/asana001/quickbooks002 `clean`; the airbnb001 cell here is `coverage_missing` (the raced infra-failed cell, SUPERSEDED by the recovery below — not counted).
+- `runs/ade-bench-h0060-stabilize-f1-coinflips-smoke-airbnb001-recover/86dfb59fb61f5f12` — airbnb001 `clean`.
+
+**Flip / distance / why (vs @baseline h0059 r1):**
+
+| Task | Role | @baseline r1 | smoke | Distance-to-pass (decisive test) | Why (committed artifact) |
+|------|------|-------------|-------|----------------------------------|--------------------------|
+| f1001 | TARGET | PASS | ✅ PASS | name-keyed tests 6/6 (was the r2 FAIL fork) | Committed src models named **bare `src_<table>`** (`src_circuits`, `src_races`, `src_results`, …); `src_models_are_correct` PASS + `stg_models_use_src_models` PASS. NOT `src_f1_dataset__*`. Rule pinned the variance-resistant branch. |
+| f1003-hard | TARGET | FAIL | ✅ PASS (flip) | `count_answers` **1 → 0** | Committed **exactly 3 answer tables** (`most_retirements` / `most_wins` / `oldest_race_winner`); `count_answers` PASS, all 3 `check_option_*` PASS (4/4). @baseline r1 had committed 6 → `count_answers` FAIL 1 ("Got 1 result"). Tie-crosses-cutoff rule pinned the 3-table membership set. |
+| f1005 | PERTURBABLE f1 canary | PASS | ✅ PASS | 4/4 | Built bare-prefix `src_<table>` (0 wrong-prefix). Rule FIRED and held — genuine perturbable, no over-fire. |
+| f1006 | PERTURBABLE f1 canary | PASS | ✅ PASS | 4/4 | Built bare-prefix `src_<table>` (0 wrong-prefix). Rule FIRED and held. |
+| f1007 | PERTURBABLE f1 canary | PASS | ✅ PASS | 6/6 | Built bare-prefix `src_<table>` (0 wrong-prefix). Rule FIRED and held. |
+| airbnb001 | canary (airbnb) | PASS | ✅ PASS (recovery) | 10/10 | Gates did not over-fire; recovered clean after the freeze-repo race. |
+| ana-eng001 | canary (ana-eng) | PASS | ✅ PASS | 1/1 | No over-fire. |
+| asana001 | canary (asana) | PASS | ✅ PASS | 2/2 | No over-fire. |
+| quickbooks002 | canary (quickbooks) | PASS | ✅ PASS | 8/8 | No over-fire. |
+
+Net: **flipped f1003-hard FAIL→PASS, locked f1001 PASS on its construct-correct branch, zero
+canary regressions** (the 3 perturbable f1 canaries on which the src-naming rule actually fired
+all held with the correct bare-prefix artifact). Both targets pass the artifact check, not just
+the reward — the GO rests on committed-SQL proof, not a lucky draw.
+
 ## Run result
 
 ## Behavioral analysis
+
+**Both rules reached the committed artifact (not just the chatter).** Verified against the
+verifier `dbt build` log + the name-keyed hidden tests in each target cell, plus the perturbable
+f1 canaries.
+
+- **f1001 — src-naming rule, FLIPPED-FORK LOCKED.** Cell `…smoke-f1/…/ade-bench-f1001__XYSdJer`.
+  The `dbt build` log shows every src model materialized under the **bare `src_<table>`** name
+  (`src_circuits`, `src_constructor_results`, `src_constructors`, `src_drivers`, `src_races`,
+  `src_results`, `src_status`, …) while the stg layer kept the dataset namespace
+  (`stg_f1_dataset__circuits`, etc.). The two hidden tests that errored in the h0059 r2 FAIL fork
+  — `src_models_are_correct` (keys on the exact `model.f1.src_<table>` node names) and
+  `stg_models_use_src_models` (keys on `ref('src_<table>')`) — both **PASS** here; final
+  `actual_pass=6/6`. This is exactly the control (PASS) branch the propose probe predicted; the
+  rule pinned it. *Classification: flipped/locked because the change reached the committed SQL.*
+- **f1003-hard — tie-crosses-cutoff rule, FLIP FAIL→PASS.** Cell
+  `…smoke-f1/…/ade-bench-f1003-hard__PQ4LRym`. The solver committed **exactly 3 answer tables**
+  (`most_retirements` / `most_wins` / `oldest_race_winner`). `count_answers` **PASS** (4/4 total).
+  The @baseline r1 FAIL cell (`…h0059…r1/…/ade-bench-f1003-hard__rtTyhMn`) committed 6 tables →
+  `count_answers` **FAIL 1** ("Got 1 result, configured to fail if != 0"), `actual_fail=1`. The 3
+  `check_option_*` tests PASS in BOTH (the 3 correct rows are present either way) — so the entire
+  delta is the inclusion criterion, exactly the fork the hypothesis identified. The membership
+  test (`count(rows with metric >= Nth-value) > N`) pinned the 3-table set and excluded the
+  3 within-list ties (most_podiums / most_pole_positions / most_races). *Classification: flipped
+  because the change reached the committed answer-table set.*
+- **Perturbable f1 canaries (f1005/f1006/f1007) — rule FIRED, did NOT over-fire.** All three
+  built bare-prefix `src_<table>` models with **zero `src_f1_dataset__` occurrences** and held
+  PASS (4/4, 4/4, 6/6). This is the load-bearing regression evidence: the src-naming rule is
+  genuinely perturbable on these (it fired and changed/confirmed the artifact), and it produced
+  the correct shape rather than damaging them — the h0012 "broke four OTHER f1 passers" failure
+  mode did NOT recur.
+- **Cross-family canaries (airbnb001/ana-eng001/asana001/quickbooks002) held PASS**, gates
+  correctly inert (neither precondition matched their constructs).
+
+**airbnb001 infra note (not a regression).** The original parallel airbnb001 cell
+(`…smoke-xfam/…/ade-bench-airbnb001__MZW6hoh`, audit `coverage_missing`) failed on a
+`git -C /home/kent/razorback-freeze/8fa451dc… commit` → `index.lock: File exists / Another git
+process seems to be running`. Root cause: the freeze repo is keyed on the **solver
+content_hash** (`fe87f779…`, identical across the split), NOT the experiment name — so the two
+parallel runs shared ONE freeze repo and raced on `git commit`. The serial recovery
+(`…smoke-airbnb001-recover/86dfb59fb61f5f12`) ran clean: airbnb001 PASS 10/10, `captured=1`. This
+is an infrastructure failure, not experiment evidence; recovered before drawing any conclusion.
+
+**No workflow-structure change.** h0060's lever is two rule tweaks INSIDE the existing
+Implementation stage (not a new/removed/reordered stage or protocol family), so the workflow-
+refinement evaluation is N/A for the lever itself. The split-smoke INFRASTRUCTURE finding is
+nonetheless recorded in `_artifacts/WORKFLOW-REFINE.md` (it bears on how smoke is run, not on the
+solver workflow).
 
 ## Failure Review
 
@@ -168,3 +244,29 @@ smoke with the perturbable f1 canaries held.
   content is byte-unchanged → `solver_workflow_content_hash` stays `fe87f779…`, so the gatekeeper
   APPROVE verdict is unaffected. AC-1 `diff specs/baseline.yaml specs/h0060-stabilize-f1-coinflips.yaml`
   now shows exactly `experiment:` + `solver_workflow:`.
+
+## Stage Report: smoke
+
+- DONE: `rk audit --policy strict` + `rk score` each run-dir; capture clean-audit attestations.
+  smoke-f1 5/5 clean; smoke-xfam ana-eng001/asana001/quickbooks002 clean (its airbnb001 cell `coverage_missing` = the raced infra cell, superseded); airbnb001 recovery clean. All 9 counted cells strict-clean, `captured=1`. Attestations in ## Smoke result.
+- DONE: ARTIFACT-LEVEL confirmation of both targets (committed SQL, not just reward).
+  f1001 → committed src models named bare `src_<table>` (src_models_are_correct + stg_models_use_src_models both PASS, 6/6). f1003-hard → committed exactly 3 answer tables (most_retirements/most_wins/oldest_race_winner), `count_answers` PASS (4/4); @baseline r1 had 6 tables → count_answers FAIL 1 (distance 1→0). Detail in ## Behavioral analysis.
+- DONE: Confirm every canary held PASS.
+  f1005/f1006/f1007 PASS and built bare-prefix `src_<table>` (0 wrong-prefix → rule fired, no over-fire); airbnb001/ana-eng001/asana001/quickbooks002 PASS. Zero canary regressions.
+- DONE: Write ## Smoke result + ## Behavioral analysis.
+  Both sections written with the flip/distance/why table and the per-target artifact reads.
+- DONE: WORKFLOW-REFINE note.
+  Appended to `_artifacts/WORKFLOW-REFINE.md` — the airbnb001 smoke failure was a PRE-FIX freeze-repo index.lock race (freeze repo keyed on solver content_hash, not experiment name; fixed in razorback fe30753/PR #10 cb298b0 per-cell isolation ~20 min after our split ran). NOT "keep smoke serial" — concurrency.trials>1 in one run is now safe; the parallel-split hack is obsolete.
+
+### Summary
+
+Combined smoke deep-dive across smoke-f1 (5) + smoke-xfam (3 clean) + airbnb001 recovery (1) =
+**9/9 PASS, all strict-clean, recommend GO to full.** Both targets pass the ARTIFACT check, not
+just the reward: f1001 committed the construct-correct bare `src_<table>` naming (the two
+name-keyed hidden tests both PASS), and f1003-hard committed exactly the 3-answer-table set with
+`count_answers` flipping 1→0 vs @baseline. The 3 perturbable f1 canaries had the src-naming rule
+actually FIRE on them and held with the correct artifact (the h0012 break-other-f1-passers mode
+did not recur). The lone airbnb001 failure was a pre-fix freeze-repo race recovered serially, not
+a regression. Lever is in-stage rule tweaks (no workflow-structure change); the split-smoke infra
+finding is recorded in WORKFLOW-REFINE with the corrected "race is fixed, split hack obsolete"
+framing.
