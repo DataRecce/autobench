@@ -97,6 +97,24 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
   → *Detached runs*). No live poller / no `Monitor`. The fast `--explain` / `rk audit` / `rk score`
   calls stay foreground, after the sentinel lands. `drivers/matrix.sh` launches the same way
   (`matrix` mode). See the `smoke`/`full` stages for the exact call.
+- **Auto-wakeup at ETA (run the DAB FO under `/loop`).** The every-turn handle scan only fires
+  when there *is* a turn — so when the captain is away, the FO must wake *itself* at the run's
+  ETA instead of stalling. Immediately after launching a detached `smoke`/`full` run:
+  1. Record the ETA in seconds (`eta_s` = surviving query-cells × ~per-query minutes; the same
+     estimate you put in the propose smoke-set table / full-run brief).
+  2. `ScheduleWakeup(delaySeconds = min(eta_s, 3600), reason = "DAB <key>: check detached run",
+     prompt = <the /loop first-officer continuation>)`. Wakeups clamp to ≤1 h, so a multi-hour
+     run wakes at most hourly and re-checks — that is intended (cheap sentinel poll, catches
+     early finishes too).
+  3. On every wake, scan `runs/.rk-handles/<key>-*/done`:
+     - **present, `rc=0`** → run finished: go foreground for `rk audit` / `rk score` + the deep-dive.
+     - **present, `rc≠0`** → failed: read `log`, open the `## Failure Review`.
+     - **absent** → still running: re-`ScheduleWakeup` (`min(remaining_to_eta, 3600)` while before
+       ETA, else ~600 s), post a one-line "still running, next check in N min", and end the turn.
+  4. Stop rescheduling once `done` is consumed, or hit the ~9 h backstop → escalate to the captain.
+  This *complements* the ntfy push and the every-turn scan; it makes the wait autonomous. It needs
+  a wake-capable context — drive the DAB FO under `/loop` (dynamic, self-paced) so `ScheduleWakeup`
+  fires; outside `/loop` the FO falls back to ntfy + the next operator turn.
 - The independent variable is ONLY the solver README. A variant full spec differs from
   `specs/dab-anchor-codex.yaml` only in `experiment:` + `solver_workflow:`. `trials: 1` always
   (`concurrency.trials: 2` for throughput — two query-cells in parallel; DAB's per-query task
@@ -289,6 +307,8 @@ run.** *(Budget caps deferred — this is a worthiness gate.)*
   # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
   drivers/rk-run-detached.sh dab<NNNN>-smoke specs/dab<NNNN>-<slug>.smoke.frozen.yaml run
   #   -> handle: runs/.rk-handles/dab<NNNN>-smoke-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
+  # THEN ScheduleWakeup(min(eta_s,3600)) to auto-check the sentinel at the ETA — see Repo conventions
+  #   → "Auto-wakeup at ETA". eta_s ≈ surviving query-cells × ~per-query minutes.
   # When `done` appears with rc=0 (or harbor output confirms — see AGENTS "Detached runs"), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir>
@@ -373,6 +393,8 @@ queries, no query subset).
   # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
   drivers/rk-run-detached.sh dab<NNNN>-full specs/dab<NNNN>-<slug>.frozen.yaml run   # all 12 datasets
   #   -> handle: runs/.rk-handles/dab<NNNN>-full-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
+  # THEN ScheduleWakeup(min(eta_s,3600)) to auto-check the sentinel at the ETA — see Repo conventions
+  #   → "Auto-wakeup at ETA". eta_s ≈ 54 query-cells × ~per-query minutes for a full run.
   # When `done` appears with rc=0 (or harbor output confirms — see AGENTS "Detached runs"), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir> --format json

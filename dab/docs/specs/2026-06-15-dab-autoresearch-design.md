@@ -201,6 +201,12 @@ Advisory only; the captain decides and records any override.
 - Port `drivers/rk-run-detached.sh` + handle polling (`runs/.rk-handles/`) from ade-bench.
   DAB runs are long (30 min–hours); launch detached, FO owns the wait by scanning
   `.rk-handles/*/` each turn (carries over the "rk run must be detached" discipline).
+- **Auto-wakeup at ETA:** because the every-turn scan only fires on a turn, after launching a
+  detached run the FO records the ETA and `ScheduleWakeup(min(eta_s, 3600))` with a first-officer
+  continuation, re-checking the `done` sentinel on each wake (reschedule while running, ≤1 h
+  granularity, ~9 h backstop → escalate). Makes the wait autonomous when the captain is away;
+  requires driving the DAB FO under `/loop`. Full protocol in `hypotheses/README.md`
+  → Repo conventions → "Auto-wakeup at ETA".
 - **Metric = stratified Pass@1:** per-query pass@1 → per-dataset arithmetic mean →
   arithmetic mean of the 12 per-dataset scores (equal dataset weight, NOT micro-average).
   `rk score` already emits `stratified_pass_at_1`.
