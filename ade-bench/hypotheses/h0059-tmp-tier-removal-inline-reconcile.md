@@ -154,3 +154,45 @@ lever is oracle-free (reconciles against the local before-state, encodes no answ
 hold. Per the standing two-draw promote precedent (h0052/h0056/h0058), the full verdict is provisional
 pending ≥2 seed-perturbed full 48-task draws clearing @baseline h0058's expectation (~34) — but unlike
 a coin-flip flip, the reconcile mechanism gives strong reason to expect asana003 reproduces at full.
+
+## Run result
+
+Two concurrent seed-perturbed FULL 48-task draws launched detached (2026-06-15) to bank asana003 →
+36/48 and check board-wide no-regression vs @baseline h0058 (35/48,
+`runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e`).
+
+| Draw | Seed | Experiment | Frozen spec | sealed_hash |
+|------|------|------------|-------------|-------------|
+| full-r1 | 42 | ade-bench-h0059-tmp-tier-removal-inline-reconcile-full-r1 | specs/h0059-tmp-tier-removal-inline-reconcile-full-r1.frozen.yaml | 88cdb3fb570792c9b5348538972bfd37 |
+| full-r2 | 43 | ade-bench-h0059-tmp-tier-removal-inline-reconcile-full-r2 | specs/h0059-tmp-tier-removal-inline-reconcile-full-r2.frozen.yaml | 50efe7bf0eead51da71ef3565d97c015 |
+
+Both variants differ from the 48-task base full spec
+(`specs/h0059-tmp-tier-removal-inline-reconcile.yaml`) ONLY in `experiment:` + `sampling.seed:` —
+no `benchmark.tasks` added (`tasks: null` in both frozen specs = full 48). Distinct sealed_hashes
+(CAS-buster confirmed).
+
+Handle dirs (FO owns the sentinel scan; ensign did NOT wait):
+- full-r1: `/home/kent/autobench/ade-bench/runs/.rk-handles/h0059-full-r1-20260615-045341/`
+  (supervisor pid 3737424 → uv 3737439 → rk python 3737442; log `…/log`; sentinel `…/done` absent)
+- full-r2: `/home/kent/autobench/ade-bench/runs/.rk-handles/h0059-full-r2-20260615-045346/`
+  (supervisor pid 3737585 → uv 3737600 → rk python 3737603; log `…/log`; sentinel `…/done` absent)
+
+ntfy topic: adebench-rk-381c976fe07465bf. Both up to ~7hr. FO handles audit + score + paired-delta
+when both sentinels land.
+
+## Stage Report: full
+
+- DONE: Two seed-variant FULL specs built from specs/h0059-tmp-tier-removal-inline-reconcile.yaml (the 48-task base, NO benchmark.tasks); full-r1 = experiment ...-full-r1 + seed 42; full-r2 = experiment ...-full-r2 + seed 43; each differs from the base full spec ONLY in experiment: + sampling.seed: (CAS-buster); both frozen with rk freeze --allow-missing; distinct sealed_hashes confirmed.
+  diff vs base = only experiment:+seed: lines; frozen tasks: null (full 48); sealed_hash r1 88cdb3fb / r2 50efe7bf (distinct).
+- DONE: Both full runs launched CONCURRENTLY and DETACHED via drivers/rk-run-detached.sh (keys h0059-full-r1 and h0059-full-r2, mode run); the two handle dirs under runs/.rk-handles/ returned with pid/log paths; ensign returns immediately and does NOT wait (the FO owns the sentinel scan).
+  handles runs/.rk-handles/h0059-full-r1-20260615-045341 (pid 3737424) + h0059-full-r2-20260615-045346 (pid 3737585); did not poll completion.
+- DONE: Both handles confirmed live (pid alive + rk run child spawned) before returning; the exact two handle-dir paths reported.
+  supervisors ALIVE; rk python children 3737442 (r1) / 3737603 (r2) confirmed via ps tree; both done sentinels absent.
+
+### Summary
+
+Built the two seed-perturbed FULL 48-task variant specs (seeds 42/43) from the AC-1-verified base full
+spec, froze both (distinct sealed_hashes 88cdb3fb / 50efe7bf), and launched both concurrently DETACHED.
+Confirmed both supervisor pids alive with rk-run children spawned and done sentinels absent, then returned
+without waiting. Notable: variants are pure experiment:+seed: deltas with tasks: null (true full 48, no
+selector) — the FO scans runs/.rk-handles/*/ for the two sentinels, then audits + scores + paired-delta.
