@@ -168,6 +168,26 @@ listed in the flip/fail tables (those passed 5/5 in the run group).
 > should the appropriate stage name be? Return only the correct stage label among
 > ('Qualification', 'Discovery', 'Quote', 'Negotiation', 'Closed'). Opportunity Id: 006Wt000007BGGjIAO
 
+## Concept ideation order (where to start)
+
+The six concept entities (`dab0001`–`dab0006`) should be ideated **one at a time** in this order.
+Lead with the concept whose lever is highest-confidence and cleanly attributable, then widen.
+
+| Order | Concept | Rationale |
+|---|---|---|
+| 1 | `dab0001` answer-output-contract | **Start here.** Log-verified: codex computes `googlelocal-q2` correctly every run, fails 4/5 *only* on output format — so a README format rule is the entire mechanism. Cleanest attributable flip (no model-swap confound, §7), 2.08 pts, and the safest first trip through propose→smoke→full→analyze→conclude. |
+| 2 | `dab0003` aggregation-filter-precision | Concrete per-query semantic rules (counts / thresholds / date windows / NULLs); testable and attributable. |
+| 3 | `dab0002` deterministic-ordering-tiebreak | Broad (3 flipped targets) but variance-based — a 1/5–3/5 flip is harder to prove in a single run; do it once the pipeline is trusted. |
+| 4 | `dab0005` methodology-overhead-recovery | **Structural** (changes stage flow): wide blast radius, must log to `WORKFLOW-REFINE.md` and carry strong cross-family canaries. Defer until the loop is proven. |
+| 5 | `dab0006` integrity-safe-stripped-label-inference | Hardest: `agnews-q4` at 1/5, integrity-sensitive, smoke must artifact-verify the answer was inferred not leaked. |
+| — | `dab0004` multisource-join-grain | **Hold — harvest, don't ideate.** Its headline target `GITHUB-q4` flips via the *anchor* (codex already 5/5), so a README lever here risks being **inert**. Bank GITHUB-q4 from the anchor run; only ideate this concept if the anchor shows a join-grain query that still fails. |
+
+**Run the codex anchor (`dab-anchor-codex`) before committing smoke/full budget to the
+variance concepts (`dab0002`/`dab0003`).** The anchor establishes codex's per-query baseline —
+which targets it already passes (no lever needed) vs still fails (lever needed) — and banks the
+free model-capability flips (`GITHUB-q4`). Ideation itself is cheap (no run cost), so `dab0001`
+can be ideated now in parallel; the anchor only gates the *expensive* runs.
+
 ## How to target one in the loop
 
 Each primary target becomes one `dab00NN-<slug>` hypothesis whose single lever is a README edit
