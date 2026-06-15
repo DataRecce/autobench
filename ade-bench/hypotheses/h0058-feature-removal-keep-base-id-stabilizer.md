@@ -5,9 +5,9 @@ status: conclude
 kind: hypothesis
 source: "Spun out of h0057 (REJECTED on the Move-A flip; ana-eng004 oracle-blind, 4 real-run cycles, 4 distinct failure modes). h0057 Move B was VALIDATED — quickbooks002/003 held PASS across both 14-task smokes (kept department_id, no less-columns error, zero bleed); it was orphaned only by the Move-A rejection. Forks the current @baseline h0056 (runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a, 35/48). Artifact-grounded: qb002/qb003 r1-vs-r2 forensic in h0056 = an OVER-DROP of the shared base department_id column (r1 lost both PASS->FAIL this way; r2 kept it -> both PASS); the correct boundary (drop department_name, keep department_id) is cleanly expressible and proven non-bleeding by h0057."
 started: 2026-06-14T12:19:52Z
-completed:
-verdict:
-score:
+completed: 2026-06-15T00:46:21Z
+verdict: passed
+score: 0.7292
 worktree:
 ---
 
