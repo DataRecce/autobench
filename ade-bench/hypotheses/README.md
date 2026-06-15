@@ -85,6 +85,30 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
   → *Detached runs*). No live poller / no `Monitor`. The fast `--explain` / `rk audit` / `rk score`
   calls stay foreground, after the sentinel lands. `drivers/matrix.sh` launches the same way
   (`matrix` mode). See the `smoke`/`full` stages for the exact call.
+- **Auto-wakeup at ETA (so the wait is autonomous when the captain is away).** The every-turn
+  handle scan only fires when there *is* a turn — so after launching a detached `smoke`/`full`
+  run the FO must arrange to wake *itself* at the run's ETA instead of stalling. Immediately
+  after launching:
+  1. Record the ETA in seconds (`eta_s` = number of task-cells × ~9 min/task — the same estimate
+     you put in the propose smoke-set table / full-run brief; ≈ `N_tasks × 540`).
+  2. `ScheduleWakeup(delaySeconds = min(eta_s, 3600), reason = "h<NNNN> <smoke|full>: check
+     detached run", prompt = <the /loop first-officer continuation>)`. Wakeups clamp to ≤1 h, so a
+     multi-hour run wakes at most hourly and re-checks — intended (a cheap sentinel poll that also
+     catches early finishes).
+  3. On every wake, scan `runs/.rk-handles/<key>-*/done`:
+     - **present, `rc=0`** → finished: go foreground for `rk audit --policy strict` / `rk score` +
+       the deep-dive.
+     - **present, `rc≠0`** → failed: read `log`, open the `## Failure Review` (classify infra vs
+       experiment — a freeze-repo/​harbor error is infrastructure, recover/relaunch).
+     - **absent** → still running: re-`ScheduleWakeup` (`min(remaining_to_eta, 3600)` while before
+       ETA, else ~600 s), post a one-line "still running, next check in N min", and end the turn.
+  4. Stop rescheduling once `done` is consumed, or hit the ~9 h backstop → escalate to the captain.
+  This *complements* the ntfy push and the every-turn scan. `ScheduleWakeup` needs a wake-capable
+  context — drive the FO under `/loop` (dynamic, self-paced) so it fires; outside `/loop` the FO
+  falls back to ntfy + the next operator turn. **Interactive equivalent (no `/loop`):** arm a
+  `Bash(run_in_background)` watcher that polls the `done` sentinel(s) in an `until` loop and exits
+  when they land (with a generous backstop) — its completion notification re-invokes the FO exactly
+  when the run finishes, the same auto-wake without `/loop`.
 - The independent variable is ONLY the solver README. A variant spec differs from
   `specs/baseline.yaml` only in `experiment:` + `solver_workflow:`. `trials: 1` always.
 
@@ -268,6 +292,9 @@ deferred — this is a worthiness gate.)*
   # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
   drivers/rk-run-detached.sh h<NNNN>-smoke specs/h<NNNN>-<slug>.smoke.frozen.yaml run
   #   -> handle: runs/.rk-handles/h<NNNN>-smoke-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
+  # THEN auto-wakeup at ETA: ScheduleWakeup(min(eta_s,3600)) to re-check the sentinel — see Repo
+  #   conventions -> "Auto-wakeup at ETA". eta_s ≈ N_smoke_tasks × ~9 min (≈ N × 540 s). Interactive:
+  #   a Bash(run_in_background) until-loop watcher on the `done` sentinel does the same without /loop.
   # When `done` appears with rc=0 (or harbor output confirms — see AGENTS "Detached runs"), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir>
@@ -351,6 +378,10 @@ The full 48-task run on the FULL frozen spec (`h<NNNN>-<slug>.frozen.yaml`, no t
   # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
   drivers/rk-run-detached.sh h<NNNN>-full specs/h<NNNN>-<slug>.frozen.yaml run   # all 48
   #   -> handle: runs/.rk-handles/h<NNNN>-full-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
+  # THEN auto-wakeup at ETA: ScheduleWakeup(min(eta_s,3600)) to re-check the sentinel — see Repo
+  #   conventions -> "Auto-wakeup at ETA". eta_s ≈ 48 tasks × ~9 min (fewer if concurrency.trials>1,
+  #   now safe per the razorback per-cell freeze-isolation fix). Interactive: a Bash(run_in_background)
+  #   until-loop watcher on the `done` sentinel does the same without /loop.
   # When `done` appears with rc=0 (or harbor output confirms — see AGENTS "Detached runs"), THEN:
   uv run --project ../razorback rk audit <run-dir> --policy strict
   uv run --project ../razorback rk score <run-dir> --format json
