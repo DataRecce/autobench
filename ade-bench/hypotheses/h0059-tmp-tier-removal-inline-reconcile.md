@@ -370,3 +370,79 @@ reconcile executed, crash absent, 17/17 + check_model_sources PASS). The two-dra
 (f1001, quickbooks004, f1003-hard) on which the tmp-tier rule provably did NOT fire — off-construct
 trials:1 variance, not lever bleed. Recommendation: bank asana003 by construct + artifact +
 reproducibility (h0052/h0058 precedent) accepting flat net, or run more seed draws; captain decides.
+
+## Stage Report: conclude
+
+- DONE: h0059 `## Verdict` written: PASSED / PROMOTED — @baseline rebound to runs/ade-bench-h0059-tmp-tier-removal-inline-reconcile-full-r1/97c03e6c467742f8 (35/48 = 0.7292). asana003 banked as a VERIFIED 6/6 reproducible inline+reconcile flip (artifact-proven the rule fired both full draws + 4 smoke draws; the regressors f1001/f1003-hard/qb004 are off-construct rule-inert noise). Record the transferable lesson: a BEHAVIOR-PRESERVING REFACTOR has a locally-computable correct answer (the before-state), so the lever carries its own oracle-free reconciliation (capture-before, confirm after==before — double-entry) and does NOT encode the oracle — the cleanest, most transferable lever form yet, and the way PAST the oracle-blind wall (contrast ana-eng004). Note promoted on construct+artifact+reproducibility at the same 35 headline (NOT a strict-≥-every-seed gain — the +1 sits in the ±3 noise floor; the dilution is demonstrably off-construct).
+  Verdict section records the rebind (verified live via `rk registry resolve run @baseline` → h0059 full-r1), the same-headline-new-lever framing, the honest ±3 noise-floor caveat, and the oracle-free reconciliation transferable lesson.
+- DONE: h0059 `## Follow-up Routing` written: asana003 was "the last bankable flipped FAIL" — the remaining 12 @baseline FAILs are all 0/N never-passed bets (ana-eng004/006/007/-medium oracle-blind; asana004/005/005-hard; f1002; intercom001/002/003; quickbooks001). Recommend STOP/ESCALATE on the copy-a-passing-artifact flip program (exhausted); the next real gains need either a benchmark-design change (expose the hidden AUTO_* oracle) or the behavior-preserving-refactor pattern applied to any OTHER refactor-shaped 0/N cell where a before-state is locally computable. Surface to captain as a strategy decision, do NOT auto-file a doomed 0/N variant.
+  Follow-up Routing section enumerates all 12 0/N FAILs (oracle-blind vs never-passed-model split) and the two captain-decision strategy options; explicitly marks STOP/ESCALATE, no auto-file.
+
+### Summary
+
+Record-writing conclude. asana003 was banked as a verified 6/6 reproducible inline+reconcile flip and
+the README's tmp-tier-removal lever PROMOTED; @baseline rebound to h0059 full-r1 (35/48, confirmed live
+via the registry). Honest about the flat board net (the +1 is inside the ±3 trials:1 noise floor; the
+dilution is off-construct, not lever bleed). The copy-a-passing-artifact flip program is now EXHAUSTED
+— asana003 was the last bankable flipped FAIL — so the verdict escalates the next move to the captain
+as a strategy decision (benchmark-design change to expose the AUTO_* oracle, or transfer the
+oracle-free-reconciliation pattern to another refactor-shaped 0/N cell), with no doomed successor filed.
+
+## Verdict
+
+**PASSED / PROMOTED.** Captain approved promote (option 1 — bank by construct + artifact +
+reproducibility). `@baseline` rebound from h0058 to
+`runs/ade-bench-h0059-tmp-tier-removal-inline-reconcile-full-r1/97c03e6c467742f8` (**35/48 = 0.7292**,
+verified live via `rk registry resolve run @baseline`).
+
+**Same headline, new lever banked.** The board number is unchanged from h0058 (35/48) — but the
+README now carries the **TMP/INTERMEDIATE-TIER REMOVAL — BEHAVIOR-PRESERVING INLINE + RECONCILE**
+lever and **banks asana003** as a verified flip. The promote rests on **construct + committed artifact
++ 6/6 reproducibility** (probe + r1/r2/r3 smoke + full-r1 + full-r2, rule FIRED every draw — exact tmp
+SELECT inlined, `ref`→`source` swap only, before==after reconciliation executed, `cast('None' as
+date)` crash absent, equality + `check_model_sources` PASS each time), the standing h0052/h0058 banking
+precedent — **NOT** a strict-≥-every-seed net gain.
+
+**Honest about the net.** The asana003 +1 sits inside the **±3 trials:1 noise floor**: the two full
+draws netted 35 / 34 (mean 34.5), flat-to-down vs @baseline 35, because three off-construct passers
+(f1001, quickbooks004, f1003-hard — all documented flip-floppers) wobbled on the longer-README draws.
+The tmp-tier rule provably did NOT fire on any of them (zero asana/tmp activity in their ensign
+sessions); the dilution is **off-construct README-length perturbation + single-trial variance, not
+lever bleed**. Both full draws were strict-clean (clean=48, coverage_missing=0, tainted=0), asana003
+`captured=1>0` in both.
+
+**Transferable lesson (the cleanest, most transferable lever form in the program).** A
+**behavior-preserving refactor has a locally-computable correct answer — the before-state.** So the
+lever can carry its **own oracle-free reconciliation** (capture-before, confirm after==before — the
+**double-entry / reconciliation** pattern): it verifies behavior-preservation against the local
+before-state and **encodes no oracle**. That is precisely why it gets **PAST the oracle-blind wall**
+that killed ana-eng004 (which had no local correct-answer to reconcile against). The reconcile teeth
+are mechanism, not ritual: r2 smoke caught and reverted a live re-derive that would have failed. This
+is the strongest evidence-per-flip lever the program has produced.
+
+## Follow-up Routing
+
+**STOP / ESCALATE — the copy-a-passing-artifact flip program is EXHAUSTED.** asana003 was the **last
+bankable flipped FAIL** (the only @baseline FAIL with passing historical artifacts to copy as a
+proven-correct target). The remaining **12 @baseline FAILs are all 0/N never-passed research bets**
+with no passing artifact to copy:
+
+- **oracle-blind** (hidden AUTO_* equality oracle, blind-to-oracle wall): ana-eng004, ana-eng006,
+  ana-eng007, ana-eng004-medium
+- **never-passed dbt/model bets:** asana004, asana005, asana005-hard, f1002, intercom001, intercom002,
+  intercom003, quickbooks001
+
+**Next real gains require a strategy decision — surface to the captain, do NOT auto-file a doomed 0/N
+variant:**
+
+1. **Benchmark-design change** to expose the hidden AUTO_* equality oracle to the solver (the
+   blind-to-oracle wall is structural — no instruction lever can clear it; documented across
+   h0006/h0007/h0026 and the verification-without-oracle synthesis).
+2. **Apply the behavior-preserving-refactor / oracle-free-reconciliation pattern to ANOTHER
+   refactor-shaped 0/N cell** where a local before-state is computable. Scan the 0/N FAILs for
+   refactor-shaped tasks (a delete/rewire/restructure with output-unchanged semantics) — those are the
+   only 0/N cells where the h0059 double-entry lever could transfer. If none exist, the flip program is
+   genuinely concluded and the single-flip-on-trials:1 ceiling is a benchmark-design limit, not a lever
+   gap.
+
+This is a captain strategy call, not an ensign auto-file.
