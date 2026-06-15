@@ -1,5 +1,19 @@
 # Run-queue state — 2026-06-15
 
+## RUNNING — h0059 two-draw FULL (tmp-tier-removal inline+reconcile; asana003 flip on @baseline h0058)
+Behavior-preserving-refactor lever: a tmp-tier removal is a rewire — inline the deleted tmp model's EXACT
+select, swap only ref→source, and RECONCILE before==after (double-entry, oracle-free). Smoke: asana003 PASS
+in ALL 3 seed draws (42/43/44) + the pre-smoke probe = 4/4, deep-dive CONFIRMED every draw flipped via the
+inline+reconcile mechanism (r2 even caught+fixed the broad-re-derive FAIL path in-vivo), all r1 canaries held.
+Deep-dive: _artifacts/h0059-three-run-deep-dive.md. This is the cleanest lever form yet (locally-computable
+correct answer = the before-state; does NOT encode the oracle — contrast ana-eng004 oracle-blind). Two-draw
+FULL now (the smoke draws were targeted panels; full checks the whole board for off-target regressions + banks
+asana003 → 36/48):
+- **full-r1** seed 42 → runs/.rk-handles/h0059-full-r1-20260615-045341 (pid 3737424), sealed 88cdb3fb570792c9b5348538972bfd37
+- **full-r2** seed 43 → runs/.rk-handles/h0059-full-r2-20260615-045346 (pid 3737585), sealed 50efe7bf0eead51da71ef3565d97c015
+When BOTH land rc=0: audit strict + score each; paired delta vs @baseline h0058 (35/48); AC asana003 PASS both
++ inline+reconcile artifact + zero off-target regression → promote candidate at 36/48.
+
 ## @baseline = h0058 (PROMOTED 2026-06-15) — h0056 + keep-base-id stabilizer, 35/48 = 0.7292
 `runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e` (35/48 = 0.7292). =
 h0056's six levers + ONE scoped edit: a generic drop-feature-col / KEEP-base-id worked example in the
