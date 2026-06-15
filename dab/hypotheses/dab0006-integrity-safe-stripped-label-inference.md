@@ -3,7 +3,7 @@ title: Infer answers under stripped/noisy ground-truth labels without leakage (i
 status: concept
 kind: concept
 source: flipped-query-targets.md (agnews-q4 integrity-sensitive stretch) + codex-5.5 known-cheating concern
-id: concept-integrity-safe-stripped-label-inference
+id: dab0006
 ---
 
 ## Direction

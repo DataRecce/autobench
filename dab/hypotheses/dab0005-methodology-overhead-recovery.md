@@ -3,7 +3,7 @@ title: Recover capability the three-step methodology suppresses on direct querie
 status: concept
 kind: concept
 source: CAIS cross-experiment scan — minimal/direct workspaces solve crmarenapro-q8 (5/5) but spacedock suppresses it (codex 0/5)
-id: concept-methodology-overhead-recovery
+id: dab0005
 ---
 
 ## Direction

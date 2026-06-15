@@ -3,7 +3,7 @@ title: Kill run-to-run flakiness with deterministic ordering, explicit tie-break
 status: concept
 kind: concept
 source: flipped-query-targets.md (the flipped 1/5–4/5 Opus queries are unstable, not unsolvable)
-id: concept-deterministic-ordering-tiebreak
+id: dab0002
 ---
 
 ## Direction

@@ -3,7 +3,7 @@ title: Pin aggregation and filter semantics — counts, thresholds, date windows
 status: concept
 kind: concept
 source: flipped-query-targets.md (several flipped queries hinge on getting one aggregation/filter rule exactly right)
-id: concept-aggregation-filter-precision
+id: dab0003
 ---
 
 ## Direction

@@ -67,7 +67,7 @@ model → analyze → verify methodology). The variant solver is held FIXED at *
 
 Two entity kinds share this directory:
 
-- a **concept** (`concept-<slug>.md`, flat) is a research direction; `ideate` fans it
+- a **concept** (`dab<NNNN>-<slug>.md`, `kind: concept`) is a research direction; `ideate` fans it
   out into many hypotheses — *breadth*;
 - a **hypothesis** (`dab<NNNN>-<slug>.md`, flat; folder form `dab<NNNN>-<slug>/index.md`
   allowed when evidence accumulates) is one testable README change, run end-to-end;
@@ -122,7 +122,9 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
 
 ## File Naming
 
-- Concepts: `concept-<slug>.md` (lowercase, hyphens; no number).
+- Concepts and hypotheses share one `dab<NNNN>` id space. Concepts: `dab<NNNN>-<slug>.md`,
+  `kind: concept`, `id: dab<NNNN>` (e.g. `dab0001-answer-output-contract.md`). The `dab<NNNN>`
+  a concept consumes is not reused when `ideate` fans it into hypotheses.
 - Hypotheses: `dab<NNNN>-<slug>.md`, next available `dab<NNNN>` (scan existing `dab*-*.md` and
   `_archive/`, then increment — `status --next-id` is n/a under slug style). **Set `id: dab<NNNN>`**
   (the short prefix, e.g. `id: dab0001`) in frontmatter — recommended, mirroring ade-bench's
@@ -135,7 +137,7 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Hypotheses set the short `dab<NNNN>` prefix (e.g. `dab0001`) — recommended, resolvable via `status --resolve`. Concepts use `concept-<slug>`. Slug stays the identity. |
+| `id` | string | Every entity (concept or hypothesis) sets the short `dab<NNNN>` prefix (e.g. `dab0001`) — resolvable via `status --resolve`. Slug stays the identity. |
 | `title` | string | Human-readable name. |
 | `status` | enum | concept, ideate, expanded, hypothesis, propose, smoke, full, analyze, conclude. |
 | `kind` | enum | `concept` or `hypothesis` (which path this entity is on). |
@@ -155,7 +157,7 @@ rationale.
 - **Inputs:** a research lead, a prior verdict's follow-ups, a captain hunch, or the
   `_artifacts/dataset-gap-ranking.md` table (which datasets/queries have the most headroom
   vs the Opus incumbent).
-- **Outputs:** a `concept-<slug>.md` body stating the direction and why it might raise
+- **Outputs:** a `dab<NNNN>-<slug>.md` (`kind: concept`) body stating the direction and why it might raise
   the stratified Pass@1.
 - **Good:** a concrete, testable direction tied to an observed failure mode on a low-scoring
   dataset.
@@ -533,12 +535,13 @@ fork from its solver README (`spacedock-readme-baseline` until a codex variant i
 
 ## Templates
 
-Concept (`concept-<slug>.md`):
+Concept (`dab<NNNN>-<slug>.md`):
 ```yaml
 ---
 title: <research direction>
 status: concept
 kind: concept
+id: dab<NNNN>
 source:
 started:
 completed:

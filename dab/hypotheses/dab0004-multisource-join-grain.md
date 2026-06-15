@@ -3,7 +3,7 @@ title: Correct multi-source joins and grain — handle missing-metadata rows acr
 status: concept
 kind: concept
 source: flipped-query-targets.md + GITHUB-q4 reasoning audit (the NULL-language edge case is the crux)
-id: concept-multisource-join-grain
+id: dab0004
 ---
 
 ## Direction
