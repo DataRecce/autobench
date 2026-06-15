@@ -5,9 +5,9 @@ status: conclude
 kind: hypothesis
 source: "Captain request 2026-06-15. asana003 is the ONLY remaining flipped FAIL at @baseline h0058 (35/48) — every other FAIL is never-passed (0/N research bets) or oracle-blocked. asana003 = behavior-preserving refactor (delete tmp tier, point stg at source); pass-vs-fail forensic = CONSERVATIVE inline (pass) vs BROAD re-derive (fail → cascade + cast('None' as date) crash). A pre-smoke single-cell PROBE (runs/ade-bench-probe-asana003-tmp-inline-reconcile/674cac4f64b68f82) PASSED 17/17 with the rule artifact-confirmed FIRED (inlined exact tmp SELECT + ran the before/after reconciliation: 22/22 pre → 11/11 post, columns/row counts matched). Forks the current @baseline h0058 (runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e, 35/48)."
 started: 2026-06-15T00:00:00Z
-completed:
-verdict:
-score:
+completed: 2026-06-15T12:24:49Z
+verdict: passed
+score: 0.7292
 worktree:
 ---
 
