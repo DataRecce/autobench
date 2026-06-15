@@ -144,7 +144,7 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
 | `source` | string | Where it came from (concept fan-out, prior verdict, captain hunch). |
 | `started` / `completed` | ISO 8601 | When work began / reached a terminal stage. |
 | `verdict` | enum | PASSED or REJECTED — set at a terminal stage. |
-| `score` | number | Priority 0.0–1.0 (optional). |
+| `score` | number | Priority 0.0–1.0 (optional); higher = ideate/advance sooner. See `_artifacts/flipped-query-targets.md` → Concept ideation order. |
 | `worktree` | string | Empty (this workflow runs inline). |
 
 ## Stages

@@ -4,6 +4,7 @@ status: concept
 kind: concept
 source: flipped-query-targets.md + CAIS log audit (googlelocal-q2 codex computes the right businesses every run, 4/5 fail only on output shape)
 id: dab0001
+score: 0.9
 ---
 
 ## Direction

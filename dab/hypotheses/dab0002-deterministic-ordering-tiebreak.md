@@ -4,6 +4,7 @@ status: concept
 kind: concept
 source: flipped-query-targets.md (the flipped 1/5–4/5 Opus queries are unstable, not unsolvable)
 id: dab0002
+score: 0.6
 ---
 
 ## Direction

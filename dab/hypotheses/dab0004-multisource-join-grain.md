@@ -4,6 +4,7 @@ status: concept
 kind: concept
 source: flipped-query-targets.md + GITHUB-q4 reasoning audit (the NULL-language edge case is the crux)
 id: dab0004
+score: 0.15
 ---
 
 ## Direction

@@ -4,6 +4,7 @@ status: concept
 kind: concept
 source: flipped-query-targets.md (several flipped queries hinge on getting one aggregation/filter rule exactly right)
 id: dab0003
+score: 0.75
 ---
 
 ## Direction

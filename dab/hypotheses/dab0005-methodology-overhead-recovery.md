@@ -4,6 +4,7 @@ status: concept
 kind: concept
 source: CAIS cross-experiment scan — minimal/direct workspaces solve crmarenapro-q8 (5/5) but spacedock suppresses it (codex 0/5)
 id: dab0005
+score: 0.4
 ---
 
 ## Direction
