@@ -104,7 +104,11 @@ Hypothesis body sections (same order as ade-bench):
     `experiment: dab00NN-<slug>` + `solver_workflow: ./solver_workflows/dab00NN-<slug>`.
   - **Smoke spec** (`specs/dab00NN-<slug>.smoke.yaml`): the full spec plus
     `benchmark.tasks: [<target query ids> + <canary query ids>]`.
-- Both frozen via `rk freeze --allow-missing`. `trials: 1`, `concurrency.trials: 1`.
+- Both frozen via `rk freeze --allow-missing`. `trials: 1` (one trial per query),
+  `concurrency.trials: 2` (two query-cells run in parallel for throughput). Note: the
+  ade-bench `concurrency.trials: 1` constraint was a frozen-git-repo HEAD-lock race specific
+  to that solver_workflow; DAB's per-query task materialization doesn't share that repo, so
+  concurrency 2 is safe here.
 
 ## 6. Baseline — convert/shim the Opus run-dir
 
