@@ -1,7 +1,7 @@
 ---
 id: h0060
 title: Stabilize f1001 + f1003-hard coin-flips (gated src-naming rule + top-N tie-crosses-cutoff criterion)
-status: full
+status: analyze
 kind: hypothesis
 source: captain hunch (make f1001/f1003-hard stable for a reliable 36/48) + FO artifact investigation of h0059 r1-vs-r2 coin-flips
 started: 2026-06-15T12:42:27Z
