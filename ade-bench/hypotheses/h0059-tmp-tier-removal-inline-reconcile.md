@@ -112,4 +112,45 @@ Method/README change only. Forks @baseline h0058 (`solver_workflows/h0058-featur
 
 ## Smoke result
 
-_(pending — 3 confirmation draws launched; fill after the sentinels land.)_
+**GO.** asana003 flipped FAIL→PASS on **4/4 independent draws** (probe seed-null + r1 seed-42 +
+r2 seed-43 + r3 seed-44) vs the ~58% base rate, and the **rule FIRED in every draw** (committed
+artifact = inline of the exact tmp SELECT + an executed before/after reconciliation) — so the
+streak is mechanism, not luck. All strict-clean, captured>0; all 5 r1 canaries held including the
+over-fire tripwire. This pins asana003 → **35 → 36 candidate** on the cleanest (oracle-free
+reconciliation) lever in the program.
+
+Run-dirs: r1 `…-r1/dafb7977973a688b` (panel, 6/6) · r2 `…-r2/37a10aa3779bda63` (1/1) ·
+r3 `…-r3/a7a653fa9e46c0db` (1/1) · probe `…-probe…/674cac4f64b68f82` (1/1). Strict audit on each:
+`tainted 0 / coverage_missing 0`, captured>0.
+
+### asana003 flip — the decisive AC-3/AC-4 read (rule fired = not luck)
+
+| Draw | Seed | asana003 | Inline (not re-derive)? | Reconcile actually ran? | Verdict |
+|------|------|----------|--------------------------|--------------------------|---------|
+| probe | null | PASS | ✅ inlined exact tmp SELECT, ref→source | ✅ 22/22 pre → 11/11 post, cols/rows matched | RULE FIRED |
+| r1 | 42 | PASS | ✅ inlined, only FROM swapped | ✅ `dbt show` metadata capture; row recon all matched (project 16, tag 17, task 1, …); `column_metadata_mismatches=0` | RULE FIRED |
+| r2 | 43 | PASS | ✅ inlined; **caught+reverted an intermediate re-derive failure via the reconcile** | ✅ 22 baseline → 11 final; schemas/types/rows matched all 11 | RULE FIRED |
+| r3 | 44 | PASS | ✅ inlined (`select *` bodies, FROM→source) | ✅ **row-fingerprint (SHA256) match** before vs after, all 11 | RULE FIRED |
+
+**asana003 pass count: 4/4, rule fired 4/4.** Pure-luck probability of 4/4 on a 58% cell ≈ 11% —
+but the committed-artifact reads show the inline+reconcile mechanism drove every pass, so this is
+not the luck tail. R2 is the strongest single proof: the reconcile step *caught* a re-derive that
+would have failed and forced the revert — the teeth working exactly as designed.
+
+### Canary panel (r1, AC-5) — all hold, no over-fire
+
+| Canary | Role | r1 |
+|--------|------|----|
+| quickbooks002 | Move-B feature-removal hold | ✅ PASS |
+| quickbooks003 | Move-B feature-removal hold | ✅ PASS |
+| ana-eng003 | **over-fire tripwire** (build/preserve — the new rule must NOT fire on a non-tmp build) | ✅ PASS (rule correctly silent) |
+| asana001 | package-family coin-flip canary | ✅ PASS |
+| f1007 | cross-family stable | ✅ PASS |
+
+Zero regression; the tmp-tier rule did not over-fire on ana-eng003 (a plain build, no tmp tier).
+
+**Verdict: GO → full.** The flip is artifact-real and reproducible (4/4, rule fired each time), the
+lever is oracle-free (reconciles against the local before-state, encodes no answer), and canaries
+hold. Per the standing two-draw promote precedent (h0052/h0056/h0058), the full verdict is provisional
+pending ≥2 seed-perturbed full 48-task draws clearing @baseline h0058's expectation (~34) — but unlike
+a coin-flip flip, the reconcile mechanism gives strong reason to expect asana003 reproduces at full.
