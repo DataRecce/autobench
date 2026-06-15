@@ -138,7 +138,7 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Stage Report: propose
 
-- DONE: Fork the CURRENT @baseline solver dir (solver_workflows/h0059-tmp-tier-removal-inline-reconcile) into solver_workflows/h0060-stabilize-f1-coinflips-src-naming-and-topn-tie, and edit ONLY its README to add the two precondition-gated stabilizer rules — leak-guard prose intact, no other knob touched.
+- DONE: Fork the CURRENT @baseline solver dir (solver_workflows/h0059-tmp-tier-removal-inline-reconcile) into solver_workflows/h0060-stabilize-f1-coinflips, and edit ONLY its README to add the two precondition-gated stabilizer rules — leak-guard prose intact, no other knob touched.
   README diff is purely additive (lines 269-312, inside `## Stage: Implementation` only); leak-guard/dependency prose byte-identical; commit 0c12dfd.
 - DONE: Build full spec h0060-…yaml (differs from baseline.yaml ONLY in experiment: + solver_workflow:) and smoke spec with benchmark.tasks = f1001, f1003-hard + 3 perturbable f1 canaries (f1005/f1006/f1007) + 1 passing canary per other family (airbnb001/ana-eng001/asana001/quickbooks002); freeze both with rk freeze --allow-missing.
   `diff baseline.yaml h0060.yaml` = exactly experiment: + solver_workflow:; smoke diff = only the benchmark.tasks block; both `.frozen.yaml` + `.smoke.frozen.yaml` written (content_hash fe87f779…, differs from baseline 97b5f476… → README change registered). Intercom has NO @baseline passer (intercom001/002/003 all FAIL at h0059) so no intercom canary is structurally possible — noted in the smoke spec.
@@ -159,3 +159,12 @@ note: judge the f1003-hard flip by the committed 3-answer-table artifact on ever
 model (G11, ≥2-model target), and treat the decision-fork probe as prior-run artifact
 evidence not a fresh sim (G12) — require the flip to reach the construct-correct artifact at
 smoke with the perturbable f1 canaries held.
+
+- REALIGNMENT (post-gatekeeper): renamed all artifacts from the long slug
+  `h0060-stabilize-f1-coinflips-src-naming-and-topn-tie` to the short entity slug
+  `h0060-stabilize-f1-coinflips` (the long form exceeds Claude's 64-char worker-name limit and
+  would break smoke/full dispatch). Pure `git mv` of the solver dir + four spec files, the two
+  embedded `experiment:`/`solver_workflow:` strings updated, both specs re-frozen. Solver README
+  content is byte-unchanged → `solver_workflow_content_hash` stays `fe87f779…`, so the gatekeeper
+  APPROVE verdict is unaffected. AC-1 `diff specs/baseline.yaml specs/h0060-stabilize-f1-coinflips.yaml`
+  now shows exactly `experiment:` + `solver_workflow:`.

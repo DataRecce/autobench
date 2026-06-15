@@ -1,5 +1,5 @@
 version: 1
-experiment: ade-bench-h0060-stabilize-f1-coinflips-src-naming-and-topn-tie
+experiment: ade-bench-h0060-stabilize-f1-coinflips
 agent:
   kind: spacedock_solver
   runtime: codex
@@ -8,7 +8,7 @@ agent:
     temperature: 0.0
     top_p: null
     seed: null
-  solver_workflow: ./solver_workflows/h0060-stabilize-f1-coinflips-src-naming-and-topn-tie
+  solver_workflow: ./solver_workflows/h0060-stabilize-f1-coinflips
   spacedock_skill_version: "1.0.0"
   max_turns: 200
   override_timeout_sec: 2400

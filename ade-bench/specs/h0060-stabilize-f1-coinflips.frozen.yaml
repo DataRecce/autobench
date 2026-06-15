@@ -1,5 +1,5 @@
 version: 1
-experiment: ade-bench-h0060-stabilize-f1-coinflips-src-naming-and-topn-tie
+experiment: ade-bench-h0060-stabilize-f1-coinflips
 agent:
   kind: spacedock_solver
   runtime: codex
@@ -8,7 +8,7 @@ agent:
     temperature: 0.0
     top_p: null
     seed: null
-  solver_workflow: solver_workflows/h0060-stabilize-f1-coinflips-src-naming-and-topn-tie
+  solver_workflow: solver_workflows/h0060-stabilize-f1-coinflips
   solver_workflow_content_hash: sha256:fe87f7797b5a4b4300ad6ebe5701cf719796a1b3f0170d3f6699fe5c872de206
   max_turns: 200
   max_budget_usd: null
@@ -49,7 +49,7 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: 6e9e443f64b6ef35e4d316e18037a16ad16765a7
+  harness_git_sha: fda8b287e74dc455908f749c06bff94087340d3d
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
