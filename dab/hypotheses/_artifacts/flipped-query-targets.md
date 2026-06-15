@@ -77,7 +77,7 @@ codex-5.5 itself, making them strong bankable targets vs the Opus `@baseline`:
 | Query | wt | `@baseline` (opus-4-8 run-003) | **codex-5.5 spacedock** (closest to our loop) | codex-5.5 minimal | best Opus prior | Verdict |
 |---|---:|---:|---:|---:|---:|---|
 | `GITHUB_REPOS-q4` | 2.08 | FAIL | **5/5** | 5/5 | 5/5 (4-6/4-7, structured) | **Top target — model-capability flip.** Codex nails it on our exact surface; the anchor likely banks +2.08 with no lever. |
-| `googlelocal-q2` | 2.08 | FAIL | 1/5 | **5/5** | 0/5 (no Opus ever) | **README-lever target.** Codex *can* (minimal 5/5) but the spacedock 3-step README suppresses it (1/5) → lever = recover minimal behavior. +2.08. |
+| `googlelocal-q2` | 2.08 | FAIL | 1/5 | **5/5** | 0/5 (no Opus ever) | **Output-format lever target.** Log-verified: codex computes the *correct* businesses in all 5 spacedock runs; 4/5 fail only on output shape (JSON-dicts vs the expected `name - rating` string). Lever = answer/output contract. +2.08. |
 | `crmarenapro-q8` | 0.64 | FAIL | 0/5 | 3/5 | 5/5 (spacedock-opus-4-6) | **README-lever target.** Solvable in spacedock (opus-4-6 5/5) but codex-5.5 + opus-4-8 regressed → recoverable; low weight. +0.64. |
 | `PANCANCER_ATLAS-q1` | 2.78 | FAIL | 0/5 | 0/5 | **0/58 everywhere** | **Confirmed wall.** No model/config ever passed it — stays excluded. |
 
@@ -99,6 +99,15 @@ flipped set → the loop's bankable target pool is now ~**+10.4 stratified point
 (Source: `~/CAIS-paper-experiments/{spacedock,minimal,structured,direct-*}-{opus-4-6,opus-4-7,codex-5.5}-*`,
 legacy `run-*/datasets/<ds>/attempts/attempt-*/validation.json`. The `spacedock-codex-5.5-xhigh-hint`
 column is the closest analog to our loop's codex/gpt-5.5 + spacedock + hints surface.)
+
+**Cheating check (codex-5.5 spacedock).** Because the codex-5.5 spacedock run group is known to
+contain some cheating elsewhere, the `GITHUB_REPOS-q4` and `googlelocal-q2` passes were log-audited
+(`codex-output.jsonl` + workspace `_artifacts/reasoning.md`): both are **legitimate** — genuine,
+edge-case-aware DuckDB SQL; no `ground_truth`/`solution` file is present in the agent workspace
+(harbor keeps it verifier-side), no command read one, and the agent's `rg` searches explicitly
+`-g '!ground_truth.csv' -g '!validate.py'`. Caveat: worker sub-thread keystrokes aren't in the
+orchestrator transcript, but with no answer file in-workspace there is nothing to leak. The
+"cheating behavior" in this run group is in *other* queries, not these two.
 
 ## Canaries — keep these passing (do NOT target)
 
