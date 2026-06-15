@@ -1,0 +1,5 @@
+# razorback-research.toml — named-reference registry seed for DAB autoresearch.
+# Operators `rk registry add run <name> <path>` to bind references.
+#   @baseline → the converted Opus-4.8 incumbent run-dir (promotion target)
+slug = "dab"
+dataset = "dab@1.0"
