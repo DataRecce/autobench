@@ -1,6 +1,17 @@
-# Run-queue state — 2026-06-14 (PROGRAM MILESTONE: first SIX-lever baseline, 35/48)
+# Run-queue state — 2026-06-15
 
-## @baseline = h0056 (PROMOTED 2026-06-14) — SIX-lever composition, 35/48 = 0.7292
+## @baseline = h0058 (PROMOTED 2026-06-15) — h0056 + keep-base-id stabilizer, 35/48 = 0.7292
+`runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e` (35/48 = 0.7292). =
+h0056's six levers + ONE scoped edit: a generic drop-feature-col / KEEP-base-id worked example in the
+feature-removal block, locking the qb002/003 over-drop coin-flip. PROMOTED as a STABILIZER (not a flip):
+strict-≥-every-seed (seed-43 byte-identical to h0056; seed-42 32→33), committed keep-department_id artifact
+both draws, hold rate 2/4→4/4, no over-fire (ana-eng003 build held). New hypotheses fork from THIS README.
+Method banked in WORKFLOW-REFINE (stabilizer-promote: strict-≥-every-seed + hold-rate + artifact, not net).
+**Follow-up = ESCALATE:** remaining ~13 @baseline FAILs are oracle-blind (hidden AUTO_* equality) or
+genuinely multi-error — the construct-gated edit-shape lever family is at diminishing returns; ana-eng004
+closed oracle-blind. Captain strategy call before filing more edit-shape variants.
+
+## Prior anchor: h0056 (was @baseline 2026-06-14 → 06-15) — SIX-lever composition, 35/48 = 0.7292
 `runs/ade-bench-h0056-compose-six-levers-on-h0052-r2/2c544ee929c0c02a` (35/48 = 0.7292). Forks h0052
 and adds three NEW construct-gated edit-shape levers verbatim → six total: h0044 max(points) + h0045
 feature-boundary + h0050 scoped coverage + **h0053 per-key inner-join + h0054 lap-time exclude-pit +
