@@ -415,3 +415,94 @@ the seed-42 draw is 33/48 (qb +2, f1003 −1 off-construct f1 variance). Build/p
 draws strict-clean. Recommended PROMOTE as a banked, non-bleeding reproducibility improvement on the
 qb removal boundary (two-draw mean 34 vs 33.5), honest that the headline net is modest — the captain
 decides.
+
+## Verdict
+
+**PASSED / PROMOTED.** @baseline rebound from h0056 to
+`runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e` (**35/48 =
+0.7292**), PROMOTED by the FO 2026-06-14 (analyze commit 5830be7).
+
+**Basis — a STABILIZER, not a headline net flip.** h0058 added one scoped worked example
+(drop-feature-col / KEEP-base-id) to the existing feature-removal block. It promotes on a
+**STRICT-≥-every-seed + committed-artifact + hold-rate** basis, NOT a pass-count flip:
+
+- **STRICT ≥ every seed.** Seed-43: byte-identical to the named @baseline (35→35, paired delta +0.0
+  CI [0,0]) — no-op on the good draw, zero interference with the other six h0056 levers. Seed-42:
+  32→33 — the worked example prevents the over-drop on the baseline's BAD draw. So h0058 is ≥ h0056
+  on every seed tested; it can only help or stay flat.
+- **Committed keep-base-id artifact.** qb002 + qb003 committed the drop-`department_name` /
+  keep-`department_id` artifact in BOTH draws (apply_patch removes only `department_name` + the
+  `using_department` conditional join; `department_id` retained; the "has less columns than
+  solution" over-drop error absent; 8/8 and 14/14).
+- **Hold-rate 2/4 → 4/4.** The qb-pair coin-flipped in the baseline (both FAILED in the seed-42
+  draw, the dominant r1 shortfall = 2-of-4 baseline draw-cells PASS); under h0058 both hold PASS in
+  both draws = 4-of-4.
+- No over-fire: the build/preserve tripwire (ana-eng003) and narrow toggle (qb004) held P/P with the
+  gated worked example provably NOT firing; both draws strict-clean (clean=48/cm=0/tainted=0).
+
+**Transferable lesson.** A precondition-gated STABILIZER — a worked example that prevents a known
+over-drop regression mode — promotes on reproducibility (strict-≥-every-seed) + a committed artifact
++ a hold-rate lift, NOT on a headline net flip. Its value compounds because it banks a known
+regression mode OUT of the baseline README: every future hypothesis now forks from a more
+reproducible baseline (the qb removal boundary no longer coin-flips), so a banked variance-reducer
+is real progress toward the goal even when the two-draw mean moves only +0.5 (33.5→34/48).
+
+**Move B lineage.** This worked example IS Move B from h0057, where it was VALIDATED (qb002/qb003
+held PASS across both 14-task smokes, byte-unchanged through all four h0057 cycles, zero bleed). It
+was orphaned only by h0057's independent Move-A rejection (ana-eng004 oracle-blind) and carried here
+solo. h0058 re-validated it at full 48-task scale across two independent draws.
+
+## Follow-up Routing
+
+**ESCALATE — surface candidate directions + the diminishing-returns read for captain strategy; do
+NOT auto-file a doomed variant.**
+
+The remaining 13 @baseline-h0058 FAILs (scanned from the r2 `per_trial_outcomes.json`): `ana-eng004`,
+`ana-eng006`, `ana-eng007`, `ana-eng007-medium`, `asana003`, `asana004`, `asana005`, `asana005-hard`,
+`f1002`, `intercom001`, `intercom002`, `intercom003`, `quickbooks001`. **None of these 13 has ever
+been a named target of any prior hypothesis** — they are the untouched FAIL core; every banked flip
+(airbnb009, f1006, asana002, qb002/003) hit a DIFFERENT cell.
+
+Bucketed by verifier signature (r2 cells):
+
+- **Oracle-blind / hidden-test family (the dead wall) — ~6 cells.** Several FAILs show the visible
+  verifier ALL-GREEN yet reward 0 — the signature of hidden AUTO_*_equality tests the solver never
+  sees: intercom001 (visible PASS=1, expected_test_count=2), ana-eng006 (4/4 visible, expected 7),
+  intercom003 (1/1), asana005 (81/81 visible, expected 8), asana005-hard (2/2), ana-eng007-medium
+  (40/40). The solver passes everything it CAN see and still fails a hidden equality. This is the
+  solver-blind-to-oracle / AUTO_*-equality-hidden wall (memory: dead family) — no edit-shape lever
+  can teach the solver to satisfy a check it cannot observe. ana-eng004 is the already-closed
+  oracle-blind case (h0057 Move-A REJECTED, 4 cycles, 4 distinct failure modes).
+
+- **Visible-partial-fail family — ~7 cells.** asana003 (PASS=11/ERROR=6), quickbooks001
+  (6/ERROR=6), intercom002 (2/ERROR=2), f1002 (9/ERROR=1), asana004 (5/ERROR=1), ana-eng007
+  (9/ERROR=1). These have visible failing tests, so they LOOK edit-shape-tractable — but the solver
+  already saw those errors and could not close them at trials:1, which reads as genuine task
+  difficulty (multi-error: asana003/qb001 each 6 errors), NOT a coin-flip removal boundary like the
+  qb002/003 over-drop that h0058 just banked. None is a stable-PASS that regressed; none is a
+  one-token boundary.
+
+**Why ESCALATE, not file.** The construct-gated edit-shape family (max-points / feature-boundary /
+coverage / per-key / lap-time / preserve-columns / now feature-removal-keep-base-id) has banked its
+readily-flippable targets — the surviving FAILs are either oracle-blind (no lever reaches them) or
+multi-error genuine-difficulty cells with no clean single-token boundary. The single-trial /
+judge-by-artifact regime and the concluded oracle-flip program both say: do not re-open a dead family
+or chase a doomed variant. The honest read for captain strategy is **diminishing returns on
+README/edit-shape levers** — 75% needs a benchmark-design change (e.g. exposing the hidden
+equality tests to the solver, or multi-trial), not another instruction lever. Candidate directions to
+put to the captain: (a) STOP filing edit-shape hypotheses and bank h0058 as the closing flip of the
+program; (b) a benchmark-design change to surface the oracle (hidden AUTO_*_equality) so the
+oracle-blind ~6 become reachable; (c) if a lever is still wanted, the only non-oracle-blind,
+single-error candidates are f1002 / asana004 / ana-eng007 (1 visible error each) — but each lacks the
+clean coin-flip boundary that made qb002/003 tractable, so confidence is LOW. Recommend the captain
+choose (a) or (b) over auto-filing (c).
+
+## Stage Report: conclude
+
+- DONE: h0058 `## Verdict` written — PASSED / PROMOTED, @baseline rebound to runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e (35/48 = 0.7292).
+  Recorded the STRICT-≥-every-seed (s43 byte-identical delta 0; s42 32→33) + committed keep-`department_id` artifact (8/8, 14/14, over-drop error absent) + hold-rate 2/4→4/4 basis; transferable lesson (gated stabilizer banks a regression mode out of the README → more reproducible baseline for future forks, not a headline net); Move B lineage (h0057-validated, orphaned by the ana-eng004 oracle-blind Move-A rejection, carried solo) noted.
+- DONE: h0058 `## Follow-up Routing` written = ESCALATE + rationale.
+  Scanned the r2 per_trial_outcomes.json (13 FAILs, NONE a prior-hypothesis target). Bucketed: ~6 oracle-blind/hidden-AUTO_*-equality cells (visible all-green yet reward 0: intercom001 vis 1/exp 2, ana-eng006 4/exp 7, asana005 81/exp 8, etc.) = the dead wall no edit-shape lever reaches; ~7 visible-partial-fail multi-error cells = genuine difficulty, no clean coin-flip boundary. Recommended ESCALATE (diminishing returns on edit-shape; surface STOP / benchmark-design-change / low-confidence single-error candidates for captain strategy) over auto-filing a doomed variant.
+
+### Summary
+Record-writing only (no re-runs). h0058 concluded PASSED/PROMOTED as a clean precondition-gated variance-reducer that banks the qb002/003 over-drop coin-flip out of the baseline README (strict ≥ every seed, committed keep-base-id artifact both draws, hold-rate 2/4→4/4, zero interference/over-fire). Follow-up = ESCALATE: the 13 remaining @baseline FAILs are untouched by any prior hypothesis and split into an oracle-blind hidden-test family (unreachable) and multi-error genuine-difficulty cells (no clean boundary) — diminishing returns on edit-shape levers, so surface candidate directions for captain strategy rather than file a doomed variant.
