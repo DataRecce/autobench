@@ -1,0 +1,8 @@
+# @baseline pointer + per-dataset incumbent scores (Opus-4.8 xhigh +hints, converted).
+# Resolve the live ref with:
+#   export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml
+#   uv run --project ../razorback rk registry resolve run @baseline
+baseline_ref: "@baseline"
+solver: "claude-opus-4-8 (xhigh, hints on) — converted legacy run; variants run codex/gpt-5.5"
+stratified_pass_at_1: 0.6535866910866911   # median of 5 legacy runs (run-003), reproduced by the Task 1 shim
+note: "Single-reference comparison (design §7): codex variants diff directly against this Opus incumbent. The model swap (codex vs Opus) is confounded with the README lever — analyze attributes via the committed-artifact read."
