@@ -1,0 +1,37 @@
+# /home/kent/autobench/dab/specs/dab-smoke-mechanism-check.yaml
+version: 1
+experiment: dab-smoke-mechanism-check
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/spacedock-readme-baseline
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+  tasks:
+  - agnews
+  - googlelocal
+  exclude_tasks:
+  - agnews-q2
+  - agnews-q4
+  - googlelocal-q1
+  - googlelocal-q3
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
