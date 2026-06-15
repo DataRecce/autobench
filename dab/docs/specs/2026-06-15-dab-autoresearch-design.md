@@ -137,19 +137,37 @@ The chosen baseline `/home/kent/dataagentbench/_runs/spacedock-opus-4-8-xhigh-hi
 - **Promote** (`rk baseline promote <run-dir>` + `rk registry add run baseline`) when a
   variant's stratified Pass@1 clears the Opus incumbent on a clean `rk audit`.
 
-## 8. Smoke targeting — query-level + canaries
+## 8. Smoke targeting — dataset-select + per-query exclude
 
-- The smoke spec selects via DAB plugin `benchmark.tasks`:
-  - the **specific target queries** the hypothesis claims to fix, plus
-  - **canary queries** — currently-passing queries from other datasets/families — as
-    regression tripwires.
-- **Implementation note to verify before authoring specs:** confirm the DAB plugin `tasks`
-  selector accepts per-query ids (e.g. `agnews-q1`), not just dataset names. If it only
-  accepts dataset granularity, fall back to dataset-level smoke targeting and record the
-  limitation in the README.
+Verified in razorback code (`translate.py:312-317`, plugin path): the DAB plugin's
+`benchmark.tasks` selector accepts **dataset names only** (passed to the plugin as
+`--datasets`), but razorback applies `benchmark.exclude_tasks` **spec-side** as a verbatim
+filter on the materialized per-query task directory names *after* the plugin runs. DAB task
+dir names are `{dataset}-q{query_id}` (e.g. `agnews-q1`), set in
+`razorback-plugin-dab/.../generate/prepare.py:158`.
+
+So query-level smoke targeting is achieved with a **select-then-exclude** pattern in the
+smoke spec:
+
+```yaml
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args: { hints: true, data_root: /home/kent/dataagentbench/data }
+  tasks: [agnews, googlelocal]        # whole datasets get materialized
+  exclude_tasks: [agnews-q2, agnews-q4, googlelocal-q1, googlelocal-q3]  # drop unwanted queries
+```
+
+- **Target queries** = the queries the hypothesis claims to fix (kept).
+- **Canary queries** = currently-passing queries from other datasets/families, kept as
+  regression tripwires.
+- Everything else in the selected datasets is dropped via `exclude_tasks`.
+- **Caveat:** no existing test covers `exclude_tasks` + plugin together, so the propose stage
+  MUST verify the resolved task list with `rk run <smoke-spec> --explain` before launching.
 - **Smoke-set table (REQUIRED at every propose gate)** reuses ade-bench's boxed format:
-  `Task` / `Baseline (Opus) reward` / `want-flip 🎯 or hold ✅` / `role`. Baseline rewards
-  resolved from the converted `per_trial_outcomes.json`.
+  `Task` (`{dataset}-q{n}`) / `Baseline (Opus) reward` / `want-flip 🎯 or hold ✅` / `role`.
+  Baseline rewards resolved from the converted `per_trial_outcomes.json`.
 
 ## 9. Gatekeeper — adapted G-rules
 
@@ -185,9 +203,9 @@ Advisory only; the captain decides and records any override.
 
 1. **Baseline shim** — adapter converts the legacy Opus run-dir to rk format; register as
    `@baseline`; verify `rk runs diff` + `rk score`.
-2. **Plugin selector check** — confirm DAB plugin `benchmark.tasks` accepts per-query ids;
-   build one variant spec pair (`dab0001-*` full + smoke) and validate with
-   `rk run --explain` (dry, ~0 cost).
+2. **Spec pair + selector verification** — build one variant spec pair (`dab0001-*` full +
+   smoke); validate the smoke spec's `tasks` + `exclude_tasks` resolves to exactly the
+   intended per-query set with `rk run <smoke-spec> --explain` (dry, ~0 cost).
 3. **Drivers** — port `rk-run-detached.sh` + `matrix.sh` into `dab/drivers/`.
 4. **Workflow scaffolding** — author `hypotheses/README.md` (frontmatter stages + stage
    docs), `_gatekeeper/propose-review-guideline.md`, and `_artifacts/`
