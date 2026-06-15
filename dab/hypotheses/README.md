@@ -123,15 +123,19 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
 ## File Naming
 
 - Concepts: `concept-<slug>.md` (lowercase, hyphens; no number).
-- Hypotheses: `dab<NNNN>-<slug>.md`, next available `dab<NNNN>`; the descriptive name lives in
-  `title`. With `id-style: slug` the slug is the identity; if `id` is set it must match (e.g.
-  `id: dab0001`). The `dab` prefix avoids collision with ade-bench's `h00NN` namespace.
+- Hypotheses: `dab<NNNN>-<slug>.md`, next available `dab<NNNN>` (scan existing `dab*-*.md` and
+  `_archive/`, then increment — `status --next-id` is n/a under slug style). **Set `id: dab<NNNN>`**
+  (the short prefix, e.g. `id: dab0001`) in frontmatter — recommended, mirroring ade-bench's
+  `h<NNNN>` — so the entity resolves by its short id (`spacedock status --resolve dab0001`). The
+  slug stays the identity (the status ID column renders the full `dab<NNNN>-<slug>`); the
+  descriptive name also lives in `title`. The `dab` prefix avoids collision with ade-bench's
+  `h00NN` namespace.
 
 ## Schema
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Optional under `id-style: slug`; when set, matches the slug (`dab<NNNN>`). |
+| `id` | string | Hypotheses set the short `dab<NNNN>` prefix (e.g. `dab0001`) — recommended, resolvable via `status --resolve`. Concepts use `concept-<slug>`. Slug stays the identity. |
 | `title` | string | Human-readable name. |
 | `status` | enum | concept, ideate, expanded, hypothesis, propose, smoke, full, analyze, conclude. |
 | `kind` | enum | `concept` or `hypothesis` (which path this entity is on). |
