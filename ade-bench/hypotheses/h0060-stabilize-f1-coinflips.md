@@ -93,7 +93,7 @@ passers at full). Propose ensign assembles per gatekeeper G8/G10.
 ## Acceptance criteria
 
 **AC-1 — Exactly the README changes; full spec differs only in `experiment:` + `solver_workflow:`.**
-Verified by: `diff ../specs/baseline.yaml ../specs/h0060-stabilize-f1-coinflips-src-naming-and-topn-tie.yaml`.
+Verified by: `diff ../specs/baseline.yaml ../specs/h0060-stabilize-f1-coinflips.yaml`.
 
 **AC-2 — Every recorded score is paired with a clean strict audit.**
 Verified by: each `rk score` cites a `rk audit --policy strict` on the same run-dir.
