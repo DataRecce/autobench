@@ -12,6 +12,13 @@ the flip-map (`_artifacts/round1-round2-flipped-task-choice-map.md`), and the le
 research (`_proposal/leverable-flipped-tasks-research-2026-06-13.md`).
 Output: `hypotheses/h0057-aneng-obt-preserve-columns-and-feature-drop-keep-base-id.md`.
 
+> **OUTCOME UPDATE (2026-06-15) — Move A FAILED, Move B PROMOTED. Read §8 before reusing this
+> procedure.** Move A never flipped ana-eng004 (h0057 REJECTED after 4 real-run revise cycles —
+> the pre-diagnosis below was WRONG). Move B was validated and shipped alone as h0058
+> (`runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e`, PROMOTED;
+> two-draw mean 34/48, @baseline now 35/48). Goal 36 still open. The §5 selection logic mostly
+> held — but step 3 (static-forensic flip-target pick) has a sharp failure mode documented in §8.
+
 ## 0. Situation after h0056
 
 h0056 (six-lever composition) promoted to `@baseline` on its **r2** draw =
@@ -132,6 +139,11 @@ reduces regression and raises the floor toward a stable 35+, on top of which Mov
    "never-passed (0/N) + same construct as something we already fixed" over a high-headroom cell with
    an unknown construct. Confirm with a committed-artifact forensic before committing. (ana-eng004 ✅;
    ana-eng006 ❌ — same family, different failure modes.)
+   ⚠️ **CORRECTION (see §8):** a static "less columns / same error string" forensic is NOT enough to
+   call a cell a clean sibling. ana-eng004 looked identical to ana-eng003 but its real fork was one
+   layer deeper (a duplicate-join-key retention quirk) — invisible until a real run. Before betting a
+   flip target, run ONE real probe draw and read the *exact* committed-vs-solution column/row diff,
+   not just the error class.
 4. **Regression target = a fragile passer that is BOTH a top risk AND lockable.** Skip the
    unlockable ones (oracle MC like f1011; deep build variance like f1001; package noise like
    asana002). Pick the one with a cleanly expressible correct boundary (qb002/qb003 ✅).
@@ -167,3 +179,60 @@ reduces regression and raises the floor toward a stable 35+, on top of which Mov
   solution"); r2 = kept it. Correct boundary cleanly expressible; h0045 has the prose, lacks the
   example.
 - Historical pass rates: flip-map `_artifacts/round1-round2-flipped-task-choice-map.md`.
+
+## 8. Postmortem (2026-06-15) — Move A failed, Move B promoted: what we got wrong and what held
+
+**Result:** h0057 (Move A + Move B) was REJECTED — Move A never flipped ana-eng004 across 4 real-run
+revise cycles. Move B was validated (qb002/qb003 held every smoke) and shipped alone as **h0058
+(PROMOTED)**: r1=33, r2=35, two-draw mean **34/48** (up from h0056's 33.5); @baseline now
+`runs/ade-bench-h0058-feature-removal-keep-base-id-stabilizer-r2/eba9295fda32c05e` = 35/48. **Goal 36
+remains open** — the stabilizer banked, the flip did not.
+
+### What we got wrong — the Move-A pre-diagnosis
+
+§3 classified ana-eng004 as "the identical dropped-columns construct as the banked ana-eng003." That
+was wrong, and only a real run revealed it:
+- Move A **fired and reached the committed SQL** — the worker built the full `fact ⋈ dim` OBT, no
+  relevance-prune, `attachments` present. Mechanically the rule worked.
+- ana-eng004 still landed **22 columns vs the solution's 23.** The real fork: both upstreams share the
+  join key `product_id`, and **the solution keeps BOTH copies** (`i.product_id` AND `p.product_id`).
+  The worker did the natural thing — de-duplicated the join key — landing one column short.
+- "Preserve every column" prose has no teeth to force keeping a *redundant duplicate* join-key column,
+  and 4 cycles of adding teeth (column audits, explicit counts) all failed. Keeping a redundant
+  duplicate column is an oracle quirk, not a derivable principle → ana-eng004 is **oracle-blind**, not
+  a clean sibling. (h0058 source note: "ana-eng004 oracle-blind, 4 real-run cycles, 4 distinct
+  failure modes.")
+
+### What held — the method mostly worked
+
+- **Move B was exactly right** — qb002/qb003 held PASS across every smoke and the promote; the
+  keep-base-id worked example is collision-free and raised the two-draw expectation 33.5→34. The
+  "stabilize a lockable fragile passer" half of the procedure delivered.
+- **The sibling-generalization validity check (step 6) did its job.** ana-eng004 NOT generalizing from
+  ana-eng003 is the signal that (a) the preserve-columns rule is a genuine principle (it didn't overfit
+  / falsely fire to "pass" ana-eng004), and (b) ana-eng004 needed something non-general — which we then
+  correctly declined to encode (the captain cut Move A rather than keep adding edge-case teeth).
+- **Splitting flip + stabilize was correct** — because the two were separable, the validated half
+  (Move B) shipped immediately instead of being sunk with the failed flip.
+
+### Procedure corrections (fold into §5 for next time)
+
+1. **Step 3 needs a real-run probe, not a static forensic.** "Same error class (less columns)" ≠ "same
+   fork." Before committing a flip target, run ONE probe draw and diff the *exact* committed output vs
+   the solution (column-by-column / row-by-row), not just the error string. ana-eng004's true miss
+   (duplicate-join-key retention) was invisible to the static read.
+2. **Add an "oracle-blind" exit.** If the correct output requires a quirk the solver cannot derive
+   locally (here: emit a redundant duplicate column), STOP — do not add increasingly specific teeth.
+   That drift is exactly the edge-case-encoding line; the captain's 4-cycle cutoff is the right
+   instinct, and it should be a named stop rule, not a judgment call.
+3. **Separable moves are a feature.** Keep flip and stabilize as independently-shippable edits so a
+   validated stabilizer is never orphaned by a failed flip (h0058 is the proof).
+
+### Where this leaves the road to 36
+
+ana-eng004 is reclassified **oracle-blind** (move it out of the "clean flip target" set, alongside
+intercom and f1011). The flip target for 36 must be re-picked from the remaining stable-FAIL set using
+the **corrected step 3** (real-run probe first). Candidates not yet probed this way: ana-eng007 /
+007-medium (still build/rename family but unverified at the column-diff level), f1002 (f1
+grain/aggregate), asana004/005 (unread). None should be called "clean" until a probe draw shows a
+locally-derivable fork.
