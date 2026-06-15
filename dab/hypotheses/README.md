@@ -57,7 +57,7 @@ stages:
 # Run DataAgentBench (DAB) through razorback — autoresearch workflow
 
 This workflow tunes the **solver-workflow README** (`../solver_workflows/<variant>/README.md`)
-to push codex/gpt-5.5 past the **Opus-4.8 incumbent (~0.68 stratified Pass@1, resolve
+to push codex/gpt-5.5 past the **Opus-4.8 incumbent (~0.65 / 0.6536 stratified Pass@1, resolve
 `@baseline`)** on DAB. razorback runs and scores each variant; this workflow ideates, gates,
 and analyzes.
 
@@ -393,7 +393,7 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
   ```bash
   export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml
   uv run --project ../razorback rk runs diff "$(uv run --project ../razorback rk registry resolve run @baseline)" <variant-run-dir>
-  uv run --project ../razorback rk score <variant-run-dir> --format json   # absolute stratified Pass@1 vs the Opus incumbent ~0.68
+  uv run --project ../razorback rk score <variant-run-dir> --format json   # absolute stratified Pass@1 vs the Opus incumbent ~0.65 (0.6536)
   ```
   Paste the paired delta (CIs, adjusted p) + absolute score into `## Run result`.
 - **The codex-vs-Opus confound (DAB-specific, design §7) — call it out explicitly.** The
@@ -501,7 +501,7 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
 
 The reigning champion is the `@baseline` run-dir in the DAB-local `razorback-registry.yaml`
 (resolve it after `export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml`).
-The seed champion is the converted Opus-4.8 incumbent (~0.68 stratified Pass@1). New hypotheses
+The seed champion is the converted Opus-4.8 incumbent (~0.65 / 0.6536 stratified Pass@1). New hypotheses
 fork from its solver README (`spacedock-readme-baseline` until a codex variant is promoted);
 `analyze` diffs against its run-dir.
 
