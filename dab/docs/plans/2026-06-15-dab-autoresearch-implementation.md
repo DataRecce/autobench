@@ -13,6 +13,7 @@
 **Conventions for every task:**
 - Run all `rk` commands from `/home/kent/autobench/dab/` as `uv run --project ../razorback rk <args>`.
 - Before any `rk run`: `export RAZORBACK_SPACEDOCK_PLUGIN_DIR="$(git rev-parse --show-toplevel)/spacedock"`.
+- **Registry is global and unscoped** (`~/.config/razorback/registry.yaml`, keyed only by `(kind, name)`), and the live ade-bench loop owns the global `@baseline`. DAB MUST use a project-local registry: before any `rk registry` / `rk runs diff` / `rk baseline promote`, `export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml`. Never run a bare `rk registry add run baseline …` — it would overwrite ade-bench's `@baseline`.
 - Work on the `dab-autoresearch-design` branch (already created); commit after each task.
 - The 12 DAB datasets: `agnews bookreview crmarenapro DEPS_DEV_V1 GITHUB_REPOS googlelocal music_brainz_20k PANCANCER_ATLAS PATENTS stockindex stockmarket yelp`.
 
@@ -773,6 +774,7 @@ Then write the prose body, reading `ade-bench/hypotheses/README.md` (552 lines) 
 | ade-bench | DAB replacement |
 |-----------|-----------------|
 | run `rk` from `ade-bench/` | run `rk` from `dab/` |
+| `rk registry resolve run @baseline` (bare) | prepend `export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml` — the global registry is owned by the live ade-bench loop; add this to the README's run-prerequisites section |
 | `h<NNNN>-<slug>.md` entity id | `dab<NNNN>-<slug>.md` (id-style still slug; prefix is `dab`) |
 | solver dir `../solver_workflows/codex-ade-dbt-minimal` | `./solver_workflows/spacedock-readme-baseline` |
 | `cp ../specs/baseline.yaml` | `cp specs/dab-anchor-codex.yaml specs/dab<NNNN>-<slug>.yaml` |
@@ -887,6 +889,7 @@ Expected: audit clean (exit 0); score prints the codex anchor's `stratified_pass
 Run:
 ```bash
 cd /home/kent/autobench/dab
+export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml
 ANCHOR_DIR=$(ls -dt runs/dab-anchor-codex/*/ | head -1); ANCHOR_DIR="${ANCHOR_DIR%/}"
 uv run --project ../razorback rk runs diff \
   "$(uv run --project ../razorback rk registry resolve run @baseline)" "$ANCHOR_DIR"

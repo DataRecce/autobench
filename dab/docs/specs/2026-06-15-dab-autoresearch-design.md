@@ -119,7 +119,13 @@ The chosen baseline `/home/kent/dataagentbench/_runs/spacedock-opus-4-8-xhigh-hi
 - Write an adapter that reads the legacy run-dir and emits rk-format `manifest.json` +
   `summary.json` + `per_trial_outcomes.json` (one trial per query, each with
   `dataset` / `query_id` / `reward`), placed in an rk run-dir under `dab/runs/`.
-- Register it as `@baseline` in the DAB registry (`razorback-research.toml`).
+- Register it as `@baseline`. **The razorback registry is a single global YAML
+  (`~/.config/razorback/registry.yaml`) keyed only by `(kind, name)` — no project scoping —
+  and the live ade-bench loop owns the global `@baseline`.** DAB therefore uses a project-local
+  registry: `export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml` before
+  any `rk registry` / `rk runs diff` / `rk baseline promote`. The committed `razorback-research.toml`
+  is a documentary seed (the store reads YAML, not the toml); the live binding lives in the
+  gitignored `razorback-registry.yaml`.
 - **Acceptance:** `rk runs diff <baseline> <variant>` and `rk score <baseline>` run without
   error and report a stratified Pass@1 matching the legacy `summary.json`
   (~0.68 stratified).
