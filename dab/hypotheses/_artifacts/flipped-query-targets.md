@@ -26,10 +26,11 @@ takes the **opposite** selection for the DAB autoresearch loop, per the captain'
   answerability wall) and that the correct approach exists; the loop's job is to make it
   *reliable*.
 - **Don't touch the 5/5 saturated queries** — no headroom to overcome.
-- **Don't touch the 0/5 never-resolved queries** — Opus never produced a passing artifact in any
-  run; these are walls or near-walls, not "overcome" candidates. (This deliberately deprioritizes
-  the source doc's former high-priority picks — `PANCANCER q1`, `googlelocal q2`, `GITHUB q4`,
-  `crmarenapro q8` — they stay parked.)
+- **Don't touch the 0/5 never-resolved queries** — *unless a prior experiment proves they are
+  solvable.* Opus-4.8 0/5 alone is not a wall verdict. The cross-experiment scan of
+  `~/CAIS-paper-experiments` (see "Cross-experiment rescue" below) rescues three of the source
+  doc's former high-priority picks — `GITHUB q4`, `googlelocal q2`, `crmarenapro q8` were resolved
+  by codex-5.5 and/or other configs — and confirms only `PANCANCER q1` as a true wall (0/58).
 
 ## The bankability filter (loop-specific)
 
@@ -65,6 +66,40 @@ Order above blends flip-confidence (3/5 > 1/5: the approach is better-establishe
 `agnews-q4` carries the most weight but the least confidence + an integrity hazard, so it ranks
 below the two 3/5 / trending targets.
 
+## Cross-experiment rescue — queries Opus-4.8 never solved but others did
+
+Opus-4.8 xhigh went 0/5 on `PANCANCER q1`, `googlelocal q2`, `GITHUB q4`, `crmarenapro q8`, so
+the flip/fail analysis above (which only sees the Opus-4.8 run group) parked them as "never
+resolved." Scanning `~/CAIS-paper-experiments` (passes/runs across all prior models + workspace
+variants) **overturns that for three of the four** — they are *not* walls, and two are solvable by
+codex-5.5 itself, making them strong bankable targets vs the Opus `@baseline`:
+
+| Query | wt | `@baseline` (opus-4-8 run-003) | **codex-5.5 spacedock** (closest to our loop) | codex-5.5 minimal | best Opus prior | Verdict |
+|---|---:|---:|---:|---:|---:|---|
+| `GITHUB_REPOS-q4` | 2.08 | FAIL | **5/5** | 5/5 | 5/5 (4-6/4-7, structured) | **Top target — model-capability flip.** Codex nails it on our exact surface; the anchor likely banks +2.08 with no lever. |
+| `googlelocal-q2` | 2.08 | FAIL | 1/5 | **5/5** | 0/5 (no Opus ever) | **README-lever target.** Codex *can* (minimal 5/5) but the spacedock 3-step README suppresses it (1/5) → lever = recover minimal behavior. +2.08. |
+| `crmarenapro-q8` | 0.64 | FAIL | 0/5 | 3/5 | 5/5 (spacedock-opus-4-6) | **README-lever target.** Solvable in spacedock (opus-4-6 5/5) but codex-5.5 + opus-4-8 regressed → recoverable; low weight. +0.64. |
+| `PANCANCER_ATLAS-q1` | 2.78 | FAIL | 0/5 | 0/5 | **0/58 everywhere** | **Confirmed wall.** No model/config ever passed it — stays excluded. |
+
+Two flip mechanisms to exploit:
+- **Model-capability flips** — codex-5.5 already passes on the spacedock surface (`GITHUB_REPOS-q4`
+  5/5) where opus-4-8 fails. The codex anchor banks these vs the Opus `@baseline` *without a lever*
+  (the design §7 model-swap confound here is the *point*, not a nuisance). Verify on the anchor run.
+- **README-suppressed flips** — the task is provably solvable (codex-minimal or spacedock-opus-4-6
+  passes) but our spacedock baseline README suppresses it for codex (`googlelocal-q2` 1/5,
+  `crmarenapro-q8` 0/5). These are the best *lever* hypotheses: there is direct evidence a README
+  change can recover a lost capability. Diff the minimal vs spacedock workspace prose for the lever
+  direction.
+
+Combined max bankable lift from this rescue set (excluding the PANCANCER wall): **+4.80 pts**
+(`GITHUB q4` 2.08 + `googlelocal q2` 2.08 + `crmarenapro q8` 0.64), on top of the +5.58 from the
+flipped set → the loop's bankable target pool is now ~**+10.4 stratified points**. Prioritize
+`GITHUB_REPOS-q4` and `googlelocal-q2` (2.08 each, strong codex evidence).
+
+(Source: `~/CAIS-paper-experiments/{spacedock,minimal,structured,direct-*}-{opus-4-6,opus-4-7,codex-5.5}-*`,
+legacy `run-*/datasets/<ds>/attempts/attempt-*/validation.json`. The `spacedock-codex-5.5-xhigh-hint`
+column is the closest analog to our loop's codex/gpt-5.5 + spacedock + hints surface.)
+
 ## Canaries — keep these passing (do NOT target)
 
 Flipped but **passing in run-003**, so they are the queries most likely to silently regress when a
@@ -84,10 +119,14 @@ For a stable (non-fragile) canary, also draw from the 5/5 datasets `music_brainz
 **5/5 saturated — no headroom:** `music_brainz_20k` q1–q3, `stockindex` q1–q3, and every query not
 listed in the flip/fail tables (those passed 5/5 in the run group).
 
-**0/5 never-resolved — never produced a passing artifact in any of the 5 runs:** `DEPS_DEV_V1-q1`,
-`GITHUB_REPOS-q1/q2/q4`, `PANCANCER_ATLAS-q1`, `PATENTS-q1/q2/q3`, `agnews-q2/q3`,
-`crmarenapro-q2/q8`, `googlelocal-q2`. (Some carry known answerability walls; all are out of scope
-for the overcome lane until a separate answerability artifact reclassifies them.)
+**0/5 in Opus-4.8 — but split by the cross-experiment scan (above):**
+- **Rescued → now targets** (resolved elsewhere; see "Cross-experiment rescue"): `GITHUB_REPOS-q4`,
+  `googlelocal-q2`, `crmarenapro-q8`.
+- **Confirmed walls / still excluded** (0/58 everywhere, or known GT/answerability defects per the
+  source doc): `PANCANCER_ATLAS-q1` (0/58), `DEPS_DEV_V1-q1` (95-way tie), `GITHUB_REPOS-q1/q2`
+  (GT defects), `PATENTS-q1/q2/q3` (missing rows / hidden EMA convention), `agnews-q2/q3` (stripped
+  labels), `crmarenapro-q2` (contested GT). These stay parked until an answerability artifact
+  overturns them.
 
 ## Target prompts (primary)
 
