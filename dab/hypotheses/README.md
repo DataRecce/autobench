@@ -87,8 +87,8 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
   `rk registry … @baseline` would resolve/overwrite ade-bench's. The DAB-local registry file
   keeps DAB's `@baseline` separate. `rk run` itself does not touch the registry, so the export
   is only needed for the registry/diff/promote calls.
-- **`rk run … --runs-dir` is long-running (30 min–hours) and exceeds the Bash-tool timeout —
-  never run it in the foreground.** Launch it through `drivers/rk-run-detached.sh <key> <spec>
+- **`rk run … --runs-dir` is long-running (30 min–8 hr+ for a full 54-cell run) and far exceeds
+  the Bash-tool timeout — never run it in the foreground.** Launch it through `drivers/rk-run-detached.sh <key> <spec>
   [run|matrix]`, which `nohup`s the run, writes a handle under `runs/.rk-handles/<key>-<ts>/`
   (`pid` · `log` · atomic `done` sentinel with `rc`/`end`/`rundir`), and fires an **ntfy** push
   on completion. The **ensign launches and returns the handle immediately — it never waits**;
@@ -303,7 +303,7 @@ run.** *(Budget caps deferred — this is a worthiness gate.)*
 - **Outputs (from `dab/`):**
   ```bash
   uv run --project ../razorback rk run specs/dab<NNNN>-<slug>.smoke.frozen.yaml --explain   # $0, fast, foreground
-  # rk run is long (30 min–hours) > Bash-tool timeout — launch DETACHED via the audited launcher
+  # rk run is long (30 min–8 hr+) >> Bash-tool timeout — launch DETACHED via the audited launcher (nohup)
   # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
   drivers/rk-run-detached.sh dab<NNNN>-smoke specs/dab<NNNN>-<slug>.smoke.frozen.yaml run
   #   -> handle: runs/.rk-handles/dab<NNNN>-smoke-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
@@ -389,7 +389,7 @@ queries, no query subset).
 
 - **Outputs (from `dab/`):**
   ```bash
-  # rk run is long (30 min–hours) > Bash-tool timeout — launch DETACHED via the audited launcher
+  # rk run is long (30 min–8 hr+) >> Bash-tool timeout — launch DETACHED via the audited launcher (nohup)
   # (ensign launches, returns the handle, exits; FO scans runs/.rk-handles/*/ every turn):
   drivers/rk-run-detached.sh dab<NNNN>-full specs/dab<NNNN>-<slug>.frozen.yaml run   # all 12 datasets
   #   -> handle: runs/.rk-handles/dab<NNNN>-full-<ts>/  (pid · log · done = rc/end/rundir) + ntfy on done
