@@ -7,6 +7,7 @@ id: h0048
 started: 2026-06-11T00:00:00Z
 verdict: REJECTED
 completed: 2026-06-16T17:11:18Z
+archived: 2026-06-16T17:11:28Z
 ---
 
 ## Hypothesis
