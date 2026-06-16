@@ -1,12 +1,12 @@
 ---
 id: h0028
 title: Answer Decision Table Selector (adversarial re-fire) -- forced-divergence candidates with cross-examination; an IN survives only if it withstands an adversarial attack
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: "re-fire of h0026 (REJECTED — implementation wrong, hypothesis sound). h0026 falsified the *self-anchored* selector design (one session simulating N candidates, scoring by own checks); it did NOT falsify the multi-candidate selector idea itself. Two G9 axes unmet in h0026: (a) generation independence — one session = one mind photocopied 3 times; (b) judgment independence — selector scored candidates by their own checks, so a confident wrong answer scores perfect. This variant fixes both axes without a harness change, using forced-divergence stances and adversarial cross-examination within the same session. Forks the current @baseline solver protocol as a declared protocol-family variant."
 started: 2026-06-06T00:00:00Z
-completed:
-verdict:
+completed: 2026-06-16T17:11:18Z
+verdict: REJECTED
 score:
 worktree:
 ---
@@ -112,5 +112,9 @@ protocol markers and remain PASS. Any canary regression is NO-GO even if `f1011`
 ## Behavioral analysis
 
 ## Verdict
+
+REJECTED (administrative close — captain-directed backlog clear, never run).
+
+REJECTED — administrative close 2026-06-16 (FO, captain-directed backlog clear; never run). Re-fire of h0026 (multi-candidate answer-decision selector). The self-anchored-selector wall stands (see [[ade-bench-validation-self-anchored-false-green]]): without candidate diversity + an INDEPENDENT in-decision falsifier (a harness change), the design can't beat a uniformly-held plausible-wrong option. Superseded by the oracle-flip program conclusion ([[ade-bench-oracle-program-concluded]]) and the h0060 follow-up STOP. Recoverable from _archive.
 
 ## Stage Report: propose

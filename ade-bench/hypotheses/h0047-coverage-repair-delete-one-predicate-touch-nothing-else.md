@@ -1,10 +1,12 @@
 ---
 title: Implementation — frame a missing-rows coverage repair as a STRICTLY subtractive single-predicate deletion ("the only edit is to delete the one narrowing filter; touch nothing else — not the aggregate, not the joins"), removing every free fork instead of steering each
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: concept-airbnb009-reproducible-fix (ideate 2026-06-11), candidate mechanism (d.2) "remove the free degrees of freedom rather than steer each". Distinct from h0046 (worked-example skeleton) and from h0019/h0042 (one-fork pins). Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 id: h0047
 started: 2026-06-11T00:00:00Z
+verdict: REJECTED
+completed: 2026-06-16T17:11:18Z
 ---
 
 ## Hypothesis
@@ -120,3 +122,9 @@ full-scale blind spot.
 Method/README change only. Forks the current `@baseline` solver
 (`solver_workflows/codex-ade-dbt-minimal`, runtime codex); no dataset, harness, or
 solver-runtime change.
+
+## Verdict
+
+REJECTED (administrative close — captain-directed backlog clear, never run).
+
+REJECTED — administrative close 2026-06-16 (FO, captain-directed backlog clear; never run). An airbnb009 coverage-repair lever. airbnb009 is the recurring stochastic survivor (~17% cross-run pass) whose flip is non-reproducible at trials:1 — a focused smoke is a favorable-tail streak, not a predictor (h0042 trap). The copy-a-passing-artifact / coverage flip program is EXHAUSTED ([[ade-bench-oracle-program-concluded]]); h0060 closed it with follow-up STOP. Not worth a full-run budget. Recoverable from _archive.

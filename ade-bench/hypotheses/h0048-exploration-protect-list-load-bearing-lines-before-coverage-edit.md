@@ -1,10 +1,12 @@
 ---
 title: Exploration — before editing a missing-rows coverage repair, record a PROTECT-LIST of the model's load-bearing aggregate/join/GROUP BY lines and treat them as off-limits, so the implementation edit cannot silently rewrite the forks the spine repair leaves free
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: concept-airbnb009-reproducible-fix (ideate 2026-06-11), operationalizing "remove ALL the free degrees of freedom at once" at the EXPLORATION stage (commit-the-protected-lines before the edit). Distinct stage + mechanism from h0046 (Implementation skeleton) / h0047 (Implementation negative constraint) / h0019 / h0042. Forks the current @baseline solver (solver_workflows/codex-ade-dbt-minimal).
 id: h0048
 started: 2026-06-11T00:00:00Z
+verdict: REJECTED
+completed: 2026-06-16T17:11:18Z
 ---
 
 ## Hypothesis
@@ -115,3 +117,9 @@ accept the residual full-scale blind spot.
 Method/README change only. Forks the current `@baseline` solver
 (`solver_workflows/codex-ade-dbt-minimal`, runtime codex); no dataset, harness, or
 solver-runtime change.
+
+## Verdict
+
+REJECTED (administrative close — captain-directed backlog clear, never run).
+
+REJECTED — administrative close 2026-06-16 (FO, captain-directed backlog clear; never run). Same airbnb009 dead family as h0047 (protect-list-before-coverage-edit variant). Same wall: airbnb009 is a ~17%-pass coin-flip cell, flip non-reproducible at trials:1; the coverage/flip program is exhausted ([[ade-bench-oracle-program-concluded]], h0060 STOP). Not worth a full-run budget. Recoverable from _archive.
