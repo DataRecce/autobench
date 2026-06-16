@@ -1,10 +1,10 @@
 ---
 id: dab0007
 title: gpt-5.5 xhigh baseline anchor (concurrency 4)
-status: full
+status: analyze
 kind: hypothesis
 source: captain request 2026-06-16 — establish the codex/gpt-5.5 reference at xhigh reasoning
-started:
+started: 2026-06-16T21:24:17Z
 completed:
 verdict:
 score:
