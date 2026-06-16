@@ -61,6 +61,21 @@ scored run-dir reports 54 cells.
 
 ## Run result
 
+(pending — detached full run in flight; handle `runs/.rk-handles/dab0007-full-20260616-181559`)
+
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: full
+
+- DONE: Spec prepared + frozen; `diff specs/dab-anchor-codex.yaml specs/dab0007-gpt55-baseline-xhigh.yaml` shows ONLY experiment=dab0007-gpt55-baseline-xhigh, agent.reasoning_effort=xhigh, concurrency.trials=4 (AC-1).
+  Diff = exactly 3 hunks (lines 3/8/38); solver_workflow stays `solver_workflows/spacedock-readme-baseline`; all 12 tasks intact in frozen spec.
+- DONE: rk run --explain confirms all 12 datasets / 54 query-cells survive before launch (AC-3).
+  `rk run ...frozen.yaml --explain` reports `- Tasks: 54`; sample task `DEPS_DEV_V1-q1`; awk count of `benchmark.tasks` = 12 datasets.
+- DONE: Detached full run launched via drivers/rk-run-detached.sh; handle path returned.
+  `drivers/rk-run-detached.sh dab0007-full specs/dab0007-gpt55-baseline-xhigh.frozen.yaml run` → handle `runs/.rk-handles/dab0007-full-20260616-181559` (pid 801782, alive; `done` sentinel absent = in progress). Did NOT wait — FO owns the wait.
+
+### Summary
+
+Anchor spec built by copying `dab-anchor-codex.yaml` and changing exactly three knobs (experiment, reasoning_effort high→xhigh, concurrency.trials 2→4); baseline README, model gpt-5.5, codex runtime, 12 tasks, hints, and data_root all held fixed — no README change, so no smoke/gatekeeper (anchor path). Frozen and --explain confirmed 12 datasets / 54 cells. Launched detached at handle `runs/.rk-handles/dab0007-full-20260616-181559`; specs committed (cb6e82b), runs/ gitignored. Run is long (30 min–8 hr+); first officer owns the wait via the handle's `done` sentinel.
