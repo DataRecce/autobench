@@ -125,7 +125,10 @@ output. The most likely sources of future breakage:
 - **`result.json`**: `stats.{n_running,n_pending,n_errored,n_completed}_trials`,
   `n_total_trials`, `finished_at`, `started_at`, `verifier_result.rewards.reward`,
   `agent_result.{n_input_tokens,n_output_tokens}`, `exception_info`,
-  `stats.evals[*].reward_stats.reward` (for the pass count).
+  `stats.evals[*].reward_stats.reward` (reward-value → trial-id list; drives the
+  pass count and the DAB **stratified macro-average** pass@1, where trials are
+  grouped by dataset via `dataset_from_trial_id` — the `<dataset>-q<N>` prefix,
+  verified against `stratum.json` — and per-dataset rates are averaged equally).
 - **`config.json`**: `tasks[*].path` (pending trials + total count).
 - **Codex transcript** `agent/codex.txt`: line-delimited JSON events with
   `item.type` ∈ {`agent_message`, `command_execution`, `file_change`,

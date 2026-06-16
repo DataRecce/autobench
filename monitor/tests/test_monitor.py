@@ -249,7 +249,7 @@ def test_job_is_dab(tmp_path: Path):
 def test_job_progress_suffix_dab_shows_pass_at_1():
     job = m.Job(
         experiment="codex-dab", path=Path("/j"), updated=0.0, status="finished",
-        trials=[], progress=(3, 4), passed=3, is_dab=True,
+        trials=[], progress=(3, 4), passed=3, is_dab=True, pass_at_1=0.75,
     )
     assert m.job_progress_suffix(job) == "3/4 passed · pass@1 75.0%"
 
@@ -262,13 +262,41 @@ def test_job_progress_suffix_non_dab_has_no_pass_at_1():
     assert m.job_progress_suffix(job) == "31/48 passed"
 
 
-def test_job_progress_suffix_dab_running_pass_at_1_over_completed():
+def test_job_progress_suffix_dab_running_includes_pass_at_1():
     job = m.Job(
         experiment="codex-dab", path=Path("/j"), updated=0.0, status="running",
-        trials=[], progress=(2, 48), passed=1, is_dab=True,
+        trials=[], progress=(2, 48), passed=1, is_dab=True, pass_at_1=0.5,
     )
-    # While running, pass@1 is the rate among completed trials so far.
     assert m.job_progress_suffix(job) == "2/48 done · 1 passed · pass@1 50.0%"
+
+
+def test_dataset_from_trial_id():
+    assert m.dataset_from_trial_id("googlelocal-q1__P2R8KNn") == "googlelocal"
+    assert m.dataset_from_trial_id("DEPS_DEV_V1-q12__abc") == "DEPS_DEV_V1"
+    # No -qN suffix -> the whole task id is its own dataset.
+    assert m.dataset_from_trial_id("weird-task__xyz") == "weird-task"
+
+
+def test_job_macro_pass_at_1_weights_datasets_equally(tmp_path: Path):
+    # Dataset A: 1/1 passed (1.0). Dataset B: 1/4 passed (0.25).
+    # Micro = 2/5 = 0.40; stratified macro = (1.0 + 0.25) / 2 = 0.625.
+    job = tmp_path / "job"
+    job.mkdir()
+    reward = {
+        "1.0": ["alpha-q1__a", "beta-q1__b"],
+        "0.0": ["beta-q2__c", "beta-q3__d", "beta-q4__e"],
+    }
+    (job / "result.json").write_text(json.dumps({
+        "stats": {"evals": {"e": {"reward_stats": {"reward": reward}}}},
+    }))
+    assert m.job_macro_pass_at_1(job) == 0.625
+
+
+def test_job_macro_pass_at_1_none_without_rewards(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    (job / "result.json").write_text(json.dumps({"stats": {"evals": {}}}))
+    assert m.job_macro_pass_at_1(job) is None
 
 
 def test_sort_experiments_running_on_top():

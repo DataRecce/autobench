@@ -179,6 +179,7 @@ class Job:
     progress: tuple[int, int] | None = None
     passed: int | None = None
     is_dab: bool = False
+    pass_at_1: float | None = None  # stratified macro-average (DAB)
 
 
 @dataclass(frozen=True)
@@ -974,7 +975,8 @@ def append_sidebar_line(
 def job_progress_suffix(job: Job) -> str:
     # Sidebar annotation. Terminal jobs (finished/errored) show passed/total;
     # running jobs show a live completed/total "done" count plus passed-so-far.
-    # DAB jobs also append the pass@1 rate (passed over the relevant denominator).
+    # DAB jobs also append pass@1 (stratified macro-average, datasets weighted
+    # equally; see job_macro_pass_at_1).
     if job.progress is None:
         return ""
     completed, total = job.progress
@@ -984,15 +986,16 @@ def job_progress_suffix(job: Job) -> str:
         done = f"{completed}/{total} done"
         if job.passed is not None:
             suffix = f"{done} · {job.passed} passed"
-            if job.is_dab and completed > 0:
-                suffix += f" · pass@1 {format_pct(job.passed / completed)}"
-            return suffix
+            return suffix + pass_at_1_suffix(job)
         return done
     if job.status in {"finished", "completed", "errored"} and job.passed is not None:
-        suffix = f"{job.passed}/{total} passed"
-        if job.is_dab:
-            suffix += f" · pass@1 {format_pct(job.passed / total)}"
-        return suffix
+        return f"{job.passed}/{total} passed" + pass_at_1_suffix(job)
+    return ""
+
+
+def pass_at_1_suffix(job: Job) -> str:
+    if job.is_dab and job.pass_at_1 is not None:
+        return f" · pass@1 {format_pct(job.pass_at_1)}"
     return ""
 
 
@@ -1225,6 +1228,7 @@ def build_job(experiment: str, job_dir: Path) -> Job:
         progress=job_progress(job_dir),
         passed=job_pass_count(job_dir),
         is_dab=job_is_dab(job_dir),
+        pass_at_1=job_macro_pass_at_1(job_dir),
     )
 
 
@@ -1285,6 +1289,52 @@ def job_pass_count(job_dir: Path) -> int | None:
             except (TypeError, ValueError):
                 continue
     return passed
+
+
+def job_macro_pass_at_1(job_dir: Path) -> float | None:
+    # Stratified macro-average pass@1: every dataset weighted equally, not every
+    # trial. Group the per-trial rewards in result.json by dataset (the trial-id
+    # prefix, e.g. googlelocal-q1 -> googlelocal), take each dataset's pass rate
+    # (reward >= 1.0), then average those rates. Returns None before any rewards.
+    result = read_json(job_dir / "result.json")
+    if not result:
+        return None
+    evals = (result.get("stats") or {}).get("evals")
+    if not isinstance(evals, dict):
+        return None
+    groups: dict[str, list[int]] = {}  # dataset -> [passed, total]
+    for eval_data in evals.values():
+        if not isinstance(eval_data, dict):
+            continue
+        reward_stats = eval_data.get("reward_stats")
+        reward = reward_stats.get("reward") if isinstance(reward_stats, dict) else None
+        if not isinstance(reward, dict):
+            continue
+        for value, trial_ids in reward.items():
+            if not isinstance(trial_ids, list):
+                continue
+            try:
+                is_pass = float(value) >= 1.0
+            except (TypeError, ValueError):
+                continue
+            for trial_id in trial_ids:
+                if not isinstance(trial_id, str):
+                    continue
+                bucket = groups.setdefault(dataset_from_trial_id(trial_id), [0, 0])
+                bucket[1] += 1
+                if is_pass:
+                    bucket[0] += 1
+    rates = [passed / total for passed, total in groups.values() if total > 0]
+    if not rates:
+        return None
+    return sum(rates) / len(rates)
+
+
+def dataset_from_trial_id(trial_id: str) -> str:
+    # A DAB trial id is "<dataset>-q<N>__<suffix>"; the dataset is the task id
+    # with the query suffix stripped. Verified to match stratum.json's dataset.
+    task_id = trial_id.split("__", 1)[0]
+    return re.sub(r"-q\d+$", "", task_id)
 
 
 def discover_trials(job_dir: Path) -> list[Trial]:
