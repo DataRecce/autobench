@@ -22,6 +22,8 @@ benchmark:
   tasks:
   - agnews
 trials: 1
+concurrency:
+  trials: 2
 observers:
 - kind: jsonl
   path: events.jsonl

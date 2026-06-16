@@ -37,7 +37,7 @@ benchmark:
     data_root: /home/kent/dataagentbench/data
 trials: 1
 concurrency:
-  trials: 1
+  trials: 2
 observers:
 - kind: jsonl
   path: events.jsonl
@@ -50,9 +50,9 @@ provenance:
   pin_git_sha: true
   model_resolved_version: null
   model_resolved_at: null
-  image_digest: sha256:b813e288f50b8cccef516b5b23eec01c8eb6100d1d7fad87f5092db6d23a54a4
+  image_digest: sha256:be343cd9ad33834843e0a862e801f6da161097e6abe015c75f165ba9b060d30b
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: ce5e490168885144ebae8adc8ad013c6ab9e91de
+  harness_git_sha: f9a737402926d2631783fb4c5be037c97c4f64d2
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []

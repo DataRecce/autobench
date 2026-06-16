@@ -35,6 +35,8 @@ benchmark:
   - stockmarket
   - yelp
 trials: 1
+concurrency:
+  trials: 4
 observers:
 - kind: jsonl
   path: events.jsonl
