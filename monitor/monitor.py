@@ -178,6 +178,7 @@ class Job:
     trials: list[Trial]
     progress: tuple[int, int] | None = None
     passed: int | None = None
+    is_dab: bool = False
 
 
 @dataclass(frozen=True)
@@ -973,6 +974,7 @@ def append_sidebar_line(
 def job_progress_suffix(job: Job) -> str:
     # Sidebar annotation. Terminal jobs (finished/errored) show passed/total;
     # running jobs show a live completed/total "done" count plus passed-so-far.
+    # DAB jobs also append the pass@1 rate (passed over the relevant denominator).
     if job.progress is None:
         return ""
     completed, total = job.progress
@@ -981,11 +983,21 @@ def job_progress_suffix(job: Job) -> str:
     if job.status == "running":
         done = f"{completed}/{total} done"
         if job.passed is not None:
-            return f"{done} · {job.passed} passed"
+            suffix = f"{done} · {job.passed} passed"
+            if job.is_dab and completed > 0:
+                suffix += f" · pass@1 {format_pct(job.passed / completed)}"
+            return suffix
         return done
     if job.status in {"finished", "completed", "errored"} and job.passed is not None:
-        return f"{job.passed}/{total} passed"
+        suffix = f"{job.passed}/{total} passed"
+        if job.is_dab:
+            suffix += f" · pass@1 {format_pct(job.passed / total)}"
+        return suffix
     return ""
+
+
+def format_pct(fraction: float) -> str:
+    return f"{fraction * 100:.1f}%"
 
 
 def render_trials_panel(monitor: Monitor, *, capacity: int) -> Panel:
@@ -1212,7 +1224,21 @@ def build_job(experiment: str, job_dir: Path) -> Job:
         trials=[],
         progress=job_progress(job_dir),
         passed=job_pass_count(job_dir),
+        is_dab=job_is_dab(job_dir),
     )
+
+
+def job_is_dab(job_dir: Path) -> bool:
+    # A DAB trial nests its content under steps/<step>/ (see step_roots); ade-bench
+    # trials never do. A job is uniformly one benchmark, so the first trial dir
+    # decides. Cheap enough to recompute for every sidebar row.
+    try:
+        for path in job_dir.iterdir():
+            if path.is_dir() and "__" in path.name:
+                return (path / "steps").is_dir()
+    except OSError:
+        return False
+    return False
 
 
 def job_progress(job_dir: Path) -> tuple[int, int] | None:

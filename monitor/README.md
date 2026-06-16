@@ -146,7 +146,8 @@ click-to-select/copy is suppressed — hold your terminal's modifier (often
   alphabetical ties — and active experiments are marked `*`. The selected
   experiment expands to its jobs (newest first by mtime). Each job row shows
   status plus a progress suffix (`N/total done · K passed` while running,
-  `K/total passed` when terminal).
+  `K/total passed` when terminal). DAB jobs also append the `pass@1` rate
+  (`K/total passed · pass@1 64.8%`); it is omitted for ade-bench jobs.
 - **Trials** (top right): one row per trial with status, `[passed]`/`[failed]`,
   wall-clock duration, dbt test counts (`passed/total`), and agent token usage.
 - **Trial Info**: dataset id, trial name, status, verify result, the **agent**

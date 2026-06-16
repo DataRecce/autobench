@@ -236,6 +236,41 @@ def _job(status: str) -> "m.Job":
     return m.Job(experiment="x", path=Path("/x"), updated=0.0, status=status, trials=[])
 
 
+def test_job_is_dab(tmp_path: Path):
+    dab = tmp_path / "dabjob"
+    (dab / "googlelocal-q1__x" / "steps" / "main").mkdir(parents=True)
+    assert m.job_is_dab(dab) is True
+
+    ade = tmp_path / "adejob"
+    (ade / "airbnb001__x" / "agent").mkdir(parents=True)
+    assert m.job_is_dab(ade) is False
+
+
+def test_job_progress_suffix_dab_shows_pass_at_1():
+    job = m.Job(
+        experiment="codex-dab", path=Path("/j"), updated=0.0, status="finished",
+        trials=[], progress=(3, 4), passed=3, is_dab=True,
+    )
+    assert m.job_progress_suffix(job) == "3/4 passed · pass@1 75.0%"
+
+
+def test_job_progress_suffix_non_dab_has_no_pass_at_1():
+    job = m.Job(
+        experiment="ade-bench", path=Path("/j"), updated=0.0, status="finished",
+        trials=[], progress=(31, 48), passed=31, is_dab=False,
+    )
+    assert m.job_progress_suffix(job) == "31/48 passed"
+
+
+def test_job_progress_suffix_dab_running_pass_at_1_over_completed():
+    job = m.Job(
+        experiment="codex-dab", path=Path("/j"), updated=0.0, status="running",
+        trials=[], progress=(2, 48), passed=1, is_dab=True,
+    )
+    # While running, pass@1 is the rate among completed trials so far.
+    assert m.job_progress_suffix(job) == "2/48 done · 1 passed · pass@1 50.0%"
+
+
 def test_sort_experiments_running_on_top():
     data = {
         "zeta-running": [_job("running")],
