@@ -107,6 +107,26 @@
   .takeaway{margin-top:18px;background:var(--indigo-soft);border:1px solid #c7d2fe;border-radius:12px;padding:15px 18px;font-size:14px;color:#312e81}
   .takeaway b{color:#1e1b4b}
 
+  /* phases / arc */
+  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  @media(max-width:860px){.phases{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.phases{grid-template-columns:1fr}}
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);border-top:4px solid var(--gray);display:flex;flex-direction:column}
+  .phase.p-fix{border-top-color:var(--indigo)}
+  .phase.p-dead{border-top-color:#cbd5e1}
+  .phase.p-win{border-top-color:var(--green)}
+  .phase h3{margin:9px 0 6px;font-size:15.5px}
+  .phase p{margin:0;font-size:13px;color:#475569;flex:1}
+  .ph-top{display:flex;align-items:center;gap:8px}
+  .ph-range{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--muted);background:var(--gray-soft);padding:2px 7px;border-radius:6px}
+  .ph-net{margin-left:auto;font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .net-up{background:var(--green-soft);color:#166534}
+  .net-zero{background:#fee2e2;color:#b91c1c}
+  .ph-lesson{margin-top:11px;font-size:12px;color:var(--muted);border-top:1px dashed var(--line);padding-top:9px}
+  .ph-lesson b{color:#475569}
+  .dead{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .dead-h{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:11px}
+
   /* wall */
   .wall{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
   .wall .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
@@ -139,7 +159,54 @@
 </div>
 
 <section><div class="wrap">
-  <h2 class="sec">The progression — which rule de-flaked which case</h2>
+  <h2 class="sec">The two-week arc — what we tried (h0000 → h0060)</h2>
+  <p class="lead">60 hypotheses across four phases. For most of the first week the score did <em>not</em> move — not for lack of trying, but because the early ideas hit two hard walls. The wins (Phase 3) only made sense after the dead ends mapped the territory.</p>
+  <div class="phases">
+    <div class="phase p-fix">
+      <div class="ph-top"><span class="ph-range">h0000–h0005</span><span class="ph-net net-up">9 → 31/48</span></div>
+      <h3>0 · Setup &amp; benchmark fix</h3>
+      <p>The cold-start solver scored 9/48. The big early jump came from a <b>benchmark bug fix</b> — task images shipped the wrong dataset — not a prompt. The four build-gate README levers aimed at it were all rejected.</p>
+      <div class="ph-lesson"><b>Lesson:</b> audit the benchmark before blaming the solver.</div>
+    </div>
+    <div class="phase p-dead">
+      <div class="ph-top"><span class="ph-range">h0006–h0036</span><span class="ph-net net-zero">+0</span></div>
+      <h3>1 · Oracle-flip program</h3>
+      <p>~30 instruction / README levers: grain rewrites, type casts, reconciliation checks, candidate-selectors, arbitration, coverage. Every family netted zero.</p>
+      <div class="ph-lesson"><b>Wall — the oracle problem:</b> the deciding fact lives only in the hidden solution; no instruction can supply what the solver can’t see.</div>
+    </div>
+    <div class="phase p-dead">
+      <div class="ph-top"><span class="ph-range">h0037–h0041</span><span class="ph-net net-zero">+0</span></div>
+      <h3>2 · New workflow stages</h3>
+      <p>If a sentence can’t create an independent check, give it a whole stage: reference-mining, plan-review, abstention-rail, observe-lens, triage-ledger. Still zero.</p>
+      <div class="ph-lesson"><b>Wall — self-grading:</b> a check authored as prompt prose is graded by the same model, in the same context, that did the work.</div>
+    </div>
+    <div class="phase p-win">
+      <div class="ph-top"><span class="ph-range">h0042–h0060</span><span class="ph-net net-up">31 → 36/48 · 75%</span></div>
+      <h3>3 · Worked-example flips</h3>
+      <p>Back to the README — but change the <em>method</em>: target only <b>locally-derivable</b> forks, deliver copy-paste before→after examples, gate each so they compose, and judge by the committed artifact, not the noisy score.</p>
+      <div class="ph-lesson"><b>Result:</b> the 10 rules below. +5 tasks, target met.</div>
+    </div>
+  </div>
+  <div class="dead">
+    <div class="dead-h">Families ruled out along the way — negative knowledge, banked so we never re-run a dead wall</div>
+    <div class="tags">
+      <span class="wt">grain construct (prose / example / contract)</span>
+      <span class="wt">grain reconcile (raw-source anti-join)</span>
+      <span class="wt">type / cast contracts</span>
+      <span class="wt">candidate-selectors</span>
+      <span class="wt">dual-output arbitration</span>
+      <span class="wt">independent recompute / validation gates</span>
+      <span class="wt">reference-mining stage</span>
+      <span class="wt">plan-review (Method B)</span>
+      <span class="wt">enforced abstention rail</span>
+      <span class="wt">observe-only debug lens</span>
+      <span class="wt">incomplete-deliverable / missing-models</span>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2 class="sec">Phase 3 in detail — which rule de-flaked which case</h2>
   <p class="lead">“De-flaked” = a task that <em>passed in some runs and failed in others</em> (the model picking different locally-plausible repairs) was pinned to the one branch the hidden grader accepts. Each task’s historical pass-rate is its <b>flakiness gauge</b> — lower = flakier = more value from pinning. The headline number moves on the two <em>compositions</em> and the final <em>stabilizer pair</em>.</p>
   <div class="legend">
     <span><i style="background:var(--gray)"></i>baseline</span>
