@@ -211,14 +211,35 @@ steer to deterministically force the model-side path, which is a follow-up lever
 
 ## Run result
 
-**Full 48-task run LAUNCHED (detached) — awaiting completion.** Handle
-`runs/.rk-handles/h0061-full-20260617-075604/` (pid 1689686, mode=run, ntfy
-`adebench-rk-381c976fe07465bf`). Spec `specs/h0061-lean-readme.frozen.yaml`,
-solver_workflow `solver_workflows/h0061-lean-readme` content_hash
-`sha256:0d8bfa9…` — **byte-identical to the smoke + probe README** (only the task
-set differs: full = all 48, no `benchmark.tasks` selector). FO owns the wait; on
-`done` rc=0 this section gets the run-dir, strict-audit summary, score, trace-capture
-confirmation, and headline net (X/48 vs h0060's 36/48).
+**Full 48-task run COMPLETE — 36/48 = 0.7500, ties @baseline h0060 exactly; ALL 13
+target constructs held; strict audit CLEAN.** Run-dir
+`runs/ade-bench-h0061-lean-readme/50e340fd462032af` (`done` rc=0, ~134 min). Spec
+`specs/h0061-lean-readme.frozen.yaml`, solver_workflow `solver_workflows/h0061-lean-readme`
+content_hash `sha256:0d8bfa9…` — **byte-identical to the smoke + probe README**; only the
+task set differs (all 48, no `benchmark.tasks` selector). Methodology consistent.
+
+- **Score (trusted on clean audit):** `stratified_pass_at_1 = 0.7500 = 36/48`
+  (`rk score --format json`), `n_errored=0`. Above the spec constant (0.1875),
+  verdict `above`. Wilson CI [0.612, 0.851]. **Net = 36/48, exactly ties h0060's
+  36/48 baseline** (no net regression from compressing all 10 rules to ~half length).
+- **Strict audit:** CLEAN — `rk audit … --policy strict` summary
+  `{clean: 48, tainted: 0, coverage_missing: 0}`; zero findings on all 48 cells. Score trusted.
+- **Trace capture:** all 48 cells have `subagent-trace-manifest.json` with `captured>0`
+  (48/48 captured>0, 0 zero, 0 missing). ✔
+- **AC-1 (construct hold — the verdict): GO.** All 13 banked target constructs held
+  (PASS): asana002 · f1006 · f1006-hard · airbnb009 · airbnb005 · airbnb007 ·
+  f1010-medium · ana-eng003 · quickbooks002 · quickbooks003 · asana003 · f1001 ·
+  f1003-hard. **Zero target dropped.** Notably **asana002 PASSED on the full run** —
+  the smoke-draw miss (probe-resolved as path-selection variance) landed correctly here,
+  consistent with the ~75% first-try rate.
+- **AC-3 (no bleed): held.** Both always-pass canaries green (airbnb001 PASS, ana-eng001 PASS).
+- **The 12 fails are all known non-target cells** (ana-eng004/006/007/007-medium,
+  asana004/005/005-hard, f1002, intercom001/002/003, quickbooks001) — the same
+  long-standing unsolved set, not constructs this hypothesis touched.
+
+**Headline: 36/48 (= 36/48 baseline), audit clean = YES, all 13 target constructs held →
+the lean README preserves every construct at ~half the added length. Hypothesis confirmed.**
+(AC-2 off-construct wobble comparison vs h0060 `861d18e790c72047` is the analyze stage.)
 
 ## Cross-refs
 
@@ -309,3 +330,14 @@ filed `variance-unclear`; the probe is the disambiguating evidence.)
 ### Summary
 
 Launched the detached full 48-task run on the byte-identical lean README (content_hash 0d8bfa9, same as the verified smoke + probe). Verified the frozen spec and launcher exist and the methodology is consistent (only the task set differs from smoke). Returned the handle path to the FO immediately per the detached-run contract; audit/score/trace and the headline net (X/48 vs h0060's 36/48) are deferred to the FO-driven re-engagement on done rc=0.
+
+## Stage Report: full (cycle 2 — post-completion audit/score)
+
+- DONE: On done rc=0: rk audit … --policy strict (clean) + rk score … --format json; confirm subagent-trace-manifest captured>0; record run-dir + headline net.
+  Run-dir `runs/ade-bench-h0061-lean-readme/50e340fd462032af`. Strict audit CLEAN `{clean:48, tainted:0, coverage_missing:0}`, zero findings. Score `stratified_pass_at_1=0.7500=36/48`, n_errored=0, above constant. Trace 48/48 captured>0. Recorded in `## Run result`.
+- DONE: Confirm construct hold (AC-1) + no bleed (AC-3).
+  All 13 banked target constructs PASS (zero dropped; asana002 passed on full run); both canaries (airbnb001, ana-eng001) PASS. The 12 fails are all known non-target cells.
+
+### Summary
+
+Full run complete: 36/48 = 0.7500, exactly ties @baseline h0060's 36/48, with a CLEAN strict audit (48/48 clean) — score trusted. All 13 banked target constructs held under the leaner README (zero dropped), both canaries green, all 48 cells captured>0, and methodology consistent (content_hash 0d8bfa9, only the task set differs). Compressing all 10 rules to ~half the added length preserved every construct with no net regression — hypothesis confirmed. AC-2 off-construct wobble comparison vs h0060 is deferred to the analyze stage.
