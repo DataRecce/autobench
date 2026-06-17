@@ -186,14 +186,18 @@ broad package copying unless the optional-resource matrix is clean and another
 visible error remains.
 
 SEMI-ADDITIVE / SNAPSHOT MEASURE — max() AT ENTITY GRAIN (gated). When repairing
-entity/period totals that are too high and the model sums a numeric measure across
-a sequence within each entity, first check whether the measure is non-decreasing
-within each entity ordered by its sequence key (a running cumulative snapshot, not a
-per-period delta); if so, replace `sum(measure)` with `max(measure)` at the existing
-entity/period grain in every affected model. Do NOT switch to latest-row, rank,
-row_number, QUALIFY, order-by-final-period, or results-recomputation unless local
-evidence proves `max(measure)` wrong. If the measure rises and falls (a genuine
-per-period delta), keep `sum`.
+entity/period totals that are too high and the model sums a numeric measure across a
+sequence within each entity, check how the measure moves when each entity's rows are
+ordered by the sequence key. If it trends non-decreasing APART FROM A FEW ISOLATED
+DROPS (rare penalties, corrections, or restatements — a handful of rows relative to
+the sequence length), it is still a running cumulative total, NOT a per-period delta:
+replace `sum(measure)` with `max(measure)` at the existing entity/period grain in
+every affected model. A handful of decreases does NOT make it additive and does NOT
+justify selecting a single latest row — `max()` at the grain is still the minimal
+correct repair (it ignores the dips). Reserve `sum()` ONLY for a measure that rises
+and falls SYSTEMATICALLY (frequent decreases — a genuine per-period delta). Do NOT
+switch to latest-row, rank, row_number, QUALIFY, order-by-final-period, or
+results-recomputation.
 
 EXCLUDE-A-CATEGORY AVERAGE (gated). When an average/aggregate must exclude a row
 category (e.g. a lap-time average that must "account for" pit stops), filter that
