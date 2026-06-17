@@ -1,7 +1,7 @@
 ---
 id: dab0009
 title: Anti-abstention + environment-persistence (forbid premature "UNABLE TO DETERMINE")
-status: propose
+status: smoke
 kind: hypothesis
 source: failure-behavior study (_artifacts/opus-vs-gpt55-failure-behavior.md) Lever A; dab0007 reject -> flipped-task pivot
 started: 2026-06-17T02:53:14Z
