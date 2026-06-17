@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: Captain conversation 2026-06-17 — categorizing the baseline README's added rules (general-purpose / dbt-craft / benchmark-specific) surfaced CUMULATIVE-SNAPSHOT TOTALS as the one Category-C "memorized answer"; this tests whether its domain fact can be replaced by a locally-checkable structural gate, moving it from a pin to a portable rule.
 started: 2026-06-17
-completed:
-verdict:
+completed: 2026-06-17T16:05:15Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-17T16:05:15Z
 ---
 
 ## Hypothesis
