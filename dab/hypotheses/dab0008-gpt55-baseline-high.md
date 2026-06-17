@@ -53,6 +53,32 @@ Verified by: `diff specs/dab0007-gpt55-baseline-xhigh.yaml specs/dab0008-gpt55-b
 
 ## Run result
 
+- Spec frozen: `specs/dab0008-gpt55-baseline-high.frozen.yaml` (from dab0007 xhigh; only
+  `experiment` + `reasoning_effort: high` changed — diff confirmed exactly 2 lines).
+- `--explain`: 12 datasets / 54 query-cells materialized (all of agnews, bookreview,
+  crmarenapro, DEPS_DEV_V1, GITHUB_REPOS, googlelocal, music_brainz_20k, PANCANCER_ATLAS,
+  PATENTS, stockindex, stockmarket, yelp).
+- Detached full run launched 2026-06-17:
+  handle `runs/.rk-handles/dab0008-full-20260617-022427/` (pid 1259615). FO owns the wait;
+  on `done` rc=0: `rk audit <run-dir> --policy strict` + `rk score <run-dir> --format json`.
+
 ## Behavioral analysis
 
 ## Verdict
+
+## Stage Report: full
+
+- DONE: Spec prepared + frozen; diff shows ONLY experiment + reasoning_effort:high (AC-1)
+  `diff` output = exactly 2 hunks (experiment line, reasoning_effort line); frozen spec written.
+- DONE: rk run --explain confirms all 12 datasets / 54 query-cells survive before launch (AC-3)
+  --explain reported `Tasks: 54`; materialized tasks dir = 54 cells across 12 distinct datasets.
+- DONE: Detached full run launched via drivers/rk-run-detached.sh; handle path returned
+  `runs/.rk-handles/dab0008-full-20260617-022427/` (pid 1259615 alive, done absent). Did NOT wait.
+
+### Summary
+
+Created the tier-control spec by copying dab0007 (gpt-5.5 @xhigh) and flipping only the
+experiment name and reasoning_effort to high — everything else (concurrency.trials=4, all 12
+tasks, trials:1, baseline solver_workflow, gpt-5.5/codex) untouched, confirmed by a 2-line diff.
+Froze, validated 12 datasets / 54 cells via --explain, and launched the detached full run.
+Committed the spec + frozen spec; runs/ stays gitignored. FO owns the wait + audit/score.
