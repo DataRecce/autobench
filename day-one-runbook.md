@@ -125,6 +125,16 @@ Earned the hard way in ade-bench; adopt as the starting discipline, not re-deriv
 - **Worked-example skeletons, not prose principles.** Prose goes inert (read, reasoned
   about, never reaches the committed artifact). Copyable before→after examples with generic
   identifiers are the only delivery form proven to change the code.
+- **A ported README can start LEAN — verbosity is not robustness.** Distill each accepted
+  rule to **principle + precondition gate + one generic BEFORE/AFTER skeleton** (plus any
+  *negative steer*, e.g. "do not start from raw seed edits"). The scar-clauses, domain-specific
+  framing, hard-coded dataset/table identifiers, and repeated byte-intact hedges that accumulate
+  around a rule are *restatements* of the construct, not added signal — safe to drop. ade-bench
+  h0061 cut a tuned README's added length roughly in half (10 rules compressed) and reproduced
+  the prior `@baseline` **cell-for-cell** (paired delta 0, CI [0,0], 0/48 verdict changes,
+  0/33 off-construct cells moved). A longer README buys no extra held constructs; the only thing
+  a leaner one saves is the carrying cost of prose — so a new benchmark's README should START at
+  the lean shape, not accrete scar-clauses and later try to trim them.
 - **Precondition-gate every lever** so disjoint ones compose additively in one artifact —
   the gate IS the isolation. Lets you bank many flips at once and re-verify cheaply.
 - **Carry ≥1 perturbable same-construct canary** into smoke (a non-firing canary is not

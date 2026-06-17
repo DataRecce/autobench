@@ -327,6 +327,63 @@ load-bearing**. Compressing all 10 rules to one principle + one gate + one skele
 the added length roughly in half) preserved every construct AND reproduced the baseline's exact
 48-cell outcome — zero constructs lost, zero off-construct perturbation. Recommend **PROMOTE**.
 
+## Verdict
+
+**PASSED — PROMOTED to `@baseline` (captain-approved 2026-06-17).** Before→after:
+`@baseline` was `runs/ade-bench-h0060-stabilize-f1-coinflips/861d18e790c72047` (36/48) →
+now `runs/ade-bench-h0061-lean-readme/50e340fd462032af` (36/48). Promoted via
+`rk registry add run baseline …` (verified: `rk registry resolve run @baseline` and
+`rk registry list` both return the h0061 run-dir). Solver README
+`solver_workflows/h0061-lean-readme/README.md`, content_hash `sha256:0d8bfa9…`.
+
+**Distilled, transferable learnings (source of truth):**
+
+1. **The +249-line scar-clause accretion in h0060's README was DILUTION, not load-bearing.**
+   The lean README — each of the 10 added rules distilled to *one principle sentence + one gate
+   clause + one generic BEFORE/AFTER skeleton*, roughly half the added length, original ~80-line
+   baseline prose untouched — reproduced h0060 **CELL-FOR-CELL**: 36/48, paired delta **0**, 95%
+   bootstrap CI **[0, 0]**, **0 of 48 verdict changes** (0/33 off-construct, 0/15 construct).
+   Identical pass set, identical fail set.
+
+2. **Why it held (mechanism):** the load-bearing content of an accepted rule is the
+   *construct* — the principle (what correct shape to produce), the precondition gate (when it
+   fires), and a worked skeleton (how the SQL looks). The scar-clauses and domain framing
+   accumulated around each rule (specific identifiers, F1/asana wording, repeated hedges) are
+   *restatements* of the construct, not additional signal. Stripping them did not weaken the
+   steer — committed-artifact spot-checks confirm the riskiest compressions still landed
+   (airbnb009 coverage-hedge #3 1/1; asana003 tmp-reconcile #5 27/27) and asana002 took the
+   prescribed model-side path (not raw-data mutation).
+
+3. **Transferable rule for `day-one-runbook.md` (how lean a ported README can start):**
+   a ported README can start LEAN. Distill each rule to **principle + gate + one BEFORE/AFTER
+   skeleton**; the scar-clauses and domain-specific framing are safe to drop without losing the
+   construct. Keep: the principle, the precondition gate, one generic worked skeleton, and any
+   *negative steer* (e.g. "do not start from raw seed edits"). Drop: hard-coded dataset/table
+   identifiers in examples, domain narration, and repeated byte-intact hedges. Verbosity is not
+   robustness — a longer README does not buy more held constructs, and the worry that it perturbs
+   more unrelated cells is real-but-here-immaterial (the lean version moved zero off-construct
+   cells, so there was no wobble to shrink; the upside is purely the carrying cost of less prose).
+
+## Follow-up Routing
+
+**`escalate`** — the oracle-flip program is exhausted (banked-flip portfolio closed; see
+operator memory "oracle-problem flip program CONCLUDED"). This was an ablation, not a flip, and
+it confirmed leanness is free — but it does NOT open a new flip family. Two candidate directions
+for captain strategy, do **not** auto-file:
+
+- **(a) PRIMARY — hold-out GENERALIZATION test.** Measure how much of the 36/48 survives on dbt
+  tasks the README was *never tuned on*, to quantify general-capability vs ade-bench-specific
+  construct overfit. Several rules (#7 max-over-cumulative, #9 src-prefix naming, #10
+  top-N-tie-cutoff) are essentially task-specific recipes; leanness did not change that, and only
+  a hold-out set can separate "the solver learned a general skill" from "the README memorized
+  these 13 cells." This is the highest-value next question and needs a benchmark-design decision
+  (where the hold-out tasks come from), so it is a captain call.
+- **(b) MINOR / optional — strengthen rule #6.** asana002 lands the prescribed model-side path
+  only ~75% of first-try draws (the data-vs-model reading is a coin-flip the README does not
+  tightly constrain). A *strengthen* (NOT a revert — #6's text is already full-strength) could
+  push that toward determinism. Low value on its own (asana002 already passes in expectation);
+  only worth bundling into a larger lever.
+
 ## Cross-refs
 
 `_proposal/4a-lean-readme-overfit-design-2026-06-16.md` (full design);
@@ -440,3 +497,16 @@ Full run complete: 36/48 = 0.7500, exactly ties @baseline h0060's 36/48, with a 
 ### Summary
 
 The lean README reproduced @baseline h0060's outcome cell-for-cell: 36/48, paired delta 0 (CI [0,0]), identical pass/fail sets, zero off-construct wobble (0/33). The +249-line scar-clause accumulation was dilution, not load-bearing — compressing all 10 rules to ~half the added length cost zero constructs and introduced zero new perturbation. Committed-artifact spot-checks confirm the riskiest compressions (#3, #5) and the smoke-miss cell (asana002, via the prescribed model-side path) all landed correctly. No regressions, no inert cells. **Recommendation: PROMOTE the lean README as the new @baseline** (equal score, identical distribution, ~half the prose); optional non-blocking follow-up = strengthen (not revert) rule #6 to lift asana002's ~75% first-try rate.
+
+## Stage Report: conclude
+
+- DONE: PROMOTE the lean README as the new @baseline + confirm resolution before→after.
+  Before `@baseline = runs/ade-bench-h0060-stabilize-f1-coinflips/861d18e790c72047`; after = `runs/ade-bench-h0061-lean-readme/50e340fd462032af`. Promoted via `rk registry add run baseline …` (returned OK); verified by `rk registry resolve run @baseline` AND `rk registry list` (both return the h0061 run-dir). NOTE: `rk baseline promote` requires `--to`/`--constraints` (it copies spec into a baseline dir — a different op) and is NOT what re-binds `@baseline`; the registry-add is the binding step and it landed.
+- DONE: Write ## Verdict (PASSED) with distilled, transferable learnings in the entity body.
+  `## Verdict` records PASSED/PROMOTED + 3 distilled learnings (scar-clause delta was dilution; the construct = principle+gate+skeleton is what's load-bearing; the lean-start rule for ported READMEs). day-one-runbook.md §8 updated with a new "a ported README can start LEAN" default bullet.
+- DONE: Write ## Follow-up Routing = escalate (do NOT auto-file) with two candidate directions.
+  `## Follow-up Routing` = `escalate`: (a) PRIMARY hold-out generalization test (general-capability vs ade-bench-specific construct overfit), (b) MINOR optional strengthen-#6 for asana002's ~75% model-path rate. No auto-file (flip program exhausted).
+
+### Summary
+
+Promoted the lean README to `@baseline` (h0060 861d18e790c72047 → h0061 50e340fd462032af), verified by `rk registry resolve`/`list`. Wrote `## Verdict` (PASSED) with the transferable learning that the accumulated scar-clause prose was dilution — a ported README can start lean (principle + gate + skeleton per rule) — and propagated that rule to `day-one-runbook.md` §8. Wrote `## Follow-up Routing = escalate` with two captain-strategy directions (PRIMARY: hold-out generalization test; MINOR: strengthen rule #6), explicitly NOT auto-filing since the flip program is exhausted. Left frontmatter + archive to the FO per instruction. One harness note surfaced: `rk baseline promote` needs `--to/--constraints` and is a spec-copy op, not the `@baseline` re-bind — `rk registry add run baseline` is the binding step.
