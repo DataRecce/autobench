@@ -1,7 +1,7 @@
 ---
 id: dab0009
 title: Anti-abstention + environment-persistence (forbid premature "UNABLE TO DETERMINE")
-status: smoke
+status: hypothesis
 kind: hypothesis
 source: failure-behavior study (_artifacts/opus-vs-gpt55-failure-behavior.md) Lever A; dab0007 reject -> flipped-task pivot
 started: 2026-06-17T02:53:14Z
@@ -290,3 +290,38 @@ Authored dab0009 (Lever A: anti-abstention + environment-persistence) entirely a
 ### Summary
 
 Smoke deep-dive on dab0009 (Lever A: anti-abstention + env-persistence), run-dir 7de475a5c2a25626 (xhigh, 12 trials, all clean). The lever WORKS on the abstention axis — 11/12 draws committed a computed value via the live dab-mongo/dab-postgres host instead of "UNABLE TO DETERMINE"; the single abstention was a forced infra DNS outage after the solver exhausted every route. But reward only follows on googlelocal-q3 (3/3 real flip). agnews-q4 0/3 is a genuine near-tie classification (committed-wrong, not inert); crmarenapro-q2/q8 are 1/3 analytic coin-flips between plausible ids. Recommend NO-GO on the 4-target flip, BANK googlelocal-q3 + the artifact-reaching/abstention-eliminated finding. Captain gate — did not advance the stage.
+
+### Feedback Cycles
+
+**Cycle 1 — smoke NO-GO as a 4-target flip → REVISE scope (captain C, 2026-06-17).**
+
+Smoke (3-draw, targets-only) result: googlelocal-q3 **3/3**, crmarenapro-q2 1/3, crmarenapro-q8 1/3,
+agnews-q4 0/3 (run-dir `7de475a5c2a25626`, strict-clean).
+
+**Lever A is validated and the README change is UNCHANGED.** Artifact read: in 11/12 draws the solver did
+exactly what the README asks — opened `db_config.yaml`, connected to the live `dab-postgres:5432` /
+`dab-mongo:27017` host, and committed a computed value instead of abstaining. The 1 abstention was a
+genuine Postgres-DNS outage (q8 `__MgEeVou`: `gaierror`, 5 retries, 4 alt hostnames, `/etc/hosts`
+checked → correctly abstained against a dead source). The G7 inert-risk WARN did NOT materialize.
+
+**Root-cause reframe (the finding):** premature abstention was a *symptom*, not the root cause, for 3 of
+the 4 smoke targets. Removing it exposed the real problem — they are **hard-analytic coin-flips**, not
+abstention failures:
+- agnews-q4 — near-tie inferred-category classification (committed ranking put truth `Africa` 3rd inside
+  a 7-article band); reproducibly wrong, never abstaining.
+- crmarenapro-q2/q8 — neighbor-ID coin-flips (committed `…Ens5` vs truth `…Eq0M`), reached over live PG.
+
+**Scope revision:**
+- **DROP** agnews-q4, crmarenapro-q2, crmarenapro-q8 from Lever A's scope — they were mis-classified;
+  they need different levers (near-tie disambiguation; ID-precision) → parked as future candidate
+  hypotheses, NOT filed now.
+- **REFRAME** Lever A as a *board-wide anti-abstention* lever. **Confirmed win:** googlelocal-q3 (3/3,
+  artifact-real). **Candidate (untested) abstention cells:** PANCANCER-q3, googlelocal-q4 — both abstained
+  (`"UNABLE TO DETERMINE"`) in the dab0007 xhigh baseline, so they are Lever A's natural subclass.
+
+**New fork to test:** do the *true* abstention cells (PANCANCER-q3, googlelocal-q4) also flip
+consistently under Lever A, the way googlelocal-q3 did — or are they analytic-hard too once un-abstained?
+**Probing:** no subagent probe needed — the README is validated; this is a target-set re-scope, testable
+directly by a (re-)smoke on the corrected abstention set, then the full run (with the G8 panel) for net.
+
+**q8 DNS re-run:** already artifact-confirmed as infrastructure (not variance); a re-run is low-value.
