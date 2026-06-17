@@ -1,12 +1,12 @@
 ---
 id: dab0009
 title: Anti-abstention + environment-persistence (forbid premature "UNABLE TO DETERMINE")
-status: analyze
+status: conclude
 kind: hypothesis
 source: failure-behavior study (_artifacts/opus-vs-gpt55-failure-behavior.md) Lever A; dab0007 reject -> flipped-task pivot
 started: 2026-06-17T02:53:14Z
-completed:
-verdict:
+completed: 2026-06-17T13:05:16Z
+verdict: rejected
 score: 0.9
 worktree:
 ---
@@ -408,7 +408,34 @@ stage or touch the registry.
 
 ## Follow-up Routing
 
+**`file`** → **dab0010** (lean v2 anti-abstention). The behavioral diagnosis is validated; the verbose
+v1 lever is rejected for *board* perturbation, not for being wrong-in-spirit. dab0010 carries the
+sim-refined v2 rule (None carve-out + failure-gated db_config) that cleared both v1 perturbation risks
+(crmarenapro-q7 None-suppression, PANCANCER-q2 reconciliation) in the pre-smoke decision sims while
+preserving the googlelocal-q3 flip. Captain-directed.
+
 ## Verdict
+
+**REJECTED (as a board lever).** Full run 0.5902 < the matched no-lever xhigh reference (dab0007 0.6002,
+−0.010) and < the Opus incumbent (0.6536). `@baseline` stays Opus.
+
+**What is banked (the value):**
+- The **abstention diagnosis is correct and behaviorally real** — the lever fires (11/12 smoke draws
+  connected to the live host + committed a value, abstention eliminated, artifact-confirmed) and
+  consistently flips the true abstention cell **googlelocal-q3** (3/3 across two smokes + the full run).
+- The lever is **net-neutral-to-negative on the board** because the true abstention subclass is tiny
+  (~2 cells) and its gains are swamped by ±3-cell single-trial variance.
+- **Key finding — generative levers perturb cells they never touch:** PANCANCER-q2 / crmarenapro-q7 /
+  crmarenapro-q12 are 6/7–7/7 stable across the 5 Opus + 5 CAIS + our runs, yet all failed *only* in the
+  lever run, with the lever's rules NOT firing on them. Run-history triangulation makes this **related,
+  not proven causal** (single-trial can't prove it; only multi-trial can).
+- **Methodology lessons** (now codified in `_artifacts/unexpected-result-playbook.md`): a targets-only
+  smoke is blind to board regressions for a generative lever; smoke consistency ≠ full-run reproducibility;
+  the `docker ps` host-probe is an infra-induced taint of the persistence guidance.
+
+Transferable rule: an anti-abstention lever is real but sub-noise alone; the productive form is a
+*minimal, gated* rule (dab0010) that keeps the flip without the board footprint, and any board-promotion
+claim needs multi-trial to clear the variance floor.
 
 ## Stage Report: smoke
 
