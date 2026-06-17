@@ -99,11 +99,139 @@ Smoke trimmed to TARGETS-ONLY (4 cells × 3 draws = 12 trials) per captain 2026-
 
 ## Smoke result
 
-## Run result
+**Plain words for the captain:** The "don't quit early / try the live DB" lever WORKS — in 11 of 12
+draws the solver did exactly what we asked (opened `db_config.yaml`, connected to the live
+`dab-postgres`/`dab-mongo` host, and committed a real computed answer instead of bailing with "UNABLE TO
+DETERMINE"). The one exception was an **infrastructure flake**, not the lever failing. But making the
+solver commit a value is NOT the same as making it commit the RIGHT value: only **googlelocal-q3** flips
+to PASS reliably (3/3). The other three targets are now *hard analytics problems*, not abstention
+problems — the solver computes an answer every time, it's just the wrong one. **agnews-q4 is a genuine
+near-tie** (5 regions within ~7 articles of each other; truth Africa came 3rd). crmarenapro-q2/q8 are
+1/3 reasoning coin-flips. So Lever A is a REAL behavioral flip on the abstention axis, but it only
+converts to a reward flip on 1 of 4 targets. My read: **NO-GO as a 4-target consistency flip; bank
+googlelocal-q3 as the one reproducible win and the "lever reaches the artifact" proof.** Full detail
+below.
+
+**Per-target draws-passed (run-dir `runs/dab0009-anti-abstention-persistence/7de475a5c2a25626`, gpt-5.5
+@xhigh, trials:3, 4 target cells = 12 trials; mean reward 0.417):**
+
+| Target | dab0009 draws-passed | Baseline (dab0007 xhigh) | Behavioral verdict |
+|--------|----------------------|--------------------------|--------------------|
+| googlelocal-q3 | **3/3** | 0/1 (FAIL) | FLIPPED-REAL ×3 |
+| crmarenapro-q2 | 1/3 | 0/1 (FAIL) | 1 FLIPPED-REAL, 2 COMMITTED-WRONG |
+| crmarenapro-q8 | 1/3 | 0/1 (FAIL) | 1 FLIPPED-REAL, 1 COMMITTED-WRONG, 1 INFRA-INERT |
+| agnews-q4 | 0/3 | 0/1 (FAIL) | 3× COMMITTED-WRONG (near-tie) |
+
+**Distance-to-pass (DAB `validate.py` substring/ID match; concrete mismatch on a representative fail):**
+
+- **agnews-q4** — validator: `gt = "Africa"`; checks `gt.lower() in llm_output.lower()`. Representative
+  fail (`__WtYRrrx`): solver committed `South America`; its own committed ranking was
+  `South America 379, North America 376, Africa 372, Europe 366, Asia 358` — Africa was **3rd, 7 articles
+  off the top** across 5 near-equal buckets (~370 each). Other two draws committed `North America`. The
+  miss is a near-tie classification, not a connection/abstention miss.
+- **crmarenapro-q2** — validator expects exact KB id `ka0Wt000000Eq0MIAS`. Both fails (`__CitYh7a`,
+  `__GHdUZ66`) committed `ka0Wt000000Ens5IAC` — a *different, plausible* knowledge article (wrong
+  policy-conflict pick, one article off). Pass draw `__Tb3gqvo` committed the correct id.
+- **crmarenapro-q8** — validator expects agent id `005Wt000003NIliIAG`. `__hVnigZB` committed
+  `005Wt000003NBcAIAW` (wrong agent, the transfer-count ranking landed on a neighbor). `__MgEeVou`
+  committed `UNABLE TO DETERMINE` → "No agent ID found" — but only after live Postgres DNS broke
+  mid-trial (infra; see Failure Review). Pass draw `__WEYaD5e` committed the correct agent.
+
+**Clean-audit attestation:** all 12 trials clean. `result.json` `n_errored_trials: 0`,
+`exception_stats: {}`; `summary.json` `n_trials_errored: 0` and every cell `error_reason: null`; no cell
+`result.json` carries `exception_info`. Strict audit = all 12 clean (AC-2 satisfied for the recorded
+scores). NOTE: this smoke was trimmed TARGETS-ONLY per captain 2026-06-17 — the G8 canary/sentinel panel
+(stockindex-q1, crmarenapro-q1/q3, googlelocal-q1) did **not** run here; board-safety is deferred to the
+full-run gate (AC-3's no-canary-regress clause is unmet-because-undeferred, not failed).
 
 ## Behavioral analysis
 
+**Headline: Lever A REACHES the committed artifact in 11/12 draws.** The env-persistence behavior is
+present in every non-infra draw: solvers read `db_config.yaml` (after finding `connections.yaml` absent),
+connected to the live `dab-mongo:27017` (agnews) or `dab-postgres:5432` (crmarenapro) host, and wrote a
+COMPUTED value. Only ONE draw across all 12 ended in `"UNABLE TO DETERMINE"`, and that one had a genuine
+DNS outage. So the abstention failure mode the lever targets is essentially eliminated — but reward only
+follows on one target.
+
+**Per target × draw:**
+
+- **googlelocal-q3 — 3/3 FLIPPED-REAL (confirmed real persistence-driven flip).** All three draws
+  (`__9ffmEqV`, `__nwkWkUs`, `__ymSKQa5`) reward 1.0, validator stdout empty (clean pass). Baseline
+  dab0007 was 0/1. This is the one target where "stop quitting early + reach the live source" both fires
+  AND converts to PASS, reproducibly. The legitimate bank.
+
+- **agnews-q4 — 0/3, all COMMITTED-WRONG (lever fired, task is a near-tie), NOT inert.** Every draw
+  read `db_config.yaml`, instantiated `MongoClient('mongodb://dab-mongo:27017/')`, joined ~6696 2015
+  metadata rows to the Mongo articles, ran a text classifier to infer the AG-News "World" category
+  (no stored category field — it must be *inferred*), then counted regions. Committed values: North
+  America / South America / North America. `__WtYRrrx`'s own ranking shows the 5 regions inside a
+  7-article band — a genuine near-tie where the correct bucket (Africa) was 3rd. This matches the
+  dispatch caveat: agnews-q4 is a HARDER classification problem, not pure abstention; even gpt-5.5@high's
+  prior pass was partly luck on the tie. **Lever A is NOT inert here — it fired in all 3; the task is
+  simply a coin-toss-grade classification.**
+
+- **crmarenapro-q2 — 1/3 (1 FLIPPED-REAL + 2 COMMITTED-WRONG).** All 3 connected to `dab-postgres` via
+  psycopg2 and committed a `ka0...` knowledge-article id; none abstained. The split is pure analytic
+  reasoning: pass `__Tb3gqvo` picked the correct conflicting article (`...Eq0MIAS`); the 2 fails both
+  picked `...Ens5IAC` — a sibling policy article. What differs between pass and fails is *which* KB
+  article the solver judged the quote to violate (a hard policy-compliance call), not whether it reached
+  the data. Lever fired in all 3.
+
+- **crmarenapro-q8 — 1/3 (1 FLIPPED-REAL + 1 COMMITTED-WRONG + 1 INFRA-INERT).** Pass `__WEYaD5e`
+  connected to Postgres, computed transfer counts, committed the correct agent `005...NIliIAG`.
+  `__hVnigZB` connected fine but committed `005...NBcAIAW` — wrong agent (the fewest-transfer ranking
+  landed on a neighbor; analytic miss). `__MgEeVou` is the lone abstention: it probed `dab-postgres:5432`
+  (initially "open"), then live DNS collapsed mid-trial with repeated
+  `gaierror Temporary failure in name resolution` / `could not translate host name "dab-postgres"`; it
+  retried 5×, tried 4 alternate hostnames, inspected `/etc/hosts` and `resolv.conf`, and only THEN wrote
+  `UNABLE TO DETERMINE`. That is the lever working *correctly* — it exhausted every named route — against
+  an unreachable source. Infra flake, not premature abstention.
+
+**Answer to the dispatch's core question:** Lever A is **NOT inert** — it reaches the committed artifact
+and eliminates premature abstention (1 abstention in 12, and that one was infra-forced after full route
+exhaustion). The agnews-q4 0/3 is COMMITTED-WRONG on a near-tie, not abstention. The crmarenapro-q2/q8
+1/3 splits are analytic-reasoning coin-flips between plausible ids, not connection/abstention misses.
+googlelocal-q3 3/3 is a real persistence-driven flip.
+
 ## Failure Review
+
+Non-flipping targets: agnews-q4 (0/3), crmarenapro-q2 (2/3 fail), crmarenapro-q8 (2/3 fail).
+
+**Classification:**
+- agnews-q4 ×3 → **correct-artifact-still-fail / variance** (near-tie). Lever fired, computed value
+  committed, wrong region by ~7 articles across 5 near-equal buckets; an inferred-category classifier
+  whose tiny variations reshuffle near-identical counts. Not fixable by an abstention/persistence lever.
+- crmarenapro-q2 ×2, crmarenapro-q8 (`__hVnigZB`) → **wrong-branch / correct-artifact-still-fail**
+  (analytic reasoning). Reached live Postgres, committed an id, picked a plausible-but-wrong neighbor.
+  Not an abstention failure.
+- crmarenapro-q8 (`__MgEeVou`) → **infrastructure** (live Postgres DNS outage mid-trial; abstention was
+  the correct response after the lever exhausted all named routes + retries).
+
+**Five failure-review questions:**
+1. *Did the lever reach the committed artifact?* YES — 11/12 draws show env-persistence (db_config.yaml +
+   live-host connect) and a computed value; the 1 abstention was infra-forced after full route
+   exhaustion. The lever is not inert.
+2. *Is the failure the lever's fault or the task's?* The task's. Three targets became near-tie /
+   plausible-neighbor analytic problems once abstention was removed; one draw was infra.
+3. *Reproducible or variance?* googlelocal-q3 flip is reproducible (3/3). The crmarenapro splits are
+   variance between plausible answers (1/3 each). agnews-q4 is reproducibly wrong (0/3, near-tie).
+4. *Would more lever text help?* No worked-example abstention skeleton would help — the solver already
+   doesn't abstain. The residual misses are classification/reasoning accuracy, outside Lever A's scope.
+   (The G7 inert-risk WARN did not materialize: the lever fires, it doesn't just talk.)
+5. *Infra contamination of the score?* One draw (q8 `__MgEeVou`) lost to a live-Postgres DNS flake; had
+   it resolved, q8 would plausibly be 2/3. The recorded score is honest but slightly infra-suppressed on
+   q8.
+
+**Next step — recommendation: FILE the bank + STOP the 4-target flip.** Recommend NO-GO on dab0009 as a
+4-target consistency flip (only googlelocal-q3 meets AC-3's reproducible-flip bar; agnews-q4 and the
+crmarenapro splits are task-hard / variance, not lever-addressable). Bank two durable knowledge results:
+(a) **googlelocal-q3 is a real persistence-driven FLIP** (3/3, artifact-confirmed); (b) **Lever A
+demonstrably reaches the committed artifact and eliminates premature abstention** (11/12; the abstention
+diagnosis in `_artifacts/opus-vs-gpt55-failure-behavior.md` is the right lens, but the downstream miss is
+analytic accuracy / near-tie, not quitting early). Do NOT add a worked-example skeleton (the inert-risk
+WARN didn't fire). Optional probe before closing: re-run agnews-q4 / crmarenapro-q2/q8 once with the
+Postgres-DNS infra confirmed healthy, to separate the q8 infra flake from true reward variance — captain's
+call. This is a captain gate; FO presents, ensign does not advance the stage.
 
 ## Follow-up Routing
 
@@ -149,3 +277,16 @@ Net target: 4 FAIL→PASS, 4 passers hold. 8 tasks × 3 draws = 24 trials @ xhig
 ### Summary
 
 Authored dab0009 (Lever A: anti-abstention + environment-persistence) entirely as a one-idea solver-README fork. The README forbids premature `"UNABLE TO DETERMINE"` (last resort only, computed value preferred) and adds environment-persistence (try db_config.yaml + the live hosts in db_description.txt before declaring a source missing); leak-guard preserved verbatim. Full spec is a clean 2-field fork of dab0007; smoke spec selects exactly the 4 flip targets + a 4-query sentinel/canary panel at trials:3. Both frozen, --explain confirms `Tasks: 8`. Gatekeeper = APPROVE with one G7 inert-risk WARN (env-persistence is partly abstract prose; watch for talks-but-doesn't-do in smoke). No rk run launched — awaits captain's propose-gate GO.
+
+## Stage Report: smoke (deep-dive)
+
+- DONE: ## Smoke result written: per-target draws-passed table (googlelocal-q3 3/3, crmarenapro-q2 1/3, crmarenapro-q8 1/3, agnews-q4 0/3; baseline xhigh = 0/1 each) + distance-to-pass per target + clean-audit attestation (strict audit = all 12 trials clean).
+  Table + validator-mismatch per target written; clean audit from result.json (n_errored_trials:0, exception_stats:{}) + summary.json (every error_reason:null). Targets-only smoke; canary panel deferred to full-run gate noted.
+- DONE: ## Behavioral analysis written: per target × per draw classified (FLIPPED-REAL / INERT / COMMITTED-WRONG / CLOSER) from codex transcript + validator output; answered "did Lever A reach the artifact or is it inert?".
+  Lever REACHES the artifact in 11/12 draws (db_config.yaml + live dab-mongo/dab-postgres connect, computed value). googlelocal-q3 3/3 FLIPPED-REAL confirmed. agnews-q4 0/3 = COMMITTED-WRONG near-tie (own ranking SAm379/NAm376/Africa372 — 5 buckets in 7 articles), NOT inert. crmarenapro-q2/q8 1/3 = analytic coin-flip between plausible ids. Only abstention (q8 __MgEeVou) was infra-forced (live Postgres DNS gaierror mid-trial after 5 retries + 4 alt-hosts).
+- DONE: Go/no-go recommendation with artifact evidence + ## Failure Review for non-flipping targets (classified; 5 questions answered; next step). Plain-words captain summary at top of ## Smoke result.
+  Recommend NO-GO as a 4-target consistency flip; BANK googlelocal-q3 (real 3/3 persistence flip) + the "lever reaches artifact / abstention eliminated 11/12" knowledge result. Failures classified correct-artifact-still-fail (agnews near-tie), wrong-branch (crmarenapro analytic), infrastructure (q8 DNS). Did NOT advance stage (captain gate).
+
+### Summary
+
+Smoke deep-dive on dab0009 (Lever A: anti-abstention + env-persistence), run-dir 7de475a5c2a25626 (xhigh, 12 trials, all clean). The lever WORKS on the abstention axis — 11/12 draws committed a computed value via the live dab-mongo/dab-postgres host instead of "UNABLE TO DETERMINE"; the single abstention was a forced infra DNS outage after the solver exhausted every route. But reward only follows on googlelocal-q3 (3/3 real flip). agnews-q4 0/3 is a genuine near-tie classification (committed-wrong, not inert); crmarenapro-q2/q8 are 1/3 analytic coin-flips between plausible ids. Recommend NO-GO on the 4-target flip, BANK googlelocal-q3 + the artifact-reaching/abstention-eliminated finding. Captain gate — did not advance the stage.
