@@ -197,11 +197,21 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Follow-up Routing
 
-**Recommended route: `conclude` (REJECTED — generalization not behavior-preserving).** AC-4 FAILS: 2 of 3 regressions are causal forbidden-branch drift on the exact construct the rule governs, reproduced across both hard variants with an identical signature. The lever does not preserve the h0044 flip; it loses f1006-hard + f1005-medium at the smoke gate. The canaries held, so the de-overfitting *direction* (probe-gated max() repair) is sound in principle — but the generalized PROSE is the problem, not the probe concept.
+**Route: `file` → [[h0063]] (`hypotheses/h0063-semi-additive-probe-terse-repair.md`, status: hypothesis).** Captain decision 2026-06-17: REJECT h0062 + file ONE follow-up. h0063 is the ISOLATION experiment that splits h0062's two coupled changes — it keeps the domain-blind MONOTONICITY-PROBE TRIGGER but RESTORES h0044's terse repair wording (drops the long forbidden-branch enumeration / minimizes the added probe verbosity), to attribute the latest-row drift to either (a) removing the F1 domain name or (b) the added verbosity. h0063 stays queued for the captain (not dispatched).
 
-Secondary option if the captain wants to salvage rather than conclude: `hypothesis` with a narrowed revision — keep the monotonicity-probe TRIGGER but restore h0044's terse repair wording (drop the long forbidden-branch enumeration that raised latest-row salience; state only "replace sum(measure) with max(measure) at the existing grain" plus the probe). That tests whether brevity, not the domain name, was the load-bearing element. Given the flip program is already documented as EXHAUSTED and this is a de-overfit experiment (not a new flip), `conclude` is the higher-value route: the *knowledge gain* (Category-C max()-points rule resists de-overfitting because its brevity+concreteness is load-bearing; longer branch-naming prose drifts the solver onto the named-forbidden branch) is the deliverable.
+(Considered and not taken: `conclude` with no follow-up — rejected because the canaries proved the de-overfitting DIRECTION is sound, so the verbosity-vs-domain-name attribution is worth one isolation draw before closing the question.)
 
 ## Verdict
+
+**REJECTED.** Smoke 4/7, strict AC-4 FAIL. The generalization is NOT behavior-preserving: removing the F1 domain anchor AND adding monotonicity-probe verbosity drifted the solver OFF `max()` at grain ONTO the forbidden `row_number`/`QUALIFY` latest-row branch on the two HARDER cumulative variants (f1006-hard committed `row_number() … WHERE standings_order=1`; f1005-medium committed `QUALIFY ROW_NUMBER() … ORDER BY round DESC` — both vs @baseline's `max(cs.points)`; both failed `AUTO_constructor_points_equality` Got 2 while `AUTO_driver_points_equality` PASSED, the multi-model-target trap realized). No promote, no registry change — @baseline stays h0061-lean-readme.
+
+**The over-fire worry did NOT materialize.** Both additive-SUM canaries held byte-intact (airbnb005 rolling-28d daily-count SUM; airbnb001 monthly review COUNT) — the broadened gate did not fire on legitimate per-period sums. The easy targets f1006/f1005 committed `max()` and held. f1001 was unrelated build variance (failed `src_models_are_correct`, gate never engaged). So the lever fails on the under-specified TRUE branch, not the FALSE branch.
+
+**Transferable learnings (the deliverable):**
+1. **The Category-C `max()`-points pin RESISTS de-overfitting.** Not every memorized domain answer is de-pinnable into a portable structural rule. Here the de-overfit ATTEMPT actively degraded the construct on the harder variants.
+2. **h0044's BREVITY + concrete domain anchor is itself load-bearing — not just the F1 name.** A terse "treat points as cumulative race-by-race snapshots → `max(points)`" kept the solver on the safe edge; expanding it into a longer domain-blind block that ENUMERATES the forbidden alternatives (`row_number`/`QUALIFY`/latest-row) RAISED their salience and handed the solver a reasoning path straight into them. Naming what-not-to-do at length is anti-helpful.
+3. **Dovetails with [[h0061]] "verbosity is not robustness."** Added words to a working terse rule cost robustness on the hardest cases. Same direction as the lean-README finding.
+4. **The de-overfit DIRECTION (probe-gated `max()` repair) is sound in principle** — the probe concept and the gate both behaved; the failure is the verbose PROSE, which is exactly what [[h0063]] isolates.
 
 ## Stage Report: propose
 
