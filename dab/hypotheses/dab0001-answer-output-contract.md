@@ -1,5 +1,5 @@
 ---
-title: Lock the answer output contract so correctly-computed answers aren't failed on format
+title: stockmarket-q3 - Lock the answer output contract so correctly-computed answers aren't failed on format
 status: concept
 kind: concept
 source: flipped-query-targets.md + CAIS log audit (googlelocal-q2 codex computes the right businesses every run, 4/5 fail only on output shape)

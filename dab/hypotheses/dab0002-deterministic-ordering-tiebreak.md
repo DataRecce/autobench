@@ -1,5 +1,5 @@
 ---
-title: Kill run-to-run flakiness with deterministic ordering, explicit tie-breakers, and stable filters
+title: stockmarket-q4 - Kill run-to-run flakiness with deterministic ordering, explicit tie-breakers, and stable filters
 status: concept
 kind: concept
 source: flipped-query-targets.md (the flipped 1/5–4/5 Opus queries are unstable, not unsolvable)

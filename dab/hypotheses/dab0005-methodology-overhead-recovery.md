@@ -1,5 +1,5 @@
 ---
-title: Recover capability the three-step methodology suppresses on direct queries (structural lever)
+title: crmarenapro-q2/q8 - Recover capability the three-step methodology suppresses on direct queries (structural lever)
 status: concept
 kind: concept
 source: CAIS cross-experiment scan — minimal/direct workspaces solve crmarenapro-q8 (5/5) but spacedock suppresses it (codex 0/5)
