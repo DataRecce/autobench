@@ -1,7 +1,7 @@
 ---
 id: dab0009
 title: Anti-abstention + environment-persistence (forbid premature "UNABLE TO DETERMINE")
-status: hypothesis
+status: smoke
 kind: hypothesis
 source: failure-behavior study (_artifacts/opus-vs-gpt55-failure-behavior.md) Lever A; dab0007 reject -> flipped-task pivot
 started: 2026-06-17T02:53:14Z
@@ -325,3 +325,14 @@ consistently under Lever A, the way googlelocal-q3 did — or are they analytic-
 directly by a (re-)smoke on the corrected abstention set, then the full run (with the G8 panel) for net.
 
 **q8 DNS re-run:** already artifact-confirmed as infrastructure (not variance); a re-run is low-value.
+
+## Stage Report: smoke (cycle 2)
+
+- DONE: Cycle-2 smoke spec built — `specs/dab0009-anti-abstention-persistence.smoke2.yaml` copied from the full spec `specs/dab0009-anti-abstention-persistence.yaml` (README + full spec UNCHANGED — Lever A validated). Adds `benchmark.tasks: [googlelocal, PANCANCER_ATLAS]` + `benchmark.exclude_tasks: [googlelocal-q1, googlelocal-q2, PANCANCER_ATLAS-q1, PANCANCER_ATLAS-q2]` so the surviving per-query set is EXACTLY {googlelocal-q3, googlelocal-q4, PANCANCER_ATLAS-q3}; `trials: 3`. Frozen.
+  Query inventory from data root: googlelocal has q1-q4, PANCANCER_ATLAS has q1-q3 → excluding q1/q2 of each leaves q3,q4 (googlelocal) + q3 (PANCANCER_ATLAS) = 3 cells. `rk run --explain` reported `Tasks: 3`, `Concurrency: 4`, model gpt-5.5, reasoning_effort xhigh; solver_workflow_content_hash `ac278fa6...` (identical to cycle-1 README). Sample task = PANCANCER_ATLAS-q3. trials:3 = 9 trials.
+- DONE: Detached smoke launched via `drivers/rk-run-detached.sh dab0009-smoke2 specs/dab0009-anti-abstention-persistence.smoke2.frozen.yaml run`; handle path returned.
+  Handle: `runs/.rk-handles/dab0009-smoke2-20260617-043428/` (pid 1516500 confirmed alive; `done` absent = in flight). runs/ is gitignored. Spec + frozen spec committed path-scoped (cd2fbf3); razorback submodule pointer left untouched. Did NOT run audit/score/deep-dive — FO owns the wait.
+
+### Summary
+
+Cycle-2 smoke launch only. Re-scoped to the TRUE abstention subclass (the 3 cells that abstained "UNABLE TO DETERMINE" at the dab0007 xhigh baseline): googlelocal-q3 (re-confirm; was 3/3), googlelocal-q4 (untested), PANCANCER_ATLAS-q3 (untested). README/full spec unchanged. Frozen + `--explain` confirms exactly 3 cells × trials:3 = 9 trials @ xhigh, concurrency 4. Detached run launched, handle `runs/.rk-handles/dab0009-smoke2-20260617-043428/`. Did NOT wait — FO owns the wait and dispatches the post-run audit/score/deep-dive.
