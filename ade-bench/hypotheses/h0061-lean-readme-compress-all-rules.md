@@ -1,7 +1,7 @@
 ---
 id: h0061
 title: Lean-README overfit test — compress all 10 rules to principle+skeleton, keep every construct
-status: smoke
+status: full
 kind: hypothesis
 source: post-target fine-tune research (item 4a) — _artifacts/readme-rule-progression-research-2026-06-16.md + _proposal/4a-lean-readme-overfit-design-2026-06-16.md (captain-approved 2026-06-16)
 started: 2026-06-16T17:08:39Z
