@@ -41,7 +41,7 @@ benchmark:
   plugin_args: null
 trials: 1
 concurrency:
-  trials: 1
+  trials: 3
 observers:
 - kind: jsonl
   path: events.jsonl
@@ -56,7 +56,7 @@ provenance:
   model_resolved_at: null
   image_digest: null
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: 31e17108c3a6f507dd2be170fb9f69685171f748
+  harness_git_sha: c69f244dd01ede9a26e5f6148e124436a0d0b05b
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []

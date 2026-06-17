@@ -39,9 +39,11 @@ benchmark:
     - ade-bench-airbnb001    # ADDITIVE-SUM CANARY — committed monthly_agg_reviews COUNTs reviews per month-sentiment (per-period delta); gate must NOT mis-fire; must hold PASS. @baseline PASS
 trials: 1 # one trial per task — applies to BOTH smoke and full
 concurrency:
-  trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
-            # task identity on the harbor path), so concurrent stage commits race on
-            # `git HEAD` ("cannot lock ref 'HEAD'"). 1 = no concurrent commits.
+  trials: 3 # concurrent cells safe: per-cell freeze isolation (PR #10 / fe30753) gives
+            # each cell its own freeze git repo at <sealed_hash>/<cell_token>, so stage
+            # commits no longer race on `git HEAD`. Confirmed at scale: the @baseline h0061
+            # full run executed all 48 cells at concurrency 4 with zero "cannot lock ref
+            # HEAD" errors. 3 here for a fast 7-task smoke.
 observers:
   - kind: jsonl
     path: events.jsonl
