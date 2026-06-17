@@ -1,7 +1,7 @@
 ---
 id: h0062
 title: Generalize the F1-pinned max(points) rule into a semi-additive-measure rule gated on a monotonicity probe
-status: hypothesis
+status: propose
 kind: hypothesis
 source: Captain conversation 2026-06-17 — categorizing the baseline README's added rules (general-purpose / dbt-craft / benchmark-specific) surfaced CUMULATIVE-SNAPSHOT TOTALS as the one Category-C "memorized answer"; this tests whether its domain fact can be replaced by a locally-checkable structural gate, moving it from a pin to a portable rule.
 started: 2026-06-17
