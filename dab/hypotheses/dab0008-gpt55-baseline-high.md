@@ -82,3 +82,18 @@ experiment name and reasoning_effort to high — everything else (concurrency.tr
 tasks, trials:1, baseline solver_workflow, gpt-5.5/codex) untouched, confirmed by a 2-line diff.
 Froze, validated 12 datasets / 54 cells via --explain, and launched the detached full run.
 Committed the spec + frozen spec; runs/ stays gitignored. FO owns the wait + audit/score.
+
+## Stage Report: full (cycle 2 — relaunch)
+
+- DONE: rk run --explain on the frozen spec confirms all 12 datasets / 54 cells (high tier, trials:1)
+  --explain reported `Tasks: 54`, `Concurrency: 4`; frozen spec shows model gpt-5.5,
+  reasoning_effort: high, trials: 1, experiment dab0008-gpt55-baseline-high.
+- DONE: Detached full run RELAUNCHED fresh (prior pid 1259615 was intentionally stopped by captain)
+  handle `runs/.rk-handles/dab0008-full-20260617-150847/` (pid 2434887 alive, done absent). Did NOT wait.
+
+### Summary
+
+Relaunched the dab0008 high-tier control fresh after the captain stopped the prior launch.
+Re-confirmed 54 cells / 12 datasets / trials:1 via --explain on the unchanged frozen spec,
+then launched detached. New handle: runs/.rk-handles/dab0008-full-20260617-150847/. FO owns
+the wait + strict audit + score; runs/ stays gitignored so nothing to commit beyond this report.
