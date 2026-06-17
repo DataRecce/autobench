@@ -195,6 +195,33 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
+### rev2 (CURRENT — gate-hardening) — GO-leaning, 20/21
+
+**Verdict: GO-with-one-residual (20/21 = 0.9524).** Multi-draw smoke, run-dir
+`runs/ade-bench-h0063-semi-additive-probe-terse-repair/2bba19d41a474310` (57m, rc=0,
+0 errors). Strict audit CLEAN (`taint_status: clean`, findings: [] on all 21 cells); all
+21 cells captured a reward; `rk score` = stratified mean 0.9524 = 20/21.
+
+**Per-cell per-draw distribution (rev2):**
+
+| Task | rev2 draws | rev2 rate | rev1 rate | Both models on passes? |
+|------|-----------|-----------|-----------|------------------------|
+| f1006              | 1,1,1 | **3/3** | 0/3 | BOTH PASS — **0/3→3/3, decisive** |
+| f1006-hard         | 0,1,1 | 2/3 | 2/3 | passes BOTH PASS; 1 residual fail = constructor Got 2 |
+| f1005              | 1,1,1 | **3/3** | 2/3 | BOTH PASS |
+| f1005-medium       | 1,1,1 | **3/3** | 2/3 | BOTH PASS |
+| f1001              | 1,1,1 | 3/3 | 3/3 | build; gate did not fire |
+| airbnb005          | 1,1,1 | 3/3 | 3/3 | additive-SUM byte-intact (no over-fire) |
+| airbnb001          | 1,1,1 | 3/3 | 3/3 | additive-SUM byte-intact (no over-fire) |
+
+**The single residual** is one f1006-hard draw (`7pRy7uZ`): same signature as the rev1
+drift — `constructor_points_equality` FAIL Got 2 / driver PASS. Everything else holds
+`max()`. f1-points constructor-drift rate fell from rev1's ~6/12 draws to rev2's **1/12**.
+
+---
+
+### rev1 (FALSIFIED arm — terse domain-blind) — NO-GO, 15/21
+
 **Verdict: NO-GO (15/21 = 0.7143).** Multi-draw smoke, run-dir
 `runs/ade-bench-h0063-semi-additive-probe-terse-repair/7850ae9e524dcb7a` (58m54s, rc=0,
 0 SpacedockSolverAgentError — the two earlier 21/21-errored runs were the
@@ -223,6 +250,43 @@ the f1 build (f1001 3/3).
 ## Run result
 
 ## Behavioral analysis
+
+### rev2 (gate-hardening) — the de-overfit is SALVAGED, domain-blind
+
+**The wins are artifact-confirmed `max()` on BOTH models.** Spot-checked the constructor
+artifacts of 4 winning draws (f1006 jGUBJFd, f1005 6cuJhJF, f1005-medium Dk6wpqQ, f1006-hard
+SkLoupm): every one has `AUTO_constructor_points_equality` PASS AND `AUTO_driver_points_equality`
+PASS. The rev1 hazard is gone in the common case: the rare-exceptions-tolerant gate now reads
+the 2 constructor penalty decreases as "isolated drops within a running cumulative total" and
+keeps `max()` at grain — `constructor_points` no longer drifts to latest-row. The decisive
+signal fired: **f1006 went 0/3 → 3/3.** f1005 and f1005-medium each improved 2/3 → 3/3.
+
+**The single residual is leftover causal drift, NOT variance — but a rare tail.** The one
+f1006-hard fail (`7pRy7uZ`) committed `row_number()`-latest-standings-row for BOTH models
+("keep the latest standings row per driver/constructor and season"). Driver still PASSES (its
+latest row equals max because driver standings are strictly monotone), constructor FAILS Got 2
+(latest-row drops the 2 penalty rows) — the identical rev1 mechanism. So the hardened gate did
+not 100% suppress the latest-row reasoning path; one draw in twelve f1-points draws still talked
+itself onto latest-row despite the rule's explicit "a handful of decreases does NOT justify
+selecting a single latest row." This is a **probe-depth tail**, not noise: it's the same drift,
+at ~1/12 vs rev1's ~6/12.
+
+**Verdict on the de-overfit: SALVAGED (GO-with-caveat).** Gate-hardening recovered all four
+f1-points targets to a domain-BLIND rule, with no over-fire (airbnb005/airbnb001/f1001 all 3/3,
+sums byte-intact). This confirms the rev1 finding twice over: **verbosity was a red herring; the
+real blocker was a brittle strict-monotonicity probe + escape clause, and a rare-exceptions-
+tolerant probe fixes it without naming F1.** The domain name was NOT irreplaceable — it was a
+*proxy* for "treat occasional decreases as corrections, not deltas," which the rev2 rule now
+states directly and generally. Residual risk: the latest-row path is still reachable (~8% of
+f1-points draws); a single-trial full run could land that tail on f1006-hard. My call: **GO**,
+with the residual flagged for the captain — the de-overfit is genuine and general, but a
+belt-and-braces rev3 (a one-line `max()` BEFORE/AFTER skeleton to crowd out the latest-row
+reasoning path) could push the residual toward 0 if the captain wants it tighter before
+promotion. NOT my call to run full or promote — held for the captain.
+
+---
+
+### rev1 (FALSIFIED arm) — root cause analysis (retained)
 
 **Root cause — the escape clause fires on the 2 real constructor-standings decreases; the
 domain name was load-bearing because it pre-committed the snapshot interpretation BEFORE the
@@ -370,3 +434,27 @@ domain-blind probe reproduces. Verbosity is decisively REJECTED as the h0062 cau
 rev2 = HARDEN the FALSE-branch gate (monotone-with-rare-exceptions ⇒ still max()), NOT the FO's
 concrete-neutral-anchor ladder, which treats a symptom the @baseline already had and won't stop
 the deep probe.
+
+## Stage Report: smoke (rev2)
+
+- DONE: Strict audit + score; confirm captured>0 all 21 cells.
+  `rk audit … --policy strict` = 21/21 taint clean, findings:[]; `rk score` = mean 0.9524 = 20/21; all 21 cells captured. run-dir 2bba19d41a474310.
+- DONE: Record per-cell-per-draw table in ## Smoke result (rev2).
+  f1006 3/3 (was 0/3), f1006-hard 2/3, f1005 3/3 (was 2/3), f1005-medium 3/3 (was 2/3), f1001 3/3, airbnb005 3/3, airbnb001 3/3.
+- DONE: Confirm WINS are max() on BOTH models (G11).
+  Spot-checked 4 winning draws (f1006 jGUBJFd, f1005 6cuJhJF, f1005-medium Dk6wpqQ, f1006-hard SkLoupm): all have constructor_points_equality PASS AND driver_points_equality PASS. Hardened gate held on the 2 penalty decreases.
+- DONE: Characterize the ONE residual (f1006-hard 7pRy7uZ).
+  Leftover causal drift, NOT variance/unrelated: committed row_number() latest-standings-row for both models; constructor FAIL Got 2 / driver PASS — identical rev1 mechanism, now at 1/12 f1-points draws (was ~6/12). A probe-depth tail.
+- DONE: Write ## Behavioral analysis (rev2) — de-overfit verdict.
+  SALVAGED / GO-with-caveat: gate-hardening recovered all 4 f1-points targets to a domain-BLIND rule, no over-fire; verbosity confirmed a red herring twice; residual ~8% latest-row tail flagged; optional rev3 (max() skeleton) could tighten it.
+
+### Summary
+
+rev2 GO-leaning at 20/21, strict-audit clean. The gate-hardening WORKED: f1006 0/3→3/3
+(decisive), f1005 + f1005-medium 2/3→3/3, all wins artifact-confirmed `max()` on BOTH scored
+models — constructor_points no longer drifts to latest-row on the 2 real penalty decreases. The
+single residual (one f1006-hard draw) is the SAME leftover causal drift (row_number latest-row,
+constructor Got 2), not variance, but now a rare ~1/12 tail. No over-fire (canaries + build 3/3,
+sums byte-intact). De-overfit SALVAGED with a domain-BLIND, genuinely general rule — verbosity
+was a red herring; the real fix was a rare-exceptions-tolerant probe. Held for the captain; no
+auto-full/promote. Optional rev3 (a max() BEFORE/AFTER skeleton) could push the residual toward 0.
