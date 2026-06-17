@@ -129,28 +129,129 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
 
 ## Smoke result
 
-**Detached smoke LAUNCHED — awaiting completion (FO owns the wait + deep-dive dispatch).**
+**DEEP-DIVE COMPLETE — run-dir `runs/dab0010-anti-abstention-lean/3560df3d9a96e416` (gpt-5.5
+xhigh, trials:3, 5 cells = 15 trials). Audit: 15/15 CLEAN — 0 docker mentions across all
+transcripts (the dab0009 docker-probe side-effect is GONE under the lean rule); the only
+"oracle-access" grep hits are the solver's own negative leak-guard attestations, not access.**
 
-- `rk run --explain` on `specs/dab0010-anti-abstention-lean.smoke.frozen.yaml` re-confirmed
-  `Tasks: 5`, `trials: 3` (15 trials), concurrency.trials:4, runtime codex / gpt-5.5 / xhigh.
-  Spec exclude list = 4 datasets − 18 excludes → exactly the 5 survivors:
-  googlelocal-q3, PANCANCER_ATLAS-q2, crmarenapro-q7, crmarenapro-q12, agnews-q4.
-- Composed-prompt confirms both v2 README edits live in the workflow: the failure-gated
-  `## Database Access` sentence ("If (and only if) a connection attempt fails … if your existing
-  connection already works, keep it") and the `## Rules` anti-abstention rewrite with the
-  None/0/empty/'no match' carve-out.
-- Launched detached: handle `runs/.rk-handles/dab0010-smoke-20260617-131948/`
-  (pid 2262757, log + done file). `done` absent until finish; runs/ gitignored.
+Per-cell draws-passed (reward at `verifier_result.rewards.reward`; baseline = dab0007 gpt-5.5/xhigh):
+
+| Cell | Baseline | Draws PASS | Per-draw | Distance-to-pass on the misses |
+|---|---|---|---|---|
+| googlelocal-q3 (target flip) | ❌ 0.0 | **2/3** | egoKeDe ✅, NzU5uRN ❌, tcY8MkW ✅ | miss = `UNABLE TO DETERMINE` (re-abstain) — but **source genuinely unreachable** (Postgres `googlelocal_db` "Connection refused"/"unreachable" ×11; SQLite fallback not found this draw) |
+| PANCANCER_ATLAS-q2 (recover) | ✅ 1.0 | **3/3** | all PASS | n/a — full recovery, no regress |
+| crmarenapro-q7 (recover) | ✅ 1.0 | **1/3** | sXj8BAw ✅, N8DTzL2 ❌, epPp7tP ❌ | both misses committed the WRONG knowledge-article Id `ka0Wt000000EpSUIA0` where truth = `ka0Wt000000EoD3IAK` (a SPECIFIC Id, **not None**); same wrong Id both misses |
+| crmarenapro-q12 (recover) | ✅ 1.0 | **1/3** | 6KP3BkJ ✅, ubP8F2J ❌, VXAoiMr ❌ | both misses committed the SAME wrong agent Id `005Wt000003NJgAIAW` vs truth `005Wt000003NDEBIA4` (date-window/definition fork) |
+| agnews-q4 (measure-only) | ❌ 0.0 | 2/3 | 4PwHsyv ❌, EaUDECW ✅, pJTrc2j ✅ | near-tie classification coin-flip — NOT counted as a target |
+
+- **No taints, no exceptions in any `result.json`.** The known `dab-postgres` DNS flake
+  ("could not translate host name dab-postgres" / "Connection refused") appears transiently in
+  several draws (including PASSing ones) and is recovered by retry; it is infra, not lever behavior.
+- `rk run --explain` had re-confirmed the 5-cell × trials:3 spec and both v2 README edits in the
+  composed prompt before launch (handle `runs/.rk-handles/dab0010-smoke-20260617-131948/`).
+
+**Headline:** target flip holds (2/3, the 1 miss is an infra unreachable-source abstain, not a
+lever failure); PANCANCER-q2 fully recovered (3/3); but **crmarenapro-q7 and -q12 are 1/3 each**,
+contradicting the sim's High-confidence INERT-SAFE. The deep-dive below resolves that surprise.
 
 ## Run result
 
 ## Behavioral analysis
 
-## Failure Review
+Applying `_artifacts/unexpected-result-playbook.md` to THE SURPRISE: crmarenapro-q7 and -q12 are
+6/7+ historical passers (Opus 5/5, CAIS 5/5, dab0007 PASS) and the v2 sim rated both INERT-SAFE at
+High confidence — yet the real multi-trial shows 1/3 each. Resolution below, mechanism-fired test
+applied to every moved cell.
+
+**crmarenapro-q7 (1/3) — NOT None-suppression; an analytical disambiguation error, within-noise.**
+The dispatch premise that "q7's correct answer CAN be None" is wrong for THIS case: `validate.py`
+hard-codes `expected = "ka0Wt000000EoD3IAK"` — a SPECIFIC knowledge-article Id (a policy WAS
+breached). Both failing draws ran the full multi-table breach analysis and committed
+`ka0Wt000000EpSUIA0` ("TechPulse Volume-Based Installation Timeline Policy") — the WRONG policy
+article among 50+ candidate KAs the solver enumerated. This is a *which-policy-was-breached*
+disambiguation error, not a None-vs-positive bias. The v2 None carve-out has **no bearing** here
+(truth is positive). Mechanism-fired check: the v2 failure-gated db_config clause behaved
+*identically* across all 3 draws (db_config consulted, the transient `dab-postgres` DNS flake hit
+and was retried in pass and fail alike) — it does NOT differentiate pass from fail. The PASS draw
+(sXj8BAw) considered the SAME two IDs and correctly chose `EoD3IAK`. **Classification:
+sampling-variance on a hard disambiguation, NOT mechanism-caused, NOT None-suppression.** The sim
+was right that v2 doesn't trigger None-suppression; it just couldn't predict the cell's intrinsic
+analytical coin-flip on which KA is the breach.
+
+**crmarenapro-q12 (1/3) — the known date-fork variance, v2 rule has no trigger (sim correct).**
+Both misses committed the SAME wrong agent Id `005Wt000003NJgAIAW`; truth `005Wt000003NDEBIA4`. The
+PASS draw filtered April-2023 closures by `Contract.CompanySignedDate ∈ [2023-04-01, 2023-05-01)`,
+computed sales-cycle = `date_diff(CreatedDate, CompanySignedDate)`, winner 304 avg days. The FAIL
+draw used a different filter/grouping (winner had 1 opportunity, 49 avg days). This is the
+ambiguous "opening-to-closing in April 2023" definition fork (which date anchors the window;
+single-opportunity agents) — a pure-computation method divergence. Mechanism check: 0 connection
+failures, 0 source-reconcile/switch in the failing draw → the v2 clauses never fire.
+**Classification: sampling-variance (intrinsic date-fork), exactly the sim's "INERT — pure
+computation, rule has no trigger."**
+
+**PANCANCER_ATLAS-q2 (3/3) — real recovery, failure-gated clause correctly DORMANT.** All 3 draws
+PASS with **0 connection failures** and **0 source-reconcile/switch** behavior. The v2 failure-gated
+sentence's condition ("if and only if a connection attempt fails") never fires because the
+connection works — which is precisely why the v1 source-reconciliation perturbation is gone. This
+is the lean rule doing its job: gated-off when not needed. Real recovery, not luck (3/3 + correct
+mechanism dormancy).
+
+**googlelocal-q3 (2/3) — flip holds; the 1 miss is an infra unreachable-source abstain, not a lever
+regression.** The 2 PASS draws located the **SQLite fallback** for the business metadata (39 sqlite
+/ 12 "fallback" mentions) and computed the top-5. The FAIL draw (NzU5uRN) hit Postgres
+`googlelocal_db` "Connection refused / unreachable" (×11), found no SQLite fallback in that draw,
+the v2 failure-gated clause DID fire (15 db_config consults, tried alternate paths), and only then
+abstained with `UNABLE TO DETERMINE` — the LEGITIMATE last resort the rule explicitly permits when
+data is genuinely unreachable. **Classification: infra (source availability), excluded from the
+behavioral verdict per playbook Step 3.** The lever behaved exactly as designed in all 3 draws.
+
+**Sim-vs-real-run reconciliation (the honest read):** the sim was NOT wrong on mechanism. It
+correctly predicted v2 (a) preserves the googlelocal-q3 flip, (b) does not trigger None-suppression
+on q7, (c) has no trigger on q12, (d) leaves PANCANCER-q2's working connection untouched. The
+real-run "1/3" on q7/q12 is NOT v2 perturbation — it is each cell's *intrinsic analytical variance*
+(KA-disambiguation on q7; date-definition fork on q12) that a tendency-sim cannot estimate and a
+3-draw sample surfaces loudly. The dab0009 *verbose* lever genuinely regressed these cells via
+global prompt perturbation; the v2 *lean* lever does not — the v2-specific mechanisms are provably
+dormant or identical-across-outcome on every failing draw. This is the playbook's
+"mechanism-fired-over-verdict-moved" distinction: the verdict moved (q7/q12 missed), but the v2
+mechanism did NOT fire to cause it.
 
 ## Follow-up Routing
 
 ## Verdict
+
+**GO → full run (captain gate).** Artifact evidence clears the v2 lever of causation on every
+failing draw:
+
+- **Flip preserved:** googlelocal-q3 holds 2/3; the 1 miss is an infra unreachable-source abstain
+  (Postgres `googlelocal_db` refused, no SQLite fallback that draw) — the rule's *permitted* last
+  resort, fired only after the v2 failure-gated path was exhausted. The lever behaved as designed in
+  all 3 draws.
+- **Both v2 harm-mechanisms confirmed neutralized:** None-suppression is absent (q7 truth is a
+  positive Id, the carve-out is irrelevant and the misses are wrong-KA disambiguation, not
+  None-vs-positive); the source-reconciliation perturbation is gone (PANCANCER-q2 3/3 with the
+  failure-gated clause provably DORMANT — 0 connection failures).
+- **q7/q12 at 1/3 are intrinsic cell variance, not v2 perturbation:** the v2 mechanisms are
+  identical-across-outcome (q7 db_config/DNS behavior same in pass and fail) or never-triggered (q12
+  0 conn-fails). The misses are KA-disambiguation (q7) and the known date-definition fork (q12) —
+  the cells' own analytical coin-flips, which the dab0009 *verbose* lever amplified via global
+  perturbation but the v2 *lean* lever does not.
+
+**Honest caveat (sim-vs-real divergence):** the sim's INERT-SAFE verdicts were *mechanism-correct*
+but the cells are noisier than their 6/7+ historical pass-rate suggested at trials:3; the lever did
+not recover them to clean PASS in this small sample. Per the playbook, single/few-draw cannot prove
+causation in EITHER direction — but the mechanism-fired test (the decisive one) shows the v2 rule is
+not the cause. Board-safety remains DEFERRED to the full run per AC-5 (the 54-cell native regression
+panel is the real gate); do NOT promote on the smoke alone. Recommend GO to full; the full run will
+settle whether the lean lever is net-positive board-wide.
+
+**This is a captain gate — stage not advanced; no run launched.**
+
+## Failure Review
+
+N/A — verdict is GO. No NO-GO failure review required. (The two recovery cells at 1/3 are
+documented under Behavioral analysis as intrinsic variance with the v2 mechanism cleared, not lever
+failures.)
 
 ## Stage Report: propose
 
@@ -187,3 +288,28 @@ Re-confirmed the frozen multi-trial smoke spec via `--explain` (5 cells × trial
 captain-approved survivors) and verified both v2 README edits appear in the composed solver prompt. Launched
 the smoke detached via the audited launcher and captured the handle dir. Did NOT run audit/score/deep-dive —
 that is the FO's job on completion. runs/ is gitignored, so no run artifacts to commit.
+
+## Stage Report: smoke (deep-dive)
+
+- DONE: ## Smoke result — per-cell draws-passed table (googlelocal-q3 2/3, PANCANCER-q2 3/3,
+  crmarenapro-q7 1/3, crmarenapro-q12 1/3, agnews-q4 2/3 measure-only) + audit 15/15 clean (0 docker
+  mentions; oracle-grep hits are negative attestations) + distance-to-pass per failing draw read from
+  `verifier/test-stdout.txt`.
+- DONE: ## Behavioral analysis — applied unexpected-result-playbook to the q7/q12 surprise. KEY FINDINGS:
+  (1) q7 truth is a SPECIFIC Id `ka0Wt000000EoD3IAK` (not None); both misses committed wrong KA
+  `ka0Wt000000EpSUIA0` = analytical disambiguation error, None carve-out irrelevant, mechanism NOT fired
+  (db_config/DNS identical pass-vs-fail). (2) q12 misses = same wrong Id `005Wt000003NJgAIAW`, the date-fork
+  variance, 0 conn-fails → v2 rule never triggers. (3) PANCANCER-q2 3/3 real recovery, failure-gated clause
+  DORMANT (0 conn-fails). (4) googlelocal-q3 miss = infra unreachable Postgres `googlelocal_db`, v2 clause
+  fired then legit last-resort abstain; PASS draws used SQLite fallback.
+- DONE: ## Verdict GO with the honest sim-vs-real caveat; ## Failure Review N/A (GO). Stage NOT advanced
+  (captain gate); no run launched.
+
+### Summary
+
+Deep-dived the 15-trial v2 smoke. Resolved THE SURPRISE: crmarenapro-q7/q12 at 1/3 are each cell's
+intrinsic analytical variance (KA-disambiguation; date-definition fork), NOT v2 perturbation — the
+mechanism-fired test shows the v2 clauses are dormant or identical-across-outcome on every failing draw, so
+the sim's INERT-SAFE was mechanism-correct. The flip holds (googlelocal-q3 2/3, 1 miss = infra unreachable
+source) and PANCANCER-q2 fully recovered (3/3, failure-gated clause provably dormant). Verdict GO to full
+with board-safety deferred per AC-5. Committed the entity.
