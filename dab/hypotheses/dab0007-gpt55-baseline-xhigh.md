@@ -1,12 +1,12 @@
 ---
 id: dab0007
 title: gpt-5.5 xhigh baseline anchor (concurrency 4)
-status: analyze
+status: conclude
 kind: hypothesis
 source: captain request 2026-06-16 — establish the codex/gpt-5.5 reference at xhigh reasoning
 started: 2026-06-16T21:24:17Z
-completed:
-verdict:
+completed: 2026-06-17T02:37:27Z
+verdict: rejected
 score:
 worktree:
 ---
@@ -252,3 +252,18 @@ Anchor spec built by copying `dab-anchor-codex.yaml` and changing exactly three 
 ### Summary
 
 Analyzed the completed gpt-5.5 @xhigh anchor: stratified 0.6002, clean 54/54 (0 errored), strict audit 53/54 clean (1 benign forbidden_lookup taint on a 0.0 cell) — **−0.053 BELOW** the Opus-4.8 @baseline 0.6536, within bootstrap noise (CI [−0.148,+0.074]) but on the wrong side, with 6 regressions vs 4 gains. Because this is an anchor with NO README lever, 100% of the delta is the model swap + tier: the loss signature is gpt-5.5 GIVING UP on hard analytic queries ("UNABLE TO DETERMINE") and OVER-NARRATING output (breaking the validator's name→value match), where Opus committed a validator-readable value. Verdict = analyze-only, no promote/registry write; recommend Opus-4.8 @xhigh stays @baseline.
+
+## Follow-up Routing
+
+**Captain verdict (2026-06-17): REJECTED.** gpt-5.5 @xhigh (0.6002) is below the Opus-4.8 incumbent
+(0.6536); not a promote candidate. `@baseline` stays the Opus-4.8 run. dab0007 is retained as the
+**gpt-5.5 @xhigh reference run** for the loop (the solver tier the hypotheses smoke against).
+
+**Routing = `escalate → pivot`.** Do NOT auto-file a follow-up anchor. The productive direction (captain-
+directed) is **solver-README levers targeting the FLIPPED tasks** — queries gpt-5.5 has demonstrably
+passed in some run but fails at the xhigh reference (agnews-q4, stockmarket-q4, crmarenapro-q2/q8,
+googlelocal-q3). The two highest-yield levers from `_artifacts/opus-vs-gpt55-failure-behavior.md`:
+(A) anti-abstention + environment-persistence (forbid `UNABLE TO DETERMINE`; exhaust every named
+connection path before concluding a source is absent), and (B) tie/degenerate-result as a
+disambiguation signal. These are pursued as new hypotheses, smoke-verified for *consistency* on the
+flipped tasks. Sibling tier-control dab0008 deferred to a midnight run.
