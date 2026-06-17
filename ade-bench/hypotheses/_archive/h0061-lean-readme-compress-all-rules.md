@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: post-target fine-tune research (item 4a) — _artifacts/readme-rule-progression-research-2026-06-16.md + _proposal/4a-lean-readme-overfit-design-2026-06-16.md (captain-approved 2026-06-16)
 started: 2026-06-16T17:08:39Z
-completed:
-verdict:
+completed: 2026-06-17T12:14:55Z
+verdict: PASSED
 score:
 worktree:
+archived: 2026-06-17T12:14:55Z
 ---
 
 ## Hypothesis
