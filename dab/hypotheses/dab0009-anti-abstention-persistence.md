@@ -438,6 +438,17 @@ directly by a (re-)smoke on the corrected abstention set, then the full run (wit
 
 Cycle-2 smoke launch only. Re-scoped to the TRUE abstention subclass (the 3 cells that abstained "UNABLE TO DETERMINE" at the dab0007 xhigh baseline): googlelocal-q3 (re-confirm; was 3/3), googlelocal-q4 (untested), PANCANCER_ATLAS-q3 (untested). README/full spec unchanged. Frozen + `--explain` confirms exactly 3 cells × trials:3 = 9 trials @ xhigh, concurrency 4. Detached run launched, handle `runs/.rk-handles/dab0009-smoke2-20260617-043428/`. Did NOT wait — FO owns the wait and dispatches the post-run audit/score/deep-dive.
 
+## Stage Report: full
+
+- DONE: rk run --explain on specs/dab0009-anti-abstention-persistence.frozen.yaml confirms all 12 datasets / 54 query-cells survive (FULL spec — validated README fork, xhigh, trials:1; no smoke subset).
+  `--explain` reported `Tasks: 54`, `Concurrency: 4`, model gpt-5.5, reasoning_effort xhigh, trials inherited from frozen full spec (no benchmark.tasks/exclude_tasks subset). solver_workflow_content_hash `sha256:ac278fa6ef61a8e7bb118ba859ef8ef95ca84a1d3f7c672536f74c41e0696e50` — IDENTICAL to the validated smoke README (no methodology drift). Sample task DEPS_DEV_V1-q1; composed prompt shows the anti-abstention Rules + env-persistence Database-Access block intact.
+- DONE: Detached full run launched via drivers/rk-run-detached.sh dab0009-full specs/dab0009-anti-abstention-persistence.frozen.yaml run; the handle path is returned. You do NOT wait — launch, capture handle, return.
+  Handle: `runs/.rk-handles/dab0009-full-20260617-070911/` (pid 1594702 confirmed alive; `done` absent = in flight). 54 query-cells @ xhigh, trials:1, concurrency 4. runs/ is gitignored — nothing to commit for the run itself. FO owns the wait + dispatches the post-run audit/score/deep-dive on completion.
+
+### Summary
+
+Full-run launch only on dab0009 (Lever A: board-wide anti-abstention + env-persistence). Re-confirmed the FROZEN FULL spec via `--explain` (54 query-cells across all 12 datasets, xhigh, trials:1, concurrency 4) with README content-hash `ac278fa6...` identical to the validated smoke — no methodology drift. Launched the detached full run; handle `runs/.rk-handles/dab0009-full-20260617-070911/` (pid 1594702 alive, in flight). Did NOT run audit/score/deep-dive — the run is long and the FO owns the wait. No repo changes from the run (runs/ gitignored); only this stage report committed.
+
 ## Stage Report: smoke (cycle 2, deep-dive)
 
 - DONE: ## Smoke result (cycle 2) written: per-target draws-passed (googlelocal-q3 3/3, PANCANCER_ATLAS-q3 3/3, googlelocal-q4 2/3; baseline xhigh 0/1 each) + audit note (8/9 clean; 1 tainted = googlelocal-q4__gPYteTw forbidden_lookup `docker ps`, also the single failing draw, reward 0.0) + distance-to-pass on the failing draw.
