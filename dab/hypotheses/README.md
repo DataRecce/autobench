@@ -417,6 +417,13 @@ queries, no query subset).
 
 Interpret the full run against `@baseline` — quantitatively and behaviorally.
 
+> **When the result is UNEXPECTED** (a smoke GO that didn't translate, a flip that didn't reproduce,
+> an unexpected regression, a score below the matched reference), follow the fixed diagnostic ladder in
+> `_artifacts/unexpected-result-playbook.md` before routing: match the reference + per-query diff →
+> read the moved cells' artifacts → separate infra → triangulate run-history (related-vs-causal) →
+> state causation at the honest ceiling (single-trial proves nothing; multi-trial is the only proof) →
+> leak-free pre-rerun decision sim. Do not promote/reject/revise on the headline number alone.
+
 - **Quantitative (from `dab/`):**
   ```bash
   export RAZORBACK_REGISTRY=/home/kent/autobench/dab/razorback-registry.yaml
