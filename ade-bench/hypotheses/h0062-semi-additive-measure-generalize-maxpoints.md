@@ -146,13 +146,60 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
+**4/7 PASS — STRICT AC-4 NO-GO.** Run-dir `runs/ade-bench-h0062-semi-additive-measure-generalize-maxpoints/63ffe07e1eefe1d6` (smoke, concurrency 3, ~27 min, done rc=0).
+
+- **Strict audit: CLEAN.** `rk audit … --policy strict` → 7/7 trials `taint_status: clean`, zero findings.
+- **Score:** `rk score` → stratified mean 0.5714 (4/7), `n_completed=7`, `n_errored=0` — every cell captured>0 (no infra error).
+
+| Task | Role | @baseline | h0062 | Committed artifact (this run) |
+|------|------|-----------|-------|-------------------------------|
+| f1006 | flip target | PASS | **PASS** ✅ | `max(cs.points)` at season grain — cell-identical to @baseline |
+| f1006-hard | flip target | PASS | **FAIL** ❌ | `row_number() over (… order by round desc) … WHERE standings_order=1` — FORBIDDEN latest-row branch; `AUTO_constructor_points_equality` Got 2 (driver_points PASSED) |
+| f1005 | same-family sentinel | PASS | **PASS** ✅ | `max(cs.points)` at grain — probe fired correctly |
+| f1005-medium | same-family sentinel | PASS | **FAIL** ❌ | `QUALIFY ROW_NUMBER() OVER (… ORDER BY round DESC)` — FORBIDDEN qualify branch; `AUTO_constructor_points_equality` Got 2 (driver_points PASSED) |
+| f1001 | same-family sentinel (build) | PASS | **FAIL** ❌ | src/stg build; gate never touched a points model; failed `src_models_are_correct` Got 1 — UNRELATED build coin-flip |
+| airbnb005 | additive-SUM canary | PASS | **PASS** ✅ | `sum(rolling daily counts)` BYTE-INTACT — gate did NOT mis-fire |
+| airbnb001 | additive-SUM canary | PASS | **PASS** ✅ | monthly review COUNT BYTE-INTACT — gate did NOT mis-fire |
+
+**Regression classification: 2 CAUSAL (f1006-hard, f1005-medium), 1 VARIANCE (f1001).** Both canaries HELD — the broadened gate did NOT mis-fire on legitimate additive sums. The failure is the *opposite* risk from the one the canaries guarded: the generalization drifted the solver OFF the safe `max()` edge ONTO the forbidden latest-row/`row_number`/`QUALIFY` branch on the two HARDER cumulative variants.
+
 ## Run result
+
+(No full run — NO-GO at smoke.)
 
 ## Behavioral analysis
 
+**The generalization is NOT behavior-preserving (AC-4 FAILS).** The committed artifacts are the verdict basis:
+
+1. **The forbidden-branch drift is causal and reproducible across both hard variants.** @baseline h0061 f1006-hard committed `max(cs.points)` (PASS). Under the h0062 generalized wording, f1006-hard committed `row_number() … order by round desc WHERE standings_order=1` and f1005-medium committed `QUALIFY ROW_NUMBER() … ORDER BY round DESC` — two different spellings of the SAME forbidden latest-row branch the README explicitly prohibits ("Do NOT switch to latest-row, rank, row_number, QUALIFY, or order-by-final-period for the monotonic case"). The pinned h0044 rule suppressed this; the generalized rule did not.
+
+2. **Same 2-row constructor failure, driver model correct, on BOTH causal cells.** f1006-hard and f1005-medium are each scored by TWO models. On both, `AUTO_driver_points_equality` PASSED but `AUTO_constructor_points_equality` failed with exactly `Got 2`. The latest-row branch happens to be right for driver standings but wrong for 2 constructors — precisely the tie/duplicate-final-snapshot edge case that makes latest-row unsafe and `max()` correct. This is the multi-model-target trap (G11) realized: a single artifact choice that lands one scored model and breaks the other.
+
+3. **Why the easy targets passed but the hard ones didn't.** f1006 and f1005 (non-hard) committed `max()` and passed — the generalized rule *can* reproduce the flip. But the longer, branch-naming generalized block is less reliable than h0044's terse domain-pinned wording: on the harder variants the solver reasoned its way into "latest snapshot per entity" (a semantically-reasonable but forbidden reading of "cumulative snapshot"), exactly the failure mode the domain-pinned rule's brevity avoided. Wordier generalization → more surface for the solver to rationalize a forbidden branch.
+
+4. **The canaries vindicate the propose-stage design but the lever still loses.** airbnb005 (rolling-28d daily-count SUM) and airbnb001 (monthly COUNT) both held byte-intact — the FALSE-branch worked, the gate did not over-fire on legitimate additive sums. The G8/G10 mis-fire risk did NOT materialize. The lever fails on the TRUE branch (it should produce `max()` and instead drifts), not the FALSE branch.
+
+5. **f1001 is variance, not the lever.** f1001 is an src/staging build task — no "total too high" repair, no points SUM, so the gate's precondition cannot fire. Its committed edits are all `src_*`/`stg_*` models; it failed `src_models_are_correct` (Got 1), a build-correctness test unrelated to the SEMI-ADDITIVE rule. f1001 is a documented build coin-flip (h0023 f1001-bleed, h0059 src-naming history); this regression is the same tail, independent of h0062.
+
 ## Failure Review
 
+**Primary failure type: edit-shape-without-oracle drift onto a forbidden branch (causal) — the generalization degraded the cumulative-snapshot construct.** Not a mis-fire (canaries held), not inertness (the rule DID act), not variance for the two f1 hard cells (reproducible forbidden-branch drift on both).
+
+1. **What failed and how do we know?** f1006-hard and f1005-medium regressed PASS→FAIL because the solver committed the forbidden latest-row/`row_number`/`QUALIFY` branch instead of `max()` at grain. Known from the committed apply_patch bodies (`WHERE standings_order=1` / `QUALIFY ROW_NUMBER() … ORDER BY round DESC`) vs @baseline's `max(cs.points)`, with `AUTO_constructor_points_equality` Got 2 on both. f1001 regressed on an unrelated build test (`src_models_are_correct` Got 1), gate never engaged.
+
+2. **Is it the lever or the harness?** The lever (the README change), for the two f1 hard cells: the ONLY variable vs @baseline is the generalized wording, the drift is on the exact construct the rule governs, and it reproduced across two independent cells with the same signature. f1001 is harness/solver variance independent of the lever.
+
+3. **Causal or variance?** 2 causal (f1006-hard, f1005-medium — reproducible forbidden-branch drift), 1 variance (f1001 — unrelated build coin-flip). The two causal regressions are not single-cell noise: they share an identical failure signature (forbidden branch → constructor Got 2, driver PASS) on the two hardest cumulative variants.
+
+4. **Did the canaries / sentinels behave as designed?** Yes for the mis-fire axis: airbnb005/airbnb001 held byte-intact (gate did not over-fire on legitimate sums) and f1006/f1005 confirmed the rule CAN land `max()`. The propose-stage G8/G10 worry (over-firing) was correctly judged low-risk. The realized risk was the under-specified TRUE branch on hard variants, which smoke (not propose) was the right gate to catch.
+
+5. **What's the transferable lesson?** Generalizing a terse domain-pinned rule into longer domain-blind prose that *enumerates* the forbidden alternatives can BACKFIRE: naming "row_number / QUALIFY / latest-row" as things-not-to-do raises their salience and gives the solver a reasoning path into them on harder variants, where the pinned rule's brevity + concrete domain anchor ("treat points as cumulative race-by-race snapshots → max(points)") kept it on the safe edge. The domain fact was load-bearing precisely BECAUSE it was concrete and short. This is a Category-C "memorized answer" that resists de-overfitting: its value is the brevity+concreteness, not just the F1 name. (Connects to the instruction-lever taxonomy: construct>check, and mechanical-substitution > abstract-structural prose.)
+
 ## Follow-up Routing
+
+**Recommended route: `conclude` (REJECTED — generalization not behavior-preserving).** AC-4 FAILS: 2 of 3 regressions are causal forbidden-branch drift on the exact construct the rule governs, reproduced across both hard variants with an identical signature. The lever does not preserve the h0044 flip; it loses f1006-hard + f1005-medium at the smoke gate. The canaries held, so the de-overfitting *direction* (probe-gated max() repair) is sound in principle — but the generalized PROSE is the problem, not the probe concept.
+
+Secondary option if the captain wants to salvage rather than conclude: `hypothesis` with a narrowed revision — keep the monotonicity-probe TRIGGER but restore h0044's terse repair wording (drop the long forbidden-branch enumeration that raised latest-row salience; state only "replace sum(measure) with max(measure) at the existing grain" plus the probe). That tests whether brevity, not the domain name, was the load-bearing element. Given the flip program is already documented as EXHAUSTED and this is a de-overfit experiment (not a new flip), `conclude` is the higher-value route: the *knowledge gain* (Category-C max()-points rule resists de-overfitting because its brevity+concreteness is load-bearing; longer branch-naming prose drifts the solver onto the named-forbidden branch) is the deliverable.
 
 ## Verdict
 
@@ -168,3 +215,16 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 ### Summary
 
 Generalized the F1-pinned `CUMULATIVE-SNAPSHOT TOTALS — max() AT ENTITY GRAIN` rule into a domain-blind `SEMI-ADDITIVE / SNAPSHOT MEASURE` rule: the trigger moves from the F1-standings domain name to a locally-computable `lag()`-monotonicity probe, while the repair (`max()` at the existing grain) and h0044's forbidden-branch list are kept byte-for-byte. Exactly one README idea changed; the full spec differs from baseline only in `experiment:`+`solver_workflow:`. The smoke set adds two additive-SUM canaries (airbnb005 rolling-28d SUM, airbnb001 monthly COUNT) to expose the broadened gate's new mis-fire surface — the legitimate-`sum()` FALSE branch. Gatekeeper APPROVE with two non-blocking WARNs (the sanctioned concurrency freeze-race override and the gated-lever mis-fire surface, which the canary panel addresses). The only residual coverage gap the gatekeeper flagged is the absence of an f1-family legitimate-additive-sum passer (an f1 FALSE-branch canary), if one exists.
+
+## Stage Report: smoke
+
+- DONE: Strict audit + score, captured>0 all cells; recorded in ## Smoke result.
+  `rk audit --policy strict` → 7/7 clean, 0 findings; `rk score` → 0.5714 (4/7), n_completed=7, n_errored=0.
+- DONE: Per-cell artifact read for the 3 regressions vs @baseline h0061.
+  f1006-hard & f1005-medium drifted to FORBIDDEN latest-row/`row_number`/`QUALIFY` branch (constructor_points Got 2; driver_points PASS) vs @baseline `max(cs.points)`; f1001 = unrelated src-build coin-flip (`src_models_are_correct` Got 1, gate never engaged). Canaries airbnb005/airbnb001 held with byte-intact sum()/count().
+- DONE: Classify causal vs variance; append ## Failure Review + ## Behavioral analysis; recommend route.
+  2 CAUSAL (f1006-hard, f1005-medium — reproducible forbidden-branch drift, identical signature) + 1 VARIANCE (f1001 build coin-flip). Route: `conclude` (REJECTED — generalization not behavior-preserving); secondary salvage = `hypothesis` (restore terse repair wording, keep probe trigger).
+
+### Summary
+
+Smoke 4/7 → strict AC-4 NO-GO. The generalization is NOT behavior-preserving: the wordier domain-blind rule drifted the solver off `max()` at grain onto the forbidden latest-row/`row_number`/`QUALIFY` branch on the two HARDER cumulative variants (f1006-hard, f1005-medium), each failing constructor_points by exactly 2 rows (driver_points correct) — the multi-model-target trap realized. The easy targets (f1006, f1005) committed `max()` and held, and both additive-SUM canaries held byte-intact, so the propose-stage mis-fire worry did not materialize; the lever fails on the under-specified TRUE branch, not the FALSE branch. Transferable lesson: enumerating the forbidden alternatives in longer prose RAISES their salience and gives the solver a reasoning path into them — h0044's brevity + concrete domain anchor was load-bearing, so this Category-C rule resists de-overfitting. Recommended route `conclude` (REJECTED); the knowledge gain is the de-overfit lesson.
