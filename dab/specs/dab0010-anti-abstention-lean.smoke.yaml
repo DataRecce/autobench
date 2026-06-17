@@ -1,0 +1,54 @@
+# /home/kent/autobench/dab/specs/dab-anchor-codex.yaml
+version: 1
+experiment: dab0010-anti-abstention-lean
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: xhigh
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0010-anti-abstention-lean
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+  tasks:
+  - googlelocal
+  - PANCANCER_ATLAS
+  - crmarenapro
+  - agnews
+  exclude_tasks:
+  - googlelocal-q1
+  - googlelocal-q2
+  - googlelocal-q4
+  - PANCANCER_ATLAS-q1
+  - PANCANCER_ATLAS-q3
+  - crmarenapro-q1
+  - crmarenapro-q2
+  - crmarenapro-q3
+  - crmarenapro-q4
+  - crmarenapro-q5
+  - crmarenapro-q6
+  - crmarenapro-q8
+  - crmarenapro-q9
+  - crmarenapro-q10
+  - crmarenapro-q11
+  - crmarenapro-q13
+  - agnews-q1
+  - agnews-q2
+  - agnews-q3
+trials: 3
+concurrency:
+  trials: 4
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
