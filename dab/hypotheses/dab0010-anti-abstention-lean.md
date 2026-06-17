@@ -1,12 +1,12 @@
 ---
 id: dab0010
 title: Anti-abstention LEAN v2 (None carve-out + failure-gated persistence)
-status: smoke
+status: conclude
 kind: hypothesis
 source: dab0009 follow-up (REJECTED as board lever — verbose v1 perturbed stable cells); captain-directed v2
 started: 2026-06-17T13:06:22Z
-completed:
-verdict:
+completed: 2026-06-17T14:35:30Z
+verdict: rejected
 score: 0.85
 worktree:
 ---
@@ -218,10 +218,22 @@ mechanism did NOT fire to cause it.
 
 ## Follow-up Routing
 
+**`file` → dab0011** (captain-directed). dab0010 REJECTED for destabilizing previously-stable cells
+(crmarenapro-q7/q12, 6/7+ → 1/3). The generative anti-abstention family is concluded (v1 net-negative,
+v2 cleared-but-destabilizing, real yield ≈ 1 cell). The next hypothesis must make **stable-cell safety
+provable** — a precondition-gated lever isolated from the stable cells, judged against a **multi-trial
+no-lever baseline** so destabilization is distinguishable from intrinsic variance. Direction escalated
+to the captain before filing.
+
 ## Verdict
 
-**GO → full run (captain gate).** Artifact evidence clears the v2 lever of causation on every
-failing draw:
+**REJECTED — captain decision (overrides the analyze GO recommendation).** Captain's bar: a
+hypothesis under which previously-stable cells (crmarenapro-q7, crmarenapro-q12 — 6/7+ historically
+across 5 Opus + 5 CAIS + dab0007) come in at **1/3** is **unacceptable regardless of causation**. We
+do not pursue a lever that *coincides* with stable-cell destabilization, because at trials:3 we cannot
+PROVE it is safe. The artifact evidence below (retained, and still valid) clears the v2 lever of
+*direct causation* on every failing draw — but mechanism-cleared ≠ stable-cell-safe-proven, and the
+conservative standard wins:
 
 - **Flip preserved:** googlelocal-q3 holds 2/3; the 1 miss is an infra unreachable-source abstain
   (Postgres `googlelocal_db` refused, no SQLite fallback that draw) — the rule's *permitted* last
@@ -242,16 +254,31 @@ but the cells are noisier than their 6/7+ historical pass-rate suggested at tria
 not recover them to clean PASS in this small sample. Per the playbook, single/few-draw cannot prove
 causation in EITHER direction — but the mechanism-fired test (the decisive one) shows the v2 rule is
 not the cause. Board-safety remains DEFERRED to the full run per AC-5 (the 54-cell native regression
-panel is the real gate); do NOT promote on the smoke alone. Recommend GO to full; the full run will
-settle whether the lean lever is net-positive board-wide.
-
-**This is a captain gate — stage not advanced; no run launched.**
+panel is the real gate). **Verdict: REJECTED.** The mechanism analysis stands, but it cannot satisfy
+the captain's stable-cell-safety bar at this trial count. `@baseline` stays Opus; the generative
+anti-abstention family (v1 net-negative, v2 cleared-but-destabilizing) is **concluded**. Follow-up →
+**dab0011**, which must protect stable cells *by design*.
 
 ## Failure Review
 
-N/A — verdict is GO. No NO-GO failure review required. (The two recovery cells at 1/3 are
-documented under Behavioral analysis as intrinsic variance with the v2 mechanism cleared, not lever
-failures.)
+**Primary type: `canary-bleed` (variance-unclear at trials:3).** Two previously-stable sentinel cells
+(crmarenapro-q7, crmarenapro-q12) regressed to 1/3 under the hypothesis.
+
+1. **Original fork:** does the lean v2 rule keep googlelocal-q3's flip while *recovering* the dab0009
+   regressions without destabilizing stable cells?
+2. **What the artifact revealed:** v2's mechanisms are cleared of direct causation (q7 None-irrelevant
+   wrong-KA variance; q12 date-fork, 0 conn-fails; PANCANCER-q2 recovered 3/3; docker-taint gone). But
+   the stable cells still came in 1/3 — and at trials:3 causation cannot be separated from variance.
+3. **Did the rule fire?** Not on the failing draws (mechanism identical/dormant). But the captain's bar
+   is outcome-based: stable cells must not destabilize, proven, not argued.
+4. **Next fork to test (dab0011):** can a lever be designed so stable-cell safety is *provable* — i.e.,
+   precondition-gated to a construct ABSENT on the stable cells, AND judged against a multi-trial
+   no-lever baseline so "the lever destabilized it" is distinguishable from "the cell is naturally
+   variable"? Without that baseline, every global lever will appear to destabilize some stable cell by
+   chance and be unprovable-safe.
+5. **Next step:** `escalate` the direction to the captain (the anti-abstention family is exhausted;
+   the open question is methodological — provable stable-cell safety), then `file` dab0011 on the
+   chosen direction.
 
 ## Stage Report: propose
 
