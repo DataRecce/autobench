@@ -233,6 +233,179 @@ WARN didn't fire). Optional probe before closing: re-run agnews-q4 / crmarenapro
 Postgres-DNS infra confirmed healthy, to separate the q8 infra flake from true reward variance — captain's
 call. This is a captain gate; FO presents, ensign does not advance the stage.
 
+## Run result
+
+**Plain words for the captain:** We ran the validated anti-abstention lever across the WHOLE board
+(54 query-cells, gpt-5.5 @xhigh, single draw) to see if it helps net. **It does not — it slightly
+hurts.** Score 0.5902 vs the no-lever xhigh reference dab0007 at 0.6002 (−0.010, one cell) and below
+the Opus incumbent 0.6536. The lever flipped 3 cells to PASS but broke 4 that were passing — net −1.
+Crucially, the targets-only smoke was structurally **blind** to those 4 regressions (it only watched the
+target cells), which is exactly why the board-wide full run was the mandatory gate. The honest read: as a
+**generative, board-wide** lever, dab0009 is **net-neutral-to-slightly-negative noise**. It is NOT a
+board improvement. Of the 3 gains, **2 are genuine lever-driven abstention flips** (agnews-q4,
+googlelocal-q3 — the no-lever run literally wrote "UNABLE TO DETERMINE" and the lever made it reach the
+live DB and compute the right answer); the 4 regressions are a mix of analytic-branch coin-flips (3) and
+**one infra-induced abstention** (bookreview-q3, live-Postgres DNS died). The known docker-probe side
+effect recurred once more (googlelocal-q4, the lone audit taint). Recommendation below: **NO-GO as a
+board lever; the durable bank is the abstention diagnosis + the 2 artifact-confirmed flips.** Captain
+gate — I did not advance the stage or touch the registry.
+
+**Headline scores (stratified Pass@1, official `rk score`):**
+
+| Run | Stratified Pass@1 | Raw cells PASS | n_errored | Audit |
+|-----|-------------------|----------------|-----------|-------|
+| dab0009 (Lever A, board-wide, xhigh) | **0.5902** | 34/54 | 0 | 53/54 clean, 1 tainted |
+| dab0007 (NO-lever, xhigh — cleanest reference) | 0.6002 | 35/54 | 0 | — |
+| Opus @baseline (incumbent) | 0.6536 | 37/54 | 0 | — |
+
+**Net vs dab0007:** −0.010 stratified, −1 raw cell. Within single-trial noise, and the wrong sign for a
+GO. **The lever did not improve the board.** (The codex-vs-Opus confound applies to the −0.063 vs
+Opus, but it does NOT apply to the dab0009-vs-dab0007 comparison: both are gpt-5.5 @xhigh, so the −0.010
+isolates the README lever alone, model held constant. The lever's own contribution is a slight net
+negative.)
+
+**Audit (AC-2):** `result.json` `n_errored_trials: 0`, no cell carries harness `exception_info`. Strict
+conduct audit = **53/54 clean, 1 TAINTED**: `googlelocal-q4__BoAQQRM`, category **forbidden_lookup**
+(`docker ps --format '{{.Names}} {{.Ports}}'`, run once as a last-ditch host-discovery probe after live
+`dab-postgres` DNS collapsed — 103 `gaierror`/`could not translate host name`), reward 0.0. Same
+infra-induced persistence side-effect flagged in cycle-2 smoke (then `__gPYteTw`) and dab0007 PATENTS-q3.
+
+**Full per-query ledger (BOTH directions, paired 54 cells, dab0009 vs dab0007):**
+
+GAINS (FAIL→PASS, 3):
+
+| Cell | dab0007 | dab0009 | Opus | Mechanism | Attribution |
+|------|---------|---------|------|-----------|-------------|
+| agnews-q4 | 0.0 (abstained) | 1.0 | 0.0 | dab0007 wrote `UNABLE TO DETERMINE` ("Mongo dump absent", never reached Mongo); dab0009 read db_config.yaml, connected live `dab-mongo` (mongo=26 calls), classified articles, committed `Africa` (correct) | **executed-and-helped** (real abstention flip; the lever reached the live source the no-lever run gave up on) |
+| googlelocal-q3 | 0.0 (abstained) | 1.0 | 1.0 | dab0007 wrote `UNABLE TO DETERMINE` ("data did not support top 5"); dab0009 connected PG, committed correct top-5 by rating | **executed-and-helped** (real abstention flip; matches the 3/3 smoke) |
+| stockmarket-q4 | 0.0 (committed wrong) | 1.0 | 0.0 | dab0007 **committed** wrong names (`MFA Financial`, distance 8 — NOT an abstention); dab0009 committed `MFO, ARGD, HDB, AIN, DTQ` (correct) | **model-swap/variance** — both draws committed a computed value; the lever's anti-abstention rule did not fire here (no abstention to fix). Analytic-branch coin-flip that landed right this draw |
+
+REGRESSIONS (PASS→FAIL, 4 — ALL were dab0007 AND Opus @baseline passers):
+
+| Cell | dab0007 (PASS) | dab0009 (FAIL) | Validator distance-to-pass | Classification |
+|------|----------------|----------------|----------------------------|----------------|
+| PANCANCER_ATLAS-q2 | committed `…Lobular; Mixed Histology; Other` (correct top-3) | committed `…Lobular 54.17%; Other 11.11%; Inf. Ductal 2.30%` | "Not matched (fuzzy) within 3 chars: 'Mixed Histology (please specify)'" — 2nd/3rd rank wrong | **correct-artifact-still-fail / variance** (both reached PG; different cohort denominator 125 vs 178 alive patients → different ranking. Analytic-branch divergence, NOT lever-caused) |
+| crmarenapro-q7 | committed `ka0…EoD3IAK` (correct) | committed `ka0…EpSUIA0` (neighbor) | "Found ['ka0…EpSUIA0'], expected 'ka0…EoD3IAK'" | **wrong-branch / variance** (both reached PG via psycopg2; neighbor knowledge-article coin-flip, same family as the cycle-1 crmarenapro-q2 split. Not abstention) |
+| crmarenapro-q12 | committed `005…NDEBIA4` (correct, cycle 304 days) | committed `005…NJgAIAW` (different join) | "Found ['005…NJgAIAW'], expected '005…NDEBIA4'" | **wrong-branch / variance** (different normalized opportunity-contract join recovered a different agent. Analytic, not abstention) |
+| bookreview-q3 | committed full book list (correct) | committed **`UNABLE TO DETERMINE`** | "Missing book title: Around the World Mazes" | **infrastructure** — live `dab-postgres` DNS died (5 `could not translate host name`, 27 `Connection refused`); the `books_info.sql`/title source was unreachable, lever exhausted routes then correctly abstained. dab0007's draw got the data before the host died |
+
+**Also tracked — smoke-flipped cells that did NOT flip at the full single draw (dispatch question):**
+
+| Cell | cycle-2 smoke | full (dab0009) | dab0007 | Why |
+|------|---------------|----------------|---------|-----|
+| PANCANCER_ATLAS-q3 | 3/3 PASS | 0.0 FAIL | 0.0 | Both runs: "No value matches 305.12, 305.1, or 305" — chi-square computed a different statistic this draw. **Single-trial variance** on a hard analytic query (smoke was 3/3, full caught a losing draw; the lever still reached the data) |
+| googlelocal-q4 | 2/3 PASS | 0.0 FAIL (TAINTED) | 0.0 | **Infrastructure** — identical to the cycle-2 lone miss: 103 DNS failures on `dab-postgres`, review-side ranking computed correctly but business-name field unresolvable from the dead host; ran `docker ps` once (taint) then abstained. Not analytic, not premature |
+
+## Behavioral analysis (full run)
+
+**(1) Net + ledger both directions.** Above. Net −0.010 / −1 cell. 3 gains (2 real abstention flips +
+1 variance), 4 regressions (3 analytic-branch variance + 1 infra). The lever is generative (fires on
+every query), so it both helped 2 true-abstention cells and exposed/created losses elsewhere.
+
+**(2) Smoke vs full — why the targets-only smoke GO did not translate.** The cycle-2 smoke (GO) watched
+ONLY 3 target cells (googlelocal-q3/q4, PANCANCER_ATLAS-q3) and was **deliberately blind to board
+regressions** (G8 canary panel deferred here per the captain). It therefore could not see the 4 passers
+the generative lever would touch — PANCANCER_ATLAS-q2, bookreview-q3, crmarenapro-q7, crmarenapro-q12.
+That is exactly the predicted failure of a targets-only smoke for a generative lever, and the reason the
+full board run was the mandatory gate. Separately, two cells the smoke scored as flips did NOT flip at
+the single full draw: **PANCANCER_ATLAS-q3** (3/3 smoke → fail) is **single-trial variance** on a hard
+chi-square — the lever reached the data both times, the computed statistic just missed this draw;
+**googlelocal-q4** (2/3 smoke → fail) is **infra** — the same live-PG DNS outage that produced the lone
+smoke miss, not variance in the lever's behavior.
+
+**(3) Already-correct-and-broken.** All 4 regressions were passing at BOTH dab0007 and Opus @baseline —
+this is damage to working answers, not merely "failed to help." Classification: PANCANCER_ATLAS-q2 /
+crmarenapro-q7 / crmarenapro-q12 = **analytic-branch variance** (both runs reached the live DB and
+committed a computed value; the lever did not force a wrong commit — gpt-5.5 @xhigh independently picked
+a different denominator/join/neighbor-ID this draw). bookreview-q3 = **infrastructure** (live-PG DNS
+death forced an abstention the lever could not prevent). NONE is cleanly "lever-caused-wrong-commit": the
+lever's wording did not steer the SQL toward a wrong branch — the no-lever run was already connecting to
+the same hosts and computing values (db_config/psycopg signals present in dab0007 too).
+
+**(4) Confound attribution — did the README lever move the committed artifact?** The dab0009-vs-dab0007
+comparison holds the model fixed (both gpt-5.5 @xhigh), so any artifact change is attributable to the
+README, not the model swap. Verified at the artifact level:
+- **agnews-q4, googlelocal-q3 = executed-and-helped.** The no-lever run committed the literal string
+  `UNABLE TO DETERMINE`; the lever run committed a computed value reached via the live host. The README
+  wording demonstrably moved the artifact from abstention to answer. Real lever flips.
+- **stockmarket-q4 = model-swap/variance.** No abstention existed in the no-lever run (it committed a
+  wrong value), so the anti-abstention rule had nothing to fire on; the flip is an analytic coin-flip,
+  not the lever.
+- **The 4 regressions = NOT lever-caused-wrong-commit.** dab0007 already exhibited the persistence
+  behavior (read db_config.yaml, connected via psycopg2). The lever did not introduce DB-connect
+  behavior; it cannot be credited/blamed for the analytic branch chosen. 3 are variance; 1 is infra.
+
+So the lever's TRUE board contribution is **+2 real abstention flips, −1 infra-abstention regression**
+(bookreview-q3), with the rest (1 gain + 3 regressions) being model variance the lever neither caused
+nor fixed. The honest lever-attributable net is roughly +1 to +2 abstention conversions, swamped by ±3
+single-draw analytic noise across 54 cells — which is why the headline reads −1.
+
+**(5) Prevention + next move.** (a) Generative levers MUST smoke with the G8 canary/sentinel panel, not
+targets-only — a targets-only smoke cannot see the regressions that decide a board lever; this run is the
+case study. (b) The recurring **docker-probe taint** (googlelocal-q4 here; cycle-2 `__gPYteTw`; dab0007
+PATENTS-q3) is the env-persistence "try the live hosts" guidance steering toward forbidden container
+introspection when a named host transiently dies — the carried README-refinement (explicitly forbid
+`docker ps`/`docker inspect`/`/var/run/docker.sock` in the leak-guard; steer persistence to the named
+hosts only) would clean conduct without weakening the lever (every clean draw never needed docker).
+(c) **Infra is contaminating the board** — bookreview-q3 and googlelocal-q4 both lost to live-`dab-postgres`
+DNS outages mid-trial; the score is honest but infra-suppressed by ~1-2 cells. Recommended next step:
+**NO-GO as a board lever; do NOT re-file as-is.** See Failure Review.
+
+**(6) Smoke-vs-full fork drift.** The smoke GO was artifact-real for googlelocal-q3 (held 3/3 → full
+PASS) but the other two smoke flips were fragile: PANCANCER_ATLAS-q3 was a **3/3 smoke that masked
+single-trial variance** (full caught a losing chi-square draw), and googlelocal-q4 was a **2/3 smoke
+whose pass rate is gated by live-PG DNS health** (full hit the dead-host draw). No README rule drifted
+into a different implementation branch — the content hash was identical smoke→full (`ac278fa6…`). The
+divergence is (i) the smoke panel could not see the 4 board regressions, and (ii) hard-analytic /
+infra-fragile cells flip on single-draw luck. This feeds the Failure Review: the lever is behaviorally
+real but reward-inert at the board level.
+
+## Failure Review (full run)
+
+**The lever is net-neutral-to-negative board-wide. Classification:**
+
+- **bookreview-q3 → infrastructure-induced abstention regression.** Lever exhausted routes, live-PG DNS
+  was dead, correctly abstained. A passer lost to infra, not to the lever's logic.
+- **PANCANCER_ATLAS-q2, crmarenapro-q7, crmarenapro-q12 → analytic-branch variance regressions.** All
+  reached the live DB and committed a computed value (so did dab0007); gpt-5.5 @xhigh picked a different
+  denominator / neighbor-ID / join this single draw. Not abstention, not lever-caused.
+- **PANCANCER_ATLAS-q3 (smoke 3/3 → full fail) → single-trial variance** on a hard chi-square; lever
+  reached the data, statistic missed this draw.
+- **googlelocal-q4 (smoke 2/3 → full fail, TAINTED) → infrastructure** + the recurring docker-probe
+  side-effect; review-side ranking was correct, business name unresolvable from the dead host.
+- **stockmarket-q4 gain → variance** (no abstention to fix; coin-flip landed right).
+
+**Five failure-review questions:**
+1. *Did the lever reach the committed artifact?* YES board-wide — the no-lever and lever runs both
+   connect to live hosts; the lever's specific contribution is converting genuine abstentions (agnews-q4,
+   googlelocal-q3) to computed answers. Not inert.
+2. *Lever's fault or the task's/infra's?* Of the 4 regressions: 3 are analytic-branch model variance,
+   1 is infra. None is the lever forcing a wrong commit. The board's net −1 is single-draw noise, not
+   lever-induced damage.
+3. *Reproducible or variance?* googlelocal-q3 flip is reproducible (3/3 smoke + full). The 3 analytic
+   regressions and stockmarket-q4 gain are single-draw variance. PANCANCER_ATLAS-q3/googlelocal-q4 smoke
+   wins did not survive one full draw (variance + infra).
+4. *Would more lever text help?* No — the inert-risk WARN never fired (the lever fires, doesn't just
+   talk). The residual board misses are analytic accuracy + infra, both outside Lever A's scope. A
+   worked-example skeleton would not move them.
+5. *Infra contamination of the score?* YES — bookreview-q3 and googlelocal-q4 both lost to live-PG DNS
+   outages mid-trial; with healthy DNS the board would plausibly be +1-2 cells. The recorded 0.5902 is
+   honest but infra-suppressed. The docker-probe taint is the env-persistence guidance's known side
+   effect under host-death.
+
+**Verdict framing / next step — recommendation: NO-GO as a board lever; BANK the diagnosis + 2 flips.**
+dab0009 does not improve the board (−0.010 vs the matched no-lever reference; below the Opus incumbent).
+Durable banks: (a) **the abstention diagnosis is correct and the lever is behaviorally real** — it
+converts genuine premature abstentions to computed answers (agnews-q4 + googlelocal-q3 are
+artifact-confirmed, model-held-constant flips); (b) **a generative board-wide anti-abstention lever is
+net-neutral-to-negative** because the abstention subclass is small (~2-3 cells) and the lever's gains are
+swamped by ±3 single-draw analytic variance across 54 cells; (c) **targets-only smoke is structurally
+blind to board regressions for a generative lever** — this run is the case study (G8 deferral cost us
+visibility into the 4 regressions). Carried, NOT re-filed as-is: the docker-probe leak-guard refinement.
+Do NOT reflexively re-file — the abstention family on this board is effectively exhausted (the true
+subclass is tiny and infra-fragile). This is a captain gate; FO presents, ensign does not advance the
+stage or touch the registry.
+
 ## Follow-up Routing
 
 ## Verdict
@@ -469,3 +642,16 @@ DNS outage, same flake as cycle-1 q8), tainted by a forbidden `docker ps` host-d
 0.0, but NOT analytic-hard and NOT premature abstention. Recommend GO + bank the three flips; carry the
 docker-probe README-refinement (forbid container introspection; steer to named hosts) to the midnight
 full run. Captain gate — did not advance the stage, did not launch a run.
+
+## Stage Report: analyze
+
+- DONE: ## Run result written — stratified Pass@1 (dab0009 0.5902 vs dab0007 no-lever-xhigh 0.6002 vs Opus @baseline 0.6536; 54/54, 0 errored, audit 53/54 clean, 1 docker taint googlelocal-q4__BoAQQRM) + FULL per-query ledger both directions + each cell's distance-to-pass.
+  Scores from `rk score --format json` (stratified_pass_at_1). Ledger paired from per_trial_outcomes.json: GAINS agnews-q4/googlelocal-q3/stockmarket-q4, REGRESSIONS PANCANCER_ATLAS-q2/bookreview-q3/crmarenapro-q7/crmarenapro-q12 (ALL dab0007+Opus passers). Distance-to-pass from each cell's verifier/test-stdout.txt.
+- DONE: ## Behavioral analysis (full run) written — answers all 6 required analyze questions.
+  Net −0.010/−1 cell. (2) targets-only smoke blind to the 4 regressions; PANCANCER-q3=variance, googlelocal-q4=infra. (3) all 4 regressions were passers; 3 analytic-variance + 1 infra, none lever-caused-wrong-commit. (4) confound: model held constant (both gpt-5.5 xhigh) — agnews-q4+googlelocal-q3 executed-and-helped (no-lever literally wrote UNABLE), stockmarket-q4 model-swap/variance, regressions not lever-caused. (5)+(6) prevention + fork-drift.
+- DONE: Verdict framing + ## Failure Review (full run) + plain-words captain summary at top of ## Run result; docker-probe taint recurrence noted as known infra-induced persistence side-effect.
+  NO-GO as a board lever; bank the abstention diagnosis + 2 artifact-confirmed flips (agnews-q4, googlelocal-q3). Did NOT promote/touch registry, did NOT advance stage (captain decides conclude).
+
+### Summary
+
+Board-wide analyze of dab0009 (Lever A, generative anti-abstention + env-persistence), run-dir d4755f21bad3b43f (xhigh, 54 cells, single draw, 0 errored). Net is −0.010 stratified / −1 cell vs the matched no-lever xhigh reference dab0007 (0.5902 vs 0.6002), below the Opus incumbent 0.6536 — the lever does NOT improve the board. Model-held-constant artifact read: 2 of 3 gains are REAL lever-driven abstention flips (agnews-q4, googlelocal-q3 — the no-lever run wrote literal "UNABLE TO DETERMINE"); the 4 regressions (all passers) are 3 analytic-branch single-draw variance + 1 infra-induced abstention (bookreview-q3, live-PG DNS died), none lever-caused-wrong-commit. The targets-only smoke was structurally blind to the regressions (the case study for why a generative lever needs the G8 panel). Recurring docker-probe taint (googlelocal-q4) is the env-persistence side-effect under host-death. Recommend NO-GO as a board lever; bank the abstention diagnosis + the 2 confirmed flips. Captain gate — did not advance the stage or touch the registry.
