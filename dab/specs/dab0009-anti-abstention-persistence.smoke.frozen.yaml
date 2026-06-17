@@ -1,0 +1,79 @@
+version: 1
+experiment: dab0009-anti-abstention-persistence
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: solver_workflows/dab0009-anti-abstention-persistence
+  solver_workflow_content_hash: sha256:ac278fa6ef61a8e7bb118ba859ef8ef95ca84a1d3f7c672536f74c41e0696e50
+  max_turns: 200
+  max_budget_usd: null
+  override_timeout_sec: null
+  override_setup_timeout_sec: null
+  max_timeout_sec: null
+  tools_allowed: []
+  tools_denied: []
+  append_system_prompt: null
+  reasoning_effort: xhigh
+  reasoning_summary: null
+  resume_from_freeze: null
+  sealed_hash: 79fc053523441900c652f0a316ffd681
+  spacedock_skill_version: 1.0.0
+  prompt_content_hashes: {}
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  tasks:
+  - agnews
+  - crmarenapro
+  - googlelocal
+  - stockindex
+  exclude_tasks:
+  - agnews-q1
+  - agnews-q2
+  - agnews-q3
+  - crmarenapro-q4
+  - crmarenapro-q5
+  - crmarenapro-q6
+  - crmarenapro-q7
+  - crmarenapro-q9
+  - crmarenapro-q10
+  - crmarenapro-q11
+  - crmarenapro-q12
+  - crmarenapro-q13
+  - googlelocal-q2
+  - googlelocal-q4
+  - stockindex-q2
+  - stockindex-q3
+  n_tasks: null
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+trials: 3
+concurrency:
+  trials: 4
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
+provenance:
+  pin_model_version: true
+  pin_image_digest: true
+  pin_agent_cli_hash: true
+  pin_git_sha: true
+  model_resolved_version: null
+  model_resolved_at: null
+  image_digest: sha256:be343cd9ad33834843e0a862e801f6da161097e6abe015c75f165ba9b060d30b
+  agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
+  harness_git_sha: 6da1e818c82b403b99f028378f4a3187f6b41006
+  harbor_version: 0.6.6
+  prompt_file_hashes: {}
+  plugins: []
+  solver_workflow_hash: sha256:ac278fa6ef61a8e7bb118ba859ef8ef95ca84a1d3f7c672536f74c41e0696e50
+experiment_meta: null
