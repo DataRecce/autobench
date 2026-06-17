@@ -129,6 +129,19 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
 
 ## Smoke result
 
+**Detached smoke LAUNCHED — awaiting completion (FO owns the wait + deep-dive dispatch).**
+
+- `rk run --explain` on `specs/dab0010-anti-abstention-lean.smoke.frozen.yaml` re-confirmed
+  `Tasks: 5`, `trials: 3` (15 trials), concurrency.trials:4, runtime codex / gpt-5.5 / xhigh.
+  Spec exclude list = 4 datasets − 18 excludes → exactly the 5 survivors:
+  googlelocal-q3, PANCANCER_ATLAS-q2, crmarenapro-q7, crmarenapro-q12, agnews-q4.
+- Composed-prompt confirms both v2 README edits live in the workflow: the failure-gated
+  `## Database Access` sentence ("If (and only if) a connection attempt fails … if your existing
+  connection already works, keep it") and the `## Rules` anti-abstention rewrite with the
+  None/0/empty/'no match' carve-out.
+- Launched detached: handle `runs/.rk-handles/dab0010-smoke-20260617-131948/`
+  (pid 2262757, log + done file). `done` absent until finish; runs/ gitignored.
+
 ## Run result
 
 ## Behavioral analysis
@@ -160,3 +173,17 @@ a clean 2-field fork of the xhigh baseline; the focused multi-trial smoke (trial
 surfaces exactly the keep-the-flip target (googlelocal-q3) + 3 recovery sentinels + 1 measure-only
 coin-flip, with board-safety deferred to the full run per AC-5. Gatekeeper APPROVE recorded. No run
 launched — smoke fires only after the captain's propose-gate GO.
+
+## Stage Report: smoke
+
+- DONE: rk run --explain on specs/dab0010-anti-abstention-lean.smoke.frozen.yaml re-confirms exactly the 5 cells (googlelocal-q3, PANCANCER_ATLAS-q2, crmarenapro-q7, crmarenapro-q12, agnews-q4) with trials:3 (15 trials).
+  `--explain` reported `Tasks: 5`, `trials: 3`, concurrency 4; spec exclude list (4 datasets − 18 excludes) yields exactly those 5 survivors. Composed prompt shows both v2 README edits present.
+- DONE: Detached smoke launched via drivers/rk-run-detached.sh dab0010-smoke specs/dab0010-anti-abstention-lean.smoke.frozen.yaml run; handle path returned. You do NOT wait — launch, capture handle, return.
+  Handle `runs/.rk-handles/dab0010-smoke-20260617-131948/` (pid 2262757, alive at launch). `done` file absent until finish; FO owns the wait + deep-dive dispatch.
+
+### Summary
+
+Re-confirmed the frozen multi-trial smoke spec via `--explain` (5 cells × trials:3 = 15 trials, the exact
+captain-approved survivors) and verified both v2 README edits appear in the composed solver prompt. Launched
+the smoke detached via the audited launcher and captured the handle dir. Did NOT run audit/score/deep-dive —
+that is the FO's job on completion. runs/ is gitignored, so no run artifacts to commit.
