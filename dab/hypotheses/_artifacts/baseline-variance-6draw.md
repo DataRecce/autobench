@@ -1,7 +1,7 @@
 ---
 title: gpt-5.5 @xhigh no-lever variance baseline (6-draw) — the stable-cell reference
 date: 2026-06-17
-purpose: the multi-trial no-lever baseline that makes stable-cell-safety PROVABLE (dab0011). A future lever DESTABILIZES a cell only if it drops the cell below its band here. Built to fix the single-trial blind spot that sank dab0009/dab0010 judgement.
+purpose: the multi-trial no-lever baseline that makes stable-cell-safety PROVABLE (this artifact; no lever hypothesis). A future lever DESTABILIZES a cell only if it drops the cell below its band here. Built to fix the single-trial blind spot that sank dab0009/dab0010 judgement.
 sources: dab0007 (our exact baseline README, 1 draw) + 5 CAIS spacedock-codex-5.5-xhigh-hint runs (~/CAIS-paper-expriments). All gpt-5.5/xhigh/hint, no lever.
 caveat: the 5 CAIS draws may use a slightly older baseline README than spacedock-readme-baseline; treat as a strong empirical PRIOR on each cell's natural variance. The 28 rock-stable (6/6) cells are robust regardless; a fresh 3-draw run of the exact current baseline README would tighten the 14 variable cells (optional).
 ---

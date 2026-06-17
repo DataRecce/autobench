@@ -219,7 +219,7 @@ mechanism did NOT fire to cause it.
 
 ## Follow-up Routing
 
-**`file` → dab0011** (captain-directed). dab0010 REJECTED for destabilizing previously-stable cells
+**`file` → the multi-trial baseline artifact** (captain-directed). dab0010 REJECTED for destabilizing previously-stable cells
 (crmarenapro-q7/q12, 6/7+ → 1/3). The generative anti-abstention family is concluded (v1 net-negative,
 v2 cleared-but-destabilizing, real yield ≈ 1 cell). The next hypothesis must make **stable-cell safety
 provable** — a precondition-gated lever isolated from the stable cells, judged against a **multi-trial
@@ -258,7 +258,7 @@ not the cause. Board-safety remains DEFERRED to the full run per AC-5 (the 54-ce
 panel is the real gate). **Verdict: REJECTED.** The mechanism analysis stands, but it cannot satisfy
 the captain's stable-cell-safety bar at this trial count. `@baseline` stays Opus; the generative
 anti-abstention family (v1 net-negative, v2 cleared-but-destabilizing) is **concluded**. Follow-up →
-**dab0011**, which must protect stable cells *by design*.
+**the multi-trial baseline artifact**, which must protect stable cells *by design*.
 
 ## Failure Review
 
@@ -272,13 +272,13 @@ anti-abstention family (v1 net-negative, v2 cleared-but-destabilizing) is **conc
    the stable cells still came in 1/3 — and at trials:3 causation cannot be separated from variance.
 3. **Did the rule fire?** Not on the failing draws (mechanism identical/dormant). But the captain's bar
    is outcome-based: stable cells must not destabilize, proven, not argued.
-4. **Next fork to test (dab0011):** can a lever be designed so stable-cell safety is *provable* — i.e.,
+4. **Next fork to test (the multi-trial baseline artifact):** can a lever be designed so stable-cell safety is *provable* — i.e.,
    precondition-gated to a construct ABSENT on the stable cells, AND judged against a multi-trial
    no-lever baseline so "the lever destabilized it" is distinguishable from "the cell is naturally
    variable"? Without that baseline, every global lever will appear to destabilize some stable cell by
    chance and be unprovable-safe.
 5. **Next step:** `escalate` the direction to the captain (the anti-abstention family is exhausted;
-   the open question is methodological — provable stable-cell safety), then `file` dab0011 on the
+   the open question is methodological — provable stable-cell safety), then `file` the multi-trial baseline artifact on the
    chosen direction.
 
 ## Stage Report: propose
