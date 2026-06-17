@@ -31,11 +31,12 @@ benchmark:
   - agnews
   - crmarenapro
   - googlelocal
-  - stockindex
   exclude_tasks:
   - agnews-q1
   - agnews-q2
   - agnews-q3
+  - crmarenapro-q1
+  - crmarenapro-q3
   - crmarenapro-q4
   - crmarenapro-q5
   - crmarenapro-q6
@@ -45,10 +46,9 @@ benchmark:
   - crmarenapro-q11
   - crmarenapro-q12
   - crmarenapro-q13
+  - googlelocal-q1
   - googlelocal-q2
   - googlelocal-q4
-  - stockindex-q2
-  - stockindex-q3
   n_tasks: null
   plugin: dab
   plugin_args:
@@ -71,7 +71,7 @@ provenance:
   model_resolved_at: null
   image_digest: sha256:be343cd9ad33834843e0a862e801f6da161097e6abe015c75f165ba9b060d30b
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: 6da1e818c82b403b99f028378f4a3187f6b41006
+  harness_git_sha: 32b391829009be7de3ace68f54cfc6aa68cc9e17
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []

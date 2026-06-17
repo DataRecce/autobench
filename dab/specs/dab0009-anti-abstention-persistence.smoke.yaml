@@ -24,11 +24,12 @@ benchmark:
   - agnews
   - crmarenapro
   - googlelocal
-  - stockindex
   exclude_tasks:
   - agnews-q1
   - agnews-q2
   - agnews-q3
+  - crmarenapro-q1
+  - crmarenapro-q3
   - crmarenapro-q4
   - crmarenapro-q5
   - crmarenapro-q6
@@ -38,10 +39,9 @@ benchmark:
   - crmarenapro-q11
   - crmarenapro-q12
   - crmarenapro-q13
+  - googlelocal-q1
   - googlelocal-q2
   - googlelocal-q4
-  - stockindex-q2
-  - stockindex-q3
 trials: 3
 concurrency:
   trials: 4

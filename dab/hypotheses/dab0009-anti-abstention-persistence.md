@@ -95,6 +95,8 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
 
 **For the captain:** Clean APPROVE — integrity rules (G2/G3/G6) all PASS, generative lever carries the right stratified canary panel (stockindex-q1 cross-dataset + crmarenapro-q3 perturbable same-dataset). AUDITABLE DEVIATION: the smoke spec deliberately raises `trials: 1 -> 3` (full stays trials:1) — this is the intended 3-draw consistency measure of AC-3, not a G3/G4 violation; concurrency.trials stays 4. One thing to watch: the G7 inert-risk WARN — "exhaust every connection path" is partly abstract prose; if the smoke shows the solver discussing persistence but still abstaining, consider adding a worked-example connect-then-compute skeleton before promoting.
 
+Smoke trimmed to TARGETS-ONLY (4 cells × 3 draws = 12 trials) per captain 2026-06-17; the generative-lever G8 regression panel (canaries/sentinels) is DEFERRED to the mandatory full-run gate. This smoke answers consistency-of-flip only, not board-safety.
+
 ## Smoke result
 
 ## Run result
