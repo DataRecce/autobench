@@ -209,6 +209,17 @@ apply — there is no dropped clause to restore. The honest read: the lean READM
 ten constructs' load-bearing content; asana002 needs a *stronger* (not merely restored) #6
 steer to deterministically force the model-side path, which is a follow-up lever, not a revert.
 
+## Run result
+
+**Full 48-task run LAUNCHED (detached) — awaiting completion.** Handle
+`runs/.rk-handles/h0061-full-20260617-075604/` (pid 1689686, mode=run, ntfy
+`adebench-rk-381c976fe07465bf`). Spec `specs/h0061-lean-readme.frozen.yaml`,
+solver_workflow `solver_workflows/h0061-lean-readme` content_hash
+`sha256:0d8bfa9…` — **byte-identical to the smoke + probe README** (only the task
+set differs: full = all 48, no `benchmark.tasks` selector). FO owns the wait; on
+`done` rc=0 this section gets the run-dir, strict-audit summary, score, trace-capture
+confirmation, and headline net (X/48 vs h0060's 36/48).
+
 ## Cross-refs
 
 `_proposal/4a-lean-readme-overfit-design-2026-06-16.md` (full design);
@@ -285,3 +296,16 @@ filed `variance-unclear`; the probe is the disambiguating evidence.)
   including both pre-registered HIGH/MED-risk rules #3 and #5). Rule #6's compression was also
   faithful; its single miss is a solver path-selection variance the README does not tightly
   constrain — flagged as the one place a leaner README may want a *sharper* (not longer) steer.
+
+## Stage Report: full
+
+- DONE: Launch the detached 48-task full run on specs/h0061-lean-readme.frozen.yaml via drivers/rk-run-detached.sh h0061-full specs/h0061-lean-readme.frozen.yaml run, and return the handle path immediately.
+  Handle `runs/.rk-handles/h0061-full-20260617-075604/` (pid 1689686, ntfy adebench-rk-381c976fe07465bf); returned to FO for the wait. Recorded in `## Run result`.
+- SKIPPED: On done rc=0: rk audit … --policy strict (clean) + rk score … --format json; confirm subagent-trace-manifest captured>0; record run-dir + headline net.
+  Deferred — the run is detached and not yet finished; the FO owns the wait and re-engages this ensign on done rc=0 to perform audit/score/trace and fill `## Run result`.
+- DONE: Confirm methodology consistency — the full frozen spec uses the SAME solver README (content_hash 0d8bfa9) as the smoke + probe; only the task set differs.
+  Full frozen spec solver_workflow_content_hash `sha256:0d8bfa9…` matches the smoke + probe README; full spec carries no `benchmark.tasks` selector (all 48), unlike the 15-task smoke panel — task set is the only difference.
+
+### Summary
+
+Launched the detached full 48-task run on the byte-identical lean README (content_hash 0d8bfa9, same as the verified smoke + probe). Verified the frozen spec and launcher exist and the methodology is consistent (only the task set differs from smoke). Returned the handle path to the FO immediately per the detached-run contract; audit/score/trace and the headline net (X/48 vs h0060's 36/48) are deferred to the FO-driven re-engagement on done rc=0.
