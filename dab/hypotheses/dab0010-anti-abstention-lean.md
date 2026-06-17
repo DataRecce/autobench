@@ -1,7 +1,7 @@
 ---
 id: dab0010
 title: Anti-abstention LEAN v2 (None carve-out + failure-gated persistence)
-status: propose
+status: smoke
 kind: hypothesis
 source: dab0009 follow-up (REJECTED as board lever — verbose v1 perturbed stable cells); captain-directed v2
 started: 2026-06-17T13:06:22Z
