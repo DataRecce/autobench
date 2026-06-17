@@ -291,6 +291,107 @@ Authored dab0009 (Lever A: anti-abstention + environment-persistence) entirely a
 
 Smoke deep-dive on dab0009 (Lever A: anti-abstention + env-persistence), run-dir 7de475a5c2a25626 (xhigh, 12 trials, all clean). The lever WORKS on the abstention axis — 11/12 draws committed a computed value via the live dab-mongo/dab-postgres host instead of "UNABLE TO DETERMINE"; the single abstention was a forced infra DNS outage after the solver exhausted every route. But reward only follows on googlelocal-q3 (3/3 real flip). agnews-q4 0/3 is a genuine near-tie classification (committed-wrong, not inert); crmarenapro-q2/q8 are 1/3 analytic coin-flips between plausible ids. Recommend NO-GO on the 4-target flip, BANK googlelocal-q3 + the artifact-reaching/abstention-eliminated finding. Captain gate — did not advance the stage.
 
+## Smoke result (cycle 2)
+
+**Plain words for the captain:** This cycle tested the TRUE abstention subclass — the 3 cells that
+actually wrote `"UNABLE TO DETERMINE"` at the dab0007 xhigh baseline. Lever A flips them **hard**:
+googlelocal-q3 **3/3**, PANCANCER_ATLAS-q3 **3/3**, googlelocal-q4 **2/3** — eight of nine draws
+opened `db_config.yaml`, connected to the live `dab-postgres`/`dab-mongo` host, and committed a real
+computed answer. The baseline abstained on all three (0/1 each). The single failing draw was **NOT** a
+wrong answer and **NOT** analytic-hard — it was a **live-Postgres DNS outage** (the same infra flake we
+saw on crmarenapro-q8 in cycle 1): the host name `dab-postgres` stopped resolving mid-trial, the solver
+exhausted every named route (14 `gaierror`, tried the FQDN variant), resorted to a forbidden `docker ps`
+host probe, then correctly abstained against a dead source. So on the correctly-scoped abstention
+subclass, Lever A is a **clean GO**: 9/9 would-have-abstained baseline cells now reach the data, and the
+one reward miss is infrastructure, not the lever. My read: **GO** for these targets — bank
+googlelocal-q3 + PANCANCER_ATLAS-q3 + googlelocal-q4 as Lever-A flips, with the `docker ps` probe carried
+as a README-refinement item for the full run.
+
+**Per-target draws-passed (run-dir `runs/dab0009-anti-abstention-persistence/68487be1c1bbe399`, gpt-5.5
+@xhigh, trials:3, 3 abstention-subclass cells = 9 trials):**
+
+| Target | dab0009 draws-passed | Baseline (dab0007 xhigh) | Behavioral verdict |
+|--------|----------------------|--------------------------|--------------------|
+| googlelocal-q3 | **3/3** | 0/1 (abstained) | FLIPPED-REAL ×3 (re-confirms cycle 1) |
+| PANCANCER_ATLAS-q3 | **3/3** | 0/1 (abstained) | FLIPPED-REAL ×3 (new) |
+| googlelocal-q4 | **2/3** | 0/1 (abstained) | 2 FLIPPED-REAL + 1 INFRA-ABSTAIN (DNS outage; tainted by `docker ps`) |
+
+**Audit — 8/9 clean, 1 TAINTED:** all 9 trials ran error-free at the harness level (`result.json`
+`exception_info` absent on every cell; rewards present). The strict-conduct audit flags **one** draw —
+`googlelocal-q4__gPYteTw`, category **forbidden_lookup** (`docker ps --format '{{.Names}} {{.Ports}}'`,
+run once as a last-ditch host-discovery probe after live-PG DNS broke), reward **0.0**. This tainted
+draw is also the single failing googlelocal-q4 draw. The other 8 draws are conduct-clean (no
+docker/container introspection, no external data).
+
+**Distance-to-pass on the failing draw (`googlelocal-q4__gPYteTw`):** the validator
+(`/tests/validate.py`, normalized substring + ±150-char number proximity) returned
+`Missing business name: Encino Dermatology & Laser`. The committed `answers.json` was literally
+`{"answer":"UNABLE TO DETERMINE"}` — so the draw scored 0 not because it ranked the wrong businesses but
+because it **abstained**. Its own review-side DuckDB ranking was correct (it computed the top-3 gmap_ids);
+it could not attach the `business_description.name` field only because live `dab-postgres` was
+unreachable (`could not translate host name "dab-postgres"`, `Temporary failure in name resolution`,
+`Connection refused`). The two PASSING draws (`__A6Szgwe`, `__QUg7pUr`) connected to the same host
+cleanly and committed `Encino Dermatology & Laser ... 19; The Boochyard @ Local Roots 17; Aurora Massage
+14` — the exact ground truth. Distance-to-pass for the failing draw is therefore **one healthy DNS
+resolution**, not an analytic gap.
+
+## Behavioral analysis (cycle 2)
+
+**Headline: on the TRUE abstention subclass, Lever A converts to reward.** Every one of the 8
+non-infra draws shows the full persistence signature — read `db_config.yaml` (after `connections.yaml`
+absent), connected via psycopg2 / DuckDB `ATTACH` to `dab-postgres` and/or `MongoClient` to `dab-mongo`,
+and committed a COMPUTED value with zero `"UNABLE TO DETERMINE"` mentions in the transcript. The single
+abstention (gPYteTw) is infra-forced, not premature.
+
+**Per target × draw:**
+
+- **googlelocal-q3 — 3/3 FLIPPED-REAL.** `__3JGRuCh`, `__43z8rEJ`, `__iY3cULv` all reward 1.0,
+  validator stdout empty. Each read db_config.yaml + connected (ATTACH/psycopg2/MongoClient) and
+  committed a ranked business list with operating hours and average ratings
+  (e.g. `1. Beauty Divine Artistry | Operating hours: [["Thursday","9AM–8PM"], ...]`). Re-confirms the
+  cycle-1 result; this is a durable persistence-driven flip.
+
+- **PANCANCER_ATLAS-q3 — 3/3 FLIPPED-REAL (new).** `__3TUraNq`, `__oCMbdVN`, `__ZAoWYwR` all reward 1.0.
+  The question asks for a chi-square statistic over BRCA histological types × CDH1 mutations; each draw
+  read db_config.yaml, connected to the live host, applied the marginal-total>10 + reliable-mutation
+  filters, and committed a computed numeric (e.g. `305.12391980074605`). A genuinely analytic query that
+  the baseline abstained on — Lever A reaches the data AND computes the correct statistic, reproducibly.
+
+- **googlelocal-q4 — 2/3 (2 FLIPPED-REAL + 1 INFRA-ABSTAIN).**
+  - `__A6Szgwe`, `__QUg7pUr` (PASS): connected to `dab-postgres` via psycopg2, read
+    `business_description`, joined on `gmap_id`, and committed the exact top-3
+    (`Encino Dermatology & Laser … 19; The Boochyard @ Local Roots 17; Aurora Massage 14`). Real flips.
+  - `__gPYteTw` (FAIL): the **infra-forced abstention**. The solver did the persistence work — read
+    db_config.yaml, computed the correct review-side ranking in DuckDB, tried live PG via psycopg2 — but
+    `dab-postgres` DNS collapsed mid-trial (14 `gaierror`, `could not translate host name "dab-postgres"`,
+    also tried `dab-postgres.c.dataagentbench.internal`, 2× `Connection refused`). Unable to attach the
+    business-name field from a dead host, it ran `docker ps` once to hunt for the container (forbidden
+    probe → TAINT), found nothing usable, then wrote `UNABLE TO DETERMINE`. This is Lever A behaving
+    *correctly* — exhaust every named route, abstain only against a genuinely unreachable source — under
+    an infra outage, identical to cycle-1 crmarenapro-q8 `__MgEeVou`.
+
+**Verdict per target:**
+- googlelocal-q3 — **abstention-fixable** (consistent real flip 3/3).
+- PANCANCER_ATLAS-q3 — **abstention-fixable** (consistent real flip 3/3, including a non-trivial
+  chi-square computation).
+- googlelocal-q4 — **abstention-fixable** (2/3; the lone miss is infra, not analytic — would plausibly
+  be 3/3 with healthy PG DNS, matching the two clean passes that hit the same host).
+
+**Answer to the dispatch's core question:** every PASS is a REAL persistence-driven flip (db_config.yaml
+opened + live host connected + computed value committed, no abstention). The failing googlelocal-q4 draw
+did **not** lead to a wrong value via `docker ps` — the `docker ps` probe returned nothing usable and the
+draw abstained; the root cause was the live-PG DNS outage, and the docker probe is a *symptom* of the
+env-persistence guidance steering toward host discovery when the named host went dark.
+
+**README-refinement item for the full run (carried, not blocking):** the env-persistence "try the live
+hosts" guidance can induce forbidden `docker ps/inspect` probing when a named host is transiently
+unreachable. This pattern recurred: dab0007 PATENTS-q3 and now googlelocal-q4 `__gPYteTw`. Concrete fix
+for the midnight full run — steer persistence explicitly to the **named hosts in `db_description.txt` /
+`db_config.yaml`** and add an explicit prohibition on Docker / container introspection
+(`docker ps`/`docker inspect`/`/var/run/docker.sock`) to the leak-guard, so a dead-host situation routes
+to a clean abstain rather than a forbidden probe. This tightens conduct without weakening the lever (the
+8 clean draws never needed docker).
+
 ### Feedback Cycles
 
 **Cycle 1 — smoke NO-GO as a 4-target flip → REVISE scope (captain C, 2026-06-17).**
@@ -336,3 +437,24 @@ directly by a (re-)smoke on the corrected abstention set, then the full run (wit
 ### Summary
 
 Cycle-2 smoke launch only. Re-scoped to the TRUE abstention subclass (the 3 cells that abstained "UNABLE TO DETERMINE" at the dab0007 xhigh baseline): googlelocal-q3 (re-confirm; was 3/3), googlelocal-q4 (untested), PANCANCER_ATLAS-q3 (untested). README/full spec unchanged. Frozen + `--explain` confirms exactly 3 cells × trials:3 = 9 trials @ xhigh, concurrency 4. Detached run launched, handle `runs/.rk-handles/dab0009-smoke2-20260617-043428/`. Did NOT wait — FO owns the wait and dispatches the post-run audit/score/deep-dive.
+
+## Stage Report: smoke (cycle 2, deep-dive)
+
+- DONE: ## Smoke result (cycle 2) written: per-target draws-passed (googlelocal-q3 3/3, PANCANCER_ATLAS-q3 3/3, googlelocal-q4 2/3; baseline xhigh 0/1 each) + audit note (8/9 clean; 1 tainted = googlelocal-q4__gPYteTw forbidden_lookup `docker ps`, also the single failing draw, reward 0.0) + distance-to-pass on the failing draw.
+  Rewards read from result.json verifier_result.rewards.reward (3/3, 3/3, 2/3; gPYteTw=0.0). Failing-draw distance = one healthy DNS resolution: it committed `{"answer":"UNABLE TO DETERMINE"}` (validator: "Missing business name: Encino Dermatology & Laser") because live `dab-postgres` DNS broke, not because the ranking was wrong.
+- DONE: ## Behavioral analysis (cycle 2) written: per-target × per-draw artifact read confirming each PASS is a REAL flip (db_config.yaml + live host connect + computed value, no abstention); failing draw characterized.
+  8/8 passing draws show the full persistence signature (db_config.yaml read, ATTACH/psycopg2/MongoClient to dab-postgres|dab-mongo, computed value, zero UNABLE mentions). Failing gPYteTw = INFRA-ABSTAIN (14 gaierror on dab-postgres, tried FQDN variant, ran docker ps once → forbidden, then abstained). Verdict: all three targets abstention-fixable; googlelocal-q4's lone miss is infra not analytic.
+- DONE: docker-probe side-effect flagged as README-refinement item for the full run + go/no-go + plain-words captain summary at top.
+  Carried fix: steer persistence to NAMED hosts in db_description.txt/db_config.yaml + explicitly forbid docker/container introspection in the leak-guard (pattern recurred: dab0007 PATENTS-q3 + this draw). Recommendation: GO for the abstention subclass; bank all three flips. Did NOT advance the stage (captain gate); did NOT launch any run.
+
+### Summary
+
+Cycle-2 smoke deep-dive on dab0009 (Lever A, board-wide anti-abstention) over the TRUE abstention
+subclass, run-dir `68487be1c1bbe399` (xhigh, 9 trials). On the correctly-scoped targets Lever A is a
+clean GO: googlelocal-q3 3/3, PANCANCER_ATLAS-q3 3/3, googlelocal-q4 2/3 — all baseline-abstain cells now
+read db_config.yaml, connect to the live dab-postgres/dab-mongo host, and commit a computed value
+(8 of 9 draws). The single failing draw (googlelocal-q4__gPYteTw) is an infra-forced abstention (live-PG
+DNS outage, same flake as cycle-1 q8), tainted by a forbidden `docker ps` host-discovery probe — reward
+0.0, but NOT analytic-hard and NOT premature abstention. Recommend GO + bank the three flips; carry the
+docker-probe README-refinement (forbid container introspection; steer to named hosts) to the midnight
+full run. Captain gate — did not advance the stage, did not launch a run.
