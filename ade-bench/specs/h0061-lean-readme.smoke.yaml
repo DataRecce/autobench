@@ -47,9 +47,11 @@ benchmark:
     - ade-bench-ana-eng001    # CANARY (ana-eng family, always-pass) — bleed tripwire; must hold PASS. @baseline PASS
 trials: 1 # one trial per task — applies to BOTH smoke and full
 concurrency:
-  trials: 1 # serialized: all trials share ONE freeze git repo (sealed_hash omits
-            # task identity on the harbor path), so concurrent stage commits race on
-            # `git HEAD` ("cannot lock ref 'HEAD'"). 1 = no concurrent commits.
+  trials: 3 # concurrent distinct-task cells are safe: razorback per-cell freeze
+            # isolation (PR #10 / fe30753) gives each cell its own freeze git repo, so
+            # concurrent stage commits no longer race on `git HEAD`. Proven by the full
+            # @baseline h0060 run (48 cells at concurrency.trials=4, zero "cannot lock
+            # ref HEAD" errors). The prior trials=1 was stale caution, not a live constraint.
 observers:
   - kind: jsonl
     path: events.jsonl
