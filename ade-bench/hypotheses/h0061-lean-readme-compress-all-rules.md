@@ -116,6 +116,72 @@ failing wholesale. The set of rules that had to revert is the per-rule "load-bea
 dilution" map — itself a first-class output feeding `/home/kent/autobench/day-one-runbook.md`
 (how lean a ported README can start).
 
+## Smoke result
+
+**Verdict: NO-GO** (strict pre-registered rule) — **1 of 13 target constructs failed to land
+(asana002)**; the other 12 targets held, both canaries held. Run-dir
+`runs/ade-bench-h0061-lean-readme/4baa96c3f4494b60` (concurrency 3, ~49 min).
+
+- **Score:** `stratified_pass_at_1 = 0.9333 = 14/15` (`rk score`). Above the spec constant (0.1875).
+- **Strict audit:** CLEAN — `rk audit … --policy strict` summary `{clean: 15, tainted: 0, coverage_missing: 0}`; no findings on any cell. Score trusted on a clean audit.
+- **Trace capture:** every one of the 15 cells has `subagent-trace-manifest.json` with `captured=1` (>0). ✔
+- **Canaries:** airbnb001 PASS, ana-eng001 PASS — **zero bleed**. ✔
+- **Multi-model (G11) airbnb007:** BOTH scored models green — `daily_agg_nps_reviews_equality_with_tolerance` (9/11) AND `listing_agg_nps_reviews_equality_with_tolerance` (10/11); 11/11 total. Hold is real, not single-model variance. ✔
+
+### Per-target hold table (vs @baseline h0060 `861d18e790c72047`)
+
+| Target | h0060 | h0061 | Distance (Got N) | Construct landed under lean wording? |
+|--------|-------|-------|------------------|--------------------------------------|
+| asana002 | PASS | **FAIL** | Got 2 (`AUTO_asana__task_equality`); h0060 Got 0 | **NO** — solver edited raw `asana.duckdb` (added `_fivetran_synced`/`liked`/`num_likes`) instead of the package optional-resource var-matrix model fix h0060 used |
+| f1006 | PASS | PASS | 0 | yes — coverage repair |
+| f1006-hard | PASS | PASS | 0 | yes — coverage repair |
+| airbnb009 (RISKIEST #3) | PASS | PASS | 0 (1/1) | yes — coverage byte-intact hedge held |
+| airbnb005 | PASS | PASS | 0 | yes — per-key inner-join |
+| airbnb007 (multi-model) | PASS | PASS | 0 (11/11, both models) | yes — per-key/preserve-cols on BOTH models |
+| f1010-medium | PASS | PASS | 0 | yes — max-over-cumulative |
+| ana-eng003 (RISKIEST #5) | PASS | PASS | 0 (2/2) | yes — tmp/preserve-cols, `AUTO_dim_customer_equality` |
+| quickbooks002 | PASS | PASS | 0 | yes — feature-boundary |
+| quickbooks003 | PASS | PASS | 0 | yes — feature-boundary |
+| asana003 (RISKIEST #5) | PASS | PASS | 0 (17/17) | yes — tmp-tier inline+reconcile, all AUTO equality green |
+| f1001 | PASS | PASS | 0 | yes — src bare-prefix naming |
+| f1003-hard | PASS | PASS | 0 (4/4) | yes — top-N tie-crosses-cutoff (3 check_option_* green) |
+| airbnb001 (canary) | PASS | PASS | 0 | held — no bleed |
+| ana-eng001 (canary) | PASS | PASS | 0 | held — no bleed |
+
+**Net:** 12/13 target constructs held + 2/2 canaries held + both riskiest compressions (#3, #5)
+landed. The single miss is asana002.
+
+## Behavioral analysis
+
+**The hypothesis is largely confirmed — with one instructive exception.** Every one of the
+two *pre-registered riskiest* compressions held cleanly: the #3 coverage byte-intact hedge
+collapsed to one line still landed airbnb009 (Got 0), and the #5 tmp-tier reconcile collapsed
+to one principle still landed asana003 (17/17) and ana-eng003 (2/2). So the scar-clause prose
+on the constructs we *worried* about was indeed dilution, not load-bearing.
+
+**asana002 — approach-variance, NOT a dropped load-bearing clause.** The miss is on rule #6
+(PACKAGE-UPDATE OPTIONAL-RESOURCE MATRIX), whose compression was the most faithful of the ten:
+a byte-comparison shows the lean version kept every load-bearing token — "classify package
+vars," "disabled-var compile matrix," "repair the dependency graph with the same existing
+vars," and crucially the negative steer **"Do not start from casts, raw seed edits, or broad
+package copying."** Only "first" / "run or consider"→"run" were trimmed. The h0061 solver
+*explored* the right path (it read `asana__using_tags`/`asana__using_task_tags` 17× each and
+the package README's disable-var section) yet still chose to mutate the raw data
+(`asana.duckdb`) — exactly the "raw seed edits" the rule says to avoid — and its own
+`dbt build` went green (89/89) while the hidden `AUTO_asana__task_equality` missed by 2 rows
+(the self-anchored false-green pattern). h0060's winning solver instead edited the downstream
+models (`asana__task.sql`, `asana__tag.sql`, `int_asana__task_tags.sql`) to honor the new
+disable-vars — the construct that lands the equality test.
+
+Because the load-bearing clause is **present and unweakened**, asana002's miss is **path-
+selection variance** between two plausible readings (the task literally says "modify our
+*data*"), not evidence that compressing rule #6 dropped a load-bearing steer. asana002 has a
+history of coin-flip behaviour; one draw landing on the data-side path is within that variance.
+This means the graceful-fallback "revert the one rule that dropped a clause" does NOT cleanly
+apply — there is no dropped clause to restore. The honest read: the lean README preserves all
+ten constructs' load-bearing content; asana002 needs a *stronger* (not merely restored) #6
+steer to deterministically force the model-side path, which is a follow-up lever, not a revert.
+
 ## Cross-refs
 
 `_proposal/4a-lean-readme-overfit-design-2026-06-16.md` (full design);
@@ -159,3 +225,38 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 ### Summary
 
 Authored the lean-README overfit variant: forked @baseline h0060 and distilled all 10 added rule-blocks to one principle + one gate + one generic BEFORE/AFTER skeleton, keeping every construct, both coverage gates, and every skeleton while leaving the original ~80-line baseline prose byte-identical and leak-clean. The README is 261 lines (181 added) — over the ~125 soft target because preserving every skeleton (a hard spec requirement) keeps the SQL examples. Both specs differ from baseline only as allowed and are frozen. Gatekeeper recommends APPROVE with three WARNs to weigh at the gate. Key framing for the captain: every target is already PASS at h0060, so the smoke is a "must STAY PASS" hold test, not a flip — judge each construct by its committed SQL artifact (riskiest: #3 airbnb009 coverage hedges, #5 asana003/ana-eng003 tmp-reconcile).
+
+## Failure Review
+
+**Classification: path-selection variance on a known coin-flip cell (asana002) — NOT a dropped
+load-bearing clause.** Strict NO-GO is triggered by the pre-registered rule (any target
+construct fails to land), so the verdict is NO-GO, but the *cause* is not the failure mode the
+hypothesis was hunting for.
+
+- **Which compressed rule is implicated:** #6 (PACKAGE-UPDATE OPTIONAL-RESOURCE MATRIX).
+- **Was a load-bearing clause dropped?** **No.** Byte-comparison of #6 h0060→h0061 shows every
+  load-bearing token survived, including the negative steer "Do not start from casts, raw seed
+  edits, or broad package copying." Only filler ("first", "run or consider"→"run") was trimmed.
+- **What the solver did:** explored the correct var-matrix path (read `asana__using_tags` /
+  `asana__using_task_tags` and the package disable-var README) but chose to mutate raw
+  `asana.duckdb` — the exact "raw seed edits" the rule forbids — and self-validated green
+  (own `dbt build` 89/89) while the hidden equality missed by 2 rows.
+- **Graceful-fallback applicability:** the entity's pre-registered fallback is "revert the ONE
+  rule that dropped a load-bearing clause and re-smoke." That does NOT cleanly apply here —
+  there is no dropped clause to restore; #6 is already at full strength. Reverting #6 to its
+  (substantively identical) h0060 wording would not deterministically fix a path-selection
+  coin-flip.
+- **Recommended routing (captain decision):** two defensible options —
+  (1) **Accept lean as a HOLD with a documented asana002 caveat** — 12/13 constructs + both
+  riskiest compressions + both canaries held; the one miss is variance on a cell with coin-flip
+  history, and the load-bearing content is fully preserved (the overfit→dilution claim is
+  supported). A confirmation re-draw of asana002 alone would disambiguate variance vs regression
+  cheaply.
+  (2) **Spin a follow-up lever** that *strengthens* (not reverts) #6 to force the model-side
+  var-matrix path over the literal "modify our data" reading — a new hypothesis, since it changes
+  a construct's wording rather than restoring dilution.
+- **Per-rule load-bearing-vs-dilution map (for the day-one runbook):** 9 of 10 compressed rules
+  proved their scar-clauses were dilution (constructs held at full strength under the lean shape,
+  including both pre-registered HIGH/MED-risk rules #3 and #5). Rule #6's compression was also
+  faithful; its single miss is a solver path-selection variance the README does not tightly
+  constrain — flagged as the one place a leaner README may want a *sharper* (not longer) steer.
