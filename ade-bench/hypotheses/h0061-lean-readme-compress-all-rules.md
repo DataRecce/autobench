@@ -239,7 +239,93 @@ task set differs (all 48, no `benchmark.tasks` selector). Methodology consistent
 
 **Headline: 36/48 (= 36/48 baseline), audit clean = YES, all 13 target constructs held →
 the lean README preserves every construct at ~half the added length. Hypothesis confirmed.**
-(AC-2 off-construct wobble comparison vs h0060 `861d18e790c72047` is the analyze stage.)
+
+### Analyze — quantitative (paired vs @baseline h0060 `861d18e790c72047`)
+
+- **Tooling note:** `rk runs diff` TypeErrors on ade-bench run-dirs (`query_id: null`,
+  keyed on `trial_name`), so the paired delta was computed directly from each run's
+  `per_trial_outcomes.json`, paired by task slug, with a 10k-draw paired bootstrap. (Per
+  the analyze contract's documented harness data-shape limitation.)
+- **Paired delta = 0 tasks; 95% bootstrap CI [0, 0].** Not merely a net tie — the two runs
+  are **cell-for-cell identical**: same 36 PASS, same 12 FAIL, *zero* verdict changes in
+  either direction. Verified the failing sets are byte-identical (both =
+  {ana-eng004, ana-eng006, ana-eng007, ana-eng007-medium, asana004, asana005, asana005-hard,
+  f1002, intercom001, intercom002, intercom003, quickbooks001}). Mean per-task delta 0.0000,
+  CI [0.0000, 0.0000].
+- **Absolute score:** `stratified_pass_at_1 = 0.7500` vs paper_baseline constant 0.1875 →
+  verdict `above` (Wilson CI [0.612, 0.851]). 0 errored.
+
+### AC-2 — off-construct wobble (THE headline finding)
+
+The hypothesis: a leaner README perturbs *fewer* unrelated cells. Of the 48 cells, 15 are
+**construct cells** (13 banked targets + 2 canaries); the other **33 are off-construct**.
+
+- **Off-construct cells that changed verdict (either direction): 0 of 33.**
+- **Construct cells that changed: 0 of 15.**
+- **Total verdict changes h0060↔h0061: 0 of 48.**
+
+**AC-2 is confirmed in the strongest possible form.** Halving the added README length
+(181→ the lean shape; original ~80-line prose untouched) did not move a *single* off-construct
+cell. The overfit→noise claim is not just supported — there is **no off-construct wobble to
+shrink** because the lean README reproduced the baseline's exact outcome distribution. The
+~249-line scar-clause delta was dilution: removing roughly half of it cost zero constructs and
+introduced zero new perturbation.
+
+## Behavioral analysis (analyze stage — full run)
+
+The smoke-stage `## Behavioral analysis` (above) reads the 15-cell panel; this block reads the
+full 48-cell run against @baseline h0060 and answers the six required analyze questions.
+
+**Q1 — Net + full per-task ledger (both directions).** Absolute 0.7500 (36/48) vs @baseline
+0.7500 (36/48); paired delta **0 tasks, 95% bootstrap CI [0, 0]**. **The ledger of verdict
+changes is EMPTY in both directions: zero FAIL→PASS gains, zero PASS→FAIL regressions.** The
+two runs are cell-for-cell identical (verified by set equality of the pass and fail slugs). No
+gains to claim, no regressions to disclose — there were none.
+
+**Q2 — Smoke vs full.** Smoke was a GO (variance-resolved). The full verdict did **not** differ
+adversely: every banked target that the smoke panel sampled held at full, AND the one smoke miss
+(asana002) **passed at full**. The smoke panel could not see the 33 off-construct cells — but
+all 33 held their baseline verdict, so the unsampled space carried no hidden regression. This is
+the rare case where the full run is *strictly consistent with or better than* the smoke draw.
+
+**Q3 — Already-correct-and-broken.** No regressions, so no damage to working code. Every cell
+passing at @baseline still passes at h0061 (all 36); every cell failing at @baseline still fails
+(all 12, the persistent unsolved set). Zero passers broken.
+
+**Q4 — Was the change executed? (committed-artifact verification).** Spot-checked the
+representative / pre-registered-riskiest cells by committed SQL + verifier stdout:
+  - **asana002 (#6, the smoke miss):** EXECUTED-AND-HELPED via the prescribed path. The full-run
+    ensign edited `models/asana__task.sql`, `models/asana__tag.sql`,
+    `models/intermediate/int_asana__task_tags.sql` (var-gated on `asana__using_tags` /
+    `asana__using_task_tags`), ran the full disabled-var compile matrix, and **did NOT mutate raw
+    `asana.duckdb`** — exactly h0060's winning construct. Hidden `AUTO_asana__task_equality` 3/3.
+    This is the ~75% correct-path draw (smoke hit the ~25% raw-data tail; probe-confirmed coin-flip).
+  - **airbnb009 (RISKIEST #3, coverage byte-intact hedge → one line):** `mom_agg_review_date_range`
+    1/1 PASS. Construct landed under the collapsed hedge.
+  - **asana003 (RISKIEST #5, tmp-tier inline+reconcile → one principle):** 27/27 AUTO equality
+    (all `AUTO_asana__*`/`int_asana__*` equality+existence). Construct landed.
+  Classification across the read cells: **executed-and-helped / construct-landed; none inert, none
+  premise-falsified.** The lean wording reached the committed artifact and produced the right model.
+
+**Q5 — Prevention + next move.** Nothing to prevent — there is no harm to scope-guard and no
+gain at risk of regression. The lean README is a drop-in equivalent of h0060 at ~half the added
+length. The actionable move: **promote the lean README as @baseline** (equal score, identical
+outcome distribution, strictly less prose to carry forward and to dilute future ports). The one
+soft residual is asana002's ~75% first-try rate on the model-side path — a *strengthen-#6*
+follow-up (not a revert; #6's text is already full-strength), optional and non-blocking.
+
+**Q6 — Smoke-vs-full fork drift.** The smoke→full transition showed **no adverse drift**: the
+smoke's lone miss was artifact-confirmed (by the 3× probe, 3/3 PASS on the prescribed path) to be
+single-trial path-selection variance on a known coin-flip cell, NOT a README rule drifting into a
+different implementation branch. At full, asana002's draw landed the prescribed model-side fork
+(committed artifact verified in Q4). The smoke panel did not "miss a family" in any damaging
+sense — every off-construct family held its baseline verdict at full. No fork changed adversely;
+the only fork that *could* vary (asana002's data-vs-model reading) resolved correctly this draw.
+
+**Bottom line.** The +249-line scar-clause accumulation in h0060's README was **dilution, not
+load-bearing**. Compressing all 10 rules to one principle + one gate + one skeleton each (cutting
+the added length roughly in half) preserved every construct AND reproduced the baseline's exact
+48-cell outcome — zero constructs lost, zero off-construct perturbation. Recommend **PROMOTE**.
 
 ## Cross-refs
 
@@ -341,3 +427,16 @@ Launched the detached full 48-task run on the byte-identical lean README (conten
 ### Summary
 
 Full run complete: 36/48 = 0.7500, exactly ties @baseline h0060's 36/48, with a CLEAN strict audit (48/48 clean) — score trusted. All 13 banked target constructs held under the leaner README (zero dropped), both canaries green, all 48 cells captured>0, and methodology consistent (content_hash 0d8bfa9, only the task set differs). Compressing all 10 rules to ~half the added length preserved every construct with no net regression — hypothesis confirmed. AC-2 off-construct wobble comparison vs h0060 is deferred to the analyze stage.
+
+## Stage Report: analyze
+
+- DONE: Quantitative — paired delta vs @baseline + absolute score.
+  `rk runs diff` TypeErrors on ade-bench run-dirs (query_id null) so computed paired delta from per_trial_outcomes.json (slug-paired, 10k bootstrap): **delta = 0 tasks, 95% CI [0, 0]** — runs are cell-for-cell identical (same 36 PASS, same 12 FAIL). Absolute 0.7500 vs constant 0.1875 → `above`. In `## Run result → Analyze — quantitative`.
+- DONE: AC-2 — off-construct-wobble comparison vs h0060 (THE hypothesis).
+  **0 of 33 off-construct cells changed verdict; 0 of 15 construct cells changed; 0 of 48 total.** Halving the added README length perturbed zero unrelated cells. Strongest-form confirmation. In `## Run result → AC-2`.
+- DONE: Behavioral + the 6 required analyze questions; verify committed artifacts on representative cells.
+  Empty ledger both directions (no gains, no regressions, no broken passers). Spot-checked asana002 (model-side path, NOT raw-data mutation — h0060's winning construct, AUTO equality 3/3), airbnb009 (#3, 1/1), asana003 (#5, 27/27): all executed-and-helped / construct-landed, none inert. All 6 questions answered in `## Behavioral analysis (analyze stage — full run)`.
+
+### Summary
+
+The lean README reproduced @baseline h0060's outcome cell-for-cell: 36/48, paired delta 0 (CI [0,0]), identical pass/fail sets, zero off-construct wobble (0/33). The +249-line scar-clause accumulation was dilution, not load-bearing — compressing all 10 rules to ~half the added length cost zero constructs and introduced zero new perturbation. Committed-artifact spot-checks confirm the riskiest compressions (#3, #5) and the smoke-miss cell (asana002, via the prescribed model-side path) all landed correctly. No regressions, no inert cells. **Recommendation: PROMOTE the lean README as the new @baseline** (equal score, identical distribution, ~half the prose); optional non-blocking follow-up = strengthen (not revert) rule #6 to lift asana002's ~75% first-try rate.
