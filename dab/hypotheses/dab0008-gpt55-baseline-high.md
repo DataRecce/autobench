@@ -1,12 +1,12 @@
 ---
 id: dab0008
 title: gpt-5.5 high baseline (tier control vs dab0007 xhigh)
-status: analyze
+status: conclude
 kind: hypothesis
 source: captain request 2026-06-17 — settle the reasoning-tier question (high vs xhigh) with a clean apples-to-apples run
 started:
-completed:
-verdict:
+completed: 2026-06-17T17:29:42Z
+verdict: rejected
 score:
 worktree:
 ---
