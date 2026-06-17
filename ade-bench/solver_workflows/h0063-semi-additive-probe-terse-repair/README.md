@@ -199,6 +199,13 @@ and falls SYSTEMATICALLY (frequent decreases — a genuine per-period delta). Do
 switch to latest-row, rank, row_number, QUALIFY, order-by-final-period, or
 results-recomputation.
 
+BEFORE (latest-row — AVOID; on the rare dips it drops exactly the corrected rows):
+    -- one row per entity/period via the final sequence row
+    qualify row_number() over (partition by entity_id order by seq_key desc) = 1
+AFTER (max() at the existing grain — the running-total peak; isolated dips are ignored):
+    select entity_id, period, max(measure) as measure
+    from {{ ref('model') }} group by entity_id, period
+
 EXCLUDE-A-CATEGORY AVERAGE (gated). When an average/aggregate must exclude a row
 category (e.g. a lap-time average that must "account for" pit stops), filter that
 category out BEFORE the aggregate; do NOT keep the rows and subtract their
