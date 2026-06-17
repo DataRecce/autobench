@@ -109,6 +109,17 @@ Smoke trimmed to TARGETS-ONLY (4 cells × 3 draws = 12 trials) per captain 2026-
 
 ## Verdict
 
+## Stage Report: smoke
+
+- DONE: rk run --explain on specs/dab0009-anti-abstention-persistence.smoke.frozen.yaml re-confirms exactly the 4 target cells (agnews-q4, crmarenapro-q2, crmarenapro-q8, googlelocal-q3) with trials:3 (12 trials).
+  `--explain` reported `Tasks: 4`, `Concurrency: 4`, model gpt-5.5, reasoning_effort xhigh. Frozen spec `trials: 3` + `concurrency.trials: 4` (12 trials). Surviving set after exclude_tasks: agnews-q4 (q1/2/3 excluded), crmarenapro-q2+q8 (all other q's excluded), googlelocal-q3 (q1/2/4 excluded) — exactly the 4 hypothesis targets.
+- DONE: Detached smoke launched via drivers/rk-run-detached.sh dab0009-smoke specs/dab0009-anti-abstention-persistence.smoke.frozen.yaml run; the handle path is returned. You do NOT wait — launch, capture handle, return.
+  Handle: `runs/.rk-handles/dab0009-smoke-20260617-031753/` (pid 1349665 confirmed alive; `done` absent = in flight). runs/ is gitignored — nothing to commit. Targets-only smoke (12 trials @ xhigh, concurrency 4); FO owns the wait + dispatches the post-run audit/score/deep-dive on completion.
+
+### Summary
+
+Smoke launch only. Re-confirmed the frozen smoke spec via `--explain` (4 target cells × trials:3 = 12 trials, xhigh, concurrency 4) and launched the detached run. Handle: `runs/.rk-handles/dab0009-smoke-20260617-031753/`. Did NOT run audit/score/deep-dive — the run is long and detached; the first officer owns the wait and dispatches the deep-dive on completion. No repo changes (runs/ gitignored), so no commit.
+
 ## Stage Report: propose
 
 - DONE: README forked + edited = EXACTLY Lever A and nothing else
