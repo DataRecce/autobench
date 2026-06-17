@@ -167,11 +167,127 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
+**Verdict: NO-GO (15/21 = 0.7143).** Multi-draw smoke, run-dir
+`runs/ade-bench-h0063-semi-additive-probe-terse-repair/7850ae9e524dcb7a` (58m54s, rc=0,
+0 SpacedockSolverAgentError — the two earlier 21/21-errored runs were the
+`RAZORBACK_SPACEDOCK_PLUGIN_DIR` env bug; ignore). Strict audit CLEAN
+(`taint_status: clean`, findings: [] on all 21 cells). `rk score` = stratified mean
+0.7142857 = 15/21; all 21 cells captured a reward (no residual infra).
+
+**Per-cell per-draw distribution (3 draws each):**
+
+| Task | Draw rewards | Pass rate | Both scored models? | Read |
+|------|--------------|-----------|---------------------|------|
+| f1006              | 0,0,0 | **0/3** | constructor FAIL Got 2 / driver PASS on all 3 | REGRESSED — new vs @baseline AND h0062 |
+| f1006-hard         | 1,0,1 | 2/3 | pass-draws BOTH PASS; fail-draw constructor Got 2 | held 2/3 |
+| f1005              | 0,1,1 | 2/3 | pass-draws BOTH PASS; fail-draw constructor Got 2 | held 2/3 |
+| f1005-medium       | 1,0,1 | 2/3 | pass-draws BOTH PASS; fail-draw constructor Got 2 | held 2/3 |
+| f1001              | 1,1,1 | 3/3 | build; gate did not fire | clean |
+| airbnb005          | 1,1,1 | 3/3 | additive-SUM FALSE branch | byte-intact (no over-fire) |
+| airbnb001          | 1,1,1 | 3/3 | additive-SUM FALSE branch | byte-intact (no over-fire) |
+
+**The drift signature is IDENTICAL on every failing f1-points draw** (all 4 tasks): 
+`AUTO_constructor_points_equality` FAIL **Got 2**, `AUTO_driver_points_equality` **PASS**.
+Not a different bug per cell — one mechanism. Canaries clean: the terse-blind FALSE branch
+left legitimate sums byte-intact (airbnb005/airbnb001 3/3); the gate did not over-fire on
+the f1 build (f1001 3/3).
+
 ## Run result
 
 ## Behavioral analysis
 
+**Root cause — the escape clause fires on the 2 real constructor-standings decreases; the
+domain name was load-bearing because it pre-committed the snapshot interpretation BEFORE the
+probe could find them.** Artifact read of the solver transcripts (`agent/codex.txt`):
+
+- **driver_points** (PASS on every draw): the solver's local probe finds driver standings are
+  strictly non-decreasing (0 decreases over 34,680 rows) → monotonicity probe TRUE →
+  `sum→max(points)` → correct.
+- **constructor_points** (FAIL Got 2 on every failing draw): constructor standings have **2
+  decreases** (post-race penalties/resets, e.g. "Force India 2018 went 59 → 18/52"). On the
+  FAILING draws the solver's probe SURFACES those 2 decreases, reads the README clause "unless
+  **local evidence proves `max(measure)` wrong**" as satisfied, and SWITCHES constructor to a
+  **final-season-snapshot / latest-row** branch (`row_number`/`QUALIFY`/"final standings row
+  per constructor-season"). The true answer is still `max()`; the off-by-2 is exactly those 2
+  penalty rows the final-row branch drops. → `Got 2`.
+- **The split is a probe-depth coin flip:** the PASSING draws committed `max(cs.points)` and
+  simply never surfaced the 2 decreases — they probed "0 mismatches vs max(points)" and stopped.
+  The FAILING draws ran a deeper investigation, found the decreases, and the escape clause gave
+  them permission to abandon max(). f1006 (the plainest "figure out what's wrong" framing)
+  invites the deepest investigation → 0/3 (deterministic FAIL, NOT variance); the harder
+  variants fail 1/3 (coin-flip on probe depth).
+
+**Verbosity-vs-domain-name verdict — the DOMAIN NAME is load-bearing; verbosity was NOT the
+cause.** Three real `rk` arms, same constructor data:
+- @baseline h0061 (domain-NAMED + terse): f1006 PASS — committed `max(cs.points)` on
+  constructor EVEN THOUGH its transcript mentions latest/QUALIFY/row_number. The concrete
+  anchor ("treat points as cumulative race-by-race snapshots") pre-committed the snapshot
+  interpretation, so the 2 decreases never dislodged max().
+- h0062 (domain-BLIND + verbose): constructor Got 2 (same miss).
+- h0063 (domain-BLIND + terse): constructor Got 2 (same miss) — AND a NEW f1006 0/3 regression.
+
+Reverting the verbosity did NOT recover the flip. Both domain-blind arms (verbose h0062 AND
+terse h0063) drift constructor onto the latest-row branch by the SAME mechanism. The single
+isolated variable is settled: **removing the domain name is what breaks the construct, not the
+verbosity.** The h0062-recorded "verbosity raised salience" lesson was a red herring — the
+real driver is that the domain-blind monotonicity probe, lacking the snapshot anchor, treats
+the 2 legitimate-but-decreasing constructor rows as evidence against max(). The Category-C pin
+(domain-named max()-at-grain) is confirmed **un-de-overfittable** by trigger-genericization
+alone: the F1 domain name does load-bearing work that no domain-blind monotonicity test
+reproduces, because the constructor data is NOT actually monotonic.
+
+**G11 confirmed:** all 6 passing f1-points draws have BOTH `constructor_points_equality` AND
+`driver_points_equality` PASS — no single-model false credit. Every failing draw fails on
+constructor only. The trials:3 design correctly exposed f1006 as deterministic-FAIL (0/3), not
+a one-draw fluke.
+
 ## Failure Review
+
+**Primary failure type: escape-clause-triggered latest-row drift on non-monotonic real data
+(de-overfit-by-genericization wall).** The terse domain-blind rule is behaviorally WORSE than
+@baseline on the easy target (f1006 0/3 regression) and no better on the hard variants — it
+inherits h0062's exact constructor-only Got-2 miss. NO-GO by AC-4: f1006 + the failing draws of
+f1006-hard/f1005/f1005-medium regressed onto the forbidden branch; the de-overfit is NOT
+salvageable by reverting verbosity.
+
+**What this rules out / banks (knowledge gain):**
+1. Verbosity is NOT the h0062 culprit — REJECTED as a cause by a clean single-variable run.
+   Do not re-test wording length on this construct.
+2. The domain name in the @baseline CUMULATIVE-SNAPSHOT rule is **load-bearing** — it pre-anchors
+   the snapshot interpretation so the solver does not act on the 2 real constructor decreases.
+   A domain-blind monotonicity probe cannot replace it because constructor points genuinely
+   decrease (penalties), so any "non-decreasing?" gate self-defeats on constructor.
+3. The escape clause "unless local evidence proves max() wrong" is the active hazard once the
+   anchor is removed: a deeper probe + a real decrease = permission to drift. The PASS/FAIL
+   split is probe-depth, not wording.
+
+**Recommended next revision — and a caution against the candidate ladder.** The FO's candidate
+ladder (rev2 = concrete domain-NEUTRAL anchor like "running-total / account-balance"; rev3 =
+add a max() BEFORE/AFTER skeleton) addresses VERBOSITY/CONCRETENESS, but the artifacts say the
+problem is **NOT** concreteness — it is that the domain-blind probe + escape clause act on the
+2 legitimate constructor decreases. A neutral analogy alone will NOT stop a deep probe from
+finding those decreases and firing the escape clause. The artifact-pointed fix is to **neutralize
+the escape clause's interaction with small decreases**, NOT to re-decorate the trigger:
+
+- **rev2 (artifact-pointed): keep the domain-blind trigger but HARDEN the FALSE-branch gate** —
+  state that a SMALL number of within-entity decreases (a handful of rows, consistent with
+  penalties/adjustments) does NOT disqualify max(): the measure is "non-decreasing apart from
+  rare downward corrections" still ⇒ max() at grain. I.e. change the monotonicity test from
+  strict to "monotone-with-rare-exceptions", and keep the escape clause for a measure that
+  rises-and-falls *systematically* (a true per-period delta), not one with 2 penalty dips. This
+  directly targets the observed mechanism (2 decreases → escape → drift) and is still
+  domain-blind. Pair it with the existing terse repair.
+- **rev3 (fallback): the concrete domain-NEUTRAL anchor** (running-total / cumulative-balance
+  analogy + the existing terse max() repair) only if rev2's gate-hardening still leaks — but
+  expect it to be insufficient alone, because it does not stop the deep probe.
+- **If both leak: conclude the pin is un-de-overfittable** and route conclude-REJECTED (present
+  to captain; do not auto-conclude). The domain name's load-bearing work — pre-committing the
+  interpretation so a real-data decrease never reaches the escape clause — may be irreducible.
+
+My recommendation: **rev2 = gate-hardening (monotone-with-rare-exceptions)**, because it is the
+ONLY candidate that addresses the mechanism the artifacts actually show. The neutral anchor
+(rev3) treats a symptom (anchoring) that the @baseline already had; the disease is the
+strict-monotonicity-plus-escape-clause reacting to 2 real decreases.
 
 ## Follow-up Routing
 
@@ -197,3 +313,32 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 ### Summary
 
 Single-variable isolation built: holds h0062's domain-blind monotonicity-probe TRIGGER constant and reverts ONLY the verbosity to h0044's terse max()-at-grain wording (one inline monotonicity clause, no probe-SQL block, forbidden-branch list at h0044 length). All 7 smoke tasks PASS at @baseline (h0061), so this is a flip-PRESERVATION test: the terse domain-blind wording must not regress f1006-hard / f1005-medium onto the row_number/QUALIFY branch that h0062's verbose wording drifted them onto, while the additive-SUM canaries (airbnb005/airbnb001) stay byte-intact. Smoke is a deliberate 3-draw variance probe (trials:3) because a single draw cannot distinguish a coin-flip from causal drift. Gatekeeper APPROVE with one G11 WARN (judge f1 flips by the committed artifact on both scored points models).
+
+## Stage Report: smoke
+
+- DONE: Strict audit + score on the clean run-dir.
+  `rk audit … --policy strict` = taint_status clean, findings:[] on all 21 cells; `rk score` = mean 0.7143 = 15/21; all 21 cells captured>0 (no residual infra). run-dir 7850ae9e524dcb7a.
+- DONE: Record per-cell per-draw rewards in ## Smoke result.
+  f1006 0/3, f1006-hard 2/3, f1005 2/3, f1005-medium 2/3, f1001 3/3, airbnb005 3/3, airbnb001 3/3.
+- DONE: Per-target artifact deep-dive AS A DISTRIBUTION (BOTH scored models).
+  Every failing f1-points draw = identical signature: constructor_points_equality FAIL Got 2 / driver_points_equality PASS. Passing draws: BOTH equality tests PASS (G11 satisfied). Read from agent/codex.txt worker messages.
+- DONE: Tally drift-rate + compare to h0062 / @baseline.
+  Domain-blind terse (h0063) drifts constructor onto final-row/latest-row by the SAME mechanism as domain-blind verbose (h0062); domain-NAMED terse (@baseline h0061) committed max() and PASSED. Verbosity REJECTED as cause; domain name is load-bearing.
+- DONE: Confirm f1001 (variance) + airbnb005/airbnb001 (byte-intact sum).
+  f1001 3/3 (gate did not fire); airbnb005/airbnb001 3/3 (FALSE branch byte-intact, no over-fire).
+- DONE: Write distribution table + behavioral read to ## Smoke result + ## Behavioral analysis; append ## Failure Review (NO-GO).
+  All three sections written; primary failure type = escape-clause-triggered latest-row drift on non-monotonic real constructor data (2 penalty decreases).
+
+### Summary
+
+NO-GO (15/21). Clean run, strict-audit clean. The key finding (the f1006 0/3 surprise): the
+terse domain-blind monotonicity probe SURFACES the 2 real constructor-standings decreases
+(post-race penalties), reads the README's "unless local evidence proves max() wrong" escape
+clause as satisfied, and switches constructor_points to a final-row/latest-row branch → Got 2 —
+the SAME constructor-only miss as h0062. The PASS/FAIL split is a probe-depth coin flip (deeper
+probe finds the decreases → escape fires). @baseline's DOMAIN NAME pre-commits the snapshot
+interpretation so the decreases never reach the escape clause — that is the load-bearing work no
+domain-blind probe reproduces. Verbosity is decisively REJECTED as the h0062 cause. Recommended
+rev2 = HARDEN the FALSE-branch gate (monotone-with-rare-exceptions ⇒ still max()), NOT the FO's
+concrete-neutral-anchor ladder, which treats a symptom the @baseline already had and won't stop
+the deep probe.
