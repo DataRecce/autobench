@@ -73,6 +73,53 @@ README and avoid contaminating any decision sim (per the leak-catch rule in
 | Task | Baseline (6-draw) | Should-pass after lever | Role |
 |---|---|---|---|
 | stockmarket-q3 | 0/6 | PASS (flip) | 🎯 primary flip |
-| yelp-q6 | 4/6 (variable) | hold ≥4/6 | ❌ load-bearing list canary |
-| bookreview-q1 | 6/6 | PASS | ✅ stable format canary |
-| stockmarket-q1 | 6/6 | PASS | ✅ stable ranking canary |
+| yelp-q6 | 4/6 (variable) | hold ≥4/6 | ❌ load-bearing perturbable list canary |
+| bookreview-q1 | 6/6 | PASS | ✅ stable format-string canary |
+| music_brainz_20k-q1 | 6/6 | PASS | ✅ cross-dataset regression sentinel (perfect-score dataset, not a target's) |
+
+The 4th cell is `music_brainz_20k-q1` (not stockmarket-q1) to satisfy gatekeeper G8: a generative
+shape contract fires on every query, so the regression panel needs ≥1 passer from a dataset OTHER
+than the targets' (stockmarket/yelp). music_brainz_20k is a perfect-score dataset and is not a
+target's dataset, so it is the cross-dataset tripwire. Surviving smoke set confirmed exactly 4 via
+`rk run specs/dab0012-shape-aware-output-contract.smoke.frozen.yaml --explain` (`Tasks: 4`).
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — single-idea shape-aware output contract in `## Rules`, integrity rules (G2/G3/G6) all clean, generative-canary coverage present; one WARN that the load-bearing perturbable canary (yelp-q6) is the only genuinely fireable list-branch cell.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-18T09:40:00Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff is one hunk: line 75 (`Answer ONLY the question…`) → shape-branched contract. Sits under `## Rules` (68) before `## Answers` (85). One stage, one idea (shape-aware output contract). |
+| G2 leak-guard intact | PASS | Forbidden-token grep over README: only hit is pre-existing protective line 71 (`Do NOT access validate.py or ground_truth.csv`), byte-identical to parent. Added lines (rivers/airports worked examples) name no oracle file, paste no `db_description_withhint`, fetch nothing (no curl/wget/clone). |
+| G3 spec two fields | PASS | `diff anchor vs dab0012` = only `experiment:` + `solver_workflow:`. `agent.kind: spacedock_solver` + `runtime: codex` preserved; top-level `trials: 1` (the `trials: 2` is under `concurrency:`, unchanged from anchor). |
+| G4 smoke tasks+exclude | PASS | Smoke diff = only reduced `tasks:` (dataset names: bookreview/music_brainz_20k/stockmarket/yelp) + added `exclude_tasks:` (per-query ids). `tasks` uses dataset names, not query ids. --explain surviving set = stockmarket-q3 (target), yelp-q6, bookreview-q1, music_brainz_20k-q1 — includes the named target; stable sentinels present. |
+| G5 both frozen | PASS | Both `.frozen.yaml` and `.smoke.frozen.yaml` exist; both carry `kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim cell-for-cell: scalar/ranking → terse `name: number`; list → complete enumeration. Generative/format-directive, not self-anchored verification ("re-run your own query"/"verify your answer matches" absent). |
+| G7 actionability/inert-risk | PASS | Worked-example form: carries copyable skeletons (`Nile: 6650; Amazon: 6400; …`, `Hartsfield-Jackson; Star Alliance, Oneworld, SkyTeam`) — mechanical, not abstract-structural. Inert-risk note: the prior `Answer ONLY the question` line was already behaviorally inert here (gpt still injected descriptions); the worked examples are the bet that concrete suppression lands where the abstract rule didn't. |
+| G8 regression-canary coverage | PASS | Generative (fires on every answer's shape, not precondition-gated). Surviving non-target `@baseline` passers: yelp-q6 (4/6 VARIABLE list canary — perturbable, the cell a terse-only rule breaks), bookreview-q1 (6/6 format), music_brainz_20k-q1 (6/6 cross-dataset sentinel from a perfect-score dataset). ≥1 non-target passer ✅. WARN: the genuinely perturbable list-branch canary is a single cell (yelp-q6); bookreview-q1/music_brainz_20k-q1 are stable format sentinels the lever may not fire on. Coverage condition met; surfaced for the captain. |
+| G9 selector independence | N/A | Not a multi-candidate / selector protocol. |
+| G10 self-correcting false-positive | N/A | Formatting contract, not a check/reconcile/validate-and-fix lever (no "verify a result and act on disagreement"). |
+
+**For the captain:** No FAILs — clean to advance to `smoke`. Two things to watch: (1) the load-bearing list branch is exercised by only ONE perturbable canary (yelp-q6, the 4/6 variable cell); a hold there is the whole shape-awareness claim, so judge it per-cell against the 6-draw band, not a single draw. (2) G7 inert-risk: the replaced `Answer ONLY the question` line was already inert at gpt-5.5/xhigh, so the flip rides entirely on whether the concrete `name (what it does): number` worked-example actually suppresses the description injection — confirm via the committed stockmarket-q3 answer-string artifact.
+
+## Stage Report: propose
+
+- DONE: The forked solver README changes EXACTLY ONE idea — REPLACE the existing `Answer ONLY the question` line with the shape-branched contract (scalar/ranking → names+numbers only, no descriptions; list → full enumeration), leak-guard prose intact, foreign-domain worked examples (rivers/airports, NOT the target schema); and both spec diffs vs specs/dab-anchor-codex.yaml show ONLY experiment: + solver_workflow: (smoke additionally adds benchmark.tasks + benchmark.exclude_tasks).
+  `diff spacedock-readme-baseline vs dab0012 README` = one hunk (line 75 → shape contract); full-spec diff = exactly experiment:+solver_workflow:; smoke diff adds only tasks (4 dataset names) + exclude_tasks (14 per-query ids).
+- DONE: This lever is GENERATIVE, so the smoke set carries the G8 regression panel and is confirmed EXACTLY via `rk run --explain`: target stockmarket-q3 + the list canary yelp-q6 + a format canary bookreview-q1 + ≥1 passer from a perfect-score dataset OTHER than stockmarket/yelp/bookreview (music_brainz_20k-q1) — surviving set is exactly targets + canaries, no extra, none missing.
+  `rk run …smoke.frozen.yaml --explain` reported `Tasks: 4`; exclude_tasks is the exact complement of {stockmarket-q3, yelp-q6, bookreview-q1, music_brainz_20k-q1} within those 4 datasets.
+- DONE: The gatekeeper subagent ran against the variant artifacts and its per-rule PASS/WARN/FAIL table + overall APPROVE/REVISE/REJECT recommendation is written into the dab0012 hypothesis file.
+  `## Gatekeeper review` block above: APPROVE, no FAILs (G1–G7 PASS, G8 PASS-with-WARN, G9/G10 N/A).
+
+### Summary
+
+Forked `spacedock-readme-baseline` → `dab0012-shape-aware-output-contract` and replaced the single
+proven-inert `Answer ONLY the question` rule with a shape-branched output contract (scalar/ranking →
+terse `name: number`; list → complete enumeration), keeping leak-guard prose byte-identical and using
+foreign-domain rivers/airports worked examples to avoid leaking the target schema. Built the full +
+smoke specs (smoke restricted to 4 datasets, exclude_tasks down to the target + 3 canaries), froze
+both, and confirmed `Tasks: 4` via `--explain`. The 4th canary is music_brainz_20k-q1 (a perfect-score,
+non-target dataset) rather than stockmarket-q1 to satisfy G8's cross-dataset regression requirement.
+Gatekeeper recommends APPROVE with two advisory WARNs (single perturbable list canary yelp-q6; G7
+inert-risk on the replaced line — flip rides on the worked-example suppressing the description injection).

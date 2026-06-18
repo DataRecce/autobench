@@ -1,0 +1,49 @@
+# /home/kent/autobench/dab/specs/dab-anchor-codex.yaml
+version: 1
+experiment: dab0012-shape-aware-output-contract
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0012-shape-aware-output-contract
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+  tasks:
+  - bookreview
+  - music_brainz_20k
+  - stockmarket
+  - yelp
+  exclude_tasks:
+  - bookreview-q2
+  - bookreview-q3
+  - music_brainz_20k-q2
+  - music_brainz_20k-q3
+  - stockmarket-q1
+  - stockmarket-q2
+  - stockmarket-q4
+  - stockmarket-q5
+  - yelp-q1
+  - yelp-q2
+  - yelp-q3
+  - yelp-q4
+  - yelp-q5
+  - yelp-q7
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
