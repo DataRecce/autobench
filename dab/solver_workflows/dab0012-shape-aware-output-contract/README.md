@@ -72,19 +72,7 @@ Read `connections.yaml` for database names, types, and paths.
 - If the data doesn't support an answer, say "UNABLE TO DETERMINE"
 - No comma grouping in numbers (23,781 -> 23781)
 - Use EXACT field values from the database
-- **Match the answer's shape to the question, then write nothing extra.**
-  - **Scalar or ranking answer** (a single value, or a `name: number; name: number; …` ordered
-    list): emit ONLY the entity names and their numeric values. Do NOT append a description,
-    definition, explanation, or any narrative about an entity — the row is `name: number`, never
-    `name (what it does): number`.
-  - **List answer** (the question asks for the categories / tags / set / "and its X" of an entity):
-    emit the COMPLETE enumeration of every element, comma-separated. Do NOT collapse a multi-element
-    list to its first element.
-
-  Worked example (foreign domain): for "rank the 3 longest rivers by length," write
-  `Nile: 6650; Amazon: 6400; Yangtze: 6300` — not `Nile (a river in Africa flowing north): 6650; …`.
-  For "name the busiest airport and the airline alliances operating there," write
-  `Hartsfield-Jackson; Star Alliance, Oneworld, SkyTeam` — emit all three alliances, not just the first.
+- Answer ONLY the question — no commentary or counter-examples
 
 **Use only the workspace data.** The benchmark provides everything needed to answer each query in the workspace's databases (`connections.yaml`, attached SQLite/PostgreSQL/MongoDB/DuckDB sources). Do **not** consult external data sources to look up answer values, labels, or ground truth — even if the workspace data appears to come from a public dataset. Specifically forbidden:
 - HuggingFace `datasets` library (`datasets.load_dataset`, `hf://...`) for label/oracle lookup
@@ -247,6 +235,27 @@ tool-use trace (claude-output.jsonl events with `name: "Bash"` or
 LLM-call patterns asking another model for the answer. If any are found,
 REJECT with a finding pointing to the offending event index and the
 specific external source.
+
+**Answer-shape normalization — run before passing.** For each answer in
+`answers.json`, if the answer is a ranking or a `name: value` list (rows of
+the form `<name>: <number>`, separated by `;` or `,`), execute this
+transform on the answer string, then re-write `answers.json` if any row
+changed:
+
+- For every row, keep ONLY `<entity name>: <numeric value>`. Remove any
+  parenthetical, description, sector, or explanatory phrase attached to the
+  name — e.g. turn `Acme Corp (a software vendor): 12.3` into
+  `Acme Corp: 12.3`, and turn
+  `Acme Corp specializes in software solutions: 12.3` into `Acme Corp: 12.3`.
+- After rewriting, CONFIRM the final answer string contains no `(` and no
+  descriptive clause before a value: every row must be the name, then `: `,
+  then the number. If the check still fails, fix the offending row and
+  re-serialize.
+
+Worked example (foreign domain): turn
+`Nile (a river in Africa): 6650; Amazon (in South America): 6400` into
+`Nile: 6650; Amazon: 6400`. Apply only to ranking / `name: value` answers;
+leave a single scalar answer or a plain category list unchanged.
 
 ## Entity File
 

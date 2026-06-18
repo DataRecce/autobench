@@ -21,25 +21,13 @@ benchmark:
     hints: true
     data_root: /home/kent/dataagentbench/data
   tasks:
-  - bookreview
   - music_brainz_20k
   - stockmarket
-  - yelp
   exclude_tasks:
-  - bookreview-q2
-  - bookreview-q3
   - music_brainz_20k-q2
   - music_brainz_20k-q3
-  - stockmarket-q1
-  - stockmarket-q2
   - stockmarket-q4
   - stockmarket-q5
-  - yelp-q1
-  - yelp-q2
-  - yelp-q3
-  - yelp-q4
-  - yelp-q5
-  - yelp-q7
 trials: 1
 concurrency:
   trials: 2
