@@ -181,3 +181,54 @@ verification raise this above luck. The standing single-trial / judge-by-artifac
 (`ade-bench-single-trial-judge-by-artifact`) is satisfied here: the artifact proves mechanism adoption.
 A 1× confirmation draw on googlelocal-q2 would further harden the flip against the coin-flip prior, but
 the GO does not depend on it — the artifact is the proof.
+
+## Run result
+
+Run-dir: `runs/dab0015-flat-string-serialization/605aada30f9b8580` (full, all-12, trials:1, ~3h).
+
+- `rk audit --policy strict`: **41 clean / 0 tainted / 13 coverage_missing**. The 13 coverage_missing are the ENTIRE `crmarenapro` dataset (q1–q13) — `subagent-trace-manifest.json` absent because the trial environment never started: `result.json.exception_info` = `RuntimeError: Docker compose command failed … container …-dab-postgres-1 is unhealthy`. No agent ran on any crmarenapro cell.
+- `rk score`: stratified Pass@1 = **0.4355** over the 11 datasets that produced results (crmarenapro dropped entirely; 20/54 cells reward=1.0).
+- **This headline is INFRA-CORRUPTED and must NOT be read as a board score.** See below.
+
+## Behavioral analysis
+
+**Headline verdict: the full run is INCONCLUSIVE for board-wide regression — a sustained mid-run Postgres outage corrupted the board. The flat-string lever itself is clean: it flipped its target, helped a second cell, and was NOT the cause of any stable-cell failure.**
+
+Walked the unexpected-result-playbook (`_artifacts/unexpected-result-playbook.md`):
+
+### Step 1 — paired diff (matched reference = gpt-5.5 6-draw band, NOT Opus @baseline)
+Against Opus @baseline the diff is −17 cells, but that entangles the model swap + the infra outage and is not the right reference. Against the matched gpt-5.5 6-draw band, the cells that fell below band split cleanly into infra vs non-mechanism:
+
+### Step 2-3 — separate infra from behavior (artifact + exception, every moved cell)
+
+**INFRA (excluded from behavioral verdict) — a ~70-min Postgres degradation, 17:08–18:21:**
+- All 13 `crmarenapro` (Postgres-backed): compose `dab-postgres unhealthy` → environment never came up → errored, no trace. Includes 9 rock-stable (6/6) cells (q1,q4,q5,q6,q7,q9,q11,q12 + q13). **INFRA, not lever.**
+- `bookreview-q3` (6/6 stable): committed `UNABLE TO DETERMINE`; log shows `dab-postgres did not resolve` / `could not translate host name`. **INFRA.**
+- `googlelocal-q4` (5/6, a SMOKE-PASS canary): committed `UNABLE TO DETERMINE`; log shows `dab-postgres DNS failure` / `Connection refused` / `could not translate host name`. **INFRA** — the exact cell that PASSED in smoke when PG was up; its full FAIL is the outage, not the rule mis-firing.
+- `PANCANCER_ATLAS-q3`, `PATENTS-q3`, `agnews-q2/q3`: PG host-resolution errors in-log (PATENTS/agnews are 0/6 never-pass regardless).
+
+**NOT mechanism-caused (format rule fired correctly; failure is wrong VALUE, not wrong SHAPE):**
+- `music_brainz_20k-q1` (6/6): committed flat scalar `601.44` vs GT `1059.46`. The rule leaves scalars unchanged and DID — the answer is correctly shaped, the *number* is wrong. Analytical/sampling variance, not format. (Passed identically-formatted in smoke.)
+- `music_brainz_20k-q3` (6/6): committed flat `Groovey by Rich Matteson - 5417.34 USD` — correct flat shape, WRONG song. Analytical variance.
+- `GITHUB_REPOS-q4` (6/6): committed flat `torvalds/linux, apple/swift, …` — correct flat shape, missed `tensorflow/tensorflow`. Analytical variance.
+
+**Decisive point for the NO-GO condition:** the falsification trigger was "the flat-string rule over-flattened a list that needed structure." That did NOT happen on any cell. Every cell where the rule fired committed a correctly-formed flat string; the only failures are infra abstains and wrong-value analytical misses on historically-noisy-at-single-trial cells. **No format mis-fire anywhere on the board.**
+
+### Step 4-5 — causation at the honest ceiling
+The 3 non-infra stable failures (music_brainz_20k-q1/q3, GITHUB_REPOS-q4) are at most RELATED (single-trial global-prompt perturbation re-rolls the dice, the dab0009 lesson) — but their committed artifacts prove the *format mechanism* is innocent. At single-trial this is not proven causal in either direction; the matched-band read is the ceiling.
+
+### The two GAINS — both mechanism-attributed (artifact + reasoning)
+- **`googlelocal-q2`** (target, 2/6 coin-flip): **HELD PASS** at full. Committed the identical flat `Angel-A Massage - 4.333…; Aurora Massage - 4.178…; Elite Massage - 5.0; J B Oriental Inc - 4.166…`; reasoning references "flat delimited"/"flat string". The pin is now adopted across TWO independent draws (smoke + full) — that materially hardens the flip above the 2/6 prior: **pin-adopted-real, not variance.**
+- **`yelp-q6`** (4/6): flipped to PASS. Committed flat `Coffee House Too Cafe - Restaurants, Breakfast & Brunch, American (New), Cafes` (single-row list flattened with ` - ` between name and categories), reasoning references the flat-string rule. Mechanism-attributed gain — notably the very cell the dispatch first proposed as a canary.
+
+### Codex-vs-Opus confound
+@baseline is Opus; this run is gpt-5.5 + the README rule. Every verdict-changed cell was attributed by committed artifact above: the 2 gains are README-rule-executed-and-helped; the stable failures are infra (PG outage) or wrong-value (model/sampling), never the format rule. A delta with no artifact attribution was not counted.
+
+### Recommendation
+**RE-RUN, do not promote or reject on this draw.** The lever's own evidence is positive and clean (target held across two draws with adopted-artifact, a second mechanism-attributed gain, zero format mis-fires), but a ~70-min Postgres degradation erased an entire dataset (crmarenapro, 13 cells) and forced infra abstains on multiple PG-backed passers — so the board-wide regression question this full run exists to answer is unanswerable from it. Re-run the full spec once PG/Mongo health is confirmed stable for the run duration; judge promotion on the clean board.
+
+## Failure Review
+
+- **What happened:** full run scored a headline 0.4355 with many stable cells failing, but `rk audit` shows it is infra-corrupted: 13/54 cells (all of crmarenapro) errored with `container dab-postgres … is unhealthy` and several PG-backed passers (bookreview-q3, googlelocal-q4, PANCANCER-q3) abstained with `could not translate host name` across a ~17:08–18:21 window. This is the recurring `dab-postgres` DNS/health flake compounding a whole-dataset compose failure — NOT the flat-string lever.
+- **Lever status:** clean on its own evidence — googlelocal-q2 held PASS (adopted flat artifact, 2 draws); yelp-q6 flipped (mechanism-attributed); no over-flatten / format mis-fire on any cell. The NO-GO falsification condition did not trigger.
+- **Next step:** RE-RUN the full spec (`specs/dab0015-flat-string-serialization.frozen.yaml`) after confirming `dab-postgres` + `dab-mongo` are healthy AND verifying the per-trial PG container health check is stable (see memory `dab-mongo-segfault-no-restart-bricks-trial` / `dab-agent-image-nonroot-codex-perm` for the restart-policy fix lineage). Judge promotion on the clean board, against the gpt-5.5 matched band.
