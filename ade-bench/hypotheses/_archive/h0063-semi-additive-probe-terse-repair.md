@@ -5,10 +5,11 @@ status: conclude
 kind: hypothesis
 source: h0062 smoke-rejection deep-dive — h0062 coupled TWO changes (removed the F1 domain name AND added a verbose probe block + forbidden-branch enumeration) and regressed f1006-hard + f1005-medium onto the forbidden row_number/QUALIFY latest-row branch. This isolates the two changes — keep the domain-blind probe trigger, restore h0044's terse repair wording.
 started: 2026-06-17
-completed:
-verdict:
+completed: 2026-06-18T02:42:44Z
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-18T02:42:44Z
 ---
 
 ## Hypothesis
