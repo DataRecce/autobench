@@ -214,7 +214,32 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-10). 
 
 ## Smoke result
 
-### rev2 (CURRENT — gate-hardening) — GO-leaning, 20/21
+### rev3 (CURRENT — rev2 + max() skeleton) — NET WORSE, 19/21
+
+**Verdict: rev3 is net-neutral-to-negative vs rev2 — recommend promoting rev2, not rev3.**
+Multi-draw smoke, run-dir
+`runs/ade-bench-h0063-semi-additive-probe-terse-repair/b3086236860f9655` (59m, rc=0, 0
+errors). Strict audit CLEAN (21/21 taint clean, findings:[]); all 21 cells captured; `rk
+score` = mean 0.9048 = 19/21.
+
+**Per-cell per-draw distribution (rev3 vs rev2):**
+
+| Task | rev3 draws | rev3 | rev2 | Read |
+|------|-----------|------|------|------|
+| f1006              | 1,1,1 | 3/3 | 3/3 | held |
+| f1006-hard         | 1,1,0 | 2/3 | 2/3 | **STICKY residual — skeleton did NOT close it** |
+| f1005              | 1,1,1 | 3/3 | 3/3 | held |
+| f1005-medium       | 1,1,1 | 3/3 | 3/3 | held |
+| f1001              | 1,1,1 | 3/3 | 3/3 | held |
+| airbnb005          | 1,0,1 | **2/3** | 3/3 | **UNRELATED variance (NPS build coin-flip), NOT a rule over-fire** |
+| airbnb001          | 1,1,1 | 3/3 | 3/3 | held |
+
+The skeleton bought nothing: f1006-hard's residual is unchanged (still 2/3), and the only
+delta vs rev2 is an airbnb005 drop that the artifacts show is independent variance.
+
+---
+
+### rev2 (gate-hardening) — GO-with-caveat, 20/21
 
 **Verdict: GO-with-one-residual (20/21 = 0.9524).** Multi-draw smoke, run-dir
 `runs/ade-bench-h0063-semi-additive-probe-terse-repair/2bba19d41a474310` (57m, rc=0,
@@ -269,6 +294,47 @@ the f1 build (f1001 3/3).
 ## Run result
 
 ## Behavioral analysis
+
+### rev3 (rev2 + max() skeleton) — the skeleton did not help; promote rev2
+
+**f1006-hard residual is STICKY, not closed by the skeleton.** The one f1006-hard fail
+(`xceVJrZ`) is the identical mechanism: `constructor_points_equality` FAIL Got 2 / driver
+PASS, and the transcript shows the solver still chose a "latest" standings-row branch (7×
+"latest", zero `max(` in its constructor reasoning) DESPITE the `max()` BEFORE/AFTER skeleton
+sitting in the rule. So the worked-example skeleton did NOT crowd out the latest-row reasoning
+path on this hardest cell — the residual sits at ~1/12 in BOTH rev2 and rev3. This is the
+**irreducible tail**: for f1006-hard specifically, the solver occasionally reasons its way to
+latest-row no matter how the domain-blind rule is phrased. The F1 domain name (in @baseline)
+is what fully suppresses it — marginally load-bearing for this one cell, though the
+domain-blind rev2 rule holds it 11/12.
+
+**airbnb005's drop is UNRELATED variance, NOT a skeleton over-fire — the key question, answered.**
+The critical risk was that rev3's `max()` skeleton made the cumulative rule mis-fire on
+airbnb005's legitimate additive measure. The artifacts decisively rule that out:
+- airbnb005 is a multi-model BUILD task (4 scored tests: `daily_agg_nps_reviews` +
+  `listing_agg_nps_reviews` equality-with-tolerance + two existence). It is NOT the rolling-28d
+  additive-sum repair the canary was nominally chosen for; it builds two NPS-review models.
+- The SEMI-ADDITIVE / cumulative / `max()` rule is **NEVER mentioned** in ANY airbnb005 draw —
+  0 mentions in the fail draw AND 0 in both pass draws. The rule never fired. The rolling sum
+  was never touched by the cumulative logic.
+- The fail draw (`Z32JZfX`) built the same two NPS models, self-validated "0 NPS reconciliation
+  mismatches," yet the hidden tolerance tests found Got 2 / Got 1 — the classic airbnb005
+  multi-model NPS build coin-flip (false-green self-check vs a hidden grain/rounding mismatch).
+  This is independent variance on an unrelated task, not a rule over-fire.
+
+**Verdict: the skeleton is net-neutral-to-negative — promote rev2 (20/21), not rev3 (19/21).**
+rev3 added zero benefit (f1006-hard unchanged) and the only delta is noise on an unrelated
+canary. The de-overfit conclusion from rev2 STANDS and is reinforced: the domain-blind
+rare-exceptions-tolerant gate (rev2) is the artifact to promote — it recovers all four
+f1-points targets, over-fires nowhere (the cumulative rule provably never touches airbnb005's
+additive build), and holds f1006-hard 11/12. The worked-example skeleton, despite being the G7
+"preferred" form, does not move the one sticky cell, so it only adds surface area for no gain.
+f1006-hard's ~1/12 latest-row tail is the irreducible residual common to both revs — a
+single-trial full run could land it on that one cell; that is the cost of a domain-blind rule
+vs the domain-named @baseline, and it is the captain's call whether 11/12 domain-blind is worth
+promoting over the domain-named status quo.
+
+---
 
 ### rev2 (gate-hardening) — the de-overfit is SALVAGED, domain-blind
 
@@ -477,3 +543,28 @@ constructor Got 2), not variance, but now a rare ~1/12 tail. No over-fire (canar
 sums byte-intact). De-overfit SALVAGED with a domain-BLIND, genuinely general rule — verbosity
 was a red herring; the real fix was a rare-exceptions-tolerant probe. Held for the captain; no
 auto-full/promote. Optional rev3 (a max() BEFORE/AFTER skeleton) could push the residual toward 0.
+
+## Stage Report: smoke (rev3)
+
+- DONE: Strict audit + score; confirm captured>0 all 21 cells.
+  `rk audit … --policy strict` = 21/21 taint clean, findings:[]; `rk score` = mean 0.9048 = 19/21; all 21 cells captured. run-dir b3086236860f9655.
+- DONE: Record per-cell-per-draw table in ## Smoke result (rev3).
+  f1006 3/3, f1006-hard 2/3, f1005 3/3, f1005-medium 3/3, f1001 3/3, airbnb005 2/3, airbnb001 3/3 = 19/21.
+- DONE: Classify f1006-hard's failing draw (xceVJrZ).
+  STICKY residual — same mechanism: constructor Got 2 / driver PASS; transcript still chose "latest" standings-row (7× latest, 0 max() in constructor reasoning) despite the skeleton. Skeleton did NOT crowd it out. Residual ~1/12 in BOTH rev2 and rev3.
+- DONE: Classify airbnb005's failing draw (Z32JZfX) — over-fire vs variance.
+  UNRELATED VARIANCE, not a rule over-fire. airbnb005 is a 4-test NPS-model BUILD; the SEMI-ADDITIVE/cumulative/max rule is NEVER mentioned in any airbnb005 draw (0/0/0). The rolling sum was untouched. The fail is a multi-model NPS build coin-flip (Got 2 / Got 1, false-green self-check vs hidden tolerance).
+- DONE: Verdict — rev2 vs rev3 for promotion.
+  Promote rev2 (20/21, clean). rev3 skeleton net-neutral-to-negative: f1006-hard unchanged, only delta is unrelated airbnb005 noise. f1006-hard ~1/12 latest-row tail is the irreducible residual common to both revs.
+
+### Summary
+
+rev3 (rev2 + a max() worked-example skeleton) is NET WORSE at smoke: 19/21 vs rev2's 20/21.
+The skeleton did NOT close f1006-hard's sticky residual (still 2/3, still committing latest-row
+on constructor — the skeleton failed to crowd out that reasoning path on the hardest cell), and
+the only delta vs rev2 is an airbnb005 drop that the artifacts prove is INDEPENDENT VARIANCE on
+an unrelated multi-model NPS build (the cumulative rule never fires on airbnb005 — 0 mentions in
+all 3 draws — so it is categorically not a skeleton over-fire). Recommendation to the captain:
+PROMOTE rev2, not rev3 — the skeleton adds surface area for zero benefit. f1006-hard's ~1/12
+latest-row tail is the irreducible residual of a domain-blind rule (the F1 name in @baseline
+fully suppresses it; rev2 holds it 11/12). Held for captain; no full/promote.
