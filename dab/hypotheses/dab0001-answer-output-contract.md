@@ -1,11 +1,13 @@
 ---
 title: stockmarket-q3 - Lock the answer output contract so correctly-computed answers aren't failed on format
-status: ideate
+status: expanded
 kind: concept
 source: flipped-query-targets.md + CAIS log audit (googlelocal-q2 codex computes the right businesses every run, 4/5 fail only on output shape)
 id: dab0001
 score: 0.9
 started: 2026-06-18T08:41:29Z
+completed: 2026-06-18T08:46:28Z
+verdict: expanded
 ---
 
 ## Direction
