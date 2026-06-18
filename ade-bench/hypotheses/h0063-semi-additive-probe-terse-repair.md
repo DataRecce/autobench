@@ -468,7 +468,54 @@ strict-monotonicity-plus-escape-clause reacting to 2 real decreases.
 
 ## Follow-up Routing
 
+**ESCALATE (do NOT auto-file) — the HOLD-OUT GENERALIZATION TEST.** rev2's domain-blind rule
+was tuned on f1 monotone-cumulative data; smoke only ever exercised it on f1-points cells. The
+open question is whether it fires *correctly* on a NON-f1 monotone-cumulative task it was never
+tuned on (e.g. an account-balance / cumulative-ledger / running-total elsewhere in the suite) —
+both that it FIRES (recognizes the cumulative shape and applies `max()`) and that it does NOT
+over-fire on a genuinely additive measure with frequent decreases. That is the deeper
+overfitting question — a de-pin is only proven by a hold-out, not by smoke on the tuning
+targets — and it is the captain's strategy call, not an auto-filed lever. Routed to the captain.
+
 ## Verdict
+
+**REJECTED — not promoted; @baseline unchanged (stays h0061-lean-readme).** Terminal. The rule
+is score-neutral on the 47 non-f1006-hard cells and carries a ~1/3 single-trial regression risk
+on f1006-hard vs the domain-named status quo — not worth churning `@baseline` for a score-neutral
+change. The captain banked the finding without promoting (Option 1). Distilled, transferable
+learnings (this entity is the source of truth):
+
+**HEADLINE — a Category-C "memorized answer" is ~95% DE-PINNABLE.** Rule #7 of the @baseline
+README (the F1-pinned `max(points)` over `*_standings`) is a domain-named recipe. rev2's
+domain-BLIND, rare-exceptions-tolerant SEMI-ADDITIVE / SNAPSHOT-MEASURE rule (monotonicity probe
++ "non-decreasing APART FROM a few isolated drops ⇒ `max()` at grain; reserve `sum()` for
+SYSTEMATIC rise-and-fall") recovers ALL FOUR f1-points targets (f1006, f1006-hard, f1005,
+f1005-medium), over-fires NOWHERE (artifact-proven: the rule is never mentioned across any
+airbnb005 draw — it does not touch the additive build), and holds 11/12 f1-points draws. A
+domain-pinned answer was converted to a general dbt-craft rule that names no domain.
+
+**THE IRREDUCIBLE RESIDUAL (~5%).** f1006-hard's hardest variant drifts to a latest-row branch
+~1/3 per draw (constructor `Got 2`), STICKY across BOTH rev2 (gate-hardening) AND rev3
+(worked-example skeleton) — neither closes it. For this ONE cell, the solver occasionally
+reasons onto latest-row no matter how the domain-blind rule is phrased. The F1 DOMAIN NAME in
+@baseline is what fully suppresses it → marginally load-bearing for that single hardest variant
+only, not the construct as a whole.
+
+**WHAT WAS FALSIFIED / RULED OUT along the way.**
+- rev1 (terse domain-blind): NO-GO 15/21. The verbosity hypothesis (h0062's recorded "naming the
+  forbidden branches at length raises their salience") is **FALSIFIED** — the domain name, not
+  the verbosity, was load-bearing; both domain-blind arms (verbose h0062 + terse rev1) committed
+  the identical constructor-only `Got 2` miss via the strict-monotonicity-probe + escape-clause
+  firing on the 2 real penalty decreases.
+- rev3 (rev2 + a `max()` BEFORE/AFTER worked-example skeleton): **net-neutral-to-negative**
+  (19/21). The skeleton did NOT close f1006-hard (unchanged 2/3), and its only delta vs rev2 was
+  an airbnb005 drop that is **unrelated build-coin-flip noise, NOT a rule over-fire** (the
+  cumulative rule never fired on airbnb005 — 0 mentions across all 3 draws). The G7-"preferred"
+  worked-example form bought nothing here.
+
+**THREE REAL `rk` ARMS recorded (same constructor data):** named+terse (@baseline h0061) PASSES
+reliably; blind+verbose (h0062) `Got 2`; blind+terse+hardened (h0063 rev2) 20/21. The de-pin is
+real; the residual is the cost of dropping the domain name.
 
 ## Stage Report: propose
 

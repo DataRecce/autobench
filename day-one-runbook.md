@@ -135,6 +135,24 @@ Earned the hard way in ade-bench; adopt as the starting discipline, not re-deriv
   0/33 off-construct cells moved). A longer README buys no extra held constructs; the only thing
   a leaner one saves is the carrying cost of prose — so a new benchmark's README should START at
   the lean shape, not accrete scar-clauses and later try to trim them.
+- **A Category-C domain-pinned recipe CAN be generalized — but verify the HARDEST variant
+  with a hold-out, not just smoke.** A "memorized answer" rule (a fix written against named
+  domain identifiers — e.g. `max(points)` over `*_standings`) is often ~95% convertible to a
+  general dbt-craft rule by replacing the domain trigger with a **structural probe + a
+  rare-exceptions tolerance** ("non-decreasing APART FROM a few isolated drops ⇒ still
+  cumulative ⇒ `max()` at grain; reserve `sum()` for SYSTEMATIC rise-and-fall"). ade-bench
+  h0063 did exactly this: a domain-blind rule recovered all four f1-points targets, over-fired
+  nowhere (artifact-proven the rule never touched an unrelated additive build), and held 11/12
+  draws — names no domain. BUT a small **irreducible residual** remained on the single hardest
+  variant (f1006-hard drifted to latest-row ~1/3 per draw, sticky across both a gate-hardening
+  AND a worked-example-skeleton revision), because the domain name was genuinely load-bearing
+  *for that one cell*. Lesson: the de-pin is only proven by a **hold-out generalization test**
+  (does the rule fire correctly on a NON-tuning monotone-cumulative task, and NOT over-fire on a
+  frequently-decreasing additive one?), never by smoke on the tuning targets alone — smoke on
+  the cells you tuned against confirms recall, not generalization. Two corollaries earned here:
+  (i) the verbosity of a rule is rarely the lever — when a domain-blind rewrite regresses, suspect
+  the **missing domain anchor**, not the word count; (ii) a worked-example skeleton does not always
+  crowd out a sticky reasoning path — it is necessary, not sufficient, on the hardest cell.
 - **Precondition-gate every lever** so disjoint ones compose additively in one artifact —
   the gate IS the isolation. Lets you bank many flips at once and re-verify cheaply.
 - **Carry ≥1 perturbable same-construct canary** into smoke (a non-firing canary is not
