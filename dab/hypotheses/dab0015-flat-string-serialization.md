@@ -134,3 +134,50 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
 ### Summary
 
 Forked `spacedock-readme-baseline` → `dab0015-flat-string-serialization` and added one README idea in `## Answers`: write each answer value as a plain flat string, never JSON, with a truthful consequence-framing (the matcher searches text for each expected name + a nearby numeric value; brackets/keys between name and value break the match — NOT a char-exact-compare claim) and a foreign-domain worked example. Full spec = anchor + the two allowed fields; smoke survives exactly googlelocal-q2 (target) + googlelocal-q4/yelp-q7 (perturbable list canaries) + music_brainz_20k-q1 (scalar sentinel), confirmed via `--explain` (Tasks: 4) with both networked backends healthy. Gatekeeper recommends APPROVE with a clean per-rule table; this propose package is auditable and ready for the captain's smoke gate.
+
+## Smoke result
+
+Run-dir: `runs/dab0015-flat-string-serialization/bddf52340d225cdd` (smoke, trials:1). `rk audit --policy strict` = **CLEAN** (4 clean / 0 tainted, no findings). `rk score` = stratified_pass_at_1 **1.0**, 4/4 cells PASS.
+
+| Task | @baseline | 6-draw band | Smoke reward | Verdict | Committed answer (recovered from codex apply_patch) |
+|------|-----------|-------------|--------------|---------|------------------------------------------------------|
+| `googlelocal-q2` | ❌ 0.0 | 2/6 coin-flip | ✅ **1.0** | 🎯 FLIPPED | `{"answer":"Angel-A Massage - 4.333333333333333; Aurora Massage - 4.178571428571429; Elite Massage - 5.0; J B Oriental Inc - 4.166666666666667"}` |
+| `googlelocal-q4` | ✅ 1.0 | 5/6 | ✅ 1.0 | ✅ HELD | `{"answer":"Encino Dermatology & Laser: Alex Khadavi MD - 19; The Boochyard @ Local Roots - 17; Aurora Massage - 14"}` |
+| `yelp-q7` | ✅ 1.0 | 5/6 | ✅ 1.0 | ✅ HELD | `{"answer": "Restaurants - 58; Food - 36; American (New) - 24; Shopping - 20; Breakfast & Brunch - 19"}` |
+| `music_brainz_20k-q1` | ✅ 1.0 | 6/6 | ✅ 1.0 | ✅ HELD | `{"answer": "1059.46"}` |
+
+Net: 4/4, target flipped, zero canary/sentinel drops.
+
+## Behavioral analysis
+
+**The flip is the pin being ADOPTED, not coincidental flat output.** Three independent lines of transcript evidence:
+
+1. **Committed artifact is unambiguously flat.** googlelocal-q2's `answer` value is a `name - rating; …`
+   flat delimited string — exactly the README form (`Item A - 4.5; Item B - 4.3`), with NO arrays,
+   objects, key names, or brackets *inside the value*. All 4 GT businesses present with correct ratings;
+   the matcher's `find(name)` + `\d+\.\d+`-within-10-chars succeeds because each rating sits right after
+   its name.
+2. **The model explicitly acted on the rule.** Its analyze/verify reasoning (subagent rollout
+   `…14-21-07…`, lines 107/124) states the answer is "delimited as a single flat string" and its verify
+   step records: *"Verified JSON has only `answer`, value is a string, **no brackets/objects inside the
+   answer**."* That is the README's flat-string-not-JSON instruction being checked and satisfied, not a
+   chance emission — the model named the no-brackets constraint and confirmed compliance.
+3. **The rule is shape-aware, not blanket-flatten.** The scalar sentinel
+   `music_brainz_20k-q1` committed `1059.46` unchanged (rule leaves single scalars alone), and the two
+   multi-row list canaries committed correct flat `name - value` lists — googlelocal-q4 kept the `:`
+   that is part of a business *name* ("Encino Dermatology & Laser: Alex Khadavi MD"), so no
+   over-flattening / structure-loss. No mis-fire on a cell that needed different shape.
+
+**Why it worked where dab0012 (decoration) failed:** dab0012 tried to suppress an un-perceived *reflex*
+(entity descriptions the model doesn't see as wrong) and was README-inert. Serialization-format is a
+*deliberated* representation choice — "write a flat string, not JSON" is an instruction gpt-5.5 follows
+and self-verifies. The reflex-vs-deliberated distinction is real: **output-contract survives on
+serialization-format even though it is dead on decoration.**
+
+**Verdict: candidate GO — committed flat-string artifact confirms the pin was adopted AND all four cells
+pass with zero canary drops.** googlelocal-q2 is a 2/6 coin-flip, so per the acceptance criteria the
+single 1.0 alone would be variance-suspect; but the artifact + the model's explicit no-brackets
+verification raise this above luck. The standing single-trial / judge-by-artifact captain rule
+(`ade-bench-single-trial-judge-by-artifact`) is satisfied here: the artifact proves mechanism adoption.
+A 1× confirmation draw on googlelocal-q2 would further harden the flip against the coin-flip prior, but
+the GO does not depend on it — the artifact is the proof.
