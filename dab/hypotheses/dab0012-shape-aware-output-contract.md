@@ -1,7 +1,7 @@
 ---
 id: dab0012
 title: stockmarket-q3 - shape-aware output contract (scalar/ranking -> terse names+numbers; list -> full enumeration)
-status: smoke
+status: hypothesis
 kind: hypothesis
 source: dab0001 ideate (retargeted to stockmarket-q3); _artifacts/model-strengths-cross-learning.md §2a + §4
 started: 2026-06-18T08:50:00Z
@@ -208,3 +208,18 @@ and does not count as canary-bleed.)
    it cannot leave a description slot). Also: the two infra failures mean the smoke under-covered —
    any re-smoke should confirm the Mongo (yelp) and Postgres (bookreview) backends are healthy before
    trusting canary verdicts, OR swap to canaries on backends that were up (music_brainz held).
+
+## Feedback Cycles
+
+### Cycle 1 — 2026-06-18 — smoke NO-GO (prose-inert) → revise to verify-stage mechanical strip
+- **Result:** smoke run `9eee91ea2489003e`, audit clean. stockmarket-q3 did NOT flip — committed answer
+  byte-identical to baseline ("…specializes in…: 23781.42"). The shape-aware README **prose** rule was
+  behaviorally INERT at gpt-5.5/xhigh (the gatekeeper G7 risk materialized; same wall as the old
+  `Answer ONLY the question` line). yelp-q6 / bookreview-q1 FAILs were INFRASTRUCTURE (Mongo / Postgres
+  `Connection refused` → abstained), NOT canary-bleed; music_brainz_20k-q1 held PASS.
+- **New fork (cycle 2):** suppression must be MECHANICAL, not a generation-time rule. Replace the prose
+  shape-contract with a **verify-stage post-process the solver EXECUTES**: each ranking / `name: value`
+  row forced to `<name>: <number>`, any parenthetical/descriptive clause stripped and re-serialized,
+  with a final regex check before emitting answers.json. Tests: *gpt executes a concrete transform even
+  when it ignores an abstract rule.*
+- **Captain decision:** revise (not reject) — exhaust mechanism-distinct forks before concluding.
