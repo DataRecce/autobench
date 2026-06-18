@@ -60,3 +60,44 @@ Primary: `googlelocal-q2` (gpt ~2/6). Generative lever (fires on every list answ
 regression panel: ≥2 PERTURBABLE list-answer canaries (passers whose answer is a list the rule fires on —
 e.g. `yelp-q6` 4/6) + ≥1 cross-dataset sentinel from a perfect-score dataset (e.g. `music_brainz_20k-q1`
 6/6). Avoid Mongo/Postgres-backed cells if those backends are flaky at launch.
+
+## Smoke set (propose stage)
+
+The dispatch suggested `yelp-q6` (4/6) as the perturbable list canary, but its ground truth is a
+**single comma-separated row** (`Coffee House Too Cafe, Restaurants, …`) — a one-item answer, not the
+multi-row `name - value` list shape this lever most directly fires on. I substituted two **cleaner
+multi-row list-answer canaries** whose GT is exactly the target's shape, so the G8 panel is genuinely
+*perturbable*:
+
+- `googlelocal-q4` (5/6, GT = `name,count` rows) — same dataset + shape as the target; the strongest
+  "does the rule mis-fire on a list that already passes?" tripwire.
+- `yelp-q7` (5/6, GT = list of category rows) — cross-dataset (Mongo+DuckDB-backed) perturbable list
+  canary, so a list-shape regression on a *different* backend is also caught.
+
+Plus the scalar sentinel `music_brainz_20k-q1` (6/6, GT = `1059.46`) from a perfect-score dataset: the
+rule explicitly leaves single scalars unchanged, so this proves the lever does not perturb non-list
+answers.
+
+| Task | @baseline (Opus-4.8) | gpt-5.5 6-draw band | Should pass in smoke? | Role / why we picked it |
+|------|----------------------|---------------------|-----------------------|-------------------------|
+| `googlelocal-q2` | ❌ FAIL (0.0) | 2/6 (coin-flip) | 🎯 want it to flip to PASS | Target — gpt computes the right businesses but serializes as JSON list-of-dicts; the rule pins flat `name - rating` so the matcher's name+nearby-number search hits. |
+| `googlelocal-q4` | ✅ PASS (1.0) | 5/6 | ✅ must stay PASS | Perturbable list canary (same dataset + `name,value` shape) — regression tripwire if the flat-string rule mis-fires on a list that already passes. |
+| `yelp-q7` | ✅ PASS (1.0) | 5/6 | ✅ must stay PASS | Perturbable list canary (cross-dataset, Mongo+DuckDB) — catches a list-shape regression on a different backend. |
+| `music_brainz_20k-q1` | ✅ PASS (1.0) | 6/6 | ✅ must stay PASS | Scalar sentinel (perfect-score dataset) — the rule leaves scalars unchanged; proves no over-fire on non-list answers. |
+
+Net hoped-for: flip `googlelocal-q2` to PASS (by committed flat-string artifact), lose zero canaries/sentinel.
+Surviving set confirmed via `rk run …smoke.frozen.yaml --explain` → `Tasks: 4` (14 materialized − 10
+`exclude_tasks` = the 4 above). **Backends healthy at launch:** `dab-postgres` (`pg_isready` →
+*accepting connections*; googlelocal review/business) and `dab-mongo` (`ping` → ok; yelp businessinfo)
+both UP — the cycle-1 `Connection refused` risk does not apply at this launch. ETA ~4 query-cells.
+
+## Verifier-integrity note (consequence-framing)
+
+`googlelocal-q2`'s `validate.py` does `llm_output.find(name)` (substring search for each exact business
+name) then scans the **10 characters after the name** for a `\d+\.\d+` score. So a JSON answer like
+`[{"name":"Elite Massage","rating":5.0}]` finds the name but the next 10 chars are `","rating"` — no
+bare decimal in the window → score-mismatch → 0, even though `5.0` is present elsewhere. A flat
+`Elite Massage - 5.0` puts the score right after the name → matches. The README's consequence-framing is
+therefore **truthful and NOT overstated**: it says the matcher "searches your text for each expected
+name and a nearby numeric value" and that brackets/keys between name and value break that match — it does
+**not** claim a strict char-exact compare.
