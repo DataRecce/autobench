@@ -135,6 +135,27 @@ inert-risk on the replaced line — flip rides on the worked-example suppressing
 
 ## Smoke result
 
+### Cycle 2 — 2026-06-18 — verify-stage strip ALSO inert (target NO-GO, canaries all held)
+
+**Verdict: NO-GO.** Run-dir `runs/dab0012-shape-aware-output-contract/6884375f9d7aff15` (15m wall).
+Strict audit CLEAN (4/4 trials, 0 tainted, 0 coverage-missing). Stratified Pass@1 = **0.8333** (3/4).
+
+| Cell | 6-draw band | Smoke | Verdict-delta | Validator message | Cause |
+|---|---|---|---|---|---|
+| stockmarket-q3 (target) | 0/6 | **0 / FAIL** | no flip | `No number found near name: Apex Global Brands Inc` | **verify-stage transform INERT** — committed answer byte-identical to cycle 1 / baseline (all descriptions present) |
+| stockmarket-q1 (perturbable canary) | 6/6 | **1 / PASS** | held | — | held — no destructive over-stripping |
+| stockmarket-q2 (perturbable canary) | 6/6 | **1 / PASS** | held | — | held — no destructive over-stripping |
+| music_brainz_20k-q1 (sentinel) | 6/6 | **1 / PASS** | held | — | held |
+
+Clean target NO-GO: the target did NOT flip, and ALL THREE canaries held (the two perturbable
+same-backend rankings + the cross-dataset sentinel). The validator message is identical to cycle 1's
+(`No number found near name: Apex Global Brands Inc`), and the committed answer string confirms the
+cause — classification **(a): the verify-stage transform is ALSO inert** (see Behavioral analysis →
+Cycle 2). All backends were UP this run (every cell completed; no `Connection refused`), so the
+cycle-1 infra confound is excluded — this is a clean read of the lever.
+
+### Cycle 1 — smoke NO-GO (prose-inert)
+
 **Verdict: NO-GO.** Run-dir `runs/dab0012-shape-aware-output-contract/9eee91ea2489003e` (15m wall).
 Strict audit CLEAN (4/4 trials clean, 0 tainted, 0 coverage-missing). Stratified Pass@1 = **0.25**
 (1 of 4 cells pass).
@@ -153,6 +174,42 @@ and the Postgres-attach path), so they are NOT canary-bleed and carry no signal 
 The cross-dataset sentinel that DID have a working backend (music_brainz_20k-q1) held cleanly.
 
 ## Behavioral analysis
+
+### Cycle 2 — verify-stage transform ALSO inert (classification (a))
+
+**The committed stockmarket-q3 answer is byte-identical to cycle 1 / baseline.** Extracted from the
+trial transcript (`stockmarket-q3__TjnDhF5/.../rollout-…10-59-57….jsonl`), the committed answer string
+still carries the full per-row description on every row:
+
+> `Apex Global Brands Inc. specializes in creating and marketing a diverse portfolio of fashion and
+> lifestyle brands, connecting consumers with trendy and innovative products worldwide.: 23781.42;
+> BIO-key International, Inc. specializes in advanced biometric solutions…: 10988.14; …`
+
+So the verify-stage strip did NOT reach the committed answer. This is classification **(a): the
+verify-stage transform is inert**, NOT (b) "executed but still failed" — the descriptions are present,
+not stripped. The validator's `No number found near name: Apex Global Brands Inc` fires because the
+description text sits between the name and its number (identical to cycle 1).
+
+**Was the instruction even seen?** Yes — and that is the sharper finding. The transcript shows the
+verify-stage normalization WAS read and discussed (`normaliz` ×18, `parenthetical` ×4,
+`descriptive clause` ×3, `Answer-shape` ×2, `re-serialize` ×2 across the session), and the verify
+ensign sub-agent ran and reported its "Final answer string" — yet that reported/committed string keeps
+all 35+ `specializes` descriptions intact. So the solver **acknowledged the concrete transform in
+reasoning but did not apply it to `answers.json`** — the exact "talks but doesn't do" failure the
+gatekeeper's G7 inert-risk note flagged. This is the SAME wall as cycle 1's prose rule: re-framing the
+instruction as an executable verify-stage transform-and-check did NOT make gpt-5.5/xhigh execute it.
+
+**Canaries — no destructive over-stripping.** stockmarket-q1, stockmarket-q2 (both 6/6 rankings the
+strip fires on) and music_brainz_20k-q1 all held PASS, so the lever did not corrupt any already-correct
+ranking. The strip is harmless — and inert. (It is harmless *because* it is inert: nothing was
+stripped anywhere, so there was nothing to corrupt.)
+
+**Net:** two mechanism-distinct attempts (generation-time prose, cycle 1; executable verify-stage
+transform, cycle 2) BOTH inert on the same target. The description-injection diagnosis is correct and
+robust, but output suppression cannot be achieved via README instruction at gpt-5.5/xhigh — neither a
+rule nor an executable verify step changes the committed answer string.
+
+### Cycle 1 — generation-time prose inert
 
 **Target stockmarket-q3 — lever fully INERT (the decisive finding).** The committed answer string
 (extracted from the codex transcript's "Exact final answer string" block,
@@ -186,6 +243,42 @@ prior `Answer ONLY the question` line hit. A README formatting rule (even with a
 not suppress the injection.
 
 ## Failure Review
+
+### Cycle 2 — verify-stage transform inert
+
+**Primary type: `incomplete-artifact`** (target). The verify-stage normalization reached the solver's
+context and was discussed in reasoning, but was NOT applied to the committed answer — the artifact is
+byte-identical to cycle 1 / baseline (all descriptions present). No infra confound this cycle (all
+backends up); no canary regression (q1/q2/music_brainz all held).
+
+1. **Original hypothesized fork (cycle 2).** A README-prose output rule is inert (cycle 1), so framing
+   the suppression as a CONCRETE verify-stage transform-and-check the solver EXECUTES would strip the
+   per-row descriptions and flip stockmarket-q3, while the two perturbable ranking canaries prove the
+   strip is non-destructive.
+2. **What the committed artifact revealed.** The transform is ALSO inert. The committed answer still
+   has every `…specializes in…: 23781.42` description (classification (a)). The verify instruction was
+   read/discussed (`normaliz` ×18, `parenthetical` ×4, `re-serialize` ×2) but the verify ensign's
+   committed string kept all descriptions — "talks but doesn't do." The canaries held (the strip
+   corrupted nothing — because it ran nowhere).
+3. **Did the README rule fire? Where is the evidence?** No — no firing in the artifact. The committed
+   string is byte-identical to the cycle-1 baseline failure; the validator message is identical
+   (`No number found near name: Apex Global Brands Inc`). Acknowledgement in reasoning is not firing.
+4. **New fork / mechanism.** README instruction — whether a generation-time RULE *or* an executable
+   verify-stage TRANSFORM — does not change gpt-5.5/xhigh's committed output string. The README channel
+   for output-suppression is **exhausted** (two mechanism-distinct attempts, both inert). The only
+   remaining levers that could suppress the injection live OUTSIDE the solver's discretion: (a) a
+   HARNESS/verifier-side post-process (out of scope for a README-only lever — it would change the
+   benchmark, not the solver); or (b) accept that stockmarket-q3 is not flippable by any
+   solver-README lever and treat the description-injection as a fixed gpt-5.5 trait. Neither is a new
+   README fork.
+5. **Next step: `file` → then `conclude` (REJECTED).** File the strong, transferable finding —
+   *output-shape suppression is not achievable via the solver README at gpt-5.5/xhigh; both a rule and
+   an executable verify-stage transform are inert against the committed answer string* — and recommend
+   the captain CONCLUDE dab0012 as REJECTED (no further README cycle has a distinct mechanism left to
+   try). This is a knowledge gain (a dead lever-family boundary), not a flip. No `probe` needed (the
+   committed artifact is unambiguous); no `escalate` (clean result, not infra).
+
+### Cycle 1 — generation-time prose inert
 
 **Primary type: `incomplete-artifact`** (target). The lever's prose reached the solver's context but
 NOT its committed answer — the artifact is unchanged from baseline. (Secondary: two canaries lost to
