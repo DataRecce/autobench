@@ -123,3 +123,88 @@ both, and confirmed `Tasks: 4` via `--explain`. The 4th canary is music_brainz_2
 non-target dataset) rather than stockmarket-q1 to satisfy G8's cross-dataset regression requirement.
 Gatekeeper recommends APPROVE with two advisory WARNs (single perturbable list canary yelp-q6; G7
 inert-risk on the replaced line — flip rides on the worked-example suppressing the description injection).
+
+## Smoke result
+
+**Verdict: NO-GO.** Run-dir `runs/dab0012-shape-aware-output-contract/9eee91ea2489003e` (15m wall).
+Strict audit CLEAN (4/4 trials clean, 0 tainted, 0 coverage-missing). Stratified Pass@1 = **0.25**
+(1 of 4 cells pass).
+
+| Cell | 6-draw band | Smoke | Verdict-delta | Validator message | Cause |
+|---|---|---|---|---|---|
+| stockmarket-q3 (target) | 0/6 | **0 / FAIL** | no flip | `No number found near name: Apex Global Brands Inc` | **lever INERT** — committed answer byte-identical to baseline failure mode |
+| yelp-q6 (list canary) | 4/6 | **0 / FAIL** | dropped | `Missing name: Coffee House Too Cafe` | **INFRASTRUCTURE** — Mongo business source unreachable → abstained `UNABLE TO DETERMINE` |
+| bookreview-q1 (sentinel) | 6/6 | **0 / FAIL** | dropped | `Ground truth '2020' not found in LLM output` | **INFRASTRUCTURE** — Postgres `Connection refused` (localhost:5432) → abstained `UNABLE TO DETERMINE` |
+| music_brainz_20k-q1 (sentinel) | 6/6 | **1 / PASS** | held | — | held |
+
+The headline 1/4 split is NOT three shape-rule regressions: only the **target** result is valid
+experiment evidence. Both canary "drops" are backend-connectivity failures (Mongo for yelp-q6,
+Postgres for bookreview-q1 — known DAB infra fragility, see memory `dab-mongo-segfault-no-restart`
+and the Postgres-attach path), so they are NOT canary-bleed and carry no signal about the contract.
+The cross-dataset sentinel that DID have a working backend (music_brainz_20k-q1) held cleanly.
+
+## Behavioral analysis
+
+**Target stockmarket-q3 — lever fully INERT (the decisive finding).** The committed answer string
+(extracted from the codex transcript's "Exact final answer string" block,
+`stockmarket-q3__RGp9845/.../rollout-…09-48-59….jsonl`) is **byte-for-byte the baseline failure
+mode** — every ranking row still carries the full company description:
+
+> `Apex Global Brands Inc. specializes in creating and marketing a diverse portfolio of fashion and
+> lifestyle brands, connecting consumers with trendy and innovative products worldwide.: 23781.42…;
+> BIO-key International, Inc. specializes in advanced biometric solutions…: 10988.14; …`
+
+The solver computed the correct 15 companies and the correct 2008 average volumes (verified in its
+own reasoning) — exactly as the hypothesis predicted — but the shape-branched `name: number` contract
+**did not reach the committed answer**: the description injection is fully present. The validator's
+`No number found near name: Apex Global Brands Inc` fires precisely because the description text sits
+between the name and the number, defeating the name→number proximity match. This is the **G7
+inert-risk materializing exactly as the gatekeeper flagged**: the replaced `Answer ONLY the question`
+line was already inert at gpt-5.5, and the concrete `name (what it does): number` worked-example did
+NOT change the behavior either. The flip rode entirely on suppression that never happened.
+
+**Canary drops — infrastructure, not regression.** yelp-q6 committed `UNABLE TO DETERMINE` with the
+explicit transcript reason *"The configured Mongo business source was absent/unreachable, so exact
+business name and category field values could not be determined"* (it had already computed
+`businessref_9`, avg 4.375 — the right entity, just couldn't name it). bookreview-q1 committed
+`UNABLE TO DETERMINE` after `connection to server at "localhost" (::1), port 5432 failed: Connection
+refused` against `bookreview_db`. Neither abstention is something the output-shape contract can cause
+(the contract governs answer formatting, not the decision to abstain when a backend is down).
+
+**Net:** the hypothesis is cleanly falsified on its own target — the description-injection fork is
+real but the README-prose contract is **behaviorally inert** at gpt-5.5/xhigh, the same wall the
+prior `Answer ONLY the question` line hit. A README formatting rule (even with a worked example) does
+not suppress the injection.
+
+## Failure Review
+
+**Primary type: `incomplete-artifact`** (target). The lever's prose reached the solver's context but
+NOT its committed answer — the artifact is unchanged from baseline. (Secondary: two canaries lost to
+`infrastructure-failure` — Mongo + Postgres backends unreachable — which is NOT experiment evidence
+and does not count as canary-bleed.)
+
+1. **Original hypothesized fork.** gpt-5.5 fails stockmarket-q3 purely on output SHAPE — it decorates
+   each ranking row with the company description; a shape-branched `name: number` contract (terse for
+   scalar/ranking, full enumeration for lists) would suppress the injection and flip it, while the
+   list branch protects yelp-q6.
+2. **What the committed artifact actually revealed.** The diagnosis of the fork was CORRECT (the
+   committed answer is the description-decorated ranking, computed values right) — but the *fix* was
+   wrong: the README contract is **inert**. The solver did not strip the descriptions; the answer is
+   identical to the baseline FAIL. A formatting instruction in `## Rules` does not change gpt-5.5's
+   committed output here, with or without a worked example.
+3. **Did the README rule fire?** No — no artifact evidence of firing. The committed string is
+   byte-identical to the baseline description-injected answer. This is the same inert-prose wall the
+   replaced `Answer ONLY the question` line hit (and the gatekeeper's G7 WARN predicted).
+4. **New fork / mechanism to test next.** The injection must be removed by a MECHANICAL step the
+   solver executes, not prose it can acknowledge and skip. Candidates: (a) a verify-stage post-process
+   that re-writes `answers.json` by regex-stripping any text between an entity name and its `:` number
+   in a ranking answer (a concrete transform, not a directive); (b) a worked SKELETON the solver copies
+   that builds the answer string in SQL as `name || ': ' || CAST(value AS VARCHAR)` (string assembled
+   from columns, leaving no slot for a description). Both move from "tell it to be terse" (inert) to
+   "give it the exact construction" (mechanical). Note the broader pattern: README-prose output
+   contracts are inert at gpt-5.5/xhigh — this is a transferable knowledge gain.
+5. **Next step: `file`.** File the inert-prose finding as a knowledge gain and route a follow-up that
+   makes the suppression MECHANICAL (option b — SQL string assembly skeleton — is the cleaner bet;
+   it cannot leave a description slot). Also: the two infra failures mean the smoke under-covered —
+   any re-smoke should confirm the Mongo (yelp) and Postgres (bookreview) backends are healthy before
+   trusting canary verdicts, OR swap to canaries on backends that were up (music_brainz held).
