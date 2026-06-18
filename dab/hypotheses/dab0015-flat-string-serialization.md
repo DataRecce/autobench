@@ -1,7 +1,7 @@
 ---
 id: dab0015
 title: googlelocal-q2 - pin flat-string serialization (no JSON) for list answers
-status: hypothesis
+status: propose
 kind: hypothesis
 source: dab0001 output-contract concept, re-targeted — the DECORATION sub-problem (stockmarket-q3) is dead via README (dab0012 REJECTED, _artifacts/readme-cannot-suppress-output-shape.md); this tests the distinct SERIALIZATION-FORMAT sub-problem, which is a deliberated structural choice rather than an un-perceived reflex
 started: 2026-06-18T11:40:00Z
