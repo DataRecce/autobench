@@ -1,7 +1,7 @@
 ---
 id: dab0012
 title: stockmarket-q3 - shape-aware output contract (scalar/ranking -> terse names+numbers; list -> full enumeration)
-status: hypothesis
+status: propose
 kind: hypothesis
 source: dab0001 ideate (retargeted to stockmarket-q3); _artifacts/model-strengths-cross-learning.md §2a + §4
 started: 2026-06-18T08:50:00Z
