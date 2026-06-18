@@ -101,3 +101,36 @@ bare decimal in the window → score-mismatch → 0, even though `5.0` is presen
 therefore **truthful and NOT overstated**: it says the matcher "searches your text for each expected
 name and a nearby numeric value" and that brackets/keys between name and value break that match — it does
 **not** claim a strict char-exact compare.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — single-idea flat-string format pin in the Answers section, integrity rules clean, generative G8 panel carries 2 perturbable list canaries + a scalar sentinel, and the consequence-framing is truthful to the substring+nearby-number matcher.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-18T14:20:00Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | Parent = `spacedock-readme-baseline` (README diff clean against it; matches `source:`). Diff is one hunk `89a90,107`: an 18-line block appended to the **Answers** section only — the flat-string-not-JSON pin + consequence-framing + foreign-domain worked example. No other stage (model/analyze/verify) or leak-guard prose touched. |
+| G2 leak-guard intact | PASS | `grep ground_truth\|db_description_withhint\|curl\|wget\|git clone` over the README hits only line 71 (`Do NOT access validate.py or ground_truth.csv`) — the **pre-existing** leak-guard rule, byte-identical to parent, NOT in the added block. The "Use only the workspace data" / HuggingFace / no-external-lookup paragraphs are unchanged. Added block introduces no oracle-file read and no withheld-hint paste. |
+| G3 spec two fields | PASS | `diff anchor vs full` = exactly two changes: `experiment: dab-anchor-codex → dab0015-flat-string-serialization` and `solver_workflow: ./...spacedock-readme-baseline → ./...dab0015-flat-string-serialization`. `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` all preserved. |
+| G4 smoke tasks+exclude | PASS | `diff full vs smoke` adds only `benchmark.tasks` (3 dataset names: googlelocal, music_brainz_20k, yelp) + `benchmark.exclude_tasks` (10 q-ids). Nothing else differs. Surviving set = 14 materialized − 10 = **4**: googlelocal-q2 (target, present), googlelocal-q4, yelp-q7, music_brainz_20k-q1 — matches the ensign's `--explain → Tasks: 4`. Target query included; regression sentinels present. |
+| G5 both frozen | PASS | Both `…frozen.yaml` (1806 B) and `…smoke.frozen.yaml` (1821 B) exist; each carries `agent.kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text = the claim verbatim (flat string, never JSON; no arrays/objects/brackets/keys; `Item A - 4.5; Item B - 4.3` form; foreign-domain Blue Bottle/Stumptown example). Generative format pin, not self-anchored "re-run/verify your own query". Consequence-framing says the matcher "searches your text for each expected name and a nearby numeric value" — truthful to validate.py's `find(name)` + `\d+\.\d+`-in-next-10-chars; does NOT overstate as strict char-exact. No scope creep. |
+| G7 actionability/inert-risk | PASS | Mechanical-substitution + worked-example: a concrete serialization form (`name - value; …`) with a copyable few-shot skeleton, not abstract query-restructuring prose. Low inert-risk. |
+| G8 regression-canary coverage | PASS | Generative (fires on every list answer). Surviving non-target @baseline passers (per_trial_outcomes, reward=1.0): googlelocal-q4 (same dataset + multi-row `name,value` shape — perturbable), yelp-q7 (cross-dataset Mongo+DuckDB list — perturbable), music_brainz_20k-q1 (scalar 1059.46 — sentinel, non-perturbable by design). ≥2 perturbable list canaries on the target's construct + a non-target passer → panel satisfied. Target googlelocal-q2 = 0.0 FAIL as stated. |
+| G9 selector independence | N/A | No multi-candidate / selector protocol declared. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever — it's a one-shot output-format pin, no "verify result and act on disagreement". |
+
+**For the captain:** Clean APPROVE, no FAILs and no WARNs. The G8 panel is genuinely perturbable (googlelocal-q4 is the strongest tripwire: same dataset + `name,value` list shape the lever fires on), and the matcher consequence-framing was verified truthful against validate.py. Only judgment call to keep in mind: this is the output-contract concept's serialization sub-problem after dab0012 proved the decoration sub-problem README-inert — if googlelocal-q2's committed answer is still JSON the whole concept is dead; if it flips by flat-string artifact the reflex-vs-deliberated distinction holds. Per the acceptance criteria, judge GO by committed flat-string artifact + zero canary drops, not single-draw reward.
+
+## Stage Report: propose
+
+- DONE: ONE knob — flat-string-not-JSON serialization rule added verbatim (flat delimited string, never arrays/objects/keys/brackets; truthful consequence-framing tied to the name+nearby-number matcher; foreign-domain cafes example) in the forked README's `## Answers` section; leak-guard intact; both spec diffs vs anchor show ONLY `experiment:` + `solver_workflow:` (smoke adds `benchmark.tasks` + `benchmark.exclude_tasks`).
+  README diff = one hunk `89a90,107` (Answers section only, no stage/leak-guard touched); full-spec diff = 2 fields; smoke-spec diff = tasks+exclude only. Commit 4ee98cd.
+- DONE: GENERATIVE-lever smoke set carries the G8 regression panel, confirmed EXACTLY via `rk run --explain` → `Tasks: 4`: target googlelocal-q2 + 2 PERTURBABLE multi-row list canaries (googlelocal-q4 same-dataset, yelp-q7 cross-dataset) + 1 cross-dataset scalar sentinel (music_brainz_20k-q1). Backend health confirmed at launch: dab-postgres `pg_isready` → accepting connections; dab-mongo `ping` → ok.
+  Substituted the dispatch's suggested yelp-q6 (single-row GT) with googlelocal-q4 + yelp-q7 (true multi-row `name,value` list GT) so the canaries are genuinely perturbable; rationale in the Smoke set block.
+- DONE: gatekeeper subagent ran against the variant artifacts; per-rule PASS/WARN/FAIL table + overall recommendation written into the `## Gatekeeper review` block.
+  Recommendation: APPROVE — no FAILs, no WARNs across G1–G10 (G9/G10 N/A); consequence-framing verified truthful against validate.py.
+
+### Summary
+
+Forked `spacedock-readme-baseline` → `dab0015-flat-string-serialization` and added one README idea in `## Answers`: write each answer value as a plain flat string, never JSON, with a truthful consequence-framing (the matcher searches text for each expected name + a nearby numeric value; brackets/keys between name and value break the match — NOT a char-exact-compare claim) and a foreign-domain worked example. Full spec = anchor + the two allowed fields; smoke survives exactly googlelocal-q2 (target) + googlelocal-q4/yelp-q7 (perturbable list canaries) + music_brainz_20k-q1 (scalar sentinel), confirmed via `--explain` (Tasks: 4) with both networked backends healthy. Gatekeeper recommends APPROVE with a clean per-rule table; this propose package is auditable and ready for the captain's smoke gate.
