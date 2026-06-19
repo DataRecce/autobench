@@ -217,9 +217,9 @@ Against Opus @baseline the diff is −17 cells, but that entangles the model swa
 ### Step 4-5 — causation at the honest ceiling
 The 3 non-infra stable failures (music_brainz_20k-q1/q3, GITHUB_REPOS-q4) are at most RELATED (single-trial global-prompt perturbation re-rolls the dice, the dab0009 lesson) — but their committed artifacts prove the *format mechanism* is innocent. At single-trial this is not proven causal in either direction; the matched-band read is the ceiling.
 
-### The two GAINS — both mechanism-attributed (artifact + reasoning)
+### The two GAINS — googlelocal-q2 mechanism-attributed; yelp-q6 attribution UNCLEAR
 - **`googlelocal-q2`** (target, 2/6 coin-flip): **HELD PASS** at full. Committed the identical flat `Angel-A Massage - 4.333…; Aurora Massage - 4.178…; Elite Massage - 5.0; J B Oriental Inc - 4.166…`; reasoning references "flat delimited"/"flat string". The pin is now adopted across TWO independent draws (smoke + full) — that materially hardens the flip above the 2/6 prior: **pin-adopted-real, not variance.**
-- **`yelp-q6`** (4/6): flipped to PASS. Committed flat `Coffee House Too Cafe - Restaurants, Breakfast & Brunch, American (New), Cafes` (single-row list flattened with ` - ` between name and categories), reasoning references the flat-string rule. Mechanism-attributed gain — notably the very cell the dispatch first proposed as a canary.
+- **`yelp-q6`** (4/6): passed this draw, committing flat `Coffee House Too Cafe - Restaurants, Breakfast & Brunch, American (New), Cafes`. **CORRECTION (attribution UNCLEAR — NOT counted as lever evidence):** on re-check this is NOT cleanly attributable to the flat-string rule. yelp-q6 is **4/6 at baseline** (passes ~67% on its own), we have only ONE lever-draw that ran it (full-2 died on Mongo infra), and a "full flat category list" is what *every* yelp-q6 pass looks like — lever or not — so the form is not lever-specific, and the transcript shows no rule-citation as the cause of the pass. Reclassify: **passed once, consistent with its 4/6 baseline; attribution unclear.** Only `googlelocal-q2` is counted as lever evidence.
 
 ### Codex-vs-Opus confound
 @baseline is Opus; this run is gpt-5.5 + the README rule. Every verdict-changed cell was attributed by committed artifact above: the 2 gains are README-rule-executed-and-helped; the stable failures are infra (PG outage) or wrong-value (model/sampling), never the format rule. A delta with no artifact attribution was not counted.
@@ -230,7 +230,7 @@ The 3 non-infra stable failures (music_brainz_20k-q1/q3, GITHUB_REPOS-q4) are at
 ## Failure Review
 
 - **What happened:** full run scored a headline 0.4355 with many stable cells failing, but `rk audit` shows it is infra-corrupted: 13/54 cells (all of crmarenapro) errored with `container dab-postgres … is unhealthy` and several PG-backed passers (bookreview-q3, googlelocal-q4, PANCANCER-q3) abstained with `could not translate host name` across a ~17:08–18:21 window. This is the recurring `dab-postgres` DNS/health flake compounding a whole-dataset compose failure — NOT the flat-string lever.
-- **Lever status:** clean on its own evidence — googlelocal-q2 held PASS (adopted flat artifact, 2 draws); yelp-q6 flipped (mechanism-attributed); no over-flatten / format mis-fire on any cell. The NO-GO falsification condition did not trigger.
+- **Lever status:** clean on its own evidence — googlelocal-q2 held PASS (adopted flat artifact, 2 draws); yelp-q6 passed once but its attribution is UNCLEAR (4/6 baseline, single lever-draw, non-lever-specific form) and is NOT counted as lever evidence; no over-flatten / format mis-fire on any cell. The NO-GO falsification condition did not trigger.
 - **Next step:** RE-RUN the full spec (`specs/dab0015-flat-string-serialization.frozen.yaml`) after confirming `dab-postgres` + `dab-mongo` are healthy AND verifying the per-trial PG container health check is stable (see memory `dab-mongo-segfault-no-restart-bricks-trial` / `dab-agent-image-nonroot-codex-perm` for the restart-policy fix lineage). Judge promotion on the clean board, against the gpt-5.5 matched band.
 
 ## Run result (re-run2)
@@ -273,7 +273,7 @@ Across the whole 54-cell board there is **no cell where the flat-string rule ove
 
 ### googlelocal-q2 + yelp-q6 mechanism
 - `googlelocal-q2`: **pin-adopted-real across THREE independent draws** (smoke + full-1 + full-2), each committing the flat `name - rating; …` form. This is well above the 2/6 coin-flip prior — the flip is the lever, not variance.
-- `yelp-q6`: was a mechanism-attributed flip in full-1; this run it could not run the query (Mongo down) and honestly abstained. Its FAIL here is infra, not a lever reversal.
+- `yelp-q6`: passed in full-1 (attribution UNCLEAR — see the correction above; 4/6 baseline, single lever-draw, non-lever-specific form, not counted as lever evidence); this run it could not run the query (Mongo down) and honestly abstained. Its FAIL here is infra, not a lever reversal.
 
 ### Recommendation
 **The lever is PROMOTABLE on its own evidence, but the BOARD is still infra-confounded — recommend ONE more re-run with BOTH backends confirmed stable for the full duration before the promotion decision.** The PG fix fully worked (crmarenapro clean), but a separate Mongo degradation (yelp business collection) + residual Postgres flake (pancancer) corrupted 5 cells this run. The lever's own signal is strong and clean: target held 3/3 draws by adopted flat artifact, zero format mis-fires, no canary broken by the rule. If the captain prefers not to spend another ~4h, the honest read is: judged against the gpt-5.5 matched band and excluding the infra cells, this lever is a clean +1 (googlelocal-q2) with no lever-caused regression — promotable. But a backend-stable re-run would remove the last asterisk on the board score.
@@ -283,3 +283,35 @@ Across the whole 54-cell board there is **no cell where the flat-string rule ove
 - **What happened:** the PG concurrency fix (88fa60f) resolved the crmarenapro wipeout (audit now 0 coverage_missing, crmarenapro 11/13). But a SEParate Mongo degradation hit yelp mid-run: the `businessinfo_database` business/category collection was unreachable (`serverSelectionTimeoutError` / `Connection refused`) on yelp-q1/q2/q5/q6, and a residual Postgres flake hit PANCANCER_ATLAS-q2 (`psycopg` / connection failed). 5 stable-band cells failed to infra; only stockindex-q3 was a genuine (non-format) analytical miss.
 - **Lever status:** clean — googlelocal-q2 held PASS a 3rd time with the adopted flat artifact; no over-flatten / format mis-fire on any of 54 cells; the NO-GO falsifier did not trigger.
 - **Next step:** ONE backend-stable re-run — confirm `dab-mongo` AND `dab-postgres` health is stable for the WHOLE run (not just at launch; container "Up N weeks" is not proof — see memory `dab-postgres-degradation-dual-signature` and `dab-mongo-segfault-no-restart-bricks-trial`). Then judge promotion on the clean board vs the gpt-5.5 6-draw band. Alternatively promote now on the lever's matched-band evidence (clean +1, zero lever regression) and accept the board asterisk.
+
+## Conclusion
+
+**Verdict: VALIDATED (GO), NOT PROMOTED.** Per captain decision, the seed baseline README
+(`solver_workflows/spacedock-readme-baseline`) is intentionally left unchanged; the flat-string
+rule and the knowledge it banks are recorded here for future composition.
+
+- **Attributable result — `googlelocal-q2` ONLY.** Baseline 2/6 coin-flip → the solver ADOPTED
+  the prescribed flat-string artifact (committed `name - rating; …`, no JSON brackets/keys) and
+  PASSED across **three consecutive draws** (smoke + full-1 + full-2). The committed flat form is
+  the lever's exact prescribed mechanism, and the model's own verify step cited the no-brackets
+  rule — so this is pin-adopted-real, not the 2/6 prior re-rolling. That is ~**1 cell, ≈+1.4 pts
+  stratified** — within the ±3-cell / noise-floor band, hence a real but small effect.
+- **Zero lever-caused regression across all 54 cells.** The over-flatten falsifier ("the
+  flat-string rule mangled a list that needed structure") **never fired** on any draw. Every
+  wrong-answer cell was an infra abstain (Postgres crmarenapro wipeout in full-1; Mongo yelp +
+  Postgres pancancer degradation in full-2), an Opus-vs-gpt-5.5 model difference, or within-band
+  analytical noise — never the format rule. `yelp-q6`'s one pass is attribution-unclear and not
+  counted (4/6 baseline, single lever-draw, non-lever-specific form).
+- **Knowledge banked (the larger payoff).** Output **SERIALIZATION-format is README-steerable at
+  gpt-5.5/xhigh** — a flat-string-not-JSON pin in `## Answers` works — whereas the output
+  **DECORATION reflex is NOT** (dab0012, dead-family both cycles). The **reflex-vs-deliberated
+  distinction** is now empirically grounded: gpt-5.5 will not act on suppressing content it does
+  not perceive as wrong (decoration), but reliably follows a deliberated representation choice
+  (JSON-vs-flat-string). This refines the "README is inert for output-shape" boundary to apply
+  only to the decoration reflex, not to all output-shape classes. (Memory:
+  `dab-flat-string-serialization-works`, refines `dab-readme-prose-output-contract-inert`.)
+- **Why not promoted.** A single within-noise cell (≈+1.4 pts) does not warrant editing the seed
+  baseline README. The rule + the reflex-vs-deliberated knowledge are recorded for future
+  composition (e.g. bundling with other pre-verified flips in one full run), per the gated-levers-
+  compose pattern. A backend-stable full run (both Mongo and Postgres healthy for the whole
+  duration) would remove the last board asterisk if a future promotion decision needs it.
