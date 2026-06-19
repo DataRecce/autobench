@@ -15,3 +15,17 @@ output-shape suppression is unreachable via the solver README — it's a generat
 reflex the model doesn't perceive as wrong, the README has no enforcement under it, and self-verify
 is correlated with the error. Fix is verifier-side (benchmark change), not a solver lever. Pre-empts
 dab0013/dab0014 (same axis). Full reason+suggestion: _artifacts/readme-cannot-suppress-output-shape.md
+
+## dab0015 (VALIDATED, NOT PROMOTED, 2026-06-19) — flat-string serialization works (1 cell)
+First gpt-5.5 lever to GO. A `## Answers` README rule pinning flat-string (not JSON) serialization,
+framed as a matcher-correctness consequence. Attributable result: googlelocal-q2 ONLY — 2/6 baseline →
+adopted the flat-string committed artifact and PASS across 3 consecutive draws (smoke + full-1 + full-2).
+~1 cell, ~+1.4 pts stratified (within the ±3 noise floor). Zero lever-caused regression across 54 cells
+(over-flatten falsifier never fired). yelp-q6 DOWNGRADED on FO artifact re-check: 4/6 baseline, one
+lever-draw, full-list form is not lever-specific, no rule-citation → not counted as lever evidence.
+Captain chose validated-but-NOT-promoted: a single within-noise cell doesn't warrant a seed-README edit;
+rule + knowledge recorded for future composition. KEY KNOWLEDGE: output SERIALIZATION-format is
+README-steerable at gpt-5.5 (deliberated choice), whereas the DECORATION reflex is NOT (dab0012 dead-family)
+— reflex-vs-deliberated distinction now empirically grounded. INFRA: full-1 PG-volume concurrency collision
+(fixed, PR #18) + full-2 Mongo serverSelectionTimeout; a fully-clean 54-cell board stayed elusive (different
+backend dropped each run). Detail: dab0015 entity ## Conclusion (commit 9ca5a8c).
