@@ -232,3 +232,54 @@ The 3 non-infra stable failures (music_brainz_20k-q1/q3, GITHUB_REPOS-q4) are at
 - **What happened:** full run scored a headline 0.4355 with many stable cells failing, but `rk audit` shows it is infra-corrupted: 13/54 cells (all of crmarenapro) errored with `container dab-postgres … is unhealthy` and several PG-backed passers (bookreview-q3, googlelocal-q4, PANCANCER-q3) abstained with `could not translate host name` across a ~17:08–18:21 window. This is the recurring `dab-postgres` DNS/health flake compounding a whole-dataset compose failure — NOT the flat-string lever.
 - **Lever status:** clean on its own evidence — googlelocal-q2 held PASS (adopted flat artifact, 2 draws); yelp-q6 flipped (mechanism-attributed); no over-flatten / format mis-fire on any cell. The NO-GO falsification condition did not trigger.
 - **Next step:** RE-RUN the full spec (`specs/dab0015-flat-string-serialization.frozen.yaml`) after confirming `dab-postgres` + `dab-mongo` are healthy AND verifying the per-trial PG container health check is stable (see memory `dab-mongo-segfault-no-restart-bricks-trial` / `dab-agent-image-nonroot-codex-perm` for the restart-policy fix lineage). Judge promotion on the clean board, against the gpt-5.5 matched band.
+
+## Run result (re-run2)
+
+Run-dir: `runs/dab0015-flat-string-serialization/605aada30f9b8580` (full re-run after the PG concurrency fix 88fa60f; the prior infra-corrupted run-dir was archived to `…605aada30f9b8580.infra-corrupted-20260618`). All-12, trials:1, ~4h.
+
+- `rk audit --policy strict`: **54 clean / 0 tainted / 0 coverage_missing.** The PG concurrency fix WORKED — crmarenapro is fully present and clean (0.846 = 11/13, recovered from the prior whole-dataset wipeout). No audit-level infra at all this time.
+- `rk score`: stratified Pass@1 = **0.5937**, 34/54 cells PASS, 0 errored. Per-dataset: bookreview 1.0, googlelocal 1.0, music_brainz_20k 1.0, crmarenapro 0.846, stockmarket 0.6, stockindex 0.667, GITHUB_REPOS/DEPS 0.5, PANCANCER 0.333, agnews 0.25, **yelp 0.429 (3/7)**, PATENTS 0.0.
+- **googlelocal-q2 target = PASS (3rd consecutive draw)** — committed flat `Aurora Massage - 4.178…; Angel-A Massage - 4.333…; Elite Massage - 5.0; J B Oriental Inc - 4.166…`, no JSON.
+
+## Behavioral analysis (re-run2)
+
+**Headline verdict: the PG side is now clean (crmarenapro recovered, audit 0 coverage_missing), BUT a SECOND backend — Mongo (yelp's business collection) plus residual Postgres (PANCANCER) — degraded mid-run, so the board is STILL infra-confounded for those cells. The flat-string lever itself remains clean: target held a 3rd time, no format mis-fire anywhere.**
+
+### The stable-cell fail cluster — separated INFRA vs LEVER (artifact + validator per cell)
+Five cells from the gpt-5.5 6/6-stable band failed. Classification:
+
+| Cell | Band | Committed answer | Validator reason | Class |
+|------|------|------------------|------------------|-------|
+| `yelp-q1` | 6/6 | (none / empty) | "No number found in LLM output" | **INFRA (Mongo)** — log: `Connection refused` / `ServerSelectionTimeoutError` |
+| `yelp-q2` | 6/6 | `MO, 3.906…` | "No 3.7 near PA/Pennsylvania" | **INFRA (Mongo)** — `business collection` unreachable, `serverSelection` timeout; fell back to partial answer |
+| `yelp-q5` | 6/6 | `PA - 3.58` | "No 3.48 near PA" | **INFRA (Mongo)** — `business collection` unavailable, `serverSelection`; degraded number |
+| `PANCANCER_ATLAS-q2` | 6/6 | `UNABLE TO DETERMINE` | fuzzy-miss | **INFRA (Postgres)** — log: `psycopg` / `Postgres connection to pancancer_clinical failed` / `unreachable` |
+| `stockindex-q3` | 6/6 | `IXIC - United States; GDAXI - Germany; 399001.SZ - China; TWII - Taiwan; N225 - Japan` | "Missing name: NSEI" | **ANALYTICAL** (NOT infra — stockindex is local DuckDB; correct FLAT format, missed one index) |
+
+Plus `yelp-q6` (4/6, the cell that flipped PASS in smoke + full-1): now `UNABLE TO DETERMINE` because the Mongo `businessinfo_database` business/category collection was unreachable (only the DuckDB `yelp_user.db` review/tip/user tables were accessible). It correctly ranked `businessref_9` but could not resolve the name/category → honest abstain. **INFRA (Mongo)** — exactly why it passed when Mongo was up and abstains now.
+
+**4 of 4 yelp failures + PANCANCER-q2 are infra (Mongo business collection + Postgres pancancer both degraded mid-run). The only non-infra stable miss (stockindex-q3) committed a correctly-formed flat string and missed a ranking element — analytical, NOT a format mis-fire.**
+
+### The flat-string mechanism — innocent everywhere (the NO-GO falsifier did not trigger)
+Across the whole 54-cell board there is **no cell where the flat-string rule over-flattened a list that needed structure, or mangled a correct answer into the wrong shape.** Every cell where the rule fired committed a correctly-formed flat string; scalars were left unchanged. The wrong-answer failures are infra abstains, model-vs-Opus differences, or within-band analytical noise — never the format rule.
+
+### Paired diff vs @baseline (Opus — confounded, recorded as requested)
+`rk runs diff` crashes on these run-dirs (missing `spec.frozen.yaml`, known); computed paired from `per_trial_outcomes.json`. Opus @baseline 37 PASS → re-run2 34 PASS, net **−3 cells** — but this entangles (a) the codex-vs-Opus model swap and (b) 4 infra cells in the regression list. Decomposed:
+- **GAINS vs Opus (4):** `googlelocal-q2` (target, README-rule-executed-and-helped — flat artifact, 3rd draw), `GITHUB_REPOS-q4` / `crmarenapro-q3` / `crmarenapro-q8` (model-difference gains, NOT lever-attributable — these are not list-format cells the rule fires on).
+- **REGRESSIONS vs Opus (7):** `yelp-q1`/`yelp-q2`/`yelp-q5`/`PANCANCER_ATLAS-q2` = **INFRA** (excluded); `stockindex-q3` = analytical (correct format); `crmarenapro-q13` = within-band noise (4/6 cell); `stockmarket-q3` = the dab0012 description-injection cell, 0/6 for gpt-5.5 regardless (model difference, the output-contract decoration wall — NOT this lever).
+
+### Codex-vs-Opus confound
+@baseline is Opus; this run is gpt-5.5 + README rule. Every verdict-changed cell was attributed by committed artifact: the only lever-attributable gain is googlelocal-q2 (rule executed and helped, flat artifact). All regressions are infra, model-difference, or within-band noise — none is the flat-string rule breaking a correct answer. A delta without artifact attribution was not counted.
+
+### googlelocal-q2 + yelp-q6 mechanism
+- `googlelocal-q2`: **pin-adopted-real across THREE independent draws** (smoke + full-1 + full-2), each committing the flat `name - rating; …` form. This is well above the 2/6 coin-flip prior — the flip is the lever, not variance.
+- `yelp-q6`: was a mechanism-attributed flip in full-1; this run it could not run the query (Mongo down) and honestly abstained. Its FAIL here is infra, not a lever reversal.
+
+### Recommendation
+**The lever is PROMOTABLE on its own evidence, but the BOARD is still infra-confounded — recommend ONE more re-run with BOTH backends confirmed stable for the full duration before the promotion decision.** The PG fix fully worked (crmarenapro clean), but a separate Mongo degradation (yelp business collection) + residual Postgres flake (pancancer) corrupted 5 cells this run. The lever's own signal is strong and clean: target held 3/3 draws by adopted flat artifact, zero format mis-fires, no canary broken by the rule. If the captain prefers not to spend another ~4h, the honest read is: judged against the gpt-5.5 matched band and excluding the infra cells, this lever is a clean +1 (googlelocal-q2) with no lever-caused regression — promotable. But a backend-stable re-run would remove the last asterisk on the board score.
+
+## Failure Review (re-run2 — second backend)
+
+- **What happened:** the PG concurrency fix (88fa60f) resolved the crmarenapro wipeout (audit now 0 coverage_missing, crmarenapro 11/13). But a SEParate Mongo degradation hit yelp mid-run: the `businessinfo_database` business/category collection was unreachable (`serverSelectionTimeoutError` / `Connection refused`) on yelp-q1/q2/q5/q6, and a residual Postgres flake hit PANCANCER_ATLAS-q2 (`psycopg` / connection failed). 5 stable-band cells failed to infra; only stockindex-q3 was a genuine (non-format) analytical miss.
+- **Lever status:** clean — googlelocal-q2 held PASS a 3rd time with the adopted flat artifact; no over-flatten / format mis-fire on any of 54 cells; the NO-GO falsifier did not trigger.
+- **Next step:** ONE backend-stable re-run — confirm `dab-mongo` AND `dab-postgres` health is stable for the WHOLE run (not just at launch; container "Up N weeks" is not proof — see memory `dab-postgres-degradation-dual-signature` and `dab-mongo-segfault-no-restart-bricks-trial`). Then judge promotion on the clean board vs the gpt-5.5 6-draw band. Alternatively promote now on the lever's matched-band evidence (clean +1, zero lever regression) and accept the board asterisk.
