@@ -257,17 +257,30 @@ test both reach and safety):
   **drop any that codex-batch doesn't also pass**.
 
 Compare each smoke run **two ways**: vs `@codex-batch-baseline` (overhead/regression) and vs
-Opus `@baseline` (headline). GO only if a target flips **and** no intersection-canary regresses
-vs `@codex-batch-baseline`. Then full over all 12.
+Opus `@baseline` (headline).
+
+**Non-regression is per-query and applies everywhere, not just to the named canaries.** The
+canary _datasets_ above are just the cheapest place to watch overhead; the actual blocker is:
+**no query that passes in both Opus and `@codex-batch-baseline` may regress — in any evaluated
+dataset, including the failing-target datasets and the full run.** crmarenapro has 10 passing
+queries; flipping q2 while breaking q1 is a fail, not a win. Every smoke/full report MUST
+include an explicit **regression table over all Opus ∩ `@codex-batch-baseline` passers in the
+evaluated set**, not just the chosen canaries.
+
+GO only if a target flips **and** zero Opus ∩ codex-batch passers regress. Then full over all 12.
 
 ## 6. Eval & acceptance
 
 - **Smoke GO/NO-GO:** at least one currently-failing target query flips to pass via the
-  committed dbt-model artifact (behavioral read, not just reward), **and no intersection-canary
-  (Opus ∩ `@codex-batch-baseline`, Gate 1.5) regresses vs `@codex-batch-baseline`** (the
-  overhead guard — the headline number to watch under mandatory).
-- **Full success:** stratified Pass@1 over all 12 datasets beats the Opus incumbent on a
-  clean `rk audit --policy strict`. Attribute by behavioral read — the model-swap confound
+  committed dbt-model artifact (behavioral read, not just reward), **and zero Opus ∩
+  `@codex-batch-baseline` passers regress anywhere in the smoke set** (per-query, across both
+  target and canary datasets — see Gate 2, not only the named canaries).
+- **Full success:** **(a)** stratified Pass@1 over all 12 datasets beats the Opus incumbent on
+  a clean `rk audit --policy strict`, **and (b) a hard non-regression bar — no Opus ∩
+  `@codex-batch-baseline` passer regresses anywhere in the full 12**, shown by an explicit
+  per-query regression table. Aggregate Pass@1 beating Opus is necessary but **not sufficient**:
+  a net-positive run that silently trades away incumbent passers is a FAIL, not a win.
+  Attribute by behavioral read — the model-swap confound
   (codex vs Opus, §7 of the autoresearch design) is on the _headline_ comparison; the
   _overhead_ question is answered cleanly by `@codex-batch-baseline`.
 - **Reward path unchanged:** `answers.json` remains the only graded output; the dbt project
