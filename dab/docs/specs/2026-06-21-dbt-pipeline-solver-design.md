@@ -20,6 +20,12 @@ exclusively (`verify.py` → `validate.py` → reward), so the dbt pipeline is *
 scaffolding* the README prescribes — it never appears in the graded artifact. That keeps
 the change inside the independent-variable rule.
 
+**dbt is baked into the `dab-agent` image** (we build that image), installed once and held
+**constant across the baseline and every variant run**. So dbt-in-image is part of the
+fixed environment, not a per-hypothesis change — the solver README remains the only thing
+that *varies between* compared runs, and the IV rule holds. (Runtime `pip install` is
+explicitly *not* used; it would make the environment vary with the README.)
+
 ## 2. Why this can work — the ADE/DAB shared spine
 
 ADE-bench (dbt repair/build, the deliverable *is* the model) and DAB (query answering)
@@ -38,9 +44,12 @@ as inline CTEs. This method relocates each step into an inspectable, testable mo
   collapse / `regexp_extract` year / etc.) — today's "Step 1 — Normalize first."
 - **Step 2 — answer / find where it's broken:** `int_*` models do entity resolution
   (OR-across-dirty-fields) — today's "Step 2." Generic **dbt tests** (`unique` on the
-  declared grain, `not_null` on join keys, a parent/child rowcount-reconcile test) are the
-  "find where the model is broken" step: a red test *localizes* the dirty data. This is the
-  ADE-style debug step, reused for free.
+  declared grain, `not_null` on join keys, a parent/child rowcount-reconcile test) live on
+  the **resolved** models and assert the *post-resolution* invariant. A red test means the
+  resolution model is still wrong (one logical entity fragmented, grain not yet collapsed) —
+  i.e. *your build* is broken. This is the ADE-style debug step, reused for free: the agent
+  fixes the resolution model and re-runs until tests pass. A red test is **never** reported
+  as the answer.
 - **Final — answer:** `analyze` queries the mart → `answers.json` — today's "Step 3."
 
 ## 3. Scope decision — gated, not mandatory
@@ -67,30 +76,41 @@ Fork `solver_workflows/spacedock-readme-baseline` → `dab00NN-dbt-gated-pipelin
 
 ```
 stage: model
-  read db_description.txt + connections.yaml
+  read db_description.txt + connections.yaml          # dbt is preinstalled in the image
   IF schema warns (duplicate / different-source / dirty entity fields):
-     ensure dbt:  dbt --version || pip install dbt-duckdb
      scaffold a minimal dbt project in _artifacts/dbt/
        profiles.yml -> duckdb, ATTACH the workspace SQLite/PG/DuckDB sources
        stg_*  models : normalize string keys (lower, regexp ws-collapse, year extract)
        int_*  models : resolve entities (OR across dirty normalized fields)
-       schema.yml    : tests -> unique(grain), not_null(keys), rowcount reconcile
-     dbt run && dbt test
+       schema.yml    : tests on RESOLVED models -> unique(grain), not_null(keys),
+                       rowcount reconcile
+     LOOP: dbt run ; dbt test ; if red -> fix the resolution model ; repeat
+           until green (or, if grain is irreducibly ambiguous, stop and record
+           the unresolved invariant in reasoning.md)
+     # the model stage does NOT hand off to analyze with a red test
   ELSE:
      skip dbt; produce context.md from plain DuckDB exploration (baseline behavior)
-  output: _artifacts/context.md  (+ _artifacts/dbt/ when built)
+  output: _artifacts/context.md  (+ green _artifacts/dbt/ when built)
 
 stage: analyze
-  IF dbt pipeline was built: query the int_*/mart models -> answers.json
+  IF dbt pipeline was built: query the (green) int_*/mart models -> answers.json
   ELSE: plain DuckDB SQL -> answers.json  (baseline behavior)
+  if model stage recorded an unresolved invariant for a query -> "UNABLE TO DETERMINE"
   output: answers.json, _artifacts/reasoning.md
 
 stage: verify  (feedback-to: analyze)
-  re-derive each answer; if a dbt test was red, treat the failing test as the
-  located data bug and confirm the resolution model handled it
+  re-derive each answer from the green mart; read the passing dbt tests as evidence
+  the grain/keys are sound; REJECT if an answer doesn't reconcile or a query was
+  silently answered over a model whose invariant was never made green
   external-oracle audit unchanged (leak-guard)
   output: PASSED / REJECTED stage report
 ```
+
+**Failure contract (one rule).** dbt tests are a **hard gate on the resolved models**, not
+a diagnostic the answer rides on. Green before `analyze`, or the affected query is
+`UNABLE TO DETERMINE`. The intra-stage `model` loop owns the fix; `verify → analyze`
+feedback owns answer-level rejections. There is no path where `answers.json` is built on a
+model with a red test.
 
 ### Components & boundaries
 
@@ -110,11 +130,10 @@ stage: verify  (feedback-to: analyze)
 Nothing about dbt exists in the DAB environment today (no dbt in the plugin, the workspace,
 the baseline README; agent image is `dab-agent:latest`). Before the real hypothesis is
 worth authoring, prove:
-1. `dbt` + `dbt-duckdb` is installed **or** runtime-installable. The denylist
-   (`tools_denied.py`) blocks only `datasets/huggingface/transformers/evaluate` installs,
-   so `pip install dbt-duckdb` is *permitted* — **iff the solver container has a reachable
-   pip index.** If it does not, the method is dead unless dbt is baked into the image (a
-   declared environment change, held constant across variants).
+1. `dbt` + `dbt-duckdb` runs in the solver container. **Decision: baked into the
+   `dab-agent` image** (we build it), held constant across baseline + variants (see §1).
+   The probe just confirms `dbt --version` resolves and a trivial model builds — no runtime
+   install, no pip-network dependency.
 2. dbt-duckdb can ATTACH the workspace SQLite / PostgreSQL / DuckDB sources.
 3. **Mongo** — the adapter risk. dbt-duckdb has no native Mongo; it only works through
    DuckDB's mongo extension *inside* a model. Either prove that path or restrict the method
@@ -153,16 +172,16 @@ regression). Then full; `rk runs diff` vs Opus `@baseline`.
 - **New failure surface:** a broken dbt build/test can zero a query the baseline passed.
   `verify` + canaries catch this; the gate keeps it off simple queries.
 - **Mongo adapter gap:** handled at Gate 0 (prove or exclude).
-- **pip-install flakiness / no network:** handled at Gate 0 (decide runtime-install vs
-  baked image).
+- **Image drift:** dbt is baked into `dab-agent`; the image must be rebuilt and the SAME
+  image used for baseline and variants, or the comparison reintroduces an environment
+  confound. Pin/record the image digest at freeze time.
 - **Leak-guard:** unaffected — dbt reads only workspace DBs; the external-oracle audit in
   `verify` is unchanged.
 
 ## 8. Open questions (resolve at Gate 0 / propose)
 
-1. Runtime `pip install dbt-duckdb` (keeps the lever README-only) vs. bake dbt into
-   `dab-agent:latest` (declared env baseline). Prefer runtime install unless the container
-   has no pip network.
+1. ~~Runtime install vs. baked image~~ — **resolved: baked into `dab-agent`, constant
+   across runs** (§1). Remaining: pin the image digest at freeze so baseline/variant share it.
 2. Which target datasets are Mongo — fixes the smoke set.
 3. Scratch materialization: separate duckdb file under `_artifacts/dbt/` vs. in-memory —
    pick whatever survives the `model → analyze` stage boundary cleanly.
