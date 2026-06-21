@@ -1,11 +1,14 @@
 ---
 id: dab0013
 title: stockmarket-q3 - strip entity descriptions from ranking rows (anti-decoration, no list branch)
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: dab0001 ideate (retargeted to stockmarket-q3); isolates the anti-decoration half of dab0012
 started: 2026-06-18T08:50:00Z
 score: 0.75
+completed: 2026-06-21T03:47:05Z
+verdict: rejected
+archived: 2026-06-21T03:47:15Z
 ---
 
 ## Hypothesis

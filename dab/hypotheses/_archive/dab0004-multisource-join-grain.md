@@ -5,6 +5,9 @@ kind: concept
 source: flipped-query-targets.md + GITHUB-q4 reasoning audit (the NULL-language edge case is the crux)
 id: dab0004
 score: 0.15
+completed: 2026-06-21T03:47:15Z
+verdict: rejected
+archived: 2026-06-21T03:47:15Z
 ---
 
 ## Direction

@@ -5,6 +5,9 @@ kind: concept
 source: CAIS cross-experiment scan — minimal/direct workspaces solve crmarenapro-q8 (5/5) but spacedock suppresses it (codex 0/5)
 id: dab0005
 score: 0.4
+completed: 2026-06-21T03:47:05Z
+verdict: rejected
+archived: 2026-06-21T03:47:05Z
 ---
 
 ## Direction

@@ -1,11 +1,14 @@
 ---
 id: dab0014
 title: yelp-q6 - list-answer completeness (emit every element; do not collapse to the first)
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: dab0001 ideate (the LIST half of the shape-aware contract, isolated as a stabilizer probe)
 started: 2026-06-18T08:50:00Z
 score: 0.55
+completed: 2026-06-21T03:47:05Z
+verdict: rejected
+archived: 2026-06-21T03:47:15Z
 ---
 
 ## Hypothesis

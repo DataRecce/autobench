@@ -1,10 +1,13 @@
 ---
 title: Pin aggregation and filter semantics — counts, thresholds, date windows, NULL handling
-status: concept
+status: expanded
 kind: concept
 source: flipped-query-targets.md (several flipped queries hinge on getting one aggregation/filter rule exactly right)
 id: dab0003
 score: 0.75
+completed: 2026-06-21T03:47:15Z
+verdict: expanded
+archived: 2026-06-21T03:47:16Z
 ---
 
 ## Direction

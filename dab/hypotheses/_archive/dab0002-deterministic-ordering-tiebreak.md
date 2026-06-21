@@ -1,10 +1,13 @@
 ---
 title: stockmarket-q4 - Kill run-to-run flakiness with deterministic ordering, explicit tie-breakers, and stable filters
-status: concept
+status: expanded
 kind: concept
 source: flipped-query-targets.md (the flipped 1/5–4/5 Opus queries are unstable, not unsolvable)
 id: dab0002
 score: 0.6
+completed: 2026-06-21T03:47:15Z
+verdict: expanded
+archived: 2026-06-21T03:47:15Z
 ---
 
 ## Direction
