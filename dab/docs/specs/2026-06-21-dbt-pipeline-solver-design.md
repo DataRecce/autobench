@@ -190,12 +190,13 @@ to vendor it into razorback is still backlog):
    docker build --build-arg EXEUNTU_DIGEST="${EXEUNTU_DIGEST}" \
      -f benchmark/Dockerfile.agent -t dab-agent:latest .
    ```
-3. **Pin the digest:** record `docker inspect --format '{{.Id}}' dab-agent:latest` in the
-   frozen spec so baseline and variant provably share the image (see §7 Image drift).
+3. **Record the digest for provenance** (not enforcement): note
+   `docker inspect --format '{{.Id}}' dab-agent:latest` alongside the run. See §7 "Image
+   drift (accepted)" for why we do not gate on it.
 
 No re-baseline needed: an unused package doesn't change the non-dbt path's behavior, and
-`@baseline` is the converted Opus run — so installing dbt is environment-neutral for
-everything except the new dbt variant.
+`@baseline` is the converted Opus run (a separate, frozen historical image) — so installing
+dbt is environment-neutral for everything except the new dbt variant.
 
 **Gate 1 — author the gated README lever** (only if Gate 0 = GO). Fork + edit per §4,
 create full + smoke specs differing from baseline only in `experiment:` + `solver_workflow:`,
@@ -225,9 +226,20 @@ regression). Then full; `rk runs diff` vs Opus `@baseline`.
 - **New failure surface:** a broken dbt build/test can zero a query the baseline passed.
   `verify` + canaries catch this; the gate keeps it off simple queries.
 - **Mongo adapter gap:** handled at Gate 0 (prove or exclude).
-- **Image drift:** dbt is baked into `dab-agent`; the image must be rebuilt and the SAME
-  image used for baseline and variants, or the comparison reintroduces an environment
-  confound. Pin/record the image digest at freeze time.
+- **Image drift (accepted confound — captain decision 2026-06-21).** dbt is baked into the
+  mutable `dab-agent:latest` tag, and `rk`'s run path does not enforce a frozen
+  `image_digest` (compose materializes `image: dab-agent:latest` verbatim). We **accept**
+  this rather than build digest-enforcement, on three grounds: (1) the comparison reference
+  is the Opus `@baseline`, a separate frozen historical image — there is no codex baseline
+  run to keep digest-matched, so the relevant model+environment gap is already the documented
+  confound from §7 of the autoresearch design; (2) we control the image and rebuild it
+  deterministically from the pinned exeuntu digest, so drift is operator-introduced, not
+  ambient; (3) installed-but-unused packages are treated as behavior-neutral on the non-dbt
+  path. **Residual risk:** dbt-core's transitive deps (jinja2, pyyaml, click, …) could bump
+  a package the baseline path *does* use (`pyyaml` is already in the image). Mitigation: the
+  canary set (§5 Gate 2) catches any regression on currently-passing clean datasets; if a
+  canary moves unexpectedly, suspect a dependency bump and pin it. The digest is recorded for
+  provenance only.
 - **Leak-guard:** unaffected — dbt reads only workspace DBs; the external-oracle audit in
   `verify` is unchanged.
 
