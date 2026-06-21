@@ -171,9 +171,14 @@ worth authoring, prove:
    Mongo-only dataset exists. The Gate-0 probe only needs to confirm SQLite/PostgreSQL/DuckDB
    attach (item 2); Mongo is not on the critical path.
 
-Probe mechanism: a throwaway README that runs the attach/`dbt run`/`dbt test` on a
-single dataset and writes the outcome to `_artifacts/feasibility.md`. Run
-`rk run --explain` first, then a 1-query smoke.
+Probe mechanism: a throwaway README that exercises **the actual load-bearing runtime**, not a
+toy case. Run it on a **multi-query** dataset (**`crmarenapro`**, 13 queries) under
+**`query_mode: batch` + `workspace_variant: spacedock`**, and require it to: build the dbt
+pipeline **once**, answer **all** queries from the models into one `answers.json`, and pass
+`verify_batch`. It must also confirm the dbt scratch project survives the `model → analyze`
+stage boundary (§8 #3). Write the outcome to `_artifacts/feasibility.md`. Run `rk run --explain`
+first. A 1-query/per-query probe is **insufficient** — it never touches batch, `verify_batch`,
+or the multi-query build-once path, so it could green-light a runtime that's actually broken.
 
 **Agent image — concrete build (execute at implementation).** The `dab-agent:latest`
 Dockerfile is **not** in this repo; it lives in the sibling `dataagentbench` repo (PKG-24
@@ -205,66 +210,75 @@ The Opus `@baseline` does not need rerunning: it's a converted legacy run on a s
 frozen image, and adding an unused package doesn't change anything that doesn't import it.
 (The _codex_ baseline below is a separate, deliberate addition — not forced by the image.)
 
-**Gate 1 — author the README lever** (only if Gate 0 = GO). Fork + edit per §4, create
-full + smoke specs differing from baseline only in `experiment:` + `solver_workflow:`,
-`rk freeze --allow-missing`.
-
 **Execution mode — `query_mode: batch` (load-bearing for mandatory dbt).** A DAB dataset has
 many queries (crmarenapro has 13). The plugin's default `query_mode: per-query` materializes
 one workspace **per query**, which would rebuild the whole dbt pipeline once per query — e.g.
-13× for crmarenapro, pure waste. Set **`plugin_args.query_mode: batch`** (with
+13× for crmarenapro, pure waste. We run **`plugin_args.query_mode: batch`** (with
 **`workspace_variant: spacedock`**): one workspace **per dataset**, all queries answered in a
 single turn (`verify_batch` validates each query → per-query rewards, so stratified Pass@1 is
 unchanged and comparable). This makes "build the dbt pipeline **once per dataset**, query it
-for every question" actually true — it's the runtime that realizes the §1 two-phase shape.
+for every question" actually true — it's the runtime that realizes the §1 two-phase shape. The
+current `codex-dab-baseline.yaml` sets neither (→ per-query); the new specs set both explicitly.
 
-- **The current `codex-dab-baseline.yaml` sets neither → defaults to per-query.** It must be
-  set explicitly to batch.
-- **IV implication:** `query_mode`/`workspace_variant` are `plugin_args`, **not** the README
-  lever. To keep "only the README varies," `@codex-baseline` (Gate 1.5) and the dbt variant
-  **both** run `batch` + `spacedock` — these are held-constant spec constants in both specs
-  (see §9). The Opus `@baseline` is a fixed historical run and stays in the headline-confound
-  bucket regardless.
+**Gate 1 — freeze the comparison anchor: `@codex-batch-baseline`.** The mandatory-dbt shape
+requires `batch` + `spacedock` `plugin_args`, which the old per-query `codex-dab-baseline` does
+**not** use — so the variant is *not* a two-field diff against that old spec. Instead:
 
-**Gate 1.5 — establish a codex baseline (NEW, required for overhead attribution).** Run the
-**current baseline README (no dbt) on codex/gpt-5.5** over the smoke set (targets + canaries),
-under the rebuilt dbt-containing image. This gives codex's _own_ current per-dataset scores.
-Rationale: the dbt variant also runs codex, so overhead regression must be judged against
-codex-without-dbt, not against Opus — otherwise the model swap (codex vs Opus) and the dbt
-overhead are entangled and a canary drop can't be attributed. Register it as a project-local
-run (e.g. `@codex-baseline`); it is the **overhead reference**, while Opus `@baseline` stays
-the **headline (beat-the-incumbent) reference**.
+1. Author a **`codex-dab-batch-baseline.yaml`**: the current baseline README (no dbt) +
+   `plugin_args.query_mode: batch` + `workspace_variant: spacedock`. Freeze it; register the
+   run as **`@codex-batch-baseline`**. This is the proper apples-to-apples anchor (same model,
+   same runtime grouping, no dbt).
+2. Fork `solver_workflows/spacedock-readme-baseline` → `dab00NN-dbt-pipeline` and edit its
+   README per §4. Create the **dbt variant spec by copying `codex-dab-batch-baseline.yaml` and
+   changing only `experiment:` + `solver_workflow:`** — *that* is the clean single-lever
+   (README-only) diff. `query_mode` and `workspace_variant` are identical on both sides, so
+   they cancel.
+
+`rk freeze --allow-missing` both. (The old per-query `codex-dab-baseline` is superseded as the
+comparison anchor; Opus `@baseline` remains only the headline-incumbent reference, §6.)
+
+**Gate 1.5 — measure `@codex-batch-baseline` and intersect the canary pool.** Running
+`@codex-batch-baseline` over the smoke set gives codex's _own_ current per-dataset scores
+(codex ≠ Opus). **Define canaries as the intersection: queries that pass in *both* Opus
+incumbent *and* `@codex-batch-baseline`.** This closes the gap where a dataset Opus passes but
+codex-batch already fails could be picked as a canary and let the variant lose an
+incumbent-passing dataset while still "passing" the canary rule. **Separately flag** any
+Opus-passing dataset that `@codex-batch-baseline` already regresses — that's a finding about
+codex/batch itself (independent of dbt), to record before judging the variant.
 
 **Gate 2 — eval.** Smoke a **mix** (mandatory dbt touches every dataset, so the smoke set must
 test both reach and safety):
 
 - **Failing targets** (can dbt flip them?): **crmarenapro** (q2/q3/q8; the one target whose
   schema also warrants entity resolution) + **GITHUB_REPOS** (multi-value parse via `int_*`).
-- **Canaries** (does mandatory-dbt overhead regress a passer?): **bookreview /
-  music_brainz_20k / stockindex** (all 3/3), plus a near-perfect one — **stockmarket** (4/5)
-  or **googlelocal** (3/4).
+- **Canaries** (does mandatory-dbt overhead regress a passer?): from the **Opus ∩
+  `@codex-batch-baseline`** intersection (Gate 1.5) — start from **bookreview /
+  music_brainz_20k / stockindex** + a near-perfect one (**stockmarket** / **googlelocal**), but
+  **drop any that codex-batch doesn't also pass**.
 
-Compare each smoke run **two ways**: vs `@codex-baseline` (overhead/regression) and vs Opus
-`@baseline` (headline). GO only if a target flips **and** no canary regresses vs the codex
-baseline. Then full over all 12.
+Compare each smoke run **two ways**: vs `@codex-batch-baseline` (overhead/regression) and vs
+Opus `@baseline` (headline). GO only if a target flips **and** no intersection-canary regresses
+vs `@codex-batch-baseline`. Then full over all 12.
 
 ## 6. Eval & acceptance
 
 - **Smoke GO/NO-GO:** at least one currently-failing target query flips to pass via the
-  committed dbt-model artifact (behavioral read, not just reward), **and no canary regresses
-  vs `@codex-baseline`** (the overhead guard — the headline number to watch under mandatory).
+  committed dbt-model artifact (behavioral read, not just reward), **and no intersection-canary
+  (Opus ∩ `@codex-batch-baseline`, Gate 1.5) regresses vs `@codex-batch-baseline`** (the
+  overhead guard — the headline number to watch under mandatory).
 - **Full success:** stratified Pass@1 over all 12 datasets beats the Opus incumbent on a
   clean `rk audit --policy strict`. Attribute by behavioral read — the model-swap confound
   (codex vs Opus, §7 of the autoresearch design) is on the _headline_ comparison; the
-  _overhead_ question is answered cleanly by the codex baseline.
+  _overhead_ question is answered cleanly by `@codex-batch-baseline`.
 - **Reward path unchanged:** `answers.json` remains the only graded output; the dbt project
   is scaffolding.
 
 ### Incumbent per-dataset scores (Opus `@baseline`, xhigh +hints; 54 q / 12 ds; strat. P@1 = 0.654)
 
 Source: `dab/hypotheses/_artifacts/dataset-gap-ranking.md`. Used to pick targets (headroom)
-and canaries (currently passing). **Note these are _Opus_ scores — `@codex-baseline`
-(Gate 1.5) gives codex's own numbers, which is what the canary check actually compares against.**
+and canaries (currently passing). **Note these are _Opus_ scores — `@codex-batch-baseline`
+(Gate 1.5) gives codex's own numbers; canaries are the Opus ∩ codex-batch intersection, and
+the canary check compares against `@codex-batch-baseline`.**
 
 | group | dataset | score | queries | failing |
 | --- | --- | --- | --- | --- |
@@ -286,7 +300,7 @@ and canaries (currently passing). **Note these are _Opus_ scores — `@codex-bas
 - **Overhead regression — PRIMARY risk under mandatory** (`dab0005-methodology-overhead-recovery`):
   forcing dbt onto every dataset (including clean, 1-query ones) costs budget/context and can
   regress a passer. No gate to fall back on. Mitigated by: (1) a minimal templated scaffold so
-  the agent fills models not boilerplate; (2) `@codex-baseline` (§5 Gate 1.5) for clean
+  the agent fills models not boilerplate; (2) `@codex-batch-baseline` (§5 Gate 1.5) for clean
   attribution; (3) canaries in every smoke set as a hard stop-signal. If overhead regresses
   canaries broadly, the mandatory decision itself is falsified — fall back to gating.
 - **New failure surface:** a broken dbt build/test can zero a query the baseline passed —
@@ -297,7 +311,7 @@ and canaries (currently passing). **Note these are _Opus_ scores — `@codex-bas
 - **Image drift (accepted confound — captain decision 2026-06-21).** dbt is baked into the
   mutable `dab-agent:latest` tag, and `rk`'s run path does not enforce a frozen
   `image_digest` (compose materializes `image: dab-agent:latest` verbatim). We **accept**
-  this rather than build digest-enforcement, on three grounds: (1) `@codex-baseline` and the
+  this rather than build digest-enforcement, on three grounds: (1) `@codex-batch-baseline` and the
   dbt variant are run back-to-back under the **same rebuilt image**, so they are digest-matched
   in practice; the only un-matched reference is the Opus `@baseline` (a separate frozen
   historical image), whose model+environment gap is already the documented confound from §7 of
@@ -324,14 +338,14 @@ and canaries (currently passing). **Note these are _Opus_ scores — `@codex-bas
 4. ~~Gated vs. mandatory~~ — **resolved: mandatory** (§3), reversing the earlier gated draft;
    the unified-query architecture (§1) requires it.
 5. **Does mandatory-dbt overhead regress currently-passing datasets?** — the central
-   empirical unknown. Not answerable on paper; the Gate-2 canaries vs `@codex-baseline`
+   empirical unknown. Not answerable on paper; the Gate-2 canaries vs `@codex-batch-baseline`
    decide it. If they regress broadly, fall back to gating (§7).
 
 ## 9. Non-goals
 
 - No per-question dbt models or question-specific tests (would break reusability and the
   IV discipline).
-- The README is the only lever that **varies between** `@codex-baseline` and the variant.
+- The README is the only lever that **varies between** `@codex-batch-baseline` and the variant.
   `query_mode: batch` + `workspace_variant: spacedock` are set in **both** specs as
   held-constant constants (§5 Execution mode) — they change the runtime grouping, not the
   comparison. Grader, runtime, model, and sampling are otherwise unchanged.
