@@ -164,9 +164,38 @@ worth authoring, prove:
    to non-Mongo datasets. Determine which target datasets are Mongo (`compose.py` builds
    `dab-mongo`) **before** fixing the smoke set.
 
-Probe mechanism: a throwaway README that runs the install/attach/`dbt run`/`dbt test` on a
+Probe mechanism: a throwaway README that runs the attach/`dbt run`/`dbt test` on a
 single dirty-data query and writes the outcome to `_artifacts/feasibility.md`. Run
 `rk run --explain` first, then a 1-query smoke.
+
+**Agent image — concrete build (execute at implementation).** The `dab-agent:latest`
+Dockerfile is **not** in this repo; it lives in the sibling `dataagentbench` repo (PKG-24
+to vendor it into razorback is still backlog):
+
+- Dockerfile: `dataagentbench/benchmark/Dockerfile.agent` (exeuntu base + one pip layer)
+- Build orchestration: `dataagentbench/benchmark/setup.sh:147-152`
+- Image-name constant: `razorback-plugin-dab/.../generate/compose.py:14` (`DEFAULT_AGENT_IMAGE`)
+
+1. **Add dbt to the pip layer** in `Dockerfile.agent` — append `dbt-core dbt-duckdb` to the
+   existing `pip install --break-system-packages` line (alongside
+   `duckdb psycopg2-binary pymongo pyyaml python-dotenv`). Only `dbt-duckdb` — DAB reaches
+   SQLite/PG/Mongo *through* DuckDB `ATTACH`, so no `dbt-postgres` is needed.
+2. **Rebuild** (self-contained — the Dockerfile `COPY`s nothing; reuse the pinned base digest
+   from `setup.sh:36` so only the dbt layer changes):
+
+   ```bash
+   cd <path-to>/dataagentbench
+   EXEUNTU_DIGEST="sha256:3b4a7e6d616929d0c07fe827711d444ca8d1ebd2f0ce54788d697b9f125a2e82"
+   docker pull "ghcr.io/boldsoftware/exeuntu@${EXEUNTU_DIGEST}"
+   docker build --build-arg EXEUNTU_DIGEST="${EXEUNTU_DIGEST}" \
+     -f benchmark/Dockerfile.agent -t dab-agent:latest .
+   ```
+3. **Pin the digest:** record `docker inspect --format '{{.Id}}' dab-agent:latest` in the
+   frozen spec so baseline and variant provably share the image (see §7 Image drift).
+
+No re-baseline needed: an unused package doesn't change the non-dbt path's behavior, and
+`@baseline` is the converted Opus run — so installing dbt is environment-neutral for
+everything except the new dbt variant.
 
 **Gate 1 — author the gated README lever** (only if Gate 0 = GO). Fork + edit per §4,
 create full + smoke specs differing from baseline only in `experiment:` + `solver_workflow:`,
