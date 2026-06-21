@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ade-bench autoresearch loop — 2-week program retrospective</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-soft: #131a24;
+    --card: #161d28;
+    --card-2: #1b2430;
+    --border: #283443;
+    --ink: #e6edf3;
+    --ink-soft: #aab6c4;
+    --ink-dim: #7d8b9a;
+    --accent: #4fc3f7;
+    --accent-2: #7c9cff;
+    --good: #3fb950;
+    --bad: #f85149;
+    --warn: #e3b341;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 700px at 80% -100px, #1a2740 0%, var(--bg) 55%);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---- Hero ---- */
+  header.hero {
+    padding: 90px 0 60px;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.08;
+    margin: 0 0 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  h1 .grad {
+    background: linear-gradient(92deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .lede {
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+    max-width: 720px;
+  }
+
+  /* ---- Score strip ---- */
+  .scoreline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 38px;
+  }
+  .chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 130px;
+    flex: 1 1 130px;
+  }
+  .chip .num { font-size: 1.7rem; font-weight: 800; font-family: var(--mono); }
+  .chip .lab { font-size: 0.78rem; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+  .chip.cold .num { color: var(--bad); }
+  .chip.fix .num  { color: var(--good); }
+  .chip.end .num  { color: var(--accent); }
+  .chip.goal .num { color: var(--warn); }
+
+  /* ---- Sections ---- */
+  section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+  .sec-num {
+    font-family: var(--mono);
+    color: var(--accent-2);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+  }
+  h2 {
+    font-size: 1.75rem;
+    margin: 6px 0 8px;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+  }
+  h3 { font-size: 1.15rem; margin: 28px 0 6px; color: var(--ink); }
+  p { color: var(--ink-soft); }
+  .sub { color: var(--ink-dim); font-size: 0.98rem; margin-top: -2px; }
+  strong { color: var(--ink); }
+
+  /* ---- Callout ---- */
+  .callout {
+    background: linear-gradient(180deg, var(--card-2), var(--card));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 22px 0;
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.good { border-left-color: var(--good); }
+  .callout .tag {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .callout.warn .tag { color: var(--warn); }
+  .callout.good .tag { color: var(--good); }
+  .callout p { margin: 0; color: var(--ink); }
+
+  /* ---- Timeline / arc ---- */
+  .phases { display: grid; gap: 14px; margin-top: 26px; }
+  .phase {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 18px;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    position: relative;
+  }
+  .phase .ph-id {
+    font-family: var(--mono);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accent-2);
+    text-align: center;
+  }
+  .phase .ph-title { font-weight: 700; color: var(--ink); }
+  .phase .ph-meta { font-size: 0.86rem; color: var(--ink-dim); }
+  .phase .ph-meta .mono { color: var(--ink-soft); }
+  .phase .ph-net {
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 1.05rem;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .net-pos { color: var(--good); }
+  .net-zero { color: var(--ink-dim); }
+  .phase .ph-concl { grid-column: 2 / 4; font-size: 0.9rem; color: var(--ink-soft); margin-top: 2px; }
+
+  /* ---- Walls ---- */
+  .walls { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 26px; }
+  .wall {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .wall h4 { margin: 0 0 4px; font-size: 1.05rem; color: var(--ink); }
+  .wall .icon { font-size: 1.5rem; }
+  .wall .wname { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bad); }
+  .wall p { font-size: 0.92rem; margin: 8px 0 0; }
+
+  /* ---- Two-flip comparison ---- */
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+  .flipcard { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .flipcard.random { border-top: 3px solid var(--warn); }
+  .flipcard.lever  { border-top: 3px solid var(--good); }
+  .flipcard h4 { margin: 0 0 8px; }
+  .flipcard p { font-size: 0.92rem; margin: 0; }
+
+  /* ---- Table ---- */
+  .tbl-scroll { overflow-x: auto; margin-top: 24px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--accent); font-weight: 650; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  tbody tr:hover { background: var(--bg-soft); }
+  td.dead { color: var(--ink-dim); }
+  td.live { color: var(--ink); }
+
+  /* ---- Lever list ---- */
+  .levers { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 10px; }
+  .levers li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 18px;
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+  }
+  .levers .ln { font-family: var(--mono); color: var(--good); font-weight: 700; }
+  .levers .lt { color: var(--ink); }
+  .levers .lt b { color: var(--accent); font-family: var(--mono); font-size: 0.88em; }
+
+  /* ---- Shifts ---- */
+  .shifts { display: grid; gap: 14px; margin-top: 26px; counter-reset: shift; }
+  .shift {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px 18px 64px;
+    position: relative;
+  }
+  .shift::before {
+    counter-increment: shift;
+    content: counter(shift);
+    position: absolute;
+    left: 18px; top: 18px;
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #06121f;
+    font-weight: 800;
+    font-family: var(--mono);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .shift h4 { margin: 0 0 4px; font-size: 1.02rem; }
+  .shift p { margin: 0; font-size: 0.92rem; }
+
+  /* ---- Bottom line beats ---- */
+  .beats { display: grid; gap: 16px; margin-top: 24px; }
+  .beat { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start; }
+  .beat .bk {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    white-space: nowrap;
+    margin-top: 3px;
+  }
+  .beat p { margin: 0; }
+
+  footer { padding: 50px 0 80px; color: var(--ink-dim); font-size: 0.85rem; }
+  footer .mono { color: var(--ink-soft); }
+  .refs { font-family: var(--mono); font-size: 0.78rem; color: var(--ink-dim); word-break: break-word; }
+
+  @media (max-width: 640px) {
+    .twocol, .beat { grid-template-columns: 1fr; }
+    .phase { grid-template-columns: 44px 1fr; }
+    .phase .ph-net { grid-column: 2; text-align: left; }
+    .phase .ph-concl { grid-column: 1 / 3; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">ade-bench · autoresearch loop · jun 1 – jun 15, 2026</div>
+    <h1>Two weeks tuning a benchmark.<br><span class="grad">The score moved 8 points. The lessons moved further.</span></h1>
+    <p class="lede">
+      60 hypotheses, two full research rounds, three walls discovered. This is what the
+      program actually learned — why we declared the README dead, why we added new stages,
+      why both failed, and why going <em>back</em> to the README finally banked the gains.
+    </p>
+
+    <div class="scoreline">
+      <div class="chip cold"><div class="num">19%</div><div class="lab">h0000 cold start · 9/48</div></div>
+      <div class="chip fix"><div class="num">65%</div><div class="lab">after dataset-bug fix · 31/48</div></div>
+      <div class="chip end"><div class="num">73%</div><div class="lab">program end · 35/48</div></div>
+      <div class="chip goal"><div class="num">75%</div><div class="lab">target · 36/48</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- 0 -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">00 — THE HEADLINE, CORRECTED</div>
+    <h2>The biggest gain wasn't prompting. It was a bug.</h2>
+    <p>
+      Working memory says <em>“65% → 73%, target 75%.”</em> True — but it hides the single
+      largest move of the two weeks. The cold-start baseline was <strong>9/48 (19%)</strong>.
+      The jump to <strong>31/48 (65%)</strong> — a leap of <strong>+22 tasks</strong> — did
+      <strong>not</strong> come from any README lever.
+    </p>
+    <div class="callout">
+      <span class="tag">Root cause</span>
+      <p>
+        It came from fixing a <strong>benchmark infrastructure bug</strong>: task images
+        shipped the wrong DuckDB dataset via a BuildKit <code>COPY</code> mtime-collision.
+        The four README build-gate levers filed to attack the “27 build-errors” failure mode
+        (<code>h0001</code>–<code>h0004</code>) were <strong>all rejected</strong> — they were
+        chasing errors the dataset bug, not the solver, was causing.
+      </p>
+    </div>
+    <p>
+      Everything after that — every lever, every stage, both rounds — was the fight to move
+      <strong>31 → 36</strong>. It ended at <strong>35/48 = 73%</strong>, a net
+      <strong>+4 tasks</strong> of genuine lever gain.
+    </p>
+    <div class="callout good">
+      <span class="tag">Lesson 0 · structural</span>
+      <p>The largest, cheapest gain in the whole program was an infrastructure correctness fix found by <strong>auditing the benchmark</strong> — not by improving the solver. Audit the benchmark before you tune the model.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">01 — THE ARC IN ONE SCREEN</div>
+    <h2>Four phases, two weeks, +4 lever tasks</h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="ph-id">0</div>
+        <div>
+          <div class="ph-title">Setup + bug-fix</div>
+          <div class="ph-meta">Jun 1–3 · <span class="mono">h0000–h0005</span> · raw baseline, build-gate levers, dataset-bug fix</div>
+        </div>
+        <div class="ph-net net-pos">9 → 31</div>
+        <div class="ph-concl">→ build-errors were a benchmark bug, not a solver gap.</div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-id">1</div>
+        <div>
+          <div class="ph-title">Oracle-flip program</div>
+          <div class="ph-meta">Jun 5–8 · <span class="mono">h0006–h0036</span> · grain, cast, reconcile, selectors, arbitration, coverage</div>
+        </div>
+        <div class="ph-net net-zero">+0</div>
+        <div class="ph-concl">→ <strong>“README/instruction levers can’t move it”</strong> — the oracle wall.</div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-id">2</div>
+        <div>
+          <div class="ph-title">Workflow-stage program (Round 2)</div>
+          <div class="ph-meta">Jun 8–10 · <span class="mono">h0037–h0041</span> · reference-mining, plan-review, observe-lens, abstention-rail, triage-ledger</div>
+        </div>
+        <div class="ph-net net-zero">+0</div>
+        <div class="ph-concl">→ <strong>“adding stages is also dead”</strong> — the self-grading wall.</div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-id">3</div>
+        <div>
+          <div class="ph-title">Worked-example flips (back to README)</div>
+          <div class="ph-meta">Jun 11–15 · <span class="mono">h0042–h0060</span> · task-specific copyable before→after skeletons, gated, composed</div>
+        </div>
+        <div class="ph-net net-pos">31 → 35</div>
+        <div class="ph-concl">→ the leverable subset is real but small; flip program now exhausted.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- 1.5 -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">01.5 — THE LENS THAT EXPLAINS EVERYTHING</div>
+    <h2>Two kinds of “flip”</h2>
+    <p>
+      For most of the two weeks the score read as “nothing is working” — yet real flips were
+      happening underneath the whole time. The contradiction dissolves once you separate two
+      things that both get called <em>“a flipped task.”</em>
+    </p>
+    <div class="twocol">
+      <div class="flipcard random">
+        <h4>🎲 Volatility flips <span style="color:var(--warn)">(random)</span></h4>
+        <p>A task PASSES in some <code>trials:1</code> runs and FAILS in others purely because the solver sampled a different locally-plausible choice that draw. No lever involved. At <code>trials:1</code> over 48 tasks, gpt-5.5 produces <strong>~3–4 of these per run</strong> — the noise floor (CI ±4).</p>
+      </div>
+      <div class="flipcard lever">
+        <h4>🎯 Lever-caused flips <span style="color:var(--good)">(not random)</span></h4>
+        <p>A task goes FAIL→PASS because a worked example changed the committed SQL in a reproducible, artifact-attributable way. Across the <em>whole</em> program, exactly <strong>one</strong> flip was provably lever-caused as it happened.</p>
+      </div>
+    </div>
+    <p style="margin-top:22px">
+      They look identical at the score level and opposite at the artifact level. That is why
+      Phase 1 read as dead: a real construct gain of <strong>+3</strong> minus ~3 random
+      off-construct losses <strong>= a tie</strong>. The score honestly said “README does
+      nothing” — and that read was <em>correct for what we could measure</em>. The flips were
+      only visible by reading the committed SQL, never the score.
+    </p>
+    <div class="callout">
+      <span class="tag">The turn · 2026-06-13 · forensic flip-hunt</span>
+      <p>
+        The leverable flips weren’t found by running more experiments — they were found by a
+        deliberate forensic pass that <strong>uses the randomness itself as the search filter</strong>:
+        ① volatility = the candidate filter (the 19-task “sensitivity set”) →
+        ② read committed artifacts in both directions and name the exact fork →
+        ③ classify by oracle-locality (locally-derivable vs oracle-only) →
+        ④ pin the right branch with a precondition-gated worked example.
+      </p>
+    </div>
+    <p>
+      <strong>The honest twist:</strong> the <em>failed</em> stage round made the hunt possible.
+      Round 2 netted zero flips but earned the two things the hunt depended on — it
+      <strong>validated the delivery vehicle</strong> (a worked-example copy reaches committed
+      SQL bleed-free at 48-task scale) and <strong>forced the artifact-judgment discipline</strong>
+      (judge by the committed artifact, not the net score). Without that, the forensic read is
+      impossible — you’d be fooled by the noise floor every time.
+    </p>
+  </div>
+</section>
+
+<!-- 2 + 3: the walls -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">02 — THE THREE WALLS</div>
+    <h2>Why README, then stages, were declared dead</h2>
+    <p>
+      These weren’t declared dead out of impatience — each is an evidence-backed wall. They
+      interlock to define the box exactly.
+    </p>
+    <div class="walls">
+      <div class="wall">
+        <div class="icon">🔒</div>
+        <div class="wname">Wall 1 · oracle</div>
+        <h4>The deciding fact isn’t visible</h4>
+        <p>Width column-sets, grain conventions, value semantics, date-range counts live only in <code>solution__*</code> + hidden tests. No README instruction can supply a fact the solver can’t see. Prose either went <strong>inert</strong> or <strong>re-correlated through a shared upstream filter</strong> — confirming the wrong answer.</p>
+      </div>
+      <div class="wall">
+        <div class="icon">🪞</div>
+        <div class="wname">Wall 2 · self-grading</div>
+        <h4>Independence can’t be authored in-context</h4>
+        <p>Any check written as solver-README prose — a new stage, a REJECT verdict, an abstention trigger — is graded by the <strong>same model in the same context</strong> that did the work. Plan-review false-rejected its own target; the abstention rail never fired (the solver self-credits the trigger). A new stage is no more independent than a new sentence.</p>
+      </div>
+      <div class="wall">
+        <div class="icon">📊</div>
+        <div class="wname">Wall 3 · variance</div>
+        <h4>A real +1 hides inside the noise</h4>
+        <p>At <code>trials:1</code> with gpt-5.5/xhigh, run-to-run noise is <strong>±3–4 tasks</strong> (10k bootstrap CI). A lone real win sits inside it — and the <strong>freeze-repo concurrency race</strong> forbids <code>trials &gt; 1</code>, so even a genuine fix (airbnb009) couldn’t be banked on a single draw.</p>
+      </div>
+    </div>
+    <div class="callout warn" style="margin-top:24px">
+      <span class="tag">How they interlock</span>
+      <p>
+        To beat the <strong>oracle wall</strong> you need an independent check → blocked by the
+        <strong>self-grading wall</strong>. To bank small real wins instead, you need
+        repeatability → blocked by the <strong>variance wall</strong>. Fully pinning an edit ≡
+        leaking the per-task answer → out of scope. The box is sealed on every side.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">04 — WHY GOING BACK TO README WORKED</div>
+    <h2>Same medium. Different method.</h2>
+    <p>
+      The paradox: we declared README dead, then banked every real flip via README edits. The
+      resolution — Phase 3 changed the <strong>target class, the lever shape, and the promotion
+      rule simultaneously.</strong>
+    </p>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Phases 1–2 (dead)</th><th>Phase 3 (banked +4)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Target</strong></td>
+            <td class="dead">hardest failures, many <em>oracle-only</em></td>
+            <td class="live">only tasks whose correct branch is <strong>locally derivable</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Lever shape</strong></td>
+            <td class="dead">general <em>prose principles</em></td>
+            <td class="live">copyable <strong>before→after worked-example skeletons</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Composition</strong></td>
+            <td class="dead">one lever at a time, ungated</td>
+            <td class="live"><strong>precondition-gated</strong>, disjoint, composed additively (the gate IS the isolation)</td>
+          </tr>
+          <tr>
+            <td><strong>Promotion</strong></td>
+            <td class="dead">single-draw <em>net delta</em> (buried in ±4 noise)</td>
+            <td class="live">committed-artifact + reproducibility + <strong>two-draw self-consistency</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The six levers that composed into 35/48</h3>
+    <ul class="levers">
+      <li><span class="ln">1</span><span class="lt"><code>max(points)</code> cumulative-standings guard → <b>f1006, f1006-hard</b> (h0044)</span></li>
+      <li><span class="ln">2</span><span class="lt">feature-boundary removal guard → <b>quickbooks002/004</b> held (h0045)</span></li>
+      <li><span class="ln">3</span><span class="lt">scoped coverage repair, gated on a fired missing-day probe → <b>airbnb009</b> (h0050)</span></li>
+      <li><span class="ln">4</span><span class="lt">per-key inner-join-from-fact → <b>airbnb005 (+ airbnb007)</b> (h0053)</span></li>
+      <li><span class="ln">5</span><span class="lt">lap-time exclude-pit-stop-laps → <b>f1010-medium</b> (h0054)</span></li>
+      <li><span class="ln">6</span><span class="lt">build/rename preserve-all-upstream-columns → <b>ana-eng003</b> (h0055)</span></li>
+    </ul>
+    <p class="sub" style="margin-top:14px">Plus two stabilizers: <code>h0058</code> keep-base-id (locks the qb002/003 over-drop coin-flip) and <code>h0059</code> tmp-tier-removal inline+reconcile (banks <strong>asana003</strong>, the last bankable flipped-FAIL).</p>
+
+    <div class="callout good">
+      <span class="tag">The most transferable idea · h0059</span>
+      <p>
+        <strong>Behavior-preserving refactor + double-entry reconciliation.</strong> A refactor
+        has a locally-computable correct answer (the <em>before-state</em>), so the lever can
+        carry its own oracle-free check: <code>before == after</code>. That is the way
+        <em>past</em> the oracle-blind wall without leaking anything.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">05 — WHY IT STOPPED AT 73%</div>
+    <h2>The honest ceiling</h2>
+    <div class="walls">
+      <div class="wall">
+        <div class="icon">🏁</div>
+        <h4 style="margin-top:8px">The flip program is exhausted</h4>
+        <p><code>asana003</code> was the last failing task with a locally-derivable fix. Every remaining FAIL is a never-passed research-bet, oracle-blocked, or oracle-blind — it needs an exact output the solver has no local signal for.</p>
+      </div>
+      <div class="wall">
+        <div class="icon">🌫️</div>
+        <h4 style="margin-top:8px">The noise floor masks new +1s</h4>
+        <p>A longer README perturbs ~3 off-construct passers, so a real flip nets flat. <code>h0060</code> responds by <em>stabilizing</em> the f1001 / f1003-hard coin-flips — aiming for a <strong>robust 36</strong>, not a lucky one.</p>
+      </div>
+      <div class="wall">
+        <div class="icon">📐</div>
+        <h4 style="margin-top:8px">Past ~73% is a design question</h4>
+        <p>Moving the number further is a <strong>benchmark-design</strong> change — ship a truthful <code>schema.yml</code>, a subset of <code>tests/</code>, or score against declared-not-hidden expectations — not a smarter prompt. (<code>ana-eng004</code>: sim 10/10, real 0/4. The sim↔real gap is unbridgeable for oracle-only-exact-schema targets.)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">06 — FOR THE NEXT BENCHMARK</div>
+    <h2>Eight shifts for a benchmark-agnostic workflow</h2>
+    <p class="sub">Ordered by how much wasted motion they would have saved here.</p>
+    <div class="shifts">
+      <div class="shift">
+        <h4>Front-load a benchmark-correctness audit</h4>
+        <p>The biggest gain (9→31) was a dataset-bug fix. Make <em>“is the failure the solver’s or the harness’s?”</em> the first question — a standard guard-script + strict audit for leaks, wrong-image bugs, lying contracts, false-green self-checks — before any lever runs.</p>
+      </div>
+      <div class="shift">
+        <h4>Triage every target by oracle-locality FIRST</h4>
+        <p>Before filing any prompt-side hypothesis, apply the sharp test: <em>is the deciding fact locally derivable, or oracle-only?</em> Only locally-derivable tasks are leverable. Phases 1–2 spent ~35 hypotheses discovering this one task at a time. <strong>The single highest-value transferable artifact.</strong></p>
+      </div>
+      <div class="shift">
+        <h4>Default the lever shape to worked-example skeletons</h4>
+        <p>Confirmed across the whole program: copyable before→after skeletons reach committed code; prose principles go inert. Treat any prose-only lever as suspect-inert until proven otherwise.</p>
+      </div>
+      <div class="shift">
+        <h4>Make levers precondition-gated and composable by default</h4>
+        <p>Disjoint gated levers compose additively — the gate is the isolation, so you can bank many flips in one artifact and re-verify cheaply. Bake gating into the lever template.</p>
+      </div>
+      <div class="shift">
+        <h4>Fix measurement before fighting it</h4>
+        <p>The variance wall cost a real +1 and forced a judge-by-artifact doctrine. Fix the multi-trial blocker first (per-task/per-trial freeze repo). Until then, carry the doctrine: judge flips by committed-artifact + reproducibility, not single-draw net.</p>
+      </div>
+      <div class="shift">
+        <h4>Never author independence in-context — design it as harness code</h4>
+        <p>The self-grading wall is permanent for any prompt-authored check. A genuine independent verifier/abstention/judge must be operator-side harness code or a different model/context — decided at the workflow level, never a README clause. Make this a hard gatekeeper rule.</p>
+      </div>
+      <div class="shift">
+        <h4>Treat benchmark-design feedback as a first-class deliverable</h4>
+        <p>The honest path to 75% was a design recommendation, not a lever. Emit, per benchmark: <em>“here is the prompt-side ceiling, and here is what the benchmark owner must change to lift it.”</em></p>
+      </div>
+      <div class="shift">
+        <h4>Keep the reusable infrastructure — it’s already benchmark-agnostic</h4>
+        <p>The spacedock first-officer loop, propose-gate gatekeeper, decision-fork simulation, smoke→full discipline, entity files with run-dir citations, and the dead-family map / WORKFLOW-REFINE ledger. One caveat: a decision-fork sim validates <em>tendency</em>, not real-run compliance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section>
+  <div class="wrap">
+    <div class="sec-num">07 — BOTTOM LINE</div>
+    <h2>The story in three beats</h2>
+    <div class="beats">
+      <div class="beat">
+        <div class="bk">First</div>
+        <p>The easy half of the climb (cold-start 19% → 65%) was really a <strong>benchmark bug fix</strong>, not clever prompting. First lesson: audit the benchmark before you tune the solver.</p>
+      </div>
+      <div class="beat">
+        <div class="bk">Second</div>
+        <p>A week proved that ordinary README instructions — and even brand-new workflow stages — <strong>cannot</strong> move the number: the answers the solver needs aren’t in what it can see (oracle wall), and any check we write is graded by the same model that did the work (self-grading wall). Declaring those dead was correct and evidence-backed.</p>
+      </div>
+      <div class="beat">
+        <div class="bk">Third</div>
+        <p>We went back to the README but changed the <strong>method</strong>: attack only tasks whose right answer is locally derivable, deliver the fix as a copy-paste worked example, gate each so they stack, and judge by whether the code actually changed — not a noisy score. That banked the four real flips to 73%. We stopped there because the rest genuinely can’t be solved without changing what the benchmark <em>shows</em> the solver.</p>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:30px">
+      <span class="tag">For the next benchmark</span>
+      <p>Do the <strong>locality triage</strong> and the <strong>bug-audit first</strong>, default to <strong>worked-example gated levers</strong>, fix the <strong>multi-trial measurement</strong>, and ship the <strong>“what the benchmark owner must change”</strong> finding as a real deliverable.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Program Retrospective</strong> — ade-bench autoresearch loop · h0000 (2026-06-01) → h0060 (2026-06-15) · 60 hypotheses · net +4 lever tasks on top of +22 bug-fix.</p>
+    <p class="refs">
+      Sources: retrospective-2026-06-07 / -08 / -10-round-2 · oracle-problem-systematic-program.md ·
+      round-2-workflow-stage-program.md · leverable-flipped-tasks-research-2026-06-13.md ·
+      h0056-postrun-move-discovery-2026-06-14.md · _artifacts/{verification-without-oracle, WORKFLOW-REFINE,
+      round1-round2-flipped-task-choice-map, h0059-three-run-deep-dive}.md ·
+      baseline 31/48 <span class="mono">runs/ade-bench-baseline/622bdedac572b479</span> ·
+      current 35/48 <span class="mono">runs/…-h0059-…-full-r1/97c03e6c467742f8</span>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
