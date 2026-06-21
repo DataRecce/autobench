@@ -11,9 +11,16 @@ Solve DAB queries by **forcing the solver to build a dbt data pipeline first, th
 the answer out of the built models** — instead of answering with ad-hoc DuckDB SQL. The
 aim is a _reusable, ADE-mergeable_ solver methodology, not a per-question tune.
 
-Research question: **does relocating DAB's normalize → resolve → aggregate logic from
-inline CTEs into validated dbt staging/intermediate models (gated on dirty-data schemas)
-move codex/gpt-5.5's stratified Pass@1 above the Opus incumbent?**
+Research question: **does forcing _every_ dataset through a built+validated dbt pipeline —
+so the answer stage becomes a pure "query the dbt models" step — move codex/gpt-5.5's
+stratified Pass@1 above the Opus incumbent without regressing currently-passing datasets?**
+
+**Architecture intent (CL's "staged unified data solver").** The point is a clean two-phase
+shape: **Phase 1 (model)** builds the dbt models for the dataset; **Phase 2 (analyze)** does
+nothing but query those models for each answer. Making this uniform across all 12 datasets is
+the goal — a reusable, non-specialized method, not a per-question tune. (An earlier draft
+gated dbt to only the "dirty-data" datasets; that left two code paths and defeated the
+unified-query architecture — see §3.)
 
 This is a **single-lever change**: the solver README only. DAB grades `answers.json`
 exclusively (`verify.py` → `validate.py` → reward), so the dbt pipeline is _instrumental
@@ -37,86 +44,82 @@ reconcile dirty source data.** They diverge only at the deliverable.
 | **ADE** | `stg_*` normalize → `int_*` resolve → dbt tests | the model itself      | model correctness |
 | **DAB** | same                                            | a query over the mart | `answers.json`    |
 
-The current DAB baseline README already does normalize → entity-resolve → aggregate, but
-as inline CTEs. This method relocates each step into an inspectable, testable model:
+Every dataset builds a dbt pipeline; the answer is always a query over its models. The
+pipeline is always 3 layers, but each layer scales to what the schema needs:
 
-- **Step 1 — build models:** `stg_*` models do the normalize (lowercase / whitespace
-  collapse / `regexp_extract` year / etc.) — today's "Step 1 — Normalize first."
-- **Step 2 — answer / find where it's broken:** `int_*` models do entity resolution
-  (OR-across-dirty-fields) — today's "Step 2." Generic **dbt tests** (`unique` on the
-  declared grain, `not_null` on join keys, a parent/child rowcount-reconcile test) live on
-  the **resolved** models and assert the _post-resolution_ invariant. A red test means the
-  resolution model is still wrong (one logical entity fragmented, grain not yet collapsed) —
-  i.e. _your build_ is broken. This is the ADE-style debug step, reused for free: the agent
-  fixes the resolution model and re-runs until tests pass. A red test is **never** reported
-  as the answer.
-- **Final — answer:** `analyze` queries the mart → `answers.json` — today's "Step 3."
+- **Step 1 — `stg_*` (always):** one staging model per source table — type casts, light
+  normalize (lowercase / whitespace collapse / `regexp_extract` year). For a clean dataset
+  this is a near-passthrough; for a dirty one it carries the normalize logic.
+- **Step 2 — `int_*` / mart (always):** the joins/aggregations the questions need. **When
+  the schema warns of duplicate / different-source / dirty entity-name fields**, this layer
+  also does entity resolution (OR-across-dirty-fields); when it doesn't, it's a plain
+  join/aggregate. Generic **dbt tests** (`unique` on the declared grain, `not_null` on join
+  keys, a parent/child rowcount-reconcile test) assert the model's invariant. A red test
+  means _your build_ is wrong (grain not collapsed, key fragmented) — the ADE-style debug
+  step, reused for free: fix the model and re-run until green. A red test is **never**
+  reported as the answer.
+- **Step 3 — answer (always):** `analyze` queries the mart → `answers.json`. Pure query — no
+  exploration, no ad-hoc SQL outside the dbt project.
 
-## 3. Scope decision — gated, not mandatory
+So the dbt pipeline is mandatory; the **entity-resolution work inside it is the only part
+that's conditional** (on the same dirty-schema signal the baseline README already names).
+That conditionality lives _inside_ a model, not as an on/off switch for the whole pipeline.
 
-**Decision (captain, 2026-06-21): gated dbt.** Build the dbt pipeline **only when
-`db_description.txt` warns of duplicate rows / different sources / independently dirty
-entity-name fields** — the _same trigger the baseline README already uses_ to switch on
-the normalize→resolve sequence. Clean schemas skip dbt entirely and stay on plain DuckDB
-SQL.
+## 3. Scope decision — mandatory (all datasets through dbt)
 
-Rejected alternatives:
+**Decision (captain, 2026-06-21): mandatory dbt.** Every dataset builds a dbt pipeline and
+every answer is a query over it. There is **no on/off gate** for the pipeline — that is the
+whole point (§1): a single uniform code path, so the answer stage is purely "query the dbt
+models." Only the entity-resolution work _inside_ the pipeline is conditional (§2).
 
-- **Mandatory dbt for every query** — uniform and the cleanest ADE merge, but burns
-  budget/context on plumbing for trivial 1-query datasets and adds a build failure surface
-  to queries that don't need it. This is exactly the `dab0005-methodology-overhead-recovery`
-  failure mode. Rejected.
-- **Probe-only** — that's not a solver method, it's Gate 0 below (a prerequisite, kept).
+**Why we reversed the earlier "gated" draft.** A prior version gated dbt on the baseline's
+dirty-schema trigger. Reading the actual materialized descriptions
+(`db_description_withhint.txt`, the `hints: true` baseline) showed the gate fires on
+essentially **one** dataset (`music_brainz_20k`, which already passes 3/3) plus a borderline
+`crmarenapro` — and **none** of the real failing targets (PATENTS, agnews, GITHUB_REPOS,
+yelp) trip it. So gating would make the method a no-op exactly where the score gaps are, and
+it would leave two code paths, breaking the unified-query architecture. Mandatory fixes both.
 
-**Gate text — reused verbatim from baseline.** The variant README MUST copy the baseline
-trigger character-for-character (from `solver_workflows/spacedock-readme-baseline/README.md`):
+**Accepted cost — overhead is now the headline risk.** Forcing dbt onto a clean, 1-query
+dataset costs budget/context and adds a build failure surface that can regress a
+currently-passing dataset (`dab0005-methodology-overhead-recovery`). We accept this as the
+price of a uniform architecture, and manage it three ways:
 
-> **Trigger:** if `db_description.txt` warns about `duplicate` rows, `different sources`, or
-> independently dirty entity-name fields (e.g. title/artist/album, or name/description) on
-> any table you intend to join, group, or rank over, you MUST run the following three steps
-> **in order** before issuing the analytical query.
+1. **Minimal, templated scaffold** — staging models are near-passthrough for clean schemas;
+   the README ships a fixed dbt skeleton so the agent fills models, not boilerplate.
+2. **A codex baseline** (§5 Gate 1.5) — measure overhead against codex's _own_ current
+   scores, not against Opus, so a regression is attributable to dbt, not the model swap.
+3. **Canaries** — currently-passing datasets in every smoke set; any drop is an overhead
+   stop-signal.
 
-This is *not* a new heuristic, and we deliberately do **not** make the gate executable or
-keyword-deterministic — that would be a second lever on top of "relocate logic into dbt
-models" and would confound attribution (a win could be the dbt method *or* a sharper gate),
-breaking the single-IV rule. Gate precision is its own future hypothesis, if it ever matters.
-
-**Why the gate's fuzziness doesn't bias the result.** Baseline and variant fire on the
-*same* trigger text, so any gate ambiguity (including schemas that need normalization but
-don't use those exact words) is **held constant and cancels in `rk runs diff`**. The only
-thing that varies post-gate is inline CTEs vs. dbt models. Fixing the gate's recall is not
-this method's job.
-
-**One new wrinkle:** a false-positive gate fire costs *more* under dbt (scaffolding
-overhead) than under baseline (a few extra CTEs). Mitigation already exists — the canary set
-(§5 Gate 2) catches overhead regressions on currently-passing clean datasets.
+**The dirty-schema signal still matters, but only inside Step 2.** The variant README reuses
+the baseline trigger verbatim to decide whether the `int_*` layer adds entity resolution. It
+is no longer a pipeline gate, so it can't make the method a no-op; it just selects which
+models a (always-built) pipeline contains.
 
 ## 4. Architecture — README stage model
 
-Fork `solver_workflows/spacedock-readme-baseline` → `dab00NN-dbt-gated-pipeline`. Same
+Fork `solver_workflows/spacedock-readme-baseline` → `dab00NN-dbt-pipeline`. Same
 `model → analyze → verify → done` stage frontmatter. The README body changes:
 
 ```yaml
-stage: model
+stage: model    # Phase 1 — build the pipeline (ALWAYS, every dataset)
   read db_description.txt + connections.yaml          # dbt is preinstalled in the image
-  IF schema warns (duplicate / different-source / dirty entity fields):
-     scaffold a minimal dbt project in _artifacts/dbt/
-       profiles.yml -> duckdb, ATTACH the workspace SQLite/PG/DuckDB sources
-       stg_*  models : normalize string keys (lower, regexp ws-collapse, year extract)
-       int_*  models : resolve entities (OR across dirty normalized fields)
-       schema.yml    : tests on RESOLVED models -> unique(grain), not_null(keys),
-                       rowcount reconcile
-     LOOP: dbt run ; dbt test ; if red -> fix the resolution model ; repeat
-           until green (or, if grain is irreducibly ambiguous, stop and record
-           the unresolved invariant in reasoning.md)
-     # the model stage does NOT hand off to analyze with a red test
-  ELSE:
-     skip dbt; produce context.md from plain DuckDB exploration (baseline behavior)
-  output: _artifacts/context.md  (+ green _artifacts/dbt/ when built)
+  scaffold the templated dbt project in _artifacts/dbt/
+    profiles.yml -> duckdb, ATTACH the workspace SQLite/PG/DuckDB sources
+    stg_*  models : one per source table — cast + light normalize (passthrough if clean)
+    int_*/mart    : the joins/aggregations the questions need
+                    + IF schema warns (duplicate / different-source / dirty entity fields):
+                        add entity resolution (OR across dirty normalized fields)
+    schema.yml    : tests -> unique(grain), not_null(keys), rowcount reconcile
+  LOOP: dbt run ; dbt test ; if red -> fix the model ; repeat
+        until green (or, if grain is irreducibly ambiguous, stop and record
+        the unresolved invariant in reasoning.md)
+  # model stage does NOT hand off to analyze with a red test
+  output: green _artifacts/dbt/  (+ _artifacts/context.md)
 
-stage: analyze
-  IF dbt pipeline was built: query the (green) int_*/mart models -> answers.json
-  ELSE: plain DuckDB SQL -> answers.json  (baseline behavior)
+stage: analyze  # Phase 2 — pure query, no ad-hoc SQL outside the dbt project
+  query the (green) int_*/mart models -> answers.json
   if model stage recorded an unresolved invariant for a query -> "UNABLE TO DETERMINE"
   output: answers.json, _artifacts/reasoning.md
 
@@ -143,9 +146,10 @@ model with a red test.
 - **Generic tests only.** `unique` / `not_null` / a rowcount-reconcile test expressed
   against the _declared grain_, not against any specific question. Keeps it reusable and
   non-tuned.
-- **The gate predicate** is the single coupling point to the rest of the README. It reuses
-  the baseline trigger **verbatim** (quoted in §3) — no new branching logic, and held
-  constant across baseline + variant so its fuzziness cancels in the diff.
+- **The dirty-schema signal** (reused verbatim from the baseline trigger) only decides
+  whether the `int_*` layer adds entity resolution — it is _not_ a pipeline on/off gate.
+  The pipeline is always built, so the signal's fuzziness can't make the method a no-op; at
+  worst it adds/omits a resolution model, which the dbt grain tests would catch.
 
 ## 5. Preparation sequence (the gates)
 
@@ -168,7 +172,7 @@ worth authoring, prove:
    attach (item 2); Mongo is not on the critical path.
 
 Probe mechanism: a throwaway README that runs the attach/`dbt run`/`dbt test` on a
-single dirty-data query and writes the outcome to `_artifacts/feasibility.md`. Run
+single dataset and writes the outcome to `_artifacts/feasibility.md`. Run
 `rk run --explain` first, then a 1-query smoke.
 
 **Agent image — concrete build (execute at implementation).** The `dab-agent:latest`
@@ -197,47 +201,90 @@ to vendor it into razorback is still backlog):
    `docker inspect --format '{{.Id}}' dab-agent:latest` alongside the run. See §7 "Image
    drift (accepted)" for why we do not gate on it.
 
-No re-baseline needed: an unused package doesn't change the non-dbt path's behavior, and
-`@baseline` is the converted Opus run (a separate, frozen historical image) — so installing
-dbt is environment-neutral for everything except the new dbt variant.
+The Opus `@baseline` does not need rerunning: it's a converted legacy run on a separate
+frozen image, and adding an unused package doesn't change anything that doesn't import it.
+(The _codex_ baseline below is a separate, deliberate addition — not forced by the image.)
 
-**Gate 1 — author the gated README lever** (only if Gate 0 = GO). Fork + edit per §4,
-create full + smoke specs differing from baseline only in `experiment:` + `solver_workflow:`,
+**Gate 1 — author the README lever** (only if Gate 0 = GO). Fork + edit per §4, create
+full + smoke specs differing from baseline only in `experiment:` + `solver_workflow:`,
 `rk freeze --allow-missing`.
 
-**Gate 2 — eval.** Smoke on dirty/multi-source targets — candidates **agnews (0.25),
-GITHUB_REPOS (0.25), crmarenapro, yelp** (agnews/yelp source from their relational backend,
-not Mongo — see Gate 0 item 3) — plus canaries
-**bookreview / music_brainz_20k / stockindex** (currently 3/3, guard against overhead
-regression). Then full; `rk runs diff` vs Opus `@baseline`.
+**Gate 1.5 — establish a codex baseline (NEW, required for overhead attribution).** Run the
+**current baseline README (no dbt) on codex/gpt-5.5** over the smoke set (targets + canaries),
+under the rebuilt dbt-containing image. This gives codex's _own_ current per-dataset scores.
+Rationale: the dbt variant also runs codex, so overhead regression must be judged against
+codex-without-dbt, not against Opus — otherwise the model swap (codex vs Opus) and the dbt
+overhead are entangled and a canary drop can't be attributed. Register it as a project-local
+run (e.g. `@codex-baseline`); it is the **overhead reference**, while Opus `@baseline` stays
+the **headline (beat-the-incumbent) reference**.
+
+**Gate 2 — eval.** Smoke a **mix** (mandatory dbt touches every dataset, so the smoke set must
+test both reach and safety):
+
+- **Failing targets** (can dbt flip them?): **crmarenapro** (q2/q3/q8; the one target whose
+  schema also warrants entity resolution) + **GITHUB_REPOS** (multi-value parse via `int_*`).
+- **Canaries** (does mandatory-dbt overhead regress a passer?): **bookreview /
+  music_brainz_20k / stockindex** (all 3/3), plus a near-perfect one — **stockmarket** (4/5)
+  or **googlelocal** (3/4).
+
+Compare each smoke run **two ways**: vs `@codex-baseline` (overhead/regression) and vs Opus
+`@baseline` (headline). GO only if a target flips **and** no canary regresses vs the codex
+baseline. Then full over all 12.
 
 ## 6. Eval & acceptance
 
 - **Smoke GO/NO-GO:** at least one currently-failing target query flips to pass via the
-  committed dbt-model artifact (behavioral read, not just reward), and **no canary
-  regresses**.
-- **Full success:** stratified Pass@1 over the target datasets beats the Opus incumbent on
-  a clean `rk audit --policy strict`, attributed by behavioral read (the model-swap
-  confound from §7 of the autoresearch design still applies — lean on the committed-artifact
-  read to attribute the lever).
+  committed dbt-model artifact (behavioral read, not just reward), **and no canary regresses
+  vs `@codex-baseline`** (the overhead guard — the headline number to watch under mandatory).
+- **Full success:** stratified Pass@1 over all 12 datasets beats the Opus incumbent on a
+  clean `rk audit --policy strict`. Attribute by behavioral read — the model-swap confound
+  (codex vs Opus, §7 of the autoresearch design) is on the _headline_ comparison; the
+  _overhead_ question is answered cleanly by the codex baseline.
 - **Reward path unchanged:** `answers.json` remains the only graded output; the dbt project
   is scaffolding.
 
+### Incumbent per-dataset scores (Opus `@baseline`, xhigh +hints; 54 q / 12 ds; strat. P@1 = 0.654)
+
+Source: `dab/hypotheses/_artifacts/dataset-gap-ranking.md`. Used to pick targets (headroom)
+and canaries (currently passing). **Note these are _Opus_ scores — `@codex-baseline`
+(Gate 1.5) gives codex's own numbers, which is what the canary check actually compares against.**
+
+| group | dataset | score | queries | failing |
+| --- | --- | --- | --- | --- |
+| 🟢 perfect (canary pool) | bookreview | 1.00 | 3/3 | — |
+| 🟢 perfect (canary pool) | music_brainz_20k | 1.00 | 3/3 | — |
+| 🟢 perfect (canary pool) | stockindex | 1.00 | 3/3 | — |
+| 🟡 near-perfect | yelp | 0.86 | 6/7 | q6 |
+| 🟡 near-perfect | stockmarket | 0.80 | 4/5 | q4 |
+| 🟡 near-perfect | crmarenapro | 0.77 | 10/13 | q2, q3, q8 |
+| 🟡 near-perfect | googlelocal | 0.75 | 3/4 | q2 |
+| 🔴 headroom (targets) | PANCANCER_ATLAS | 0.67 | 2/3 | q1 |
+| 🔴 headroom (targets) | DEPS_DEV_V1 | 0.50 | 1/2 | q1 |
+| 🔴 headroom (targets) | agnews | 0.25 | 1/4 | q2, q3, q4 |
+| 🔴 headroom (targets) | GITHUB_REPOS | 0.25 | 1/4 | q1, q2, q4 |
+| 🔴 headroom (targets) | PATENTS | 0.00 | 0/3 | q1, q2, q3 |
+
 ## 7. Risk register
 
-- **Overhead regression** (`dab0005-methodology-overhead-recovery`): dbt plumbing costs
-  budget/context. Mitigated by gating (clean schemas skip dbt) and by the canary set.
-- **New failure surface:** a broken dbt build/test can zero a query the baseline passed.
-  `verify` + canaries catch this; the gate keeps it off simple queries.
+- **Overhead regression — PRIMARY risk under mandatory** (`dab0005-methodology-overhead-recovery`):
+  forcing dbt onto every dataset (including clean, 1-query ones) costs budget/context and can
+  regress a passer. No gate to fall back on. Mitigated by: (1) a minimal templated scaffold so
+  the agent fills models not boilerplate; (2) `@codex-baseline` (§5 Gate 1.5) for clean
+  attribution; (3) canaries in every smoke set as a hard stop-signal. If overhead regresses
+  canaries broadly, the mandatory decision itself is falsified — fall back to gating.
+- **New failure surface:** a broken dbt build/test can zero a query the baseline passed —
+  now on _every_ dataset, not just dirty ones. `verify` + canaries catch it; the templated
+  scaffold + green-tests-before-`analyze` contract bound it.
 - **Mongo adapter gap:** resolved — only `agnews`/`yelp` touch Mongo and both ship a
   relational backend dbt-duckdb attaches natively; no Mongo-only dataset exists (Gate 0 item 3).
 - **Image drift (accepted confound — captain decision 2026-06-21).** dbt is baked into the
   mutable `dab-agent:latest` tag, and `rk`'s run path does not enforce a frozen
   `image_digest` (compose materializes `image: dab-agent:latest` verbatim). We **accept**
-  this rather than build digest-enforcement, on three grounds: (1) the comparison reference
-  is the Opus `@baseline`, a separate frozen historical image — there is no codex baseline
-  run to keep digest-matched, so the relevant model+environment gap is already the documented
-  confound from §7 of the autoresearch design; (2) we control the image and rebuild it
+  this rather than build digest-enforcement, on three grounds: (1) `@codex-baseline` and the
+  dbt variant are run back-to-back under the **same rebuilt image**, so they are digest-matched
+  in practice; the only un-matched reference is the Opus `@baseline` (a separate frozen
+  historical image), whose model+environment gap is already the documented confound from §7 of
+  the autoresearch design; (2) we control the image and rebuild it
   deterministically from the pinned exeuntu digest, so drift is operator-introduced, not
   ambient; (3) installed-but-unused packages are treated as behavior-neutral on the non-dbt
   path. **Residual risk:** dbt-core's transitive deps (jinja2, pyyaml, click, …) could bump
@@ -255,8 +302,13 @@ regression). Then full; `rk runs diff` vs Opus `@baseline`.
 2. ~~Which target datasets are Mongo~~ — **resolved:** only `agnews`/`yelp`, both with a
    relational backend; method sources from the relational side (Gate 0 item 3).
 3. Scratch materialization: separate duckdb file under `_artifacts/dbt/` vs. in-memory —
-   pick whatever survives the `model → analyze` stage boundary cleanly. **(Defer to Gate 0 —
-   the only genuinely empirical unknown left; the probe answers it.)**
+   pick whatever survives the `model → analyze` stage boundary cleanly. (Defer to Gate 0 —
+   the probe answers it.)
+4. ~~Gated vs. mandatory~~ — **resolved: mandatory** (§3), reversing the earlier gated draft;
+   the unified-query architecture (§1) requires it.
+5. **Does mandatory-dbt overhead regress currently-passing datasets?** — the central
+   empirical unknown. Not answerable on paper; the Gate-2 canaries vs `@codex-baseline`
+   decide it. If they regress broadly, fall back to gating (§7).
 
 ## 9. Non-goals
 
