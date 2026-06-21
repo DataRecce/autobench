@@ -159,10 +159,13 @@ worth authoring, prove:
    The probe just confirms `dbt --version` resolves and a trivial model builds — no runtime
    install, no pip-network dependency.
 2. dbt-duckdb can ATTACH the workspace SQLite / PostgreSQL / DuckDB sources.
-3. **Mongo** — the adapter risk. dbt-duckdb has no native Mongo; it only works through
-   DuckDB's mongo extension _inside_ a model. Either prove that path or restrict the method
-   to non-Mongo datasets. Determine which target datasets are Mongo (`compose.py` builds
-   `dab-mongo`) **before** fixing the smoke set.
+3. **Mongo — resolved, effectively moot.** dbt-duckdb has no native Mongo adapter, but it
+   doesn't need one: every dataset materializes **all** its `dataset.toml` backends (same
+   data, different engines), and only **2 of 12** touch Mongo — `agnews` (also `sqlite`) and
+   `yelp` (also `duckdb`). Both ship a relational backend dbt-duckdb attaches natively, so
+   the dbt pipeline always sources from the relational side and never touches Mongo. No
+   Mongo-only dataset exists. The Gate-0 probe only needs to confirm SQLite/PostgreSQL/DuckDB
+   attach (item 2); Mongo is not on the critical path.
 
 Probe mechanism: a throwaway README that runs the attach/`dbt run`/`dbt test` on a
 single dirty-data query and writes the outcome to `_artifacts/feasibility.md`. Run
@@ -202,8 +205,9 @@ dbt is environment-neutral for everything except the new dbt variant.
 create full + smoke specs differing from baseline only in `experiment:` + `solver_workflow:`,
 `rk freeze --allow-missing`.
 
-**Gate 2 — eval.** Smoke on dirty/multi-source targets that clear the Mongo check —
-candidates **agnews (0.25), GITHUB_REPOS (0.25), crmarenapro, yelp** — plus canaries
+**Gate 2 — eval.** Smoke on dirty/multi-source targets — candidates **agnews (0.25),
+GITHUB_REPOS (0.25), crmarenapro, yelp** (agnews/yelp source from their relational backend,
+not Mongo — see Gate 0 item 3) — plus canaries
 **bookreview / music_brainz_20k / stockindex** (currently 3/3, guard against overhead
 regression). Then full; `rk runs diff` vs Opus `@baseline`.
 
@@ -225,7 +229,8 @@ regression). Then full; `rk runs diff` vs Opus `@baseline`.
   budget/context. Mitigated by gating (clean schemas skip dbt) and by the canary set.
 - **New failure surface:** a broken dbt build/test can zero a query the baseline passed.
   `verify` + canaries catch this; the gate keeps it off simple queries.
-- **Mongo adapter gap:** handled at Gate 0 (prove or exclude).
+- **Mongo adapter gap:** resolved — only `agnews`/`yelp` touch Mongo and both ship a
+  relational backend dbt-duckdb attaches natively; no Mongo-only dataset exists (Gate 0 item 3).
 - **Image drift (accepted confound — captain decision 2026-06-21).** dbt is baked into the
   mutable `dab-agent:latest` tag, and `rk`'s run path does not enforce a frozen
   `image_digest` (compose materializes `image: dab-agent:latest` verbatim). We **accept**
@@ -246,10 +251,12 @@ regression). Then full; `rk runs diff` vs Opus `@baseline`.
 ## 8. Open questions (resolve at Gate 0 / propose)
 
 1. ~~Runtime install vs. baked image~~ — **resolved: baked into `dab-agent`, constant
-   across runs** (§1). Remaining: pin the image digest at freeze so baseline/variant share it.
-2. Which target datasets are Mongo — fixes the smoke set.
+   across runs** (§1); digest recorded for provenance, not enforced (§7 accepted confound).
+2. ~~Which target datasets are Mongo~~ — **resolved:** only `agnews`/`yelp`, both with a
+   relational backend; method sources from the relational side (Gate 0 item 3).
 3. Scratch materialization: separate duckdb file under `_artifacts/dbt/` vs. in-memory —
-   pick whatever survives the `model → analyze` stage boundary cleanly.
+   pick whatever survives the `model → analyze` stage boundary cleanly. **(Defer to Gate 0 —
+   the only genuinely empirical unknown left; the probe answers it.)**
 
 ## 9. Non-goals
 
