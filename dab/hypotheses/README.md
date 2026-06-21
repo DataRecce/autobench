@@ -147,6 +147,68 @@ Both birth mechanisms are prompt-driven: the acting ensign writes the new entity
 | `score` | number | Priority 0.0–1.0 (optional); higher = ideate/advance sooner. See `_artifacts/flipped-query-targets.md` → Concept ideation order. |
 | `worktree` | string | Empty (this workflow runs inline). |
 
+## Autonomous run policy (auto-gate + escalation)
+
+**Default is captain-gated** — the 🚦 gates wait for the captain. The captain may instead enable
+**autonomous mode** for a single named hypothesis — *"run dab<NNNN> autonomously to the full-run
+launch"* — typically by driving the FO under `/loop` so waits and auto-gates resolve without a turn.
+Autonomous mode automates the **happy path through `propose` → `smoke` → the full-run LAUNCH** and
+HALTS+escalates on anything that needs judgment. It NEVER auto-concludes, auto-promotes, or edits the
+seed baseline README — the full-run *result* and the promote decision are always the captain's.
+
+Scope boundary:
+
+| step | autonomous? |
+|---|---|
+| frontmatter transitions, dispatch, detached launch, sentinel wait, audit, score | YES — mechanical spine |
+| `propose` gate | AUTO-APPROVE on the criteria below, else HALT |
+| `smoke → full` | AUTO-ADVANCE on the guardrail below, else HALT |
+| `full` run launch + `analyze` data-gathering | YES |
+| `analyze → conclude`, promote, seed-README edit | NEVER — always escalate to the captain |
+| which lever / retarget / pivot after a dead family / revise-vs-reject | NEVER — strategy is human |
+| infra **code** fixes (e.g. a compose bug) | NEVER auto — HALT + escalate |
+
+### `propose` auto-gate
+Auto-APPROVE (advance to `smoke`) iff BOTH hold; otherwise HALT and present the gate:
+1. the gatekeeper recommendation is **APPROVE** (a single FAIL → HALT); AND
+2. the FO reject-condition checks are clean — one-knob README diff, leak-guard byte-intact, full-spec
+   diff = only `experiment:` + `solver_workflow:`, `agent.kind: spacedock_solver` / `runtime: codex`.
+
+A gatekeeper **REVISE/REJECT** or any failed reject-check HALTS (never auto-revise a leak/spec fault).
+This is the delegation already exercised on dab0015's propose gate.
+
+### `smoke → full` auto-advance guardrail
+The full run is the expensive, infra-fragile step, and a smoke GO can be a **false positive** (variance
+or infra) — so auto-advance only behind a HARD guardrail. Advance to `full` iff ALL hold; else HALT:
+1. **strict audit clean, `0 coverage_missing`, `0 tainted`** — no dataset errored, no infra taint;
+2. **target flipped by the COMMITTED ARTIFACT**, not merely `reward=1.0` — the artifact shows the README
+   change reached the committed answer;
+3. **canaries held** vs the 6-draw band (`_artifacts/baseline-variance-6draw.md`) — no 6/6 sentinel
+   dropped; perturbable canaries within band;
+4. **backend health confirmed** at smoke launch (PG + Mongo) — an abstain behind a dead backend is not
+   a result;
+5. **the target is a LOW-BASELINE cell** (≈0–2/6). A single pass on a multi-pass-baseline cell (≥4/6)
+   is **not** evidence the lever did anything; auto-mode must NOT advance on it or count it. *(The dab0015
+   yelp-q6 trap: a 4/6 cell passed once under the lever, indistinguishable from baseline luck.)*
+
+### HALT-and-escalate triggers (surface to the captain; do not auto-advance)
+- gatekeeper REVISE/REJECT, or a failed `propose` reject-check;
+- smoke **NO-GO**, a **canary regression**, or a GO that fails the `smoke → full` guardrail (incl. the
+  low-baseline trap);
+- **any infra anomaly**: detached run `rc≠0`, audit `coverage_missing > 0` or taint, a backend down
+  (`Connection refused` / `serverSelectionTimeout` / `container … unhealthy`), or a stale job-dir lock
+  (`FileExistsError … lock.json`). **Infra is NEVER a result** — report it, never count it as a
+  regression. *(dab0015 hit all three — a PG-volume concurrency collision, a Mongo flake, and a
+  stale-lock — each needed judgment and one needed a code fix.)*
+- an UNEXPECTED `full`/`analyze` result — follow `_artifacts/unexpected-result-playbook.md`; do not
+  verdict on the headline number.
+
+### What stays human even in autonomous mode
+Strategy and honesty: which lever to run, the retarget, the pivot after a dead family (dab0012 →
+dab0015), revise-vs-reject, the attribution downgrade of a lucky pass (yelp-q6), and the
+promote/conclude verdict. Auto-mode automates the *waiting and the clean cases* and surfaces every
+off-happy-path moment — which is where the real work of a run lives.
+
 ## Stages
 
 ### `concept`  *(initial — concept path)*
@@ -283,6 +345,8 @@ by that recommendation.**
   resolved; the surviving smoke set confirmed via `--explain`.
 - **Bad:** multiple knobs changed; leak-guard relaxed; advancing past a gatekeeper REJECT
   without recording why; asking for approval without showing the smoke-set table.
+- **Autonomous mode:** auto-APPROVE iff the gatekeeper recommends APPROVE *and* the reject-checks are
+  clean (see `## Autonomous run policy`); any FAIL / REVISE / REJECT / failed check HALTS for the captain.
 
 ### `smoke`  *(🚦 go/no-go gate)*
 
@@ -383,6 +447,10 @@ run.** *(Budget caps deferred — this is a worthiness gate.)*
 - **Bad:** advancing on a smoke that never exercised the change; scoring without a clean
   audit; reporting a NO-GO as just a number with no artifact-level reason; burying the
   captain in raw detail instead of a plain-language read.
+- **Autonomous mode:** auto-advance `smoke → full` only behind the hard guardrail in
+  `## Autonomous run policy` (audit clean + `0 coverage_missing`, target flipped by committed artifact,
+  canaries held vs band, backends healthy, **low-baseline target**); a NO-GO, canary regression, infra
+  anomaly, or low-confidence GO (incl. a single pass on a ≥4/6 cell) HALTS for the captain.
 
 > **Anchor / first run skips `smoke`** (`propose → full`): the codex anchor on the baseline
 > README (all 12 datasets) is a direct full run that validates the loop end-to-end against the

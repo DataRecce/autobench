@@ -29,3 +29,14 @@ README-steerable at gpt-5.5 (deliberated choice), whereas the DECORATION reflex 
 — reflex-vs-deliberated distinction now empirically grounded. INFRA: full-1 PG-volume concurrency collision
 (fixed, PR #18) + full-2 Mongo serverSelectionTimeout; a fully-clean 54-cell board stayed elusive (different
 backend dropped each run). Detail: dab0015 entity ## Conclusion (commit 9ca5a8c).
+
+## Workflow refit (2026-06-21) — autonomous run policy (auto-gate to full-run launch)
+Added `## Autonomous run policy` to the DAB workflow README + inline auto-gate notes on propose/smoke.
+Encodes the guarded auto-pipeline distilled from dab0015: automate the mechanical spine + the clean
+happy path through propose → smoke → the full-run LAUNCH; HALT+escalate on judgment. Default stays
+captain-gated; autonomous mode is opt-in per hypothesis (drive the FO under /loop). Key guardrails:
+propose auto-APPROVE = gatekeeper APPROVE + FO reject-checks; smoke→full auto-advance = strict-audit-clean
++ 0 coverage_missing + target-flipped-by-committed-artifact + canaries-held + backend-health + LOW-BASELINE
+target (the yelp-q6 4/6-trap: a single pass on a multi-pass cell is not lever evidence). Never auto:
+conclude/promote/seed-README-edit, strategy (lever choice/retarget/pivot/revise-vs-reject), infra code
+fixes, or an UNEXPECTED result (→ unexpected-result-playbook). Infra is NEVER counted as a result.
