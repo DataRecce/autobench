@@ -1,10 +1,12 @@
 ---
 id: dab0016
 title: variable-band - pin the analytic semantics (ordering/tiebreak + thresholds/dates/NULLs) to stabilize coin-flip cells, judged multi-trial
-status: smoke
+status: conclude
 kind: hypothesis
 source: merge of dab0002 (determinism/tiebreak) + dab0003 (aggregation/filter precision); direction decision _artifacts/direction-decision-2026-06-21.md
 score: 0.55
+verdict: rejected
+archived: 2026-06-21T09:53:17Z
 ---
 
 ## Hypothesis
@@ -199,3 +201,47 @@ near-tie, not determinism-under-specification. The central question ("is the var
 README-stabilizable?") gets a clean read on this one well-characterized cell. Main risk is G7 inert-risk
 (structural rule may be acknowledged-but-not-applied); smoke is multi-trial (3 draws) and must check the
 committed `ORDER BY` actually became total before crediting a GO.
+
+## Stage Report — smoke (3-draw multi-trial)
+
+**Stage:** smoke. **Date:** 2026-06-21. **Run:** `runs/dab0016-pin-analytic-semantics/3ce08c53d5abe457.draw{1,2,3}`
+(handle `runs/.rk-handles/dab0016-smoke-3draw-20260621-075111`). **Verdict: NO-GO / FALSIFIED.**
+All 3 draws: strict audit clean, 0 errored, 7/7 completed → genuine answer differences, not infra.
+
+| cell | band | d1 d2 d3 | smoke | role |
+|------|------|----------|-------|------|
+| stockmarket-q4 | 4/6 | F F P | **1/3** | 🎯 TARGET — did NOT rise (below band) |
+| stockmarket-q5 | 6/6 | P P P | 3/3 | canary held ✅ |
+| stockindex-q2 | 6/6 | P P P | 3/3 | canary held ✅ |
+| stockindex-q3 | 6/6 | F P F | **1/3** | canary DESTABILIZED ❌ |
+| GITHUB_REPOS-q3 | 5/6 | P F F | **1/3** | canary DESTABILIZED ❌ |
+| music_brainz_20k-q3 | 6/6 | P P P | 3/3 | sentinel held ✅ |
+| crmarenapro-q13 | 4/6 | F F F | 0/3 | watch-only |
+
+**Both acceptance arms fail:** (1) target 1/3 is BELOW its 4/6 band, not ≥5–6/6; (2) a rock-stable 6/6
+canary (stockindex-q3) destabilized — the explicit falsification condition ("determinism rule mis-fires").
+
+**Mechanism (artifact-confirmed, from the codex rollouts):**
+- **stockmarket-q4 — rule INERT on the actual ambiguity.** The rule fired (full `ORDER BY … , symbol ASC`
+  every draw) but the variance is in the unstated *primary ranking metric*, which the rule explicitly
+  DEFERS to the model ("the primary metric you infer"). Fails ranked by `up_count DESC` (→ HDFC/Albany/
+  Getty/Mettler/Pfizer); the pass ranked by up-minus-down *surplus* (→ MFA/Argo/HDFC/Albany/DTE). Pinning
+  tiebreaks cannot fix a cell whose flip is *which metric*, not *how to break ties*. The probe correctly
+  saw "under-specified ordering" but mis-identified the locus (metric choice, not tiebreak).
+- **stockindex-q3 — generative rule plausibly HARMFUL.** Pass (d2) INCLUDED NSEI; fail (d3) EXCLUDED NSEI
+  + J203.JO "because their data starts after 2000" — a date-window/eligibility flip. The rule's
+  "pin the exact date bounds" emphasis plausibly nudged a stricter since-2000 eligibility filter that
+  drops a valid index, breaking a 6/6 cell. (3 draws is thin to prove harm, but the direction is wrong.)
+
+**Boundary learned (the central question answered):** the variable band is **NOT** README-stabilizable by a
+generative "pin the analytic semantics" rule. Real under-specification in ranking cells is *metric choice*
+and *eligibility-filter interpretation* — both oracle-blind decisions the rule can't pin — and a blanket
+determinism rule ADDS variance to previously-stable ranking/eligibility canaries rather than removing it.
+This closes the determinism/precision lever family (dab0002+dab0003 merged here). Mirrors the oracle-blind
+wall: you cannot pin the *correct* metric/eligibility without the oracle.
+
+### Checklist
+- [x] DONE — 3-draw smoke launched detached, all draws rc=0, strict audit clean, 0 errored.
+- [x] DONE — per-cell matrix vs 6-draw band; target + 2 canaries scored below band.
+- [x] DONE — mechanism characterized by rollout artifacts (metric-choice inertness; eligibility mis-fire).
+- [ ] N/A — full run (NO-GO, do not advance); promote/seed-edit (none).
