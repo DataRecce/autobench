@@ -179,7 +179,10 @@ class Job:
     progress: tuple[int, int] | None = None
     passed: int | None = None
     is_dab: bool = False
+    is_batch_dab: bool = False
     pass_at_1: float | None = None  # stratified macro-average (DAB)
+    query_passed: int | None = None  # batch DAB: queries passed across datasets
+    query_total: int | None = None  # batch DAB: total queries on the slate
 
 
 @dataclass(frozen=True)
@@ -982,6 +985,15 @@ def job_progress_suffix(job: Job) -> str:
     completed, total = job.progress
     if total <= 0:
         return ""
+    # Batch DAB runs one trial per whole dataset and scores queries, not whole
+    # datasets, so "passed" is queries passed / total queries on the slate
+    # (parsed from each trial's reward_per_query.json + the tasks' stratum.json),
+    # not the trial-pass count the per-query layout reports.
+    if job.is_batch_dab and job.query_total:
+        graded = f"{job.query_passed}/{job.query_total} passed"
+        if job.status == "running":
+            return f"{completed}/{total} done · {graded}" + pass_at_1_suffix(job)
+        return graded + pass_at_1_suffix(job)
     if job.status == "running":
         done = f"{completed}/{total} done"
         if job.passed is not None:
@@ -1219,6 +1231,14 @@ def looks_like_job_dir(path: Path) -> bool:
 
 
 def build_job(experiment: str, job_dir: Path) -> Job:
+    kind = dab_job_kind(job_dir)
+    is_batch = kind == "dab-batch"
+    if is_batch:
+        pass_at_1 = job_batch_pass_at_1(job_dir)
+        query_passed, query_total = job_batch_query_counts(job_dir) or (None, None)
+    else:
+        pass_at_1 = job_macro_pass_at_1(job_dir)
+        query_passed = query_total = None
     return Job(
         experiment=experiment,
         path=job_dir,
@@ -1227,22 +1247,34 @@ def build_job(experiment: str, job_dir: Path) -> Job:
         trials=[],
         progress=job_progress(job_dir),
         passed=job_pass_count(job_dir),
-        is_dab=job_is_dab(job_dir),
-        pass_at_1=job_macro_pass_at_1(job_dir),
+        is_dab=kind != "ade",
+        is_batch_dab=is_batch,
+        pass_at_1=pass_at_1,
+        query_passed=query_passed,
+        query_total=query_total,
     )
 
 
-def job_is_dab(job_dir: Path) -> bool:
-    # A DAB trial nests its content under steps/<step>/ (see step_roots); ade-bench
-    # trials never do. A job is uniformly one benchmark, so the first trial dir
-    # decides. Cheap enough to recompute for every sidebar row.
+def dab_job_kind(job_dir: Path) -> str:
+    # Classify a job by its first trial dir: "ade" (flat agent/verifier),
+    # "dab" (per-query, nested under steps/<step>/, trial id "<dataset>-q<N>"),
+    # or "dab-batch" (one trial per whole dataset, bare "<dataset>" trial id,
+    # fractional reward = the dataset's pass@1). A job is uniformly one benchmark,
+    # so the first trial decides. Cheap enough to recompute for every sidebar row.
     try:
         for path in job_dir.iterdir():
             if path.is_dir() and "__" in path.name:
-                return (path / "steps").is_dir()
+                if not (path / "steps").is_dir():
+                    return "ade"
+                task_id = path.name.split("__", 1)[0]
+                return "dab" if re.search(r"-q\d+$", task_id) else "dab-batch"
     except OSError:
-        return False
-    return False
+        return "ade"
+    return "ade"
+
+
+def job_is_dab(job_dir: Path) -> bool:
+    return dab_job_kind(job_dir) != "ade"
 
 
 def job_progress(job_dir: Path) -> tuple[int, int] | None:
@@ -1335,6 +1367,108 @@ def dataset_from_trial_id(trial_id: str) -> str:
     # with the query suffix stripped. Verified to match stratum.json's dataset.
     task_id = trial_id.split("__", 1)[0]
     return re.sub(r"-q\d+$", "", task_id)
+
+
+def job_batch_pass_at_1(job_dir: Path) -> float | None:
+    # Stratified pass@1 for a batch DAB job: every dataset weighted equally. Each
+    # trial is one whole dataset whose reward is already that dataset's pass rate,
+    # so the macro-average is just the mean of the per-trial rewards. Computed as
+    # the value-weighted mean over result.json's reward_stats.reward (value ->
+    # [trial-ids]); this matches the mean of the per-trial reward.json files and
+    # excludes completed-but-unrewarded datasets (verifier abstained / degraded),
+    # which is the established treatment (exclude, don't count as 0). None before
+    # any dataset has a reward.
+    result = read_json(job_dir / "result.json")
+    if not result:
+        return None
+    evals = (result.get("stats") or {}).get("evals")
+    if not isinstance(evals, dict):
+        return None
+    total_reward = 0.0
+    n = 0
+    for eval_data in evals.values():
+        reward_stats = eval_data.get("reward_stats") if isinstance(eval_data, dict) else None
+        reward = reward_stats.get("reward") if isinstance(reward_stats, dict) else None
+        if not isinstance(reward, dict):
+            continue
+        for value, trial_ids in reward.items():
+            if not isinstance(trial_ids, list):
+                continue
+            try:
+                v = float(value)
+            except (TypeError, ValueError):
+                continue
+            total_reward += v * len(trial_ids)
+            n += len(trial_ids)
+    if n == 0:
+        return None
+    return total_reward / n
+
+
+def job_batch_query_counts(job_dir: Path) -> tuple[int, int] | None:
+    # (passed_queries, total_queries) for a batch DAB job. A batch trial scores
+    # every query in its dataset, recording the breakdown in
+    # steps/<step>/verifier/reward_per_query.json; passed = queries with
+    # reward >= 1.0 summed across trials. Total is the full slate from each
+    # configured task's tests/stratum.json (known from t=0), falling back to the
+    # queries observed so far if no stratum is readable. None when nothing graded.
+    try:
+        trial_dirs = [p for p in job_dir.iterdir() if p.is_dir() and "__" in p.name]
+    except OSError:
+        return None
+    passed = 0
+    observed = 0
+    graded = False
+    for trial_dir in trial_dirs:
+        per_query = trial_reward_per_query(trial_dir)
+        if per_query is None:
+            continue
+        graded = True
+        for entry in per_query.values():
+            observed += 1
+            reward = entry.get("reward") if isinstance(entry, dict) else None
+            try:
+                if float(reward) >= 1.0:
+                    passed += 1
+            except (TypeError, ValueError):
+                continue
+    total = job_batch_total_queries(job_dir)
+    if total is None:
+        total = observed
+    if not graded and total == 0:
+        return None
+    return passed, total
+
+
+def job_batch_total_queries(job_dir: Path) -> int | None:
+    # Total queries on a batch slate: sum of query_ids across the configured
+    # tasks' tests/stratum.json. Available before any trial finishes, so the
+    # denominator is the full slate even early in a running job. None if no
+    # stratum is readable.
+    total = 0
+    found = False
+    for task_path in configured_task_paths(job_dir):
+        stratum = read_json(task_path / "tests" / "stratum.json")
+        inner = stratum.get("stratum") if isinstance(stratum, dict) else None
+        query_ids = inner.get("query_ids") if isinstance(inner, dict) else None
+        if isinstance(query_ids, list):
+            total += len(query_ids)
+            found = True
+    return total if found else None
+
+
+def trial_reward_per_query(trial_dir: Path) -> dict | None:
+    # The per-query reward breakdown a batch DAB trial writes to
+    # verifier/reward_per_query.json under each step root: {q: {reward, reason}}.
+    # Merges across step roots. None when no such file exists (per-query / ade).
+    merged: dict = {}
+    found = False
+    for root in step_roots(trial_dir):
+        data = read_json(root / "verifier" / "reward_per_query.json")
+        if isinstance(data, dict) and data:
+            found = True
+            merged.update(data)
+    return merged if found else None
 
 
 def discover_trials(job_dir: Path) -> list[Trial]:

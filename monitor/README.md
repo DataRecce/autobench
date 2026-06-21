@@ -150,6 +150,14 @@ click-to-select/copy is suppressed — hold your terminal's modifier (often
   (`K/total passed · pass@1 58.4%`) — a **stratified macro-average** that weights
   every dataset equally (mean of per-dataset pass rates), not every trial. It is
   omitted for ade-bench jobs and for jobs with no graded trials yet.
+  - **Batch DAB** runs (`runs/codex-dab-batch-*`) execute every query of a
+    dataset in a single trial, so each trial's reward is a fraction (that
+    dataset's pass rate) rather than 0/1. There the `passed/total` count is
+    **queries** passed across all datasets — passes read from each trial's
+    `verifier/reward_per_query.json`, the total slate from each task's
+    `tests/stratum.json` (so it shows the full denominator from the first
+    second) — and `pass@1` is the mean of the per-dataset rewards
+    (`8/12 done · 23/54 passed · pass@1 69.4%`).
 - **Trials** (top right): one row per trial with status, `[passed]`/`[failed]`,
   wall-clock duration, dbt test counts (`passed/total`), and agent token usage.
 - **Trial Info**: dataset id, trial name, status, verify result, the **agent**

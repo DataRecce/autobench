@@ -299,6 +299,100 @@ def test_job_macro_pass_at_1_none_without_rewards(tmp_path: Path):
     assert m.job_macro_pass_at_1(job) is None
 
 
+def _make_batch_trial(job: Path, dataset: str, per_query: dict, query_ids: list[int]):
+    # A batch DAB trial: bare "<dataset>__<suffix>" name, content nested under
+    # steps/main/, the per-query breakdown in verifier/reward_per_query.json, and
+    # the slate's query_ids in the configured task's tests/stratum.json.
+    trial = job / f"{dataset}__sfx"
+    verifier = trial / "steps" / "main" / "verifier"
+    verifier.mkdir(parents=True)
+    (verifier / "reward_per_query.json").write_text(json.dumps(per_query))
+    task = job / "tasks" / dataset / "tests"
+    task.mkdir(parents=True)
+    (task / "stratum.json").write_text(json.dumps(
+        {"stratum": {"dataset": dataset, "query_ids": query_ids}}
+    ))
+    return trial
+
+
+def test_dab_job_kind_distinguishes_batch_from_per_query(tmp_path: Path):
+    per_query = tmp_path / "pq"
+    (per_query / "googlelocal-q1__x" / "steps" / "main").mkdir(parents=True)
+    assert m.dab_job_kind(per_query) == "dab"
+
+    batch = tmp_path / "batch"
+    (batch / "googlelocal__x" / "steps" / "main").mkdir(parents=True)
+    assert m.dab_job_kind(batch) == "dab-batch"
+
+    ade = tmp_path / "ade"
+    (ade / "airbnb001__x" / "agent").mkdir(parents=True)
+    assert m.dab_job_kind(ade) == "ade"
+
+
+def test_job_batch_pass_at_1_means_per_dataset_rewards(tmp_path: Path):
+    # Each batch trial is one dataset; its reward IS that dataset's pass rate.
+    # Stratified pass@1 = mean of the rewards = (0.6667 + 0.5 + 0.5 + 1.0) / 4.
+    job = tmp_path / "job"
+    job.mkdir()
+    reward = {
+        "0.6666666666666666": ["PANCANCER_ATLAS__a"],
+        "0.5": ["DEPS_DEV_V1__b", "GITHUB_REPOS__c"],
+        "1.0": ["bookreview__d"],
+    }
+    (job / "result.json").write_text(json.dumps(
+        {"stats": {"evals": {"e": {"reward_stats": {"reward": reward}}}}}
+    ))
+    expected = (0.6666666666666666 + 0.5 + 0.5 + 1.0) / 4
+    assert m.job_batch_pass_at_1(job) == expected
+
+
+def test_job_batch_query_counts_sums_queries(tmp_path: Path):
+    # passed = queries with reward >= 1.0 across trials; total = full slate from
+    # each configured task's stratum.json (even datasets not yet graded).
+    job = tmp_path / "job"
+    job.mkdir()
+    _make_batch_trial(
+        job, "PANCANCER_ATLAS",
+        {"q1": {"reward": 0.0}, "q2": {"reward": 1.0}, "q3": {"reward": 1.0}},
+        [1, 2, 3],
+    )
+    _make_batch_trial(
+        job, "bookreview",
+        {"q1": {"reward": 1.0}, "q2": {"reward": 1.0}, "q3": {"reward": 1.0}},
+        [1, 2, 3],
+    )
+    # A configured-but-ungraded dataset still counts toward the total slate.
+    task = job / "tasks" / "yelp" / "tests"
+    task.mkdir(parents=True)
+    (task / "stratum.json").write_text(json.dumps(
+        {"stratum": {"dataset": "yelp", "query_ids": [1, 2, 3, 4]}}
+    ))
+    (job / "config.json").write_text(json.dumps({"tasks": [
+        {"path": str(job / "tasks" / "PANCANCER_ATLAS")},
+        {"path": str(job / "tasks" / "bookreview")},
+        {"path": str(job / "tasks" / "yelp")},
+    ]}))
+    assert m.job_batch_query_counts(job) == (5, 10)
+
+
+def test_job_batch_query_counts_none_without_grades(tmp_path: Path):
+    job = tmp_path / "job"
+    (job / "googlelocal__x" / "steps" / "main").mkdir(parents=True)
+    assert m.job_batch_query_counts(job) is None
+
+
+def test_job_progress_suffix_batch_shows_query_passes(tmp_path: Path):
+    job = m.Job(
+        experiment="codex-dab-batch", path=Path("/j"), updated=0.0,
+        status="running", trials=[], progress=(8, 12), passed=2,
+        is_dab=True, is_batch_dab=True, pass_at_1=0.694,
+        query_passed=23, query_total=54,
+    )
+    assert m.job_progress_suffix(job) == "8/12 done · 23/54 passed · pass@1 69.4%"
+    job.status = "finished"
+    assert m.job_progress_suffix(job) == "23/54 passed · pass@1 69.4%"
+
+
 def test_sort_experiments_running_on_top():
     data = {
         "zeta-running": [_job("running")],

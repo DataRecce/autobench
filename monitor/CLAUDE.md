@@ -129,6 +129,21 @@ output. The most likely sources of future breakage:
   pass count and the DAB **stratified macro-average** pass@1, where trials are
   grouped by dataset via `dataset_from_trial_id` — the `<dataset>-q<N>` prefix,
   verified against `stratum.json` — and per-dataset rates are averaged equally).
+- **DAB run modes** (`dab_job_kind()`): `"dab"` = per-query (one trial per query,
+  trial id `<dataset>-q<N>__…`, **binary** reward); `"dab-batch"` = one trial per
+  whole dataset (bare `<dataset>__…` id, **fractional** reward = that dataset's
+  pass rate) — distinguished by whether the first trial id carries a `-q<N>`
+  segment. For **batch**, the sidebar `passed/total` is **queries**, not trials:
+  - `verifier/reward_per_query.json` (`trial_reward_per_query`, under each step
+    root) = `{q: {reward, reason}}`; passes = entries with `reward >= 1.0`.
+  - total queries = Σ `tests/stratum.json` `stratum.query_ids` over the
+    *configured* tasks (`job_batch_total_queries`) — the full slate, known from
+    t=0; falls back to observed queries if no stratum is readable.
+  - `pass@1` = mean of the per-dataset rewards (`job_batch_pass_at_1`, the
+    value-weighted mean of `reward_stats.reward`) — equals the mean of the
+    per-trial `reward.json` files and **excludes** completed-but-unrewarded
+    datasets (verifier abstained / degraded), rather than `metrics[*].mean`,
+    which counts them as 0.
 - **`config.json`**: `tasks[*].path` (pending trials + total count).
 - **Codex transcript** `agent/codex.txt`: line-delimited JSON events with
   `item.type` ∈ {`agent_message`, `command_execution`, `file_change`,
