@@ -9,33 +9,33 @@
 
 Solve DAB queries by **forcing the solver to build a dbt data pipeline first, then query
 the answer out of the built models** — instead of answering with ad-hoc DuckDB SQL. The
-aim is a *reusable, ADE-mergeable* solver methodology, not a per-question tune.
+aim is a _reusable, ADE-mergeable_ solver methodology, not a per-question tune.
 
 Research question: **does relocating DAB's normalize → resolve → aggregate logic from
 inline CTEs into validated dbt staging/intermediate models (gated on dirty-data schemas)
 move codex/gpt-5.5's stratified Pass@1 above the Opus incumbent?**
 
 This is a **single-lever change**: the solver README only. DAB grades `answers.json`
-exclusively (`verify.py` → `validate.py` → reward), so the dbt pipeline is *instrumental
-scaffolding* the README prescribes — it never appears in the graded artifact. That keeps
+exclusively (`verify.py` → `validate.py` → reward), so the dbt pipeline is _instrumental
+scaffolding_ the README prescribes — it never appears in the graded artifact. That keeps
 the change inside the independent-variable rule.
 
 **dbt is baked into the `dab-agent` image** (we build that image), installed once and held
 **constant across the baseline and every variant run**. So dbt-in-image is part of the
 fixed environment, not a per-hypothesis change — the solver README remains the only thing
-that *varies between* compared runs, and the IV rule holds. (Runtime `pip install` is
-explicitly *not* used; it would make the environment vary with the README.)
+that _varies between_ compared runs, and the IV rule holds. (Runtime `pip install` is
+explicitly _not_ used; it would make the environment vary with the README.)
 
 ## 2. Why this can work — the ADE/DAB shared spine
 
-ADE-bench (dbt repair/build, the deliverable *is* the model) and DAB (query answering)
+ADE-bench (dbt repair/build, the deliverable _is_ the model) and DAB (query answering)
 share one spine: **build + validate dbt staging/intermediate models that normalize and
 reconcile dirty source data.** They diverge only at the deliverable.
 
-| | shared spine (build + validate dbt models) | deliverable | grader sees |
-|---|---|---|---|
-| **ADE** | `stg_*` normalize → `int_*` resolve → dbt tests | the model itself | model correctness |
-| **DAB** | same | a query over the mart | `answers.json` |
+|         | shared spine (build + validate dbt models)      | deliverable           | grader sees       |
+| ------- | ----------------------------------------------- | --------------------- | ----------------- |
+| **ADE** | `stg_*` normalize → `int_*` resolve → dbt tests | the model itself      | model correctness |
+| **DAB** | same                                            | a query over the mart | `answers.json`    |
 
 The current DAB baseline README already does normalize → entity-resolve → aggregate, but
 as inline CTEs. This method relocates each step into an inspectable, testable model:
@@ -45,9 +45,9 @@ as inline CTEs. This method relocates each step into an inspectable, testable mo
 - **Step 2 — answer / find where it's broken:** `int_*` models do entity resolution
   (OR-across-dirty-fields) — today's "Step 2." Generic **dbt tests** (`unique` on the
   declared grain, `not_null` on join keys, a parent/child rowcount-reconcile test) live on
-  the **resolved** models and assert the *post-resolution* invariant. A red test means the
+  the **resolved** models and assert the _post-resolution_ invariant. A red test means the
   resolution model is still wrong (one logical entity fragmented, grain not yet collapsed) —
-  i.e. *your build* is broken. This is the ADE-style debug step, reused for free: the agent
+  i.e. _your build_ is broken. This is the ADE-style debug step, reused for free: the agent
   fixes the resolution model and re-runs until tests pass. A red test is **never** reported
   as the answer.
 - **Final — answer:** `analyze` queries the mart → `answers.json` — today's "Step 3."
@@ -56,25 +56,47 @@ as inline CTEs. This method relocates each step into an inspectable, testable mo
 
 **Decision (captain, 2026-06-21): gated dbt.** Build the dbt pipeline **only when
 `db_description.txt` warns of duplicate rows / different sources / independently dirty
-entity-name fields** — the *same trigger the baseline README already uses* to switch on
+entity-name fields** — the _same trigger the baseline README already uses_ to switch on
 the normalize→resolve sequence. Clean schemas skip dbt entirely and stay on plain DuckDB
 SQL.
 
 Rejected alternatives:
+
 - **Mandatory dbt for every query** — uniform and the cleanest ADE merge, but burns
   budget/context on plumbing for trivial 1-query datasets and adds a build failure surface
   to queries that don't need it. This is exactly the `dab0005-methodology-overhead-recovery`
   failure mode. Rejected.
 - **Probe-only** — that's not a solver method, it's Gate 0 below (a prerequisite, kept).
 
-No new heuristic is introduced: the dbt on/off switch *is* the existing dirty-schema gate.
+**Gate text — reused verbatim from baseline.** The variant README MUST copy the baseline
+trigger character-for-character (from `solver_workflows/spacedock-readme-baseline/README.md`):
+
+> **Trigger:** if `db_description.txt` warns about `duplicate` rows, `different sources`, or
+> independently dirty entity-name fields (e.g. title/artist/album, or name/description) on
+> any table you intend to join, group, or rank over, you MUST run the following three steps
+> **in order** before issuing the analytical query.
+
+This is *not* a new heuristic, and we deliberately do **not** make the gate executable or
+keyword-deterministic — that would be a second lever on top of "relocate logic into dbt
+models" and would confound attribution (a win could be the dbt method *or* a sharper gate),
+breaking the single-IV rule. Gate precision is its own future hypothesis, if it ever matters.
+
+**Why the gate's fuzziness doesn't bias the result.** Baseline and variant fire on the
+*same* trigger text, so any gate ambiguity (including schemas that need normalization but
+don't use those exact words) is **held constant and cancels in `rk runs diff`**. The only
+thing that varies post-gate is inline CTEs vs. dbt models. Fixing the gate's recall is not
+this method's job.
+
+**One new wrinkle:** a false-positive gate fire costs *more* under dbt (scaffolding
+overhead) than under baseline (a few extra CTEs). Mitigation already exists — the canary set
+(§5 Gate 2) catches overhead regressions on currently-passing clean datasets.
 
 ## 4. Architecture — README stage model
 
 Fork `solver_workflows/spacedock-readme-baseline` → `dab00NN-dbt-gated-pipeline`. Same
 `model → analyze → verify → done` stage frontmatter. The README body changes:
 
-```
+```yaml
 stage: model
   read db_description.txt + connections.yaml          # dbt is preinstalled in the image
   IF schema warns (duplicate / different-source / dirty entity fields):
@@ -119,10 +141,11 @@ model with a red test.
   duckdb file). Self-contained: deletable without affecting the answer once `answers.json`
   is written.
 - **Generic tests only.** `unique` / `not_null` / a rowcount-reconcile test expressed
-  against the *declared grain*, not against any specific question. Keeps it reusable and
+  against the _declared grain_, not against any specific question. Keeps it reusable and
   non-tuned.
-- **The gate predicate** is the single coupling point to the rest of the README, and it is
-  reused verbatim from baseline — no new branching logic.
+- **The gate predicate** is the single coupling point to the rest of the README. It reuses
+  the baseline trigger **verbatim** (quoted in §3) — no new branching logic, and held
+  constant across baseline + variant so its fuzziness cancels in the diff.
 
 ## 5. Preparation sequence (the gates)
 
@@ -130,13 +153,14 @@ model with a red test.
 Nothing about dbt exists in the DAB environment today (no dbt in the plugin, the workspace,
 the baseline README; agent image is `dab-agent:latest`). Before the real hypothesis is
 worth authoring, prove:
+
 1. `dbt` + `dbt-duckdb` runs in the solver container. **Decision: baked into the
    `dab-agent` image** (we build it), held constant across baseline + variants (see §1).
    The probe just confirms `dbt --version` resolves and a trivial model builds — no runtime
    install, no pip-network dependency.
 2. dbt-duckdb can ATTACH the workspace SQLite / PostgreSQL / DuckDB sources.
 3. **Mongo** — the adapter risk. dbt-duckdb has no native Mongo; it only works through
-   DuckDB's mongo extension *inside* a model. Either prove that path or restrict the method
+   DuckDB's mongo extension _inside_ a model. Either prove that path or restrict the method
    to non-Mongo datasets. Determine which target datasets are Mongo (`compose.py` builds
    `dab-mongo`) **before** fixing the smoke set.
 
