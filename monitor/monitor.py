@@ -1400,20 +1400,23 @@ def dataset_from_trial_id(trial_id: str) -> str:
 def job_batch_pass_at_1(job_dir: Path) -> float | None:
     # Stratified pass@1 for a batch DAB job: every dataset weighted equally. Each
     # trial is one whole dataset whose reward is already that dataset's pass rate,
-    # so the macro-average is just the mean of the per-trial rewards. Computed as
-    # the value-weighted mean over result.json's reward_stats.reward (value ->
-    # [trial-ids]); this matches the mean of the per-trial reward.json files and
-    # excludes completed-but-unrewarded datasets (verifier abstained / degraded),
-    # which is the established treatment (exclude, don't count as 0). None before
-    # any dataset has a reward.
+    # so this is the mean of the per-dataset rewards.
+    #
+    # Numerator = Σ rewards from result.json's reward_stats.reward (value ->
+    # [trial-ids]). Denominator = every dataset that has *run* (completed +
+    # errored), NOT just the rewarded ones -- so a dataset that finished without a
+    # reward (verifier abstained / degraded, e.g. PATENTS) counts as 0 and the
+    # slate of 12 stays 12, not 11. Falls back to the rewarded count when the
+    # trial-state stats are missing. None before any dataset has a reward.
     result = read_json(job_dir / "result.json")
     if not result:
         return None
-    evals = (result.get("stats") or {}).get("evals")
+    stats = result.get("stats") or {}
+    evals = stats.get("evals")
     if not isinstance(evals, dict):
         return None
     total_reward = 0.0
-    n = 0
+    rewarded = 0
     for eval_data in evals.values():
         reward_stats = eval_data.get("reward_stats") if isinstance(eval_data, dict) else None
         reward = reward_stats.get("reward") if isinstance(reward_stats, dict) else None
@@ -1427,10 +1430,15 @@ def job_batch_pass_at_1(job_dir: Path) -> float | None:
             except (TypeError, ValueError):
                 continue
             total_reward += v * len(trial_ids)
-            n += len(trial_ids)
-    if n == 0:
+            rewarded += len(trial_ids)
+    if rewarded == 0:
         return None
-    return total_reward / n
+    ran = 0
+    for key in ("n_completed_trials", "n_errored_trials"):
+        count = stats.get(key)
+        if isinstance(count, int):
+            ran += count
+    return total_reward / max(ran, rewarded)
 
 
 def job_batch_query_counts(job_dir: Path) -> tuple[int, int] | None:

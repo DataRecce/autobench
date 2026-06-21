@@ -372,6 +372,21 @@ def test_job_batch_pass_at_1_means_per_dataset_rewards(tmp_path: Path):
     assert m.job_batch_pass_at_1(job) == expected
 
 
+def test_job_batch_pass_at_1_counts_unrewarded_dataset_as_zero(tmp_path: Path):
+    # 12 datasets ran; one (PATENTS) finished with no reward (verifier abstained),
+    # so reward_stats has only 11. The denominator must still be 12 (the run
+    # count), counting the unrewarded dataset as 0 -- not 11.
+    job = tmp_path / "job"
+    job.mkdir()
+    reward = {"1.0": [f"ds{i}__x" for i in range(8)], "0.5": ["a__x", "b__x", "c__x"]}
+    total_reward = 8 * 1.0 + 3 * 0.5  # = 9.5 over 11 rewarded datasets
+    (job / "result.json").write_text(json.dumps({"stats": {
+        "n_completed_trials": 12, "n_errored_trials": 0,
+        "evals": {"e": {"reward_stats": {"reward": reward}}},
+    }}))
+    assert m.job_batch_pass_at_1(job) == total_reward / 12
+
+
 def test_job_batch_query_counts_sums_queries(tmp_path: Path):
     # passed = queries with reward >= 1.0 across trials; total = full slate from
     # each configured task's stratum.json (even datasets not yet graded).

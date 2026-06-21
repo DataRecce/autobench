@@ -139,11 +139,12 @@ output. The most likely sources of future breakage:
   - total queries = Σ `tests/stratum.json` `stratum.query_ids` over the
     *configured* tasks (`job_batch_total_queries`) — the full slate, known from
     t=0; falls back to observed queries if no stratum is readable.
-  - `pass@1` = mean of the per-dataset rewards (`job_batch_pass_at_1`, the
-    value-weighted mean of `reward_stats.reward`) — equals the mean of the
-    per-trial `reward.json` files and **excludes** completed-but-unrewarded
-    datasets (verifier abstained / degraded), rather than `metrics[*].mean`,
-    which counts them as 0.
+  - `pass@1` = mean of the per-dataset rewards (`job_batch_pass_at_1`):
+    numerator = Σ `reward_stats.reward`, denominator = datasets that have **run**
+    (`stats.n_completed_trials + n_errored_trials`), NOT just the rewarded ones.
+    So a dataset that finished without a reward (verifier abstained / degraded,
+    e.g. PATENTS) counts as **0** and a 12-dataset slate stays /12, not /11.
+    Falls back to the rewarded count when the trial-state stats are missing.
   - Per **trial** (a whole dataset), `trial_batch_outcome` returns
     `(pass@1, queries_passed, queries_total)` — pass@1 from the trial's
     `verifier_result.rewards.reward` (`trial_reward_value`), counts from
