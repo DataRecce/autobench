@@ -314,11 +314,15 @@ the canary check compares against `@codex-batch-baseline`.**
   forcing dbt onto every dataset (including clean, 1-query ones) costs budget/context and can
   regress a passer. No gate to fall back on. Mitigated by: (1) a minimal templated scaffold so
   the agent fills models not boilerplate; (2) `@codex-batch-baseline` (§5 Gate 1.5) for clean
-  attribution; (3) canaries in every smoke set as a hard stop-signal. If overhead regresses
-  canaries broadly, the mandatory decision itself is falsified — fall back to gating.
+  attribution; (3) the **per-query non-regression bar of Gate 2/§6** — _any single_ Opus ∩
+  `@codex-batch-baseline` passer regressing **anywhere** in the evaluated set (not just the
+  named canary datasets) is a stop-signal. The named canaries are only the cheapest smoke
+  subset to watch, **not** the limit of the check. Separately, if regressions are _broad_
+  across many datasets, the mandatory decision itself is falsified — fall back to gating (that
+  global-falsification judgment is the only place "broadly" applies).
 - **New failure surface:** a broken dbt build/test can zero a query the baseline passed —
-  now on _every_ dataset, not just dirty ones. `verify` + canaries catch it; the templated
-  scaffold + green-tests-before-`analyze` contract bound it.
+  now on _every_ dataset, not just dirty ones. `verify` + the per-query non-regression bar
+  (Gate 2/§6) catch it; the templated scaffold + green-tests-before-`analyze` contract bound it.
 - **Mongo adapter gap:** resolved — only `agnews`/`yelp` touch Mongo and both ship a
   relational backend dbt-duckdb attaches natively; no Mongo-only dataset exists (Gate 0 item 3).
 - **Image drift (accepted confound — captain decision 2026-06-21).** dbt is baked into the
