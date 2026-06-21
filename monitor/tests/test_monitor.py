@@ -83,6 +83,32 @@ def test_verify_style_and_outcome():
     assert m.verify_outcome("pending") == ""
 
 
+def _trial(**kw) -> "m.Trial":
+    base = dict(
+        name="x__s", path=Path("/x"), task_id="x", status="completed",
+        verify_result="reward=0", agent_answer="", truth_summary="", log_sources=[],
+    )
+    base.update(kw)
+    return m.Trial(**base)
+
+
+def test_trial_outcome_tag_binary_for_non_batch():
+    assert m.trial_outcome_tag(_trial(verify_result="reward=1.0")) == ("[passed]", "verify.pass")
+    assert m.trial_outcome_tag(_trial(verify_result="reward=0.0")) == ("[failed]", "verify.fail")
+
+
+def test_trial_outcome_tag_batch_shows_pass_at_1_and_counts():
+    trial = _trial(verify_result="reward=0.6666666666666666",
+                   pass_at_1=0.6666666666666666, query_passed=2, query_total=3)
+    assert m.trial_outcome_tag(trial) == ("[2/3 · pass@1 66.7%]", "verify.partial")
+
+
+def test_batch_outcome_style():
+    assert m.batch_outcome_style(1.0) == "verify.pass"
+    assert m.batch_outcome_style(0.0) == "verify.fail"
+    assert m.batch_outcome_style(0.5) == "verify.partial"
+
+
 # --- small text utils ------------------------------------------------------
 
 def test_one_line():
@@ -379,6 +405,29 @@ def test_job_batch_query_counts_none_without_grades(tmp_path: Path):
     job = tmp_path / "job"
     (job / "googlelocal__x" / "steps" / "main").mkdir(parents=True)
     assert m.job_batch_query_counts(job) is None
+
+
+def test_trial_batch_outcome_from_reward_per_query(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    trial = _make_batch_trial(
+        job, "PANCANCER_ATLAS",
+        {"q1": {"reward": 0.0}, "q2": {"reward": 1.0}, "q3": {"reward": 1.0}},
+        [1, 2, 3],
+    )
+    (trial / "result.json").write_text(json.dumps(
+        {"verifier_result": {"rewards": {"reward": 0.6666666666666666}}}
+    ))
+    pass_at_1, passed, total = m.trial_batch_outcome(trial)
+    assert (passed, total) == (2, 3)
+    assert pass_at_1 == 0.6666666666666666
+
+
+def test_trial_batch_outcome_none_for_per_query(tmp_path: Path):
+    # A per-query / ade trial has no reward_per_query.json.
+    trial = tmp_path / "googlelocal-q1__x"
+    (trial / "steps" / "main" / "verifier").mkdir(parents=True)
+    assert m.trial_batch_outcome(trial) == (None, None, None)
 
 
 def test_job_progress_suffix_batch_shows_query_passes(tmp_path: Path):

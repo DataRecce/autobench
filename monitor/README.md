@@ -102,7 +102,9 @@ Two layouts are supported for where a trial keeps its agent/verifier content:
 | `+` | completed / finished | `result.json` has a verifier/agent result |
 
 `[passed]` / `[failed]` tags on completed trials come from the verifier reward
-(`reward=1.0` ⇒ passed).
+(`reward=1.0` ⇒ passed). For **batch DAB** trials (one whole dataset per trial,
+scored per query) the binary tag is replaced by the dataset's per-query result —
+`[2/3 · pass@1 66.7%]` — green at 100%, red at 0%, yellow in between.
 
 ## Keys
 
@@ -158,8 +160,9 @@ click-to-select/copy is suppressed — hold your terminal's modifier (often
     `tests/stratum.json` (so it shows the full denominator from the first
     second) — and `pass@1` is the mean of the per-dataset rewards
     (`8/12 done · 23/54 passed · pass@1 69.4%`).
-- **Trials** (top right): one row per trial with status, `[passed]`/`[failed]`,
-  wall-clock duration, dbt test counts (`passed/total`), and agent token usage.
+- **Trials** (top right): one row per trial with status, `[passed]`/`[failed]`
+  (or, for batch DAB, the dataset's `[2/3 · pass@1 66.7%]`), wall-clock duration,
+  dbt test counts (`passed/total`), and agent token usage.
 - **Trial Info**: dataset id, trial name, status, verify result, the **agent**
   answer, the ground **truth**, difficulty + description from `datasets.md`, and
   the trial path. For DAB the agent field is the value the agent wrote to

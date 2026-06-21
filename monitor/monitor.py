@@ -142,6 +142,7 @@ STYLES = {
     "log.completed": "green",
     "log.error": "bold red",
     "verify.pass": "green",
+    "verify.partial": "yellow",
     "verify.pending": "bright_black",
     "verify.fail": "bold red",
 }
@@ -167,6 +168,12 @@ class Trial:
     duration_sec: float | None = None
     tests: tuple[int, int] | None = None
     tokens: int | None = None
+    # Batch DAB only: a trial is a whole dataset, so its outcome is a pass@1
+    # (the verifier reward) over query_passed/query_total queries, not a binary
+    # [passed]/[failed]. None for per-query DAB and ade-bench trials.
+    pass_at_1: float | None = None
+    query_passed: int | None = None
+    query_total: int | None = None
 
 
 @dataclass
@@ -1046,11 +1053,32 @@ def trial_label_text(trial: Trial, *, selected: bool) -> Text:
     text = Text()
     base_style = "selection" if selected else status_style(trial.status)
     text.append(f"{status_icon(trial.status)} {trial.task_id} {trial.status}", style=base_style)
-    outcome = verify_outcome(trial.verify_result)
-    if trial.status == "completed" and outcome:
-        tag_style = "selection" if selected else verify_outcome_style(outcome)
-        text.append(f" [{outcome}]", style=tag_style)
+    if trial.status == "completed":
+        tag, tag_style = trial_outcome_tag(trial)
+        if tag:
+            text.append(f" {tag}", style="selection" if selected else tag_style)
     return text
+
+
+def trial_outcome_tag(trial: Trial) -> tuple[str, str]:
+    # The bracketed tag after a completed trial. A batch DAB trial is a whole
+    # dataset scored per-query, so it shows pass@1 + queries passed/total rather
+    # than the binary [passed]/[failed] a per-query / ade trial gets.
+    if trial.pass_at_1 is not None and trial.query_total:
+        tag = f"[{trial.query_passed}/{trial.query_total} · pass@1 {format_pct(trial.pass_at_1)}]"
+        return tag, batch_outcome_style(trial.pass_at_1)
+    outcome = verify_outcome(trial.verify_result)
+    if outcome:
+        return f"[{outcome}]", verify_outcome_style(outcome)
+    return "", ""
+
+
+def batch_outcome_style(pass_at_1: float) -> str:
+    if pass_at_1 >= 1.0:
+        return "verify.pass"
+    if pass_at_1 <= 0.0:
+        return "verify.fail"
+    return "verify.partial"
 
 
 def append_trial_line(lines: Text, trial: Trial, *, selected: bool) -> None:
@@ -1471,11 +1499,49 @@ def trial_reward_per_query(trial_dir: Path) -> dict | None:
     return merged if found else None
 
 
+def trial_batch_outcome(trial_dir: Path) -> tuple[float | None, int | None, int | None]:
+    # For a batch DAB trial (one whole dataset), return its
+    # (pass@1, queries_passed, queries_total). pass@1 is the verifier reward
+    # (the dataset's pass rate); the query counts come from
+    # reward_per_query.json. (None, None, None) for per-query / ade trials, which
+    # have no reward_per_query.json.
+    per_query = trial_reward_per_query(trial_dir)
+    if per_query is None:
+        return None, None, None
+    passed = 0
+    for entry in per_query.values():
+        reward = entry.get("reward") if isinstance(entry, dict) else None
+        try:
+            if float(reward) >= 1.0:
+                passed += 1
+        except (TypeError, ValueError):
+            continue
+    total = len(per_query)
+    pass_at_1 = trial_reward_value(trial_dir)
+    if pass_at_1 is None and total > 0:
+        pass_at_1 = passed / total
+    return pass_at_1, passed, total
+
+
+def trial_reward_value(trial_dir: Path) -> float | None:
+    # The trial's overall verifier reward (verifier_result.rewards.reward) as a
+    # float, or None when absent / non-numeric.
+    result = read_json(trial_dir / "result.json")
+    verifier_result = result.get("verifier_result") if isinstance(result, dict) else None
+    rewards = verifier_result.get("rewards") if isinstance(verifier_result, dict) else None
+    reward = rewards.get("reward") if isinstance(rewards, dict) else None
+    try:
+        return float(reward)
+    except (TypeError, ValueError):
+        return None
+
+
 def discover_trials(job_dir: Path) -> list[Trial]:
     trials = []
     for trial_dir in sorted(p for p in job_dir.iterdir() if p.is_dir() and "__" in p.name):
         task_id = trial_dir.name.split("__", 1)[0]
         status = trial_status(trial_dir)
+        pass_at_1, query_passed, query_total = trial_batch_outcome(trial_dir)
         trials.append(
             Trial(
                 name=trial_dir.name,
@@ -1489,6 +1555,9 @@ def discover_trials(job_dir: Path) -> list[Trial]:
                 duration_sec=trial_duration_sec(trial_dir, status),
                 tests=trial_test_counts(trial_dir),
                 tokens=trial_token_count(trial_dir),
+                pass_at_1=pass_at_1,
+                query_passed=query_passed,
+                query_total=query_total,
             )
         )
 

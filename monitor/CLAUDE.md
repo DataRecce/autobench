@@ -144,6 +144,13 @@ output. The most likely sources of future breakage:
     per-trial `reward.json` files and **excludes** completed-but-unrewarded
     datasets (verifier abstained / degraded), rather than `metrics[*].mean`,
     which counts them as 0.
+  - Per **trial** (a whole dataset), `trial_batch_outcome` returns
+    `(pass@1, queries_passed, queries_total)` — pass@1 from the trial's
+    `verifier_result.rewards.reward` (`trial_reward_value`), counts from
+    `reward_per_query.json`. The trials list shows this as
+    `[2/3 · pass@1 66.7%]` (`trial_outcome_tag` / `batch_outcome_style`:
+    green=1.0, red=0.0, `verify.partial` yellow between) instead of the binary
+    `[passed]`/`[failed]`; both fall back to it when not a batch trial.
 - **`config.json`**: `tasks[*].path` (pending trials + total count).
 - **Codex transcript** `agent/codex.txt`: line-delimited JSON events with
   `item.type` ∈ {`agent_message`, `command_execution`, `file_change`,
