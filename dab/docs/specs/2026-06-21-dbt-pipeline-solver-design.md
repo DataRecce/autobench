@@ -209,6 +209,23 @@ frozen image, and adding an unused package doesn't change anything that doesn't 
 full + smoke specs differing from baseline only in `experiment:` + `solver_workflow:`,
 `rk freeze --allow-missing`.
 
+**Execution mode — `query_mode: batch` (load-bearing for mandatory dbt).** A DAB dataset has
+many queries (crmarenapro has 13). The plugin's default `query_mode: per-query` materializes
+one workspace **per query**, which would rebuild the whole dbt pipeline once per query — e.g.
+13× for crmarenapro, pure waste. Set **`plugin_args.query_mode: batch`** (with
+**`workspace_variant: spacedock`**): one workspace **per dataset**, all queries answered in a
+single turn (`verify_batch` validates each query → per-query rewards, so stratified Pass@1 is
+unchanged and comparable). This makes "build the dbt pipeline **once per dataset**, query it
+for every question" actually true — it's the runtime that realizes the §1 two-phase shape.
+
+- **The current `codex-dab-baseline.yaml` sets neither → defaults to per-query.** It must be
+  set explicitly to batch.
+- **IV implication:** `query_mode`/`workspace_variant` are `plugin_args`, **not** the README
+  lever. To keep "only the README varies," `@codex-baseline` (Gate 1.5) and the dbt variant
+  **both** run `batch` + `spacedock` — these are held-constant spec constants in both specs
+  (see §9). The Opus `@baseline` is a fixed historical run and stays in the headline-confound
+  bucket regardless.
+
 **Gate 1.5 — establish a codex baseline (NEW, required for overhead attribution).** Run the
 **current baseline README (no dbt) on codex/gpt-5.5** over the smoke set (targets + canaries),
 under the rebuilt dbt-containing image. This gives codex's _own_ current per-dataset scores.
@@ -314,5 +331,8 @@ and canaries (currently passing). **Note these are _Opus_ scores — `@codex-bas
 
 - No per-question dbt models or question-specific tests (would break reusability and the
   IV discipline).
-- No change to the grader, specs shape, runtime, model, or sampling — README only.
+- The README is the only lever that **varies between** `@codex-baseline` and the variant.
+  `query_mode: batch` + `workspace_variant: spacedock` are set in **both** specs as
+  held-constant constants (§5 Execution mode) — they change the runtime grouping, not the
+  comparison. Grader, runtime, model, and sampling are otherwise unchanged.
 - No ADE-bench changes; the merge is conceptual (shared spine), realized later if this wins.
