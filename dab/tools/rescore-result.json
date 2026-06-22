@@ -1,0 +1,55 @@
+{
+  "draws": {
+    "342778d74e96f477": {
+      "PATENTS": {
+        "recovered": false,
+        "stored_existed": false,
+        "error": "could not recover answers.json from rollout"
+      },
+      "googlelocal": {
+        "recovered": true,
+        "stored_existed": true,
+        "xcheck_reproduces_stored": true,
+        "flips": {},
+        "latest_per_query": {
+          "q1": 1.0,
+          "q2": 1.0,
+          "q3": 1.0,
+          "q4": 1.0
+        }
+      }
+    },
+    "bf113446fdd94373": {
+      "PATENTS": {
+        "recovered": true,
+        "stored_existed": true,
+        "xcheck_reproduces_stored": true,
+        "flips": {},
+        "latest_per_query": {
+          "q1": 0.0,
+          "q2": 0.0,
+          "q3": 0.0
+        }
+      },
+      "googlelocal": {
+        "recovered": true,
+        "stored_existed": true,
+        "xcheck_reproduces_stored": true,
+        "flips": {},
+        "latest_per_query": {
+          "q1": 1.0,
+          "q2": 0.0,
+          "q3": 1.0,
+          "q4": 1.0
+        }
+      }
+    }
+  },
+  "changed_queries": [
+    "PATENTS-q1",
+    "PATENTS-q2",
+    "PATENTS-q3",
+    "googlelocal-q3"
+  ],
+  "integrity_all_ok": false
+}
