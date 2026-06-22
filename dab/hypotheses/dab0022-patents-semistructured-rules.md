@@ -315,6 +315,43 @@ the count.
   effectively a **clean +3-PATENTS-target GO** (all targets solved, the cycle-2 regression fixed, no
   real canary loss).
 
+### Probe RESULT — WOBBLE confirmed (cycle-3 yelp drops were NOISE, not the README)
+
+**Run dir:** `runs/dab0022-patents-semistructured-rules/f18986d467555a33` (rc=0, ~41 min).
+**Audit (AC-2): CLEAN** — `coverage_missing: 0`, `tainted: 0`; **all 3 draws clean** (none infra-killed),
+so the full 3-draw read stands.
+
+Per-draw, per-query (vs anchor yelp 7/7), by validator + committed artifact:
+
+| Draw | q1 | q2 | q3 | **q4** | q5 | q6 | **q7** | yelp total |
+|------|----|----|----|--------|----|----|--------|------------|
+| EaHD9jk | ✅ | ✅ | ✅ | **✅** | ✅ | ✅ | **✅** | 7/7 |
+| EvQ8oN8 | ✅ | ❌ | ✅ | **✅** | ✅ | ✅ | **✅** | 6/7 |
+| FCzHEVJ | ✅ | ✅ | ✅ | **✅** | ✅ | ✅ | **✅** | 7/7 |
+| **q4/q7 pass-count** | | | | **3/3** | | | **3/3** | |
+
+- **yelp-q4: PASS 3/3** — every draw "Found: Restaurant, 3.63" (the exact GT value). The cycle-3 single
+  fail (committed 3.5414) was a one-draw aggregation wobble, not a README effect.
+- **yelp-q7: PASS 3/3** — every draw "All categories are present." The cycle-3 missing-Breakfast&Brunch
+  was a one-draw top-5 ranking wobble.
+- Incidental: **yelp-q2** dropped in 1/3 draws (EvQ8oN8) — q2 is itself a variable-band ranking cell
+  ("which state has the most reviews + its avg rating"), independent of the two cells under test; it
+  confirms yelp carries temp=0 variance generally, reinforcing that q4/q7's single-draw cycle-3 fail was
+  noise.
+
+**VERDICT: WOBBLE.** yelp-q4 and yelp-q7 pass in 3/3 clean draws (unanimous majority) — the cycle-3
+drops were **temp=0 variable-band noise, NOT a README regression.** Per the decision rule this means the
+cycle-3 board is **effectively a clean +3-PATENTS-target GO**: all 3 PATENTS targets flipped FAIL→PASS by
+committed artifact (confound-free at high), the cycle-2 stockmarket-q3 regression was genuinely fixed,
+and there is **no real canary loss** on the panel. No option-1 scope-fix REVISE is needed — the lever's
+blast radius did not actually damage yelp.
+
+**Caveat for the full board:** this confirms yelp's ranking cells (q2/q4/q7) sit in the temp=0 variable
+band, so a single full draw will wobble some ranking cells in BOTH directions regardless of the README —
+the standing DAB calibration lesson (dab0011/dab0016). The +3 PATENTS flips are the real, stable signal;
+isolated single-cell ranking wobbles on the full board should be read as variance, not lever regressions,
+unless they reproduce across draws.
+
 ## Smoke result
 
 ### Cycle-3 (effort=high, two README fixes) — THE CURRENT READ
@@ -651,3 +688,16 @@ Cycle-3 audit CLEAN. The two targeted README fixes both worked, confound-free (e
 ### Summary
 
 Built and launched the captain-chosen yelp-only 3-draw confirm probe (same cycle-3 README + effort high, only task set + trials changed) to settle whether the cycle-3 yelp-q4/q7 drops are README-real or temp=0 variable-band noise. trials:3 / concurrency.trials:1 (serial — avoids the postgres-volume collision per the dab0018 crma3 lesson). `--explain` confirmed yelp-only, 21 cells, effort high, the cycle-3 solver hash. Worker pid 1915756 alive, handle recorded; returned immediately per the launch-phase contract. Decision rule recorded: q4/q7 stable-drop ⇒ README-real ⇒ option-1 scope-fix REVISE; q4/q7 wobble ⇒ noise ⇒ effectively a clean +3-target GO. FO owns the wait via the sentinel scan.
+
+## Stage Report: smoke (cycle 3 — yelp confirm probe analysis)
+
+- DONE: Audit (AC-2) — `rk audit --policy strict` on `runs/dab0022-patents-semistructured-rules/f18986d467555a33`; record clean/coverage_missing/tainted; exclude any infra-killed draw; confirm ≥2 clean draws.
+  CLEAN: `coverage_missing: 0`, `tainted: 0`; ALL 3 draws clean (none excluded) → full 3-draw read.
+- DONE: q4/q7 per-draw read across the clean draws (+ full yelp 7-query totals per draw); pass-count vs anchor 7/7; verify by committed artifact where a flip is in question.
+  yelp-q4 **3/3 PASS** ("Found: Restaurant, 3.63" each draw), yelp-q7 **3/3 PASS** ("All categories present" each draw). Per-draw totals 7/7, 6/7, 7/7 (the 1 drop was yelp-q2, a different variable-band cell). Per-draw table in `## Yelp confirm probe` → "Probe RESULT".
+- DONE: Verdict per the decision rule + plain-words summary; lead with the case + counts.
+  **WOBBLE** (q4=3/3, q7=3/3 pass — unanimous) → the cycle-3 yelp drops were temp=0 variable-band NOISE, not README. Board is effectively a **clean +3-PATENTS-target GO**; no option-1 REVISE needed. Recorded in `## Yelp confirm probe` → "VERDICT".
+
+### Summary
+
+The yelp-only 3-draw probe is unambiguous: all 3 draws clean (AC-2), and yelp-q4 + yelp-q7 BOTH pass 3/3 (q4 hits the exact GT 3.63 every draw; q7 has all categories every draw). The cycle-3 single-draw yelp drops were temp=0 variable-band noise, NOT a README regression — confirmed by the decision rule's wobble branch. So the dab0022 cycle-3 smoke is effectively a CLEAN +3-PATENTS-target GO: all 3 targets flipped FAIL→PASS by committed artifact (confound-free at high), the cycle-2 stockmarket-q3 regression genuinely fixed, no real canary loss. Recommendation to the FO: advance smoke→full (the captain pre-authorized this on a confirmed wobble). Carry the calibration caveat that yelp's ranking cells (q2/q4/q7) are variable-band, so isolated single-cell ranking wobbles on the full board are variance, not lever regressions, unless they reproduce.
