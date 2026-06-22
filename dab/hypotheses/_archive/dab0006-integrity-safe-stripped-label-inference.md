@@ -8,6 +8,7 @@ score: 0.3
 started: 2026-06-22T10:28:36Z
 completed: 2026-06-22T10:34:56Z
 verdict: PASSED
+archived: 2026-06-22T10:35:03Z
 ---
 
 ## Direction
