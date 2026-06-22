@@ -456,3 +456,16 @@ STABLE on q3/q7 (3/3), crmarenapro nets a median +2 (11/13) clearing the decisio
 honest ceiling is small (≈+0.013 stratified) and exposed to direct-path temp=0 noise on a single
 full draw, so the full run is worth doing but must be judged by attributed per-query mechanism,
 not a single headline stratified number.
+
+## Full run (launched — detached)
+
+Captain APPROVED smoke → full (3-draw probe cleared the bar: crmarenapro 11/9/11, q3/q7 hold 3/3).
+
+- **Spec:** `specs/dab0018-gated-dbt-classifier.frozen.yaml` — all 12 datasets (54 cells),
+  `trials:1`, `concurrency.trials:2`, SAME gated `solver_workflow` (the IV). No spec change: the
+  crma3 same-dataset volume collision does NOT apply — concurrency.trials:2 runs two DIFFERENT
+  datasets in parallel (isolated per-dataset volumes, PR #18).
+- **Handle:** `runs/.rk-handles/dab0018-full-20260622-075729/` (pid 1514664).
+- **ETA** ~60–120 min (54 cells; crmarenapro dbt build + 11 direct datasets at concurrency.trials:2).
+- Phase 2 (audit `--policy strict` + score → ## Run result; behavioral attribution held for the
+  analyze stage) runs after the FO re-engages on the `done` sentinel (rc=0).
