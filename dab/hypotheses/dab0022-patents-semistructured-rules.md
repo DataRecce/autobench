@@ -259,6 +259,33 @@ return the handle and do not poll.
 for FAIL→PASS by-artifact, and check the 15 canaries for any drop (remember the xhigh effort confound:
 a canary drop may be effort, not the README — AC-1 caveats).
 
+> **NOTE:** the section above is the cycle-1 (xhigh) smoke that produced the REVISE. The cycle-3
+> re-smoke below is the one to read for the current go/no-go (effort=high, two README fixes).
+
+## Smoke run cycle-3 (launched — detached)
+
+Launched the cycle-3 re-smoke after the REVISE re-author (effort reverted to `high`, two in-section
+README scoping fixes). FO owns the wait via the sentinel scan; I return the handle and do not poll.
+
+- **Handle:** `runs/.rk-handles/dab0022-smoke2-20260622-150545/`
+- **PID:** 1853402 (worker alive at launch; `done` sentinel absent = running)
+- **Spec:** `specs/dab0022-patents-semistructured-rules.smoke.frozen.yaml` (4 datasets, `reasoning_effort: high`)
+- **Selection (re-confirmed $0 via `--explain`):** `Tasks: 4` = PATENTS + stockmarket + googlelocal + yelp;
+  resolved `reasoning_effort: "high"`; **new solver hash `sha256:b2cae85c…`** (the cycle-3 README with both fixes).
+- **Cells:** 19 query-cells (PATENTS 3 targets + stockmarket 5 + yelp 7 + googlelocal 4 canaries).
+- **Started:** 2026-06-22T15:05:45Z. **Sentinel:** `runs/.rk-handles/dab0022-smoke2-20260622-150545/done`
+  (absent until finished; `rc=0` ⇒ OK). **Log:** `…/log`. ntfy: none configured.
+- **ETA:** ~**35–45 min** wall. This is `high` (not xhigh) — same effort as the cycle-1 smoke (which ran
+  ~44 min) and faster than xhigh; PATENTS remains the heaviest cell (billion-row CPC EMA + citation graph).
+
+**Phase-2 watch-items (per the cycle-3 gatekeeper, now with NO effort confound — effort=high matches the anchor):**
+1. **Did fix #1 hold stockmarket-q3?** The cycle-2 regression must be back to PASS (the simple-record
+   rule now forbids the description blurb). Confirm by committed artifact (name+number, no blurb).
+2. **Did the 2 PATENTS flips survive the effort revert?** q1/q2 flipped at xhigh in cycle-1; the
+   xhigh→high revert could itself move them — confirm by committed artifact, not just reward.
+3. **Did fix #2 flip PATENTS-q3?** If the subclass-title level binding worked, q3 may now PASS (turning
+   the panel toward +3/0). All attributions are clean this cycle (README is the sole variable).
+
 ## Smoke result
 
 **Run dir:** `runs/dab0022-patents-semistructured-rules/e5cb461ef07e9322` (rc=0, ~44 min).
@@ -450,3 +477,12 @@ Audit clean (AC-2 PASS). The lever is genuinely actionable at gpt-5.5/xhigh — 
 ### Summary
 
 REVISE cycle 3 re-author: kept the one idea (semi-structured data rules), applied two in-section scoping fixes — fix #1 forbids pulling free-text description blurbs into name+number answers (targets the stockmarket-q3 regression), fix #2 binds a code's title at the exact named hierarchy level (targets PATENTS-q3's wrong-level title) — and reverted `reasoning_effort` xhigh→high in both specs. The effort revert restores the workflow invariant: the full spec differs from the anchor in only two fields (`experiment:` + `solver_workflow:`), the README is once again the sole variable, and the AC-1/AC-3 confound is removed (clean README attribution restored). Both specs re-frozen at `high`, new solver hash, smoke selection unchanged (4 datasets), gatekeeper cycle-3 APPROVE (no FAILs; G7 WARN softened by fix #1's concrete instruction but standing for the remaining abstract bullets). Ready for the cycle-3 smoke re-launch.
+
+## Stage Report: smoke (cycle 3 — launch, detached)
+
+- DONE: Re-confirm selection ($0) via `--explain` = 4 datasets (PATENTS + stockmarket + yelp + googlelocal), reasoning_effort "high"; launch DETACHED via `drivers/rk-run-detached.sh dab0022-smoke2 …smoke.frozen.yaml run`; record handle + pid + concrete ETA.
+  `--explain` → `Tasks: 4`, `reasoning_effort: "high"`, solver hash `sha256:b2cae85c…` (cycle-3 README). Launched: handle `runs/.rk-handles/dab0022-smoke2-20260622-150545/`, pid 1853402 (alive, `done` absent), started 2026-06-22T15:05:45Z. ETA ~35–45 min (high; cycle-1 ran ~44 min). Recorded in `## Smoke run cycle-3 (launched — detached)`. Did NOT poll/wait — handle returned to the FO immediately.
+
+### Summary
+
+Re-confirmed the cycle-3 smoke selection at $0 (4 datasets, effort high, new solver hash b2cae85c) and launched the re-smoke detached via the standard driver. Worker pid 1853402 alive, `done` sentinel absent; handle recorded for the FO's sentinel scan. Returned the handle immediately per the launch-phase contract; phase 2 (audit/score/deep-dive) runs when the FO re-engages on the sentinel. This cycle has NO effort confound (high matches the anchor), so all phase-2 attributions are clean — the three watch-items: fix #1 holds stockmarket-q3, the 2 PATENTS flips survive the effort revert, and possibly fix #2 flips PATENTS-q3.
