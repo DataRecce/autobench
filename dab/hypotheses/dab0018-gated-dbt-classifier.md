@@ -321,3 +321,66 @@ on one draw — and dab0017 saw crmarenapro swing to 11/13 on a single draw, so 
 - **Decision rule:** GO-to-full iff crmarenapro STABLY nets ≥+1 vs anchor 9/13 — i.e. ≥10/13 in a
   clear majority of draws WITH q3/q7 holding. Else NO-GO → conclude/REJECTED.
 - Phase 2 (audit + score + per-draw/per-query analysis) runs after the FO re-engages on `done` rc=0.
+
+## Multi-trial crmarenapro probe
+
+**Run:** `runs/dab0018-gated-dbt-classifier/a4bd65ccaa565853` (rc=0, 21 min, 2026-06-22).
+**Spec:** `specs/dab0018-gated-dbt-classifier.crma3.frozen.yaml` (crmarenapro only, trials:3, same
+gated README). **Score:** stratified 0.7692, **n_completed=2, n_errored=1.**
+
+### Audit + the RuntimeError (resolved FIRST) — 2 clean draws, 1 infra-killed
+
+`rk audit --policy strict`: **clean:2 / coverage_missing:1 / tainted:0.**
+- `crmarenapro__W3gXnUG` — CLEAN
+- `crmarenapro__hY8viTH` — CLEAN
+- `crmarenapro__RLfCSTP` — **coverage_missing (the RuntimeError) = INFRASTRUCTURE, NOT a result.**
+  `trial.log`: `Docker compose ... up --wait ... Return code: 1 ... volume
+  "dab-postgres-data-crmarenapro-v1-crmarenapro" already exists but was created for project
+  "crmarenapro__rhkgy2a" (expected "crmarenapro__rlfcstp") ... container
+  crmarenapro__rlfcstp-dab-postgres-1 is unhealthy ... dependency failed to start`. Two
+  same-dataset draws ran concurrently (`concurrency.trials:2`) and **collided on the shared named
+  postgres volume/network** → postgres never went healthy → the draw lost all 13 queries before
+  the agent ran. This is the dab-postgres concurrency/degradation signature (memory:
+  dab-postgres-degradation-dual-signature; the per-dataset volume isolation PR #18 covers the
+  multi-dataset case, not two draws of the SAME dataset sharing one volume name). **Excluded from
+  the verdict — not counted as a crmarenapro failure.** We have **2 clean draws**, below the AC's ≥3.
+
+### Per-draw crmarenapro totals (CLEAN draws only)
+
+| Draw | Total | FAILs |
+|---|---|---|
+| W3gXnUG | **11/13** | q8, q13 |
+| hY8viTH | **9/13** | q2, q8, q12, q13 |
+
+vs anchor `@codex-batch-baseline` crmarenapro = 9/13. So the two clean draws are **+2 and +0**.
+
+### Per-query pass-count across the 2 clean draws (out of 2)
+
+`q1=2 q2=1 q3=2 q4=2 q5=2 q6=2 q7=2 q8=0 q9=2 q10=2 q11=2 q12=1 q13=0`
+
+- **q3 (effective_stage=Negotiation) HOLDS 2/2** ✅ and **q7 (breach ka0Wt000000EoD3IAK) HOLDS 2/2** ✅
+  — the proven cross-source int_ derivations are STABLE. Both clean draws fired METHOD B (dbt,
+  classifier `N_sources=6 -> METHOD B` on both; `dbt run`×15 / ×14; q7 article derived in both).
+- **q13 regresses 0/2** — a DETERMINISTIC dbt-mart re-grain cost (ranking-attribution; the direct
+  anchor got it right).
+- **q12 is VARIANCE 1/2** — passed in W3gXnUG, failed in hY8viTH (not a deterministic dbt cost).
+- **q2 is VARIANCE 1/2** — cracked once (W3gXnUG) via the int_quote_policy_breach join, missed once.
+- **q8 never cracks 0/2** — the fewest-transfer agent stays wrong both draws.
+
+### Verdict — NO-GO (decision rule not met)
+
+Decision rule: GO-to-full iff crmarenapro STABLY nets ≥+1 vs anchor 9/13 — ≥10/13 in a **clear
+majority** of clean draws WITH q3/q7 holding. q3/q7 DO hold 2/2 (the lever's core derivation is
+real and stable). BUT on the ≥10/13 threshold the 2 clean draws are a **1–1 split** (11/13 and
+9/13) — NOT a clear majority. crmarenapro's NET swings between +2 and 0 depending on whether the
+VARIANCE cells (q2, q12) land, while q13 (det. dbt cost) and q8 (never-crack) bound the ceiling.
+The dbt advantage is **real on q3/q7 but the dataset net is not stably ≥+1** — it is variance
+between +2 and 0, the same temp=0 instability dab0017 flagged.
+
+**NO-GO → CONCLUDE/REJECTED.** The 1–1 split does not clear the bar. Caveat for the captain: the
+3rd draw was infra-killed, so this rests on 2 (not 3) clean draws; a tie-breaking relaunch of the
+3rd draw at **concurrency.trials:1** (to avoid the same-dataset volume collision) would resolve
+11-vs-9 cleanly. But even a 2-of-3 ≥10/13 would be a thin, variance-bounded +1–+2 on a single
+dataset whose q13 deterministically regresses — consistent with the smoke-stage finding that the
+crmarenapro dbt advantage **self-cancels at the dataset grain**. Recommend concluding REJECTED;
+the relaunch is optional tie-break, not likely to change the family verdict.
