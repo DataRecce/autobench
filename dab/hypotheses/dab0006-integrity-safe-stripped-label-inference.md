@@ -1,11 +1,13 @@
 ---
 title: Infer answers under stripped/noisy ground-truth labels without leakage (integrity sandbox)
-status: ideate
+status: expanded
 kind: concept
 source: flipped-query-targets.md (agnews-q4 integrity-sensitive stretch) + codex-5.5 known-cheating concern
 id: dab0006
 score: 0.3
 started: 2026-06-22T10:28:36Z
+completed: 2026-06-22T10:34:56Z
+verdict: PASSED
 ---
 
 ## Direction
