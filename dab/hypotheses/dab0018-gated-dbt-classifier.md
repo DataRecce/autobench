@@ -399,3 +399,60 @@ time → no shared named-volume race).
 - **Decision rule (over 3 clean draws):** GO-to-full iff crmarenapro nets ≥10/13 in a clear
   majority (≥2 of 3) WITH q3/q7 holding; else NO-GO → conclude/REJECTED. Prior clean draws:
   W3gXnUG 11/13, hY8viTH 9/13.
+
+### Tie-break 3rd clean draw — RESULT + FULL 3-DRAW READ (verdict REVISED to GO-to-full)
+
+**Run:** `runs/dab0018-gated-dbt-classifier/b4ca814473aa3d00` (rc=0, 16 min). **Audit `--policy
+strict`: CLEAN 1/0/0** — the `concurrency.trials:1` fix worked, no same-dataset volume
+collision. **This draw (`crmarenapro__7yYuxr3`) = 11/13** (fails q2, q8). METHOD B fired
+(classifier `N_sources=6 -> METHOD B`; `dbt run`×16); q3 (effective_stage=Negotiation) and q7
+(breach ka0Wt000000EoD3IAK ×8 in trace) BOTH derived and PASSED again.
+
+**Three clean draws (vs anchor `@codex-batch-baseline` crmarenapro = 9/13):**
+
+| Draw | Total | vs anchor | FAILs |
+|---|---|---|---|
+| W3gXnUG | **11/13** | +2 | q8, q13 |
+| hY8viTH | 9/13 | +0 | q2, q8, q12, q13 |
+| 7yYuxr3 | **11/13** | +2 | q2, q8 |
+
+**Per-query pass-count across all 3 clean draws (out of 3):**
+
+`q1=3 q2=1 q3=3 q4=3 q5=3 q6=3 q7=3 q8=0 q9=3 q10=3 q11=3 q12=2 q13=1`
+
+- **q3 = 3/3 and q7 = 3/3** — the proven cross-source int_ derivations hold EVERY clean draw.
+  All 3 draws fired METHOD B (dbt); classifier never flaked.
+- **q8 = 0/3** — the fewest-transfer agent never cracks (a genuine miss, not variance).
+- **q2 = 1/3, q12 = 2/3, q13 = 1/3** — variance cells (none deterministic). q13 is NOT a
+  deterministic dbt cost after all — it recovered in the 3rd draw (the 2-draw read mislabeled it
+  0/2 → it's 1/3); q12 passes in 2/3.
+
+**DECISION RULE over 3 clean draws (≥10/13 in a clear majority WITH q3/q7 holding): MET.**
+2 of 3 draws are ≥10/13 (11, 9, 11) — a clear majority — and q3/q7 hold 3/3. **Verdict REVISED
+from NO-GO to GO-to-full.**
+
+**Honest magnitude + caveat (both, per the captain's ask):**
+- **Does it clear the rule?** YES — 11/9/11, median 11/13 = **+2 over anchor on crmarenapro**,
+  with the lift mechanism PROVEN (q3/q7 cross-source int_ derivation, not a #-strip).
+- **Is the lift real enough to justify a full run?** Marginal but real. The stable structure is:
+  q3+q7 reliably IN (the +2 mechanism), q8 reliably OUT; q2/q12/q13 wobble. So crmarenapro's
+  typical outcome is 11/13 (+2) with a 9/13 floor on a bad draw. The earlier "self-cancelling"
+  read was an artifact of the single smoke draw + the 2-draw sample (where q13's lone failure
+  looked deterministic); the 3-draw read shows q13/q12 are variance, not a fixed dbt tax, so the
+  derivation gain is NOT fully cancelled — median net is **+2**.
+- **dab0017 calibration caveat (still load-bearing):** +2 on ONE dataset ≈ **+0.013 stratified**
+  (1/12 datasets × +2/13). The other 11 datasets run the verbatim direct path and, at temp=0,
+  inject ±several cells of run-to-run noise each (the smoke draw already showed yelp swinging
+  −4). A single full-run draw's stratified number could easily move ±0.02–0.05 from that
+  direct-path noise alone — i.e. the +0.013 crmarenapro signal can be SWAMPED by direct-path
+  variance on any single full draw. The gate guarantees the EXPECTED direct-path contribution
+  equals the anchor's (byte-identical method), so over draws it is unbiased, but a single full
+  draw is not a clean readout. **Recommendation for the full stage: if run, judge the full board
+  the same way — crmarenapro per-query (q3/q7 hold? +2?) attributed as the lift, the 11 direct
+  datasets judged against their multi-draw band, NOT a single stratified delta.**
+
+**Bottom line: GO-to-full** — the gate is sound (zero leak), the dbt derivation is real and
+STABLE on q3/q7 (3/3), crmarenapro nets a median +2 (11/13) clearing the decision rule. The
+honest ceiling is small (≈+0.013 stratified) and exposed to direct-path temp=0 noise on a single
+full draw, so the full run is worth doing but must be judged by attributed per-query mechanism,
+not a single headline stratified number.
