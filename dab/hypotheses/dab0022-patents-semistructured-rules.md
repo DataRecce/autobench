@@ -243,11 +243,111 @@ a canary drop may be effort, not the README — AC-1 caveats).
 
 ## Smoke result
 
+**Run dir:** `runs/dab0022-patents-semistructured-rules/e5cb461ef07e9322` (rc=0, ~44 min).
+**Audit (AC-2): CLEAN** — `rk audit --policy strict` → `coverage_missing: 0`, `tainted: 0`; all 4
+dataset trials `taint_status: clean`, zero findings. **Score (focused, 4 datasets): 0.8042 stratified**
+(not comparable to the 12-dataset board; this is the smoke panel only).
+
+**Headline: 2 PATENTS targets flipped FAIL→PASS by committed artifact; 1 canary regressed
+(stockmarket-q3). Not a clean GO — there IS a canary regression. → flawed-but-revisable.**
+
+Per-query vs `@codex-batch-baseline` (anchor scores from its `summary.json`):
+
+| Cell | Anchor | Smoke | Δ | Validator reason (smoke) | Classification (by committed artifact) |
+|------|--------|-------|---|--------------------------|----------------------------------------|
+| **PATENTS-q1** | ❌ 0 | ✅ 1 | **+1 FLIP** | "All CPC codes present in LLM output." | **flipped — change reached the committed answer.** Worker parsed all 277813 publication rows (parser-first rule), computed the level-5 EMA full-year-axis, and emitted a **flat newline-separated list of 72 codes** (complete-list + simple-record rules). The rescore doc noted the anchor's PATENTS-q1 failed by emitting a JSON **list** that crashed `.lower()`; the README's "simple records, avoid nested commentary" produced an accepted flat string. README-attributable. |
+| **PATENTS-q2** | ❌ 0 | ✅ 1 | **+1 FLIP** | "All fuzzy names matched, and CPC/year found near each name." | **flipped — change reached the committed answer.** Flat `TITLE | CODE | YEAR` records for Germany H2-2019 level-4 EMA (hierarchy-level + EMA-full-axis + complete-list + simple-record rules all fired). README-attributable. |
+| **PATENTS-q3** | ❌ 0 | ❌ 0 | 0 | "No match for: CRYSTAL IS INC + …; SCHOWALTER LEO J + …; BLOOM ENERGY CORP + …" | **closer-but-failing (NOT inert).** Worker traversed the citation graph correctly (167 UNIV CALIFORNIA pubs → 1,255,417 citation edges → 3 citing assignees, exclusion applied after traversal — exactly the graph-traversal rule) and committed 3 (assignee, subclass-title) pairs. But the resolved **CPC subclass titles are wrong** (committed the cited patent's primary level-5 group title, not the ground-truth subclass title). Self-graded PASSED = a self-anchored false-green on q3. The README reached the method but the title-resolution semantics are off. |
+| stockmarket-q3 | ✅ 1 | ❌ 0 | **−1 REGRESSION** | "No number found near name: Apex Global Brands Inc" | **canary regression — README side-effect, effort-confounded.** Q3 = "list all NASDAQ financially-troubled companies with 2008 volume; for each report its avg daily volume." Worker emitted a complete list (cohort 25 → 15 rows) but attached the company's **full free-text description blurb** ("Apex Global Brands Inc. specializes in creating and marketing a diverse portfolio of fashion and lifestyle brands…") to the name, pushing the required volume number out of the validator's name↔number proximity window. This is the **simple-record + free-text/parser rules misfiring on a name+number complete-list shape** — exactly the perturbable shape the panel was chosen to catch (cf. dab0016 stockmarket-q3). **AC-1 confound:** the verbose-blurb output is ALSO the xhigh-over-elaboration signature, so README-rule vs xhigh-effort are entangled and point the same way (verbose output). Counts against the run regardless of cause. |
+| yelp q1–q7 | ✅ 7/7 | ✅ 7/7 | 0 | all pass | Held — no perturbation (free-text + complete-list canaries stable). |
+| googlelocal q1/q3/q4 | ✅ 1/1/1 | ✅ 1/1/1 | 0 | hold | Held (q2 still ❌, not a target). |
+
+**Cell net on the panel: +2 (PATENTS q1,q2) − 1 (stockmarket-q3) = +1 cell**, but the GO bar is
+"≥1 PATENTS flip AND **zero** canary regression" — the stockmarket-q3 drop fails the zero-regression
+clause.
+
 ## Run result
 
 ## Behavioral analysis
 
+**The lever is NOT inert — it lands mechanically (refutes the G7 worry).** The cycle-2 gatekeeper's
+top concern was G7: a fires-everywhere prose lever with no worked example might be discussed-and-skipped
+("talks but doesn't do", the dab0012/dab0017 wall). The smoke artifacts refute that here: the worker
+demonstrably *executed* the rules — parser-first (parsed all 277,813 publication rows + reported
+coverage), full-year EMA axis, explicit citation-graph traversal (1.25M edges, exclusion-after-traversal),
+a pre-finalize verification table (cohort/parsed/joined/distinct/output counts per query), and
+flat simple-record output. The PATENTS prose rules reach the committed answer. This is a meaningfully
+different outcome from the inert README families — the semi-structured discipline is **actionable** at
+gpt-5.5/xhigh on these query shapes.
+
+**Why q1/q2 flipped:** PATENTS-q1's anchor failure (per the rescore doc) was a *serialization* fault —
+a JSON list that crashed the validator. The README's "format final answers as simple records … avoid
+nested commentary" + "complete-list: emit every qualifying row" converted the output to a flat
+newline-list the validator accepts, and the parser-first + hierarchy-level + EMA-full-axis rules got the
+*content* right (all 72 level-5 codes present). q2 is the same story at level-4 with title/code/year
+records. These are real, README-attributable flips — and they echo the one validated DAB lever to date
+([[dab-flat-string-serialization-works]]): serialization-format IS solver-README-steerable.
+
+**Why q3 didn't flip (closer-but-failing, not inert):** the graph traversal was correct (right citing
+assignees: CRYSTAL IS INC, SCHOWALTER LEO J, BLOOM ENERGY CORP) but the worker resolved the **wrong CPC
+subclass titles** — it reported the cited patent's primary level-5 *group* title where the ground truth
+wants the *subclass* title. The README's "verify the meaning of each level from the dimension table"
+rule fired but the worker mapped the wrong hierarchy level for the title. It then self-graded q3 PASSED
+— a self-anchored false-green (the verify stage re-derived from the same wrong mapping), the recurring
+no-independent-oracle wall ([[verification-without-oracle-real-world]]). One mechanical level-fix away
+from a flip, not a dead end.
+
+**Why stockmarket-q3 regressed (the generative cost, effort-confounded):** the simple-record + free-text
+rules, applied to a name+number complete-list question, caused the worker to attach the company's full
+free-text *description blurb* to the entity name, pushing the required avg-daily-volume number out of
+the validator's name↔number proximity window. This is the predicted generative side-effect on a
+perturbable shape (the G8 panel did its job — the canary fired). Per AC-1 it is **entangled with the
+xhigh effort confound**: a verbose description blurb is exactly the xhigh-over-elaboration signature
+([[dab-opus-vs-gpt55-behavioral-model]]), so "README simple-record rule misfired" and "xhigh
+over-elaborated" point the same direction and cannot be cleanly separated on this single high-vs-xhigh
+draw. Either way it is a real regression on a previously-stable passer.
+
+**Calibration note (carries to full):** this confirms the dab0016/dab0017 lesson that a generative
+fires-everywhere lever's behavior is bidirectional — it flipped 2 target cells AND regressed 1 stable
+canary on the SAME run. The full 12-dataset board has many more unsmoked perturbable name+number /
+complete-list / free-text cells (agnews, bookreview, music_brainz, crmarenapro, DEPS_DEV, GITHUB) that
+this lever will also fire on; the smoke's +1 cell net is NOT a safe predictor of the full board.
+
 ## Failure Review
+
+**Primary classification: GENERATIVE SIDE-EFFECT REGRESSION on a perturbable canary (not inert, not
+leak, not infra).** The lever works on its targets (2/3 PATENTS flipped by artifact) but its
+fires-everywhere nature regressed a previously-stable passer (stockmarket-q3) via the simple-record +
+free-text rules over-formatting a name+number answer — exactly the failure mode the G8 panel was built
+to surface. Secondary: PATENTS-q3 is a closer-but-failing self-anchored false-green (wrong CPC hierarchy
+level for the subclass title).
+
+**Why the GO bar is not met:** GO requires ≥1 PATENTS flip AND **zero** canary regression. The first
+clause is satisfied (q1, q2 by committed artifact); the second is not (stockmarket-q3 1→0). So this is
+not a clean GO.
+
+**Confound caveat (AC-1):** the run is xhigh vs the high anchor. The 2 PATENTS flips are README+xhigh
+*jointly*, and the stockmarket-q3 regression is README-rule *or* xhigh-over-elaboration (entangled,
+same direction). Neither the flip nor the regression is cleanly attributable to the README alone without
+an xhigh-minus-section baseline.
+
+**Next-fork decision — REVISE (back to `hypothesis`), do not conclude and do not advance to full as-is.**
+Two independent, mechanically-fixable faults, both addressable without abandoning the idea:
+1. **Scope the simple-record/free-text rules to suppress the regression.** The "simple records / exact
+   database values for names" rule should explicitly forbid pulling free-text *description* fields into a
+   name+number answer (emit the name token only, then the number). This is the one rule that caused the
+   canary drop; tightening it is a REVISE-class in-place edit, idea unchanged.
+2. **Fix PATENTS-q3's hierarchy-level resolution** — the "verify the meaning of each level from the
+   dimension table" rule needs to bind the *subclass* title (not the level-5 group title) for citation
+   questions; a worked-example or a sharper level-binding instruction would likely flip q3 too (turning
+   the panel from +2/−1 into a potential +3/0).
+
+**Decoupling recommendation for the captain (re the confound):** before or alongside the REVISE, run an
+**xhigh-minus-section baseline** (the anchor README at xhigh) on this same 4-dataset panel. If
+stockmarket-q3 *also* regresses at xhigh-without-the-section, the drop is effort, not the README, and
+the rule-scoping fix in (1) is unnecessary; if it holds at xhigh-without-section, the regression is the
+README and (1) is required. This single $0-cheap-to-launch control disentangles AC-1's confound and tells
+us whether the 2 PATENTS flips are the README or the effort.
 
 ## Follow-up Routing
 
@@ -306,3 +406,16 @@ Re-verification only: the xhigh change had already landed in cycle-2 commit 373a
 ### Summary
 
 Re-confirmed the smoke selection at $0 (4 datasets, xhigh resolved in the run kwargs) and launched the detached smoke run on the frozen smoke spec via the standard detached driver. Worker is alive (pid 1755090), the `done` sentinel is absent (still running), and the handle is recorded for the FO's sentinel scan. Per the launch-phase contract I returned the handle immediately and did not wait — phase 2 (audit/score/per-cell deep-dive) runs when the FO re-engages on the `done` sentinel. ETA is longer than a `high` smoke because xhigh is slower; PATENTS is the heaviest cell.
+
+## Stage Report: smoke (phase 2 — audit + score + deep-dive)
+
+- DONE: Audit (AC-2) — `rk audit --policy strict` on `runs/dab0022-patents-semistructured-rules/e5cb461ef07e9322`; record clean/coverage_missing/tainted; then `rk score` in `## Smoke result`.
+  CLEAN: `coverage_missing: 0`, `tainted: 0`, all 4 trials clean. Score 0.8042 (4-dataset panel only). Recorded in `## Smoke result`.
+- DONE: Per-target deep-dive (PATENTS q1/q2/q3) — verdict vs `@codex-batch-baseline`, validator distance-to-pass, committed artifact, classify each; write `## Smoke result` table + `## Behavioral analysis`.
+  q1 +1 FLIP (flat-list serialization + complete-list reached the answer), q2 +1 FLIP (level-4 records), q3 still 0 (closer-but-failing: correct graph traversal, wrong CPC subclass title level; self-anchored false-green). All verified against the committed answers recovered from the worker session jsonl, not just the reward.
+- DONE: Canary read + gate verdict — check all 15 canaries for drops; attribute README vs xhigh per AC-1; give go/no-go; on regression append `## Failure Review`; lead with plain-words go/no-go.
+  1 regression: stockmarket-q3 1→0 (simple-record/free-text rule pulled a description blurb into a name+number answer; entangled with xhigh over-elaboration per AC-1). yelp 7/7 + googlelocal q1/q3/q4 held. Verdict NO-GO-as-is → REVISE to `hypothesis`; `## Failure Review` appended with primary classification + the rule-scoping + q3 level-fix forks + an xhigh-minus-section decoupling control.
+
+### Summary
+
+Audit clean (AC-2 PASS). The lever is genuinely actionable at gpt-5.5/xhigh — it flipped PATENTS-q1 and q2 FAIL→PASS by committed artifact (refuting the G7 inert-risk worry), with PATENTS-q3 closer-but-failing on a wrong CPC-hierarchy-level title (self-anchored false-green). But its generative nature regressed a stable canary, stockmarket-q3 (the simple-record + free-text rules over-formatted a name+number answer with a description blurb), so the zero-regression GO clause is not met → REVISE back to `hypothesis`. Both faults are mechanically fixable (scope the simple-record rule to exclude free-text description fields; bind the subclass title at the right level for q3). AC-1 confound stands: flips are README+xhigh jointly and the regression is README-rule-or-xhigh (same direction) — recommend an xhigh-minus-section baseline on this panel to disentangle before the REVISE re-smoke.
