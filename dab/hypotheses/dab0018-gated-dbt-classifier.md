@@ -525,6 +525,154 @@ this draw — the +2 / 11-13 outcome the 3-draw probe predicted as the typical c
 attribution (mechanism delta per flip, direct-path canary band, q8/q9 diagnosis) is deferred to the
 **analyze** stage per the stage split.
 
+### Quantitative ledger vs anchor (analyze stage)
+
+`rk runs diff` CRASHED on the known ade-bench `query_id null → TypeError` bug
+(`razorback/diff/pairing.py:22`; memory: ade-bench-runs-diff-query-id-null) — so the paired ledger
+was computed directly from each run's `reward_per_query.json`, slug-paired by dataset+query.
+
+**Raw cell totals: anchor 39/54 → full3 40/54 = +1 cell** (the −0.0039 stratified is +2 on
+crmarenapro diluted against −1 on stockmarket across the 12-dataset stratified mean; 1/12·(2/13) −
+1/12·(1/5) = +0.0128 − 0.0167 = −0.0039, exactly the score gap).
+
+**ONLY 5 cells moved verdict across the entire board (both directions):**
+
+| Cell | Method | Anchor → full3 | Direction | Attribution |
+|---|---|---|---|---|
+| crmarenapro-q2 | B (dbt) | FAIL → PASS | **GAIN** | dbt `int_quote_policy_breach` join; q2 is **0/6 in the no-lever band** (normally never-pass) → genuine lever crack |
+| crmarenapro-q3 | B (dbt) | FAIL → PASS | **GAIN** | dbt `int_opportunity_effective_stage` → effective_stage=Negotiation (vs raw stage_name=Discovery); q3 3/6 band → lever-stabilized |
+| crmarenapro-q7 | B (dbt) | FAIL → PASS | **GAIN** | dbt `int_case_policy_breach` (case↔order↔KB) → breach `ka0Wt000000EoD3IAK`; q7 is 6/6 at Opus but FAIL at codex-anchor → lever recovers it |
+| crmarenapro-q9 | B (dbt) | PASS → FAIL | **REGRESSION** | q9 is **6/6 ROCK-STABLE in the no-lever band** + ran Method B → a REAL lever-caused destabilization (dbt mart re-grain perturbed the state answer: committed `SC` vs `MI`). The within-dataset dbt tax, this draw landing on q9 (smoke draw it was q12/q13) |
+| stockmarket-q3 | A (direct) | PASS → FAIL | NOT a regression | stockmarket-q3 is **0/6 in the no-lever band** (never-pass/oracle-blind); it passed the anchor's single draw by luck and reverted to its true ~0% rate. Ran Method A (gate did NOT fire) → pure direct-path temp-noise, NOT this lever |
+
+**Direct-path canaries vs the multi-draw band:** all 11 two-source datasets ran Method A
+(classifier resolved `N_sources=2 → METHOD A` on every one — ZERO gate-leak, verified from each
+transcript). The only direct-path move was stockmarket-q3, which the band classifies as 0/6
+(never-pass) — i.e. noise, not a lever effect. Every other direct cell held vs anchor.
+
+## Behavioral analysis
+
+**Method adherence (zero gate-leak, confirmed from transcripts):** the source-count classifier
+fired correctly on all 12 datasets — crmarenapro alone resolved `N_sources=6 → METHOD B (dbt)`; the
+11 two-source datasets all resolved `N_sources=2 → METHOD A (direct)`. The "zero regression by
+construction" thesis HOLDS: the dbt branch never fired on a 2-source set, so the only place this
+lever touched the board is crmarenapro. crmarenapro's Method B built all four prescribed cross-source
+intermediates (`dbt run`×9 / `dbt test`×13 green; `int_opportunity_effective_stage`,
+`int_case_policy_breach`, `int_quote_policy_breach`, `int_agent_case_ownership` all materialized — no
+`mart_qN`, no answer literals).
+
+**Why the gains work (PROVEN mechanism delta, not a #-strip):**
+- **q3** — `int_opportunity_effective_stage` emits both `raw_stage` and a cross-source-derived
+  `effective_stage`. For the target opportunity the model derived `effective_stage=Negotiation`
+  (from the opportunity↔activity/quotes/contracts join showing pricing-pushback/terms) while the raw
+  `stage_name` still said `Discovery`. analyze read `effective_stage`; the anchor's direct SQL read
+  `stage_name=Discovery` → scored 0. Verified in the transcript: the README's int_ model definition
+  and the "effective_stage is the cross-source-derived value, the only one to read" instruction both
+  fired.
+- **q7** — the breached article `ka0Wt000000EoD3IAK` was derived through `int_case_policy_breach`
+  (case → OrderItem → knowledge-base policy condition). The anchor returned None/no-violation. The
+  dbt join is the only path to the answer.
+- **q2** — cracked via `int_quote_policy_breach`; notable because q2 is **0/6 in the no-lever band**
+  (a normally-never-pass cell) — the int_ derivation reached an answer the direct path essentially
+  never reaches.
+
+**Why q9 fails (the within-dataset dbt tax):** q9 is a state/headquarters query that is **6/6 in the
+no-lever band** — it never fails on the direct path. Under Method B the dbt mart re-grain perturbed
+the committed answer to `SC` (expected `MI`). This is the exact cost the smoke + 3-draw probe
+documented as variance across q12/q13 — here it surfaced on q9 instead. The dbt overhead does not
+help these simple-attribution queries and intermittently corrupts them; the gate removed the
+board-wide tax but cannot remove the WITHIN-crmarenapro tax. (codex reasoning is encrypted so the
+exact wrong-join is not transcript-readable, but the band + Method-B + committed-SC triangulate it
+as a dbt-regrain destabilization, not data/infra.)
+
+**Why q8 persistently fails (not variance):** q8 (fewest-transfer agent) is **0/6 in the no-lever
+band** and never cracked across any probe draw — a genuine hard/oracle-blocked miss the int_
+derivation does not address. Not attributable to this lever either way.
+
+**Net behavioral read:** the lever does exactly one thing on the whole board — it routes crmarenapro
+to dbt and there it banks q3/q7 (and sometimes q2) via a real cross-source derivation while
+intermittently dropping one stable ranking/attribution cell (q9 this draw, q12/q13 in others). The
++2 median over anchor is real and mechanism-proven, but it is a single-dataset, single-cell-magnitude
+signal sitting inside direct-path temp-noise that on a single full draw (stockmarket-q3 reverting to
+0/6) cancels it at the stratified level.
+
+### The six required analyze questions
+
+1. **Net + full ledger.** Raw +1 cell (39→40), stratified −0.0039 (flat). 5 cells moved: GAINS
+   crmarenapro q2/q3/q7 (all dbt, mechanism-proven); REGRESSION crmarenapro-q9 (real dbt-tax on a
+   6/6 stable cell); stockmarket-q3 PASS→FAIL is direct-path noise (0/6 band), not a regression.
+2. **Smoke was a GO — why does full differ?** It doesn't differ in mechanism — it CONFIRMS it. The
+   3-draw probe's read was "crmarenapro typically 11/13 (+2), q3/q7 hold 3/3, with one wobble cell
+   (q12/q13) that is variance not a fixed tax." full3 reproduced exactly that: 11/13, q3/q7 PASS, the
+   wobble landed on q9. The GO bar was a crmarenapro-isolated +2; full3 delivers it. The stratified
+   number went flat ONLY because the 11 direct datasets — which the gate makes unbiased-in-expectation
+   but NOT noise-free on a single draw — happened to drop stockmarket-q3 (a 0/6 cell) this draw. This
+   is precisely the load-bearing caveat the probe flagged: judge by attributed mechanism, not the
+   single stratified delta.
+3. **Already-correct-and-broken?** crmarenapro-q9: YES, passing at anchor AND 6/6 stable → a true
+   break (the one real regression). stockmarket-q3: passing at anchor but 0/6 in band → it was a
+   lucky anchor draw, not a stably-correct cell, so its "break" is reversion-to-mean noise, not a
+   broken-by-lever cell.
+4. **Was the change executed? (per representative cell)**
+   - crmarenapro-q3: **executed-and-helped** — int_ model built, effective_stage read, committed
+     answer differs from anchor's #-strip (artifact-verified).
+   - crmarenapro-q7: **executed-and-helped** — int_case_policy_breach join derived the breach ID.
+   - crmarenapro-q2: **executed-and-helped** — int_quote_policy_breach cracked a 0/6 cell.
+   - crmarenapro-q9: **executed-and-hurt** — Method B ran, dbt re-grain corrupted a 6/6 cell.
+   - crmarenapro-q8: **premise-falsified-ish / inert** — dbt ran but the derivation does not reach
+     this answer (0/6 hard cell); the lever neither helped nor hurt.
+   - stockmarket-q3: **model-swap/direct-path-attributable** — gate did NOT fire, ran the verbatim
+     direct README; the move is codex temp-noise on a 0/6 cell, independent of this lever.
+   Crucially, q3/q7 reached the **committed mart/int_ answer** (the proven cross-source derivation),
+   NOT a #-strip — the dab0017 no-mechanism-delta trap is cured.
+5. **Prevention + next move.** The within-crmarenapro dbt tax (q9 this draw) is the ceiling. To bank
+   q3/q7 without paying a stable cell you would need per-QUERY method selection (dbt only for the
+   derivation-blocked queries, direct for ranking/attribution) — but that needs an oracle-free
+   "is this a derivation query" signal the README cannot reliably supply, and the solver already
+   self-false-greens the ranking cells. So there is no clean prevention within the "one classifier"
+   idea. Next move = the captain's conclude call (see Follow-up Routing).
+6. **Smoke-vs-full fork drift.** NONE. The full frozen spec uses the SAME `solver_workflow`
+   (`./solver_workflows/dab0018-gated-dbt-classifier`) as the smoke/probe specs — only the dataset
+   set differs. No methodology drift; the README that ran on crmarenapro in full3 is byte-identical
+   to the one in the 3-draw probe (classifier + Method A verbatim + Method B dbt).
+
+### The codex-vs-Opus confound (explicit)
+
+@baseline-the-Opus-incumbent is NOT the comparison here — the AC anchor is `@codex-batch-baseline`
+(codex/gpt-5.5), the SAME model + harness as full3, forked only on the README (gate + Method B). So
+the model swap is HELD CONSTANT between anchor and variant; the diff isolates the README lever
+cleanly. The 6-draw band is gpt-5.5/xhigh (codex-family) too, so the per-cell variance classes
+(q9=6/6, q2/stockmarket-q3=0/6, q3=3/6) are the right reference for THIS model. The only place an
+Opus-vs-codex difference surfaces is interpretive (q7 is 6/6 at Opus but FAIL at the codex anchor —
+i.e. codex naturally misses q7, and the dbt derivation recovers it), which strengthens, not
+confounds, the gain attribution.
+
+## Follow-up Routing
+
+**Recommendation: STOP — verdict REJECTED (do NOT promote).**
+
+The hypothesis's GO criterion was "stratified Pass@1 beats `@codex-batch-baseline` 0.6966 AND zero
+canary regression." full3 delivers **0.6927 (−0.0039, flat/below)** and has **one real canary
+regression** (crmarenapro-q9, a 6/6 stable cell destabilized by the dbt re-grain). Both GO conditions
+fail. The mechanism is genuinely validated — the gate is sound (zero leak), and the dbt cross-source
+int_ derivation is real and stable on q3/q7 (held every probe draw + full3) — but the validated
+ceiling is a single-dataset, single-cell median +2 that (a) is paid down by an intermittent
+within-dataset dbt tax on a stable cell, and (b) is smaller than the direct-path single-draw noise
+that determines the headline stratified number. This is the dab0017 honest-ceiling confirmed at full
+scale, with a sharper boundary: gated-dbt removes the board-wide tax but cannot beat the anchor
+because the crmarenapro advantage is too small and not tax-free.
+
+- **Do NOT** file a per-query-method-selection follow-up: it requires an oracle-free derivation-vs-
+  ranking signal the README cannot supply, and the solver self-false-greens the ranking cells — the
+  same wall dab0017/the smoke stage already named.
+- **Knowledge to bank (real gains):** (1) the gated-composition mechanism WORKS on DAB (zero-leak
+  source-count classifier) — reusable for any future precondition-gated lever; (2) the dbt
+  cross-source int_ derivation is a PROVEN, stable mechanism for crmarenapro q3/q7 specifically;
+  (3) the dbt family for DAB is now CLOSED with full-board evidence — the advantage is real but
+  self-limited at the dataset grain.
+- This is a **knowledge gain**, not a flip: the seed README stays UNCHANGED (the captain's conclude
+  call). analyze→conclude is the captain's decision; this is the recommendation only.
+
 ## Stage Report: full
 
 - DONE: Record the dab0018-full3 relaunch in the entity file.
@@ -553,3 +701,24 @@ noise band the 3-draw probe predicted). The gate-fires dataset crmarenapro hit i
 with the proven q3/q7 cross-source int_ derivations holding (q2/q12/q13 also passed this draw; q8
 never-cracks, q9 the only other miss). Mechanism attribution + canary-band judgment are the
 analyze stage's job.
+
+## Stage Report: analyze
+
+- DONE: Full per-query ledger, BOTH directions, each with mechanism; separate true regressions from direct-path noise via the multi-draw band.
+  `rk runs diff` crashed (known query_id-null TypeError) → ledger computed from `reward_per_query.json`, slug-paired. Raw 39→40 (+1). 5 cells moved: GAINS crmarenapro q2/q3/q7; REGRESSION crmarenapro-q9 (6/6 band → real dbt-tax); stockmarket-q3 PASS→FAIL = 0/6-band direct-path noise (not a regression). Table in `## Run result → Quantitative ledger`.
+- DONE: Confound attribution on moved cells + all 6 required analyze questions.
+  Anchor IS codex/gpt-5.5 (`@codex-batch-baseline`) — model swap held constant, README isolated. q3/q7/q2 verified executed-and-helped reaching the committed int_/mart answer (not #-strip); q9 executed-and-hurt on a 6/6 cell; stockmarket-q3 direct-path-attributable. 6 questions answered in `## Behavioral analysis`.
+- DONE: `## Follow-up Routing` + plain-words captain summary; verdict recommendation; no seed-README edit / no conclude.
+  Routing = STOP / REJECTED (GO bar missed both ways: 0.6927<0.6966 AND one real canary regression q9). Mechanism validated (zero-leak gate + proven stable q3/q7 dbt derivation) → banked as knowledge; dbt family CLOSED for DAB. Seed README UNCHANGED. Did NOT conclude (captain's call).
+
+### Summary
+
+The gate is mechanically SOUND with full-board proof: the source-count classifier fired correctly
+on all 12 datasets (zero gate-leak), so the lever touched ONLY crmarenapro. There the dbt
+cross-source int_ derivation is REAL and STABLE — q3 (effective_stage=Negotiation) and q7 (breach
+via case↔order↔KB) flipped on a proven mechanism delta, and q2 (a 0/6 band cell) also cracked. BUT
+the within-crmarenapro dbt tax surfaced on q9 (a 6/6 ROCK-STABLE cell destabilized by the mart
+re-grain) — the one real regression — and the headline stratified went flat (0.6927, −0.0039)
+because the +2 crmarenapro signal (~+0.013) is swamped by direct-path single-draw noise
+(stockmarket-q3, a 0/6 cell, reverting to mean). GO bar fails both ways → recommend REJECTED;
+mechanism + gated-composition validated as knowledge, dbt family CLOSED for DAB.
