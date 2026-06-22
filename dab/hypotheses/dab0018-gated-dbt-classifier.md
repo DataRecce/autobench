@@ -164,3 +164,145 @@ reading a +2 as a flip). Smoke run NOT launched (next gated stage).
 - **ETA** ~45–75 min (29 query-cells, concurrency.trials:2; crmarenapro's dbt build dominates).
 - Phase 2 (audit `--policy strict` + score + mechanism-delta deep-dive + canary byte-identity
   check) runs after the FO re-engages on the `done` sentinel (rc=0).
+
+## Smoke result
+
+**Run:** `runs/dab0018-gated-dbt-classifier/bafa25eaad285e74` (rc=0, 30 min, 2026-06-22).
+**Audit (`--policy strict`): CLEAN** — clean:4 / coverage_missing:0 / tainted:0. No dataset
+errored; no infrastructure taint. `rk score` stratified Pass@1 over the 4 smoke datasets =
+**0.7302**.
+
+**Classifier fired CORRECTLY on every dataset — ZERO gate-leak (verified from each codex
+transcript's `_artifacts/context.md` classifier line):**
+- crmarenapro → `N_sources=6 (core_crm, sales_pipeline, support, products_orders, activities, territory) -> METHOD B (dbt)`
+- yelp → `N_sources=2 (businessinfo_database, user_database) -> METHOD A (direct)`
+- stockmarket → `N_sources=2 (business, review) -> METHOD A (direct)`
+- googlelocal → `N_sources=2 (business, review) -> METHOD A (direct)`
+
+"Zero regression by construction" is **NOT falsified** — the dbt branch never fired on a
+2-source dataset. All canary moves are on the DIRECT path (Method A, the same README the anchor
+ran), i.e. solver run-to-run variance at temp=0, NOT a method effect of this lever.
+
+### Per-query vs `@codex-batch-baseline` (anchor `runs/codex-dab-batch-baseline/bf113446fdd94373`)
+
+| Dataset | Method ran | Anchor | Smoke | Per-query delta | Adjudication |
+|---|---|---|---|---|---|
+| crmarenapro | **B (dbt)** | 9/13 | 9/13 | **q3 IN, q7 IN; q12 OUT, q13 OUT** (q2/q8 still FAIL) | net **0** — 2 genuine derivation flips offset by 2 dbt-overhead ranking regressions |
+| yelp | A (direct) | 7/7 | 3/7 | q1,q2,q4,q5 OUT | **direct-path variance** (city/state parsed from noisy free-text `description`; gate=Method A, not dbt) |
+| stockmarket | A (direct) | 5/5 | 4/5 | q3 OUT | **direct-path variance** (q3 ranking-metric cell, known-variable band — dab0016) |
+| googlelocal | A (direct) | 3/4 | 4/4 | q2 IN | **direct-path variance** (q2 flipped IN; anchor had it FAIL) |
+
+### crmarenapro target check — the dbt int_ derivations FIRED (mechanism delta PROVEN)
+
+The dbt pipeline built all prescribed cross-source intermediates (`dbt run`×17, `dbt test`×19
+to green; `int_opportunity_effective_stage`, `int_case_policy_breach`, `int_quote_policy_breach`,
+`int_agent_case_ownership` all materialized; no `mart_qN`, no answer literals).
+
+- **q3 FAIL→PASS (Negotiation)** — TRUE mechanism delta. `int_opportunity_effective_stage`
+  emitted `raw_stage=Discovery`, `effective_stage=Negotiation` for opp `006Wt000007BGGjIAO`,
+  **derived from the opportunity↔tasks/events/call-transcripts/quotes/contracts join** (proposal,
+  terms, negotiation, contract-prep evidence). analyze read `effective_stage`, NOT raw
+  `stage_name`. The anchor's direct SQL read `stage_name=Discovery` → scored 0. Not a #-strip.
+- **q7 FAIL→PASS (`ka0Wt000000EoD3IAK`)** — TRUE mechanism delta. The breached article was
+  derived by joining case `500Wt00000DDyznIAD` → OrderItem `802Wt000007928FIAQ` → the
+  knowledge-base policy ("Scalability Enhancement Package referenced outside the 30–365-day
+  purchase window") and evaluating that policy condition against the joined facts. The anchor
+  returned "no policy violation / None" → scored 0. Genuine cross-source derivation.
+- **q2 FAIL→FAIL, q8 FAIL→FAIL** — the int_ derivation did not crack these two (q2 picked a
+  different-but-still-wrong article; q8 the wrong fewest-transfer agent).
+- **q12 PASS→FAIL, q13 PASS→FAIL** — dbt-OVERHEAD regressions. Both are agent-attribution
+  ranking queries the dbt mart re-grained; the solver ranked a different agent
+  (q12: 005Wt000003NJgAIAW vs anchor 005Wt000003NDEBIA4) and self-checked it as "PASS"
+  (self-anchored false-green), but the validator scored 0. The simpler direct path got these
+  right at the anchor; the mart re-grain perturbed the ranking attribution. This is the exact
+  dab0017 "dbt adds ±variance on the queries it doesn't help" cost — now landing INSIDE the one
+  dataset the gate routes to dbt.
+
+## Behavioral analysis
+
+The gated classifier is mechanically SOUND: it routed all 4 datasets to the correct method with
+zero leak, so the isolation thesis holds — the only place dbt touched the board was crmarenapro.
+And on crmarenapro the dbt cross-source `int_` derivation is REAL and BANKABLE in principle:
+q3 and q7 flipped on a genuine mechanism delta (effective_stage from the transcript join; breach
+from the case↔order↔KB join), curing the dab0017 no-mechanism-delta NO-OP — the README revision
+did exactly what it was designed to.
+
+BUT the dbt path's overhead/variance tax did not vanish; it relocated. On crmarenapro the same
+dbt re-grain that unlocked q3/q7 simultaneously knocked out q12/q13 (ranking-attribution
+queries the direct path answered correctly). crmarenapro nets **0** (9/13 → 9/13, a different
+9). The gate removed the board-wide tax (the 2-source datasets are untouched by dbt) but could
+not remove the WITHIN-dataset tax on the one firing dataset — dbt helps the derivation-blocked
+queries and hurts the ranking queries on the SAME dataset, and they cancel. This refines the
+dab0017 honest-ceiling finding: the dbt advantage on crmarenapro is not just variance-fragile,
+it is **self-cancelling at the dataset grain** — you cannot bank q3/q7 without paying q12/q13.
+
+The direct-path canary swings (yelp −4, stockmarket −1, googlelocal +1; net −4 on the direct
+path) are NOT this lever's effect — they are the codex/gpt-5.5 temp=0 run-to-run variance on
+the verbatim baseline README (yelp's city/state extraction from a noisy free-text field is a
+classic variable-band cell). They confirm the dab0017 calibration lesson (temp=0 is not
+cell-stable; a single draw swings ±several cells) and are exactly what the gate is designed to
+leave alone — and it did.
+
+## Failure Review
+
+**Primary type: variance-unclear / diagnosis-confirmed (NOT gate-leak, NOT infrastructure).**
+
+1. **What did we expect, what happened?** Expected: gate fires only on crmarenapro, banks ≥1 of
+   q2/q3/q7/q8 via the int_ derivation with the 2-source canaries byte-identical to the anchor.
+   Happened: gate fired perfectly (zero leak); the int_ derivation genuinely flipped q3+q7 (+2);
+   but dbt-overhead regressed q12+q13 (−2) on the SAME dataset → crmarenapro net 0. Direct-path
+   canaries wobbled on solver variance (gate correctly did not touch them).
+2. **Is it the lever or the harness?** The LEVER (and the method), not the harness. Audit clean,
+   no taint, no mongo/PG/host failures; every dataset completed. The classifier is correct. The
+   net-0 is a real property of dbt-on-crmarenapro, not a bug.
+3. **Gate-leak?** NO — proven from all 4 classifier lines: crmarenapro=6→B, the three 2-source
+   datasets=2→A. "Zero regression by construction" holds; the canary drops are direct-path
+   variance, not the dbt branch firing.
+4. **Is the crmarenapro unlock stable / worth banking?** NO at the dataset grain. q3/q7 are real
+   derivation flips, but q12/q13 dbt-overhead losses cancel them WITHIN crmarenapro. A finer gate
+   (route to dbt, then for the ranking queries fall back to the direct mart) is conceivable but
+   is no longer the clean "one classifier" idea — it is per-query method selection, which needs
+   an oracle-free signal for "is this a derivation query or a ranking query" that the README
+   cannot reliably supply (the solver already self-false-greened q12).
+5. **Stop / probe / file / escalate?** STOP this lever as specified (NO-GO). The dbt family for
+   DAB is now CLOSED with a sharper boundary than dab0017: gated-dbt removes the board-wide tax
+   but the crmarenapro dbt advantage is self-cancelling at the dataset grain (q3/q7 in, q12/q13
+   out). Bank the knowledge; do not promote.
+
+**Decision: NO-GO.** The gate mechanism is validated (sound, zero-leak) and the int_ derivation
+is proven real (q3/q7 mechanism delta) — both are genuine knowledge gains — but the hypothesis's
+GO criterion (beat the anchor with zero canary regression) is not met: crmarenapro nets 0 because
+dbt's within-dataset overhead tax cancels its derivation advantage, and the direct-path canaries
+confirm single-draw temp=0 variance rather than a lift. Recommend CONCLUDE/REJECTED.
+
+## Workflow-refinement evaluation
+
+No new stage / reorder / protocol change. This run REINFORCES two existing protocol rules rather
+than refining them: (1) judge a flip by committed-artifact mechanism delta, not the headline rate
+— crmarenapro's 9/13→9/13 hides a 4-cell recomposition that only the per-query + transcript
+adjudication surfaces; (2) the gate-leak vs direct-path-variance distinction REQUIRES reading the
+classifier line in each dataset's transcript before calling any canary drop a regression (here it
+prevented mislabeling yelp's −4 as a gate-leak NO-GO). No WORKFLOW-REFINE.md edit needed (DAB
+tracks learnings in the entity + memory).
+
+## Stage Report: smoke
+
+- DONE: Launch the detached smoke run and return the handle immediately without waiting; --explain selection re-confirmed = {crmarenapro, yelp, stockmarket, googlelocal}.
+  Launched handle `runs/.rk-handles/dab0018-smoke-20260622-044911/`; --explain materialized exactly the 4 datasets; FO owned the wait.
+- DONE: rk audit --policy strict + rk score; capture the focused score + clean-audit attestation in ## Smoke result.
+  Audit CLEAN (4 clean / 0 coverage_missing / 0 tainted); stratified Pass@1 = 0.7302 over 4 datasets. See `## Smoke result`.
+- DONE: Deep-dive — prove the mechanism delta for each crmarenapro flip; confirm 2-source canaries vs gate-leak/infra/variance. Write ## Smoke result + ## Behavioral analysis; append ## Failure Review on NO-GO.
+  q3+q7 flipped via PROVEN int_ cross-source derivations (effective_stage from transcript join; breach from case↔order↔KB join) — mechanism delta confirmed from the transcript. q12+q13 regressed on dbt-mart re-grain (overhead tax). All 3 two-source canaries ran METHOD A (classifier lines verified) → ZERO gate-leak; canary swings are direct-path temp=0 variance. ## Failure Review (primary type: variance-unclear/diagnosis-confirmed) + Workflow-refinement eval appended. Verdict NO-GO.
+
+### Summary
+
+The gated classifier is mechanically SOUND (routed all 4 datasets to the correct method, zero
+gate-leak — "zero regression by construction" holds) and the dbt cross-source int_ derivation is
+REAL on crmarenapro: q3 (effective_stage=Negotiation from the activity-transcript join) and q7
+(breached article from the case↔order↔knowledge-base join) flipped FAIL→PASS on a genuine
+mechanism delta, curing the dab0017 no-mechanism-delta NO-OP. BUT the dbt overhead tax relocated
+into the firing dataset — q12/q13 (ranking-attribution queries) regressed on the mart re-grain,
+cancelling the gain (crmarenapro 9/13→9/13, net 0). The dbt advantage on crmarenapro is
+self-cancelling at the dataset grain. Direct-path canary swings (yelp −4, stockmarket −1,
+googlelocal +1) are codex temp=0 variance, not this lever. NO-GO; recommend CONCLUDE/REJECTED —
+dbt family CLOSED for DAB with a sharper boundary than dab0017.
