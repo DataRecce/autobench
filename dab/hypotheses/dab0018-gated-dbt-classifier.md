@@ -469,3 +469,14 @@ Captain APPROVED smoke → full (3-draw probe cleared the bar: crmarenapro 11/9/
 - **ETA** ~60–120 min (54 cells; crmarenapro dbt build + 11 direct datasets at concurrency.trials:2).
 - Phase 2 (audit `--policy strict` + score → ## Run result; behavioral attribution held for the
   analyze stage) runs after the FO re-engages on the `done` sentinel (rc=0).
+
+### Full run RELAUNCHED (prior run auth-tainted)
+
+The first full launch (`runs/dab0018-gated-dbt-classifier/adcde4521869777a`) was TAINTED — a codex
+`refresh_token_reused` auth failure hit all 12 datasets at launch, every cell returned reward 0 in
+~9 min with nothing executed. NOT a lever/method result. Captain re-authenticated codex
+(`codex login --device-auth`, successful) and relaunched.
+
+- **Relaunch handle:** `runs/.rk-handles/dab0018-full2-20260622-082125/` (pid 1569593), SAME full
+  frozen spec (no spec change). ETA ~60–120 min.
+- Phase 2 (audit `--policy strict` + score → ## Run result) at the `done` sentinel (rc=0).
