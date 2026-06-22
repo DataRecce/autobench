@@ -1,7 +1,7 @@
 ---
 id: dab0022
 title: Semi-structured data rules — parser-first / all-associated / full-list discipline to flip the 3 newly-resolvable PATENTS queries
-status: propose
+status: smoke
 kind: hypothesis
 source: Captain-directed. Upstream updated the ground truth + verifier for ALL 3 PATENTS queries — PATENTS is no longer an unresolvable dataset (it scored 0/3 in dab0018-full3 against the old/broken oracle). This files the first hypothesis to attack the now-scorable PATENTS cells with an explicit semi-structured-data-handling README section.
 started: 2026-06-22T10:37:17Z
@@ -265,3 +265,14 @@ dab0022 is a single generative `### Semi-structured data rules` README section f
 ### Summary
 
 Per captain directive, dab0022 now runs at `reasoning_effort: xhigh` (anchor is `high`), making the full spec intentionally differ from `codex-dab-batch-baseline.yaml` in THREE fields (experiment / solver_workflow / reasoning_effort). AC-1 records this as captain-authorized (not a spec fault) and the cycle-2 gatekeeper rules G3 PASS under that override while flagging two consequences carried to the verdict: (1) the README is no longer the only variable vs the high anchor, so a PATENTS flip is README+xhigh jointly, not isolated — clean attribution needs an xhigh-minus-section baseline; (2) the xhigh-hurts-gpt5.5 paradox means a canary drop at smoke may be an effort side-effect rather than a README side-effect. Recommendation stays APPROVE, no FAILs; G7 inert-risk WARN remains the main lever risk.
+
+## Stage Report: propose (cycle 3 — re-verify xhigh landed)
+
+- DONE: Confirm `reasoning_effort: xhigh` is present in BOTH frozen specs and lands in the resolved run kwargs.
+  Team-lead reported the frozen specs still read `high`; re-checked and they do NOT — on-disk + committed HEAD (373ae82, branch main, no other worktrees, clean tree) both `*.frozen.yaml` read `reasoning_effort: xhigh` (line 21). The cycle-2 commit already carried the change; the `high` read was stale (pre-373ae82 / different shell). No re-edit or re-freeze was needed — re-applying would have been a no-op.
+- DONE: Confirm via `rk run --explain` ($0) that the resolved run uses xhigh and the smoke selection is unchanged.
+  `--explain` on `…smoke.frozen.yaml` resolves `harbor_agent_kwargs.reasoning_effort: "xhigh"` (the authoritative runtime value Harbor executes), `Tasks: 4` = PATENTS + stockmarket + googlelocal + yelp (unchanged), solver hash `sha256:ff279bd8…dadd53` unchanged. Full-spec diff vs anchor = exactly 3 fields (experiment / reasoning_effort high→xhigh / solver_workflow).
+
+### Summary
+
+Re-verification only: the xhigh change had already landed in cycle-2 commit 373ae82 (both source + both frozen specs, committed HEAD on main, clean tree) — the team-lead's `high` report was a stale read. Confirmed authoritatively via `rk run --explain`, whose resolved `harbor_agent_kwargs.reasoning_effort` is `xhigh` and whose smoke selection (Tasks: 4, PATENTS + canary panel) and solver hash are unchanged. AC-1 / Gatekeeper-G3 / smoke-set caveats from cycle 2 stand. No spec edits or commits were needed for the effort field; this report documents the re-check.
