@@ -8,6 +8,7 @@ started: 2026-06-21T09:30:00Z
 score: 0.5
 completed: 2026-06-22T03:57:37Z
 verdict: rejected
+archived: 2026-06-22T10:21:29Z
 ---
 
 ## Hypothesis

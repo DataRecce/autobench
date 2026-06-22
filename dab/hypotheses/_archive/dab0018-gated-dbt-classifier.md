@@ -6,8 +6,10 @@ kind: hypothesis
 source: dab0017 REJECTED follow-up. Mandatory-dbt failed (0.565 untuned / 0.603 tuned, both < Opus 0.654) because dbt's derived-intermediate-entity value pays off on only ONE of 12 datasets (crmarenapro, 6 sources, derivation-blocked failures) while its overhead+variance taxes the 2-source datasets. This gates dbt to where it has signal so the non-dbt path stays byte-identical to the anchor.
 started: 2026-06-22T04:25:01Z
 score: 0.5
-completed:
-verdict:
+completed: 2026-06-22T10:21:28Z
+verdict: rejected
+worktree:
+archived: 2026-06-22T10:21:29Z
 ---
 
 ## Hypothesis
