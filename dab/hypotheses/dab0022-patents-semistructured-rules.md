@@ -415,6 +415,33 @@ Per-query vs `@codex-batch-baseline` (anchor scores from its `summary.json`):
 "≥1 PATENTS flip AND **zero** canary regression" — the stockmarket-q3 drop fails the zero-regression
 clause.
 
+## Full run (launched — detached)
+
+Smoke is a GO (clean +3-PATENTS-target; cycle-3 yelp drops confirmed temp=0 variance by the 3-draw
+probe). Captain pre-authorized full. Launched the detached full run on the cycle-3 frozen spec; FO owns
+the wait via the sentinel scan.
+
+- **Handle:** `runs/.rk-handles/dab0022-full-20260622-174918/`
+- **PID:** 1973989 (worker alive at launch; `done` sentinel absent = running)
+- **Spec:** `specs/dab0022-patents-semistructured-rules.frozen.yaml` (12 datasets, `reasoning_effort: high`)
+- **Selection (re-confirmed $0 via `--explain`):** `Tasks: 12`, `reasoning_effort: "high"`, solver hash
+  **`sha256:b2cae85c…`** (the cycle-3 fixed README — both scoping fixes). All 12 datasets → 54 query-cells.
+- **Started:** 2026-06-22T17:49:18Z. **Sentinel:** `runs/.rk-handles/dab0022-full-20260622-174918/done`
+  (absent until finished; `rc=0` ⇒ OK). **Log:** `…/log`. ntfy: none configured.
+- **ETA:** ~**75–90 min** wall (54 cells, high, concurrency.trials:2 — dab0018 full3 at the same shape
+  ran ~81 min). PATENTS is the heaviest cell (billion-row CPC EMA + citation-graph join).
+
+**Phase-2 read (FO, on the `done` sentinel) — AC-2/AC-3:** `rk audit --policy strict` (0 coverage_missing
+/ 0 tainted — exclude both PG-degradation signatures before any verdict, per the dab postgres dual-signature
+lesson), `rk score`, then `rk runs diff` vs `@codex-batch-baseline` (the high anchor — README is the SOLE
+variable, confound-free). Confirm the **3 PATENTS flips** hold by committed artifact and read the full
+board for generative side-effects. **CALIBRATION (carry from the smoke):** this is a generative
+fires-everywhere lever and a single full draw — yelp/stockmarket/googlelocal ranking cells (q2/q4/q7-type)
+are confirmed variable-band, so judge by **attributed per-query mechanism**, not the headline delta;
+isolated single-cell ranking wobbles are variance unless they reproduce, while the +3 PATENTS flips are the
+real signal. Many unsmoked ranking/complete-list cells (agnews, bookreview, music_brainz, crmarenapro,
+DEPS_DEV, GITHUB, PANCANCER) will also see this lever fire.
+
 ## Run result
 
 ## Behavioral analysis
@@ -701,3 +728,12 @@ Built and launched the captain-chosen yelp-only 3-draw confirm probe (same cycle
 ### Summary
 
 The yelp-only 3-draw probe is unambiguous: all 3 draws clean (AC-2), and yelp-q4 + yelp-q7 BOTH pass 3/3 (q4 hits the exact GT 3.63 every draw; q7 has all categories every draw). The cycle-3 single-draw yelp drops were temp=0 variable-band noise, NOT a README regression — confirmed by the decision rule's wobble branch. So the dab0022 cycle-3 smoke is effectively a CLEAN +3-PATENTS-target GO: all 3 targets flipped FAIL→PASS by committed artifact (confound-free at high), the cycle-2 stockmarket-q3 regression genuinely fixed, no real canary loss. Recommendation to the FO: advance smoke→full (the captain pre-authorized this on a confirmed wobble). Carry the calibration caveat that yelp's ranking cells (q2/q4/q7) are variable-band, so isolated single-cell ranking wobbles on the full board are variance, not lever regressions, unless they reproduce.
+
+## Stage Report: full (launch — detached)
+
+- DONE: Re-confirm $0 selection via `--explain` = all 12 datasets / 54 cells, reasoning_effort "high", solver hash = the cycle-3 hash `sha256:b2cae85c…`; launch DETACHED via `drivers/rk-run-detached.sh dab0022-full …frozen.yaml run`; record handle + pid + ETA.
+  `--explain` → `Tasks: 12`, `reasoning_effort: "high"`, solver hash `sha256:b2cae85c…` (cycle-3 fixed README). Launched: handle `runs/.rk-handles/dab0022-full-20260622-174918/`, pid 1973989 (alive, `done` absent), started 2026-06-22T17:49:18Z. ETA ~75–90 min (54 cells, high, concurrency.trials:2; dab0018 full3 same shape ~81 min). Recorded in `## Full run (launched — detached)`. Did NOT poll/wait — handle returned to the FO immediately.
+
+### Summary
+
+Re-confirmed the full-board selection at $0 (12 datasets / 54 cells, effort high, cycle-3 solver hash b2cae85c) and launched the detached full run via the standard driver. Worker pid 1973989 alive, `done` sentinel absent; handle recorded for the FO's sentinel scan. Returned the handle immediately per the launch-phase contract; phase 2 (audit/score/diff/per-cell read) runs when the FO re-engages on the sentinel. README is the SOLE variable vs the high anchor (confound-free). Calibration carried: judge by attributed per-query mechanism, not the headline delta — the +3 PATENTS flips are the real signal; variable-band ranking wobbles are variance unless they reproduce.
