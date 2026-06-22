@@ -40,3 +40,30 @@ propose auto-APPROVE = gatekeeper APPROVE + FO reject-checks; smoke→full auto-
 target (the yelp-q6 4/6-trap: a single pass on a multi-pass cell is not lever evidence). Never auto:
 conclude/promote/seed-README-edit, strategy (lever choice/retarget/pivot/revise-vs-reject), infra code
 fixes, or an UNEXPECTED result (→ unexpected-result-playbook). Infra is NEVER counted as a result.
+
+## dab0017 (REJECTED, 2026-06-22) — mandatory dbt-pipeline falsified, dbt-advantage unproven
+Force every dataset through built+validated stg→int→mart, answer=query the mart. Stratified 0.565 untuned
+/ 0.6027 tuned, both < Opus 0.654 < anchor @codex-batch-baseline 0.697; 10 canary regressions (untuned).
+dbt-ADVANTAGE UNPROVEN here: crmarenapro flips (q2/q3/q8) had NO mechanism delta vs the no-dbt anchor —
+variant's norm_id #-strip == anchor's lstrip('#'); the README's resolved_entity_id OR-cluster never fired;
+flips came WITH a q13 regression. 2 biggest losses (yelp 7→0, GITHUB q4) were FIXABLE WRAPPER bugs (FO
+re-summarization dropped the dab-mongo host; JSON-list serialization false-RED), not dbt cost. Calibration
+lesson: a generative fires-everywhere lever's SMOKE is NOT predictive of the full board (~±0.07/draw,
+reconfirms dab0016). Mandatory-dbt DEAD for DAB. INFRA KEPT: dbt+scanners baked into dab-agent image,
+host-fix fork, verify_batch=PR#19, @codex-batch-baseline registered (0.697>Opus). Detail: dab0017 ## Verdict.
+
+## dab0018 (REJECTED, 2026-06-22) — classifier-gated dbt; gate works, dbt int_ real but narrow+self-taxing → dbt family CLOSED
+The dab0017 follow-up: one forked README with a source-count classifier (N_sources≥3 from db_config.yaml
+→ Method B dbt; else Method A = verbatim @codex-batch-baseline direct). GATE MECHANISM WORKS (zero leak,
+full-board): classifier routed all 12 datasets correctly, "zero regression by construction" holds — reusable
+gated-composition pattern for DAB. dbt int_ cross-source derivation is REAL+STABLE on crmarenapro and reaches
+the COMMITTED int_ answer not a #-strip (cures the dab0017 no-mechanism-delta trap): q3 effective_stage=
+Negotiation (opp↔transcript join), q7 breach ka0Wt000000EoD3IAK (case↔order↔KB), q2 cracked a 0/6 cell. BUT
+REJECTED: full3 stratified 0.6927 < anchor 0.6966 AND one real canary regression (q9, a 6/6 ROCK-STABLE band
+cell, destabilized by the dbt mart re-grain = within-dataset dbt tax). Only 5 cells moved board-wide (GAINS
+crmarenapro q2/q3/q7; REG q9; stockmarket-q3 = direct-path noise, 0/6 cell reverting to mean). The +2
+crmarenapro signal ≈+0.013 stratified is SWAMPED by direct-path single-draw noise. Anchor is the SAME
+codex/gpt-5.5 → lever genuinely isolated (gain attributable, just tiny+self-taxed). dbt family CLOSED for DAB
+with full-board evidence; no per-query-method-selection follow-up (needs oracle-free derivation-vs-ranking
+signal the README can't supply; solver self-false-greens ranking cells). Detail: dab0018 ## Verdict; memory
+dab-gated-dbt-self-cancelling.

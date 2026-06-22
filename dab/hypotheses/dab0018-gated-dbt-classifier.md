@@ -673,6 +673,52 @@ because the crmarenapro advantage is too small and not tax-free.
 - This is a **knowledge gain**, not a flip: the seed README stays UNCHANGED (the captain's conclude
   call). analyze→conclude is the captain's decision; this is the recommendation only.
 
+## Verdict
+
+**REJECTED** (captain-approved). dab0018 = classifier-gated dbt, the dab0017 follow-up that
+isolated whether the dbt cross-source-derivation advantage on crmarenapro survives once the
+board-wide overhead/variance tax is removed by a precondition gate.
+
+**Failure mechanism.** The gate works exactly as designed — a source-count classifier
+(`N_sources≥3` from `db_config.yaml db_clients:` → Method B dbt; else Method A = the verbatim
+`@codex-batch-baseline` direct path) — but it can only bank a tiny, self-taxed signal. full3
+(`runs/dab0018-gated-dbt-classifier/adcde4521869777a`, audit CLEAN 12/0/0) scored stratified
+**0.6927 < anchor 0.6966** (−0.0039) and carried **one real canary regression**. Two reasons it
+can't clear the bar: (1) the crmarenapro advantage is **too small** — median +2 cells on ONE of
+12 datasets ≈ **+0.013 stratified** — and on a single full draw it is **swamped by direct-path
+temp-noise** (this draw stockmarket-q3, a known 0/6 never-pass band cell, reverted to mean and
+dragged the headline negative); (2) it is **not tax-free** — the within-crmarenapro dbt mart
+re-grain destabilized **q9, a 6/6 ROCK-STABLE band cell** (committed `SC` vs `MI`). The gate
+removes the board-WIDE tax but cannot remove the WITHIN-dataset tax on the firing dataset.
+
+**Did the change reach the committed artifact? YES — lever-attributable, not model-swap.** The
+anchor is the SAME codex/gpt-5.5 model (`@codex-batch-baseline`), so the README is genuinely
+isolated (model held constant). The three gains are PROVEN mechanism deltas reaching the committed
+int_/mart answer, NOT a #-strip (curing the dab0017 no-mechanism-delta trap): **q3**
+`int_opportunity_effective_stage` → effective_stage=Negotiation (vs raw stage_name=Discovery);
+**q7** `int_case_policy_breach` (case↔order↔KB) → breach `ka0Wt000000EoD3IAK`; **q2**
+`int_quote_policy_breach` cracked a 0/6-band cell. All `dbt run`/`dbt test` green, no answer
+literals. q3/q7 held every probe draw (3/3) + full3.
+
+**Distance-to-pass / ledger.** Board-wide only **5 cells moved**: GAINS crmarenapro q2/q3/q7;
+REGRESSION crmarenapro-q9 (the one real break, 6/6→fail on the mart re-grain); stockmarket-q3
+PASS→FAIL = direct-path noise (0/6 band cell, ran Method A, not this lever). Raw cells 39→40 (+1);
+crmarenapro itself 9/13→11/13 (+2). `rk runs diff` crashed on the known query_id-null TypeError →
+ledger computed from each run's `reward_per_query.json`, slug-paired.
+
+**Transferable rules (banked knowledge):**
+- The **gated-composition mechanism WORKS on DAB** — a zero-leak source-count classifier routed all
+  12 datasets correctly; "zero regression by construction" ([[ade-bench-gated-levers-compose]])
+  holds full-board. Reusable for ANY future precondition-gated DAB lever.
+- The **dbt cross-source int_ derivation is real but NARROW** — proven + stable for crmarenapro
+  q3/q7 specifically, but pays off on only 1 of 12 datasets and self-taxes a stable cell there.
+- **The dbt family is CLOSED for DAB** with full-board evidence (dab0017 mandatory + dab0018 gated).
+- **No per-query-method-selection follow-up:** it would need an oracle-free "is this a derivation
+  query vs a ranking query" signal the README cannot reliably supply, and the solver already
+  self-false-greens the ranking cells — the same wall dab0017 + the smoke stage named.
+- Seed README + baseline UNCHANGED. Reusable dab0017 infra KEPT (dbt+scanners image, host-fix fork,
+  verify_batch PR #19, `@codex-batch-baseline` registered 0.697>Opus).
+
 ## Stage Report: full
 
 - DONE: Record the dab0018-full3 relaunch in the entity file.
@@ -722,3 +768,24 @@ re-grain) — the one real regression — and the headline stratified went flat 
 because the +2 crmarenapro signal (~+0.013) is swamped by direct-path single-draw noise
 (stockmarket-q3, a 0/6 cell, reverting to mean). GO bar fails both ways → recommend REJECTED;
 mechanism + gated-composition validated as knowledge, dbt family CLOSED for DAB.
+
+## Stage Report: conclude
+
+- DONE: dab0018 `## Verdict` — distilled conclude block (verdict REJECTED; failure mechanism; committed-artifact attribution; transferable rule).
+  Appended `## Verdict` after `## Follow-up Routing`: REJECTED; gated-dbt removes board-wide tax but crmarenapro advantage too small (~+0.013) AND not tax-free (q9 6/6→fail on mart re-grain), swamped by direct-path noise → 0.6927<0.6966. q3/q7/q2 PROVEN to committed int_ answer not #-strip; anchor = same codex/gpt-5.5 so lever-attributable. Gated-composition WORKS (zero-leak); dbt family CLOSED for DAB; no per-query-method-selection follow-up.
+- DONE: dab0017 `## Verdict` — appended (it had `## FINAL Conclusion` but no `## Verdict`).
+  Distilled mandatory-dbt closure: 0.565 untuned / 0.603 tuned, both < Opus 0.654 < anchor 0.697, 10 canary regressions; dbt-advantage UNPROVEN (crmarenapro flips no mechanism delta vs no-dbt anchor — identical #-strip); 2 big losses (yelp, agnews) = fixable wrapper bugs not dbt; infra KEPT; calibration lesson (generative fires-everywhere smoke not predictive of full); dab0018 isolated+confirmed the closure.
+- DONE: `_artifacts/self-learning.md` one-line entries for dab0017 + dab0018.
+  File already existed → appended two entries (dab0017 mandatory-dbt REJECTED / dbt-advantage unproven / infra kept; dab0018 gated-dbt REJECTED / gate works zero-leak / int_ real but narrow+self-taxing / family CLOSED).
+
+### Summary
+
+Conclude is record-keeping for the dbt-family closure on DAB. Wrote dab0018's distilled `## Verdict`
+(REJECTED: gated-composition mechanism WORKS with zero leak and the dbt cross-source int_ derivation
+is PROVEN+stable on crmarenapro q3/q7, but the +2 single-dataset signal ≈+0.013 stratified is
+swamped by direct-path single-draw noise AND self-taxed by a within-crmarenapro regression on the
+6/6-stable q9 → 0.6927<0.6966, GO bar fails both ways). Added the missing dab0017 `## Verdict`
+distilling the mandatory-dbt closure (dbt-advantage unproven, wrapper-bug confounds, calibration
+lesson) and noting dab0018 as the follow-up that isolated and confirmed the closure. Appended both
+to `_artifacts/self-learning.md`. dbt family CLOSED for DAB; no seed/baseline README edits; verdict
+frontmatter left to the FO.

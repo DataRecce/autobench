@@ -281,3 +281,47 @@ with artifact evidence; I accept the correction.
   mandatory-dbt falsified; dbt-advantage unproven (confounded by wrapper bugs); the FO
   re-summarization can silently drop load-bearing connection details; generic-mart discipline
   held cleanly (no per-question models / no answer literals across the board).
+
+## Verdict
+
+**REJECTED** (frontmatter already set; this distills the closure for a teammate reading the body).
+dab0017 = MANDATORY dbt-pipeline solver — force every dataset through a built+validated `stg→int→mart`
+pipeline, answer = query the mart.
+
+**Failure mechanism.** Mandatory-dbt FALSIFIED across BOTH legs: untuned full **0.565** and tuned
+full (mongo-host-fix + flat-string + grain/completeness discipline) **0.6027** — both **< Opus
+0.654 < anchor `@codex-batch-baseline` 0.697**. Untuned had **10 canary regressions**, tuned had 5.
+dbt pays off on only 1 of 12 datasets (crmarenapro, the sole ≥3-source set with derivation-shaped
+failures) while its build overhead + the generative grain/ranking discipline taxes + destabilizes
+the other 11 (≥8 cells flipped both directions smoke↔full on the SAME README at temp=0; 2 unsmoked
+datasets — PANCANCER q3, googlelocal q4 — regressed). A lever that swings ~±0.07 per draw is not a
+promotable improvement.
+
+**Did the change reach the committed artifact? The crmarenapro "win" was UNPROVEN here (confounded).**
+The dab0017 crmarenapro flips (q2/q3/q8) were real PASSES but showed **no mechanism delta vs the
+no-dbt anchor** — the variant's dirty-key handling was a `norm_id = lower(regexp_replace(trim,'^#+',''))`
+`#`-strip and the anchor did the byte-identical `strip().lstrip('#')` in plain Python; the README's
+flagship `resolved_entity_id` OR-cluster NEVER FIRED in any crmarenapro model, and the flips came
+WITH a q13 regression (wrong agent + uncleaned `#`), contradicting the "dbt resolves dirty keys"
+story. (This no-mechanism-delta gap is exactly what dab0018's gated revision later CURED — see below.)
+
+**Two biggest losses were FIXABLE WRAPPER bugs, not dbt:** yelp 7→0 = the FO two-phase
+re-summarization dropped the `dab-mongo` host → localhost refused (proved fixable, retest 0→6/7);
+GITHUB q4 = JSON-list serialization false-RED. These confounds inflated the apparent dbt cost.
+
+**Transferable rules (banked knowledge):**
+- **Mandatory (fires-everywhere) dbt is dead for DAB** — the overhead/variance tax dominates DAB's
+  2-source-heavy mix.
+- **Calibration lesson:** a generative fires-everywhere lever's SMOKE is NOT predictive of the full
+  board (the smoke over-predicted: 32/33 ≈ break-even → full 0.603); judge the full board, and
+  expect ±0.07 single-draw variance from such a lever (reconfirms dab0016).
+- **Reusable infra KEPT:** dbt + sqlite/postgres scanners baked into the `dab-agent` image; the
+  host-fix fork (localhost→dab-postgres/dab-mongo); `verify_batch` per-query try/except (razorback
+  **PR #19**, merged); `@codex-batch-baseline` registered (0.697 > Opus 0.654, the new anchor).
+- **Follow-up [[dab-gated-dbt-self-cancelling]] (dab0018)** isolated and CONFIRMED the closure:
+  gating dbt to ≥3-source datasets (only crmarenapro) with a zero-leak source-count classifier
+  removed the board-wide tax AND cured the no-mechanism-delta gap (q3/q7 proven to reach the
+  committed int_ answer, not a #-strip) — yet STILL landed REJECTED (full3 0.6927 < 0.6966) because
+  the crmarenapro advantage is too small (~+0.013) and self-taxes a stable cell (q9). **dbt family
+  CLOSED for DAB** with full-board evidence from both hypotheses.
+- Seed README + design UNCHANGED.
