@@ -1,0 +1,73 @@
+version: 1
+experiment: dab0022-patents-semistructured-rules
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: solver_workflows/dab0022-patents-semistructured-rules
+  solver_workflow_content_hash: sha256:b2cae85c2d33fb08e51e06dc25101462f16646d67066322d6f6d16d2164379f5
+  max_turns: 200
+  max_budget_usd: null
+  override_timeout_sec: null
+  override_setup_timeout_sec: null
+  max_timeout_sec: null
+  tools_allowed: []
+  tools_denied: []
+  append_system_prompt: null
+  reasoning_effort: high
+  reasoning_summary: null
+  resume_from_freeze: null
+  sealed_hash: 98a1bcc03aec6391dd622e641d3659cf
+  spacedock_skill_version: 1.0.0
+  prompt_content_hashes: {}
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  tasks:
+  - yelp
+  exclude_tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+  n_tasks: null
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+trials: 3
+concurrency:
+  trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
+provenance:
+  pin_model_version: true
+  pin_image_digest: true
+  pin_agent_cli_hash: true
+  pin_git_sha: true
+  model_resolved_version: null
+  model_resolved_at: null
+  image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
+  agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
+  harness_git_sha: a9969fdd0f1be0652812138689718792a921aa33
+  harbor_version: 0.6.6
+  prompt_file_hashes: {}
+  plugins: []
+  solver_workflow_hash: sha256:b2cae85c2d33fb08e51e06dc25101462f16646d67066322d6f6d16d2164379f5
+experiment_meta: null

@@ -1,0 +1,54 @@
+# ABOUTME: dab0022 cycle-3 YELP-ONLY 3-draw confirm probe. NOT an IV change — same cycle-3 solver
+# ABOUTME: README (the two scoping fixes) + reasoning_effort high; only the task set + trials change.
+# ABOUTME: Purpose: decide whether the cycle-3 yelp-q4/q7 drops are README-real or temp=0 variable-band
+# ABOUTME: noise. They passed at the anchor AND cycle-1 (2 prior passes) then failed at cycle-3.
+# ABOUTME: trials: 3 with concurrency.trials: 1 — same-dataset multi-draw collides on the shared named
+# ABOUTME: postgres volume at concurrency>1 (dab0018 crma3 lesson), so draws MUST run serially.
+# ABOUTME: Decision rule: per-query pass-count for yelp-q4/q7 over the 3 clean draws vs anchor 7/7 —
+# ABOUTME: stable-drop (fail in a majority) => README-real => option-1 scope-fix REVISE; wobble
+# ABOUTME: (pass in a majority) => variable-band noise => board is effectively a clean +3-target GO.
+# ABOUTME: Exclude any infra-killed draw (coverage_missing) from the count.
+version: 1
+experiment: dab0022-patents-semistructured-rules
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0022-patents-semistructured-rules
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - yelp
+  exclude_tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+trials: 3
+concurrency:
+  trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout

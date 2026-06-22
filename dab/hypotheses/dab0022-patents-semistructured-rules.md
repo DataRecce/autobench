@@ -286,6 +286,35 @@ README scoping fixes). FO owns the wait via the sentinel scan; I return the hand
 3. **Did fix #2 flip PATENTS-q3?** If the subclass-title level binding worked, q3 may now PASS (turning
    the panel toward +3/0). All attributions are clean this cycle (README is the sole variable).
 
+## Yelp confirm probe (launched — detached)
+
+Captain chose the disambiguation probe (my recommended option 2): a **yelp-only 3-draw** run at the
+cycle-3 README + `high`, to decide whether the cycle-3 yelp-q4/q7 drops are **README-real or temp=0
+variable-band noise** (they passed at the anchor AND cycle-1 — 2 prior passes — then dropped at cycle-3).
+NOT an IV change: same cycle-3 solver_workflow (hash `b2cae85c…`), same effort; only the task set +
+trials change.
+
+- **Spec:** `specs/dab0022-patents-semistructured-rules.yelp3.frozen.yaml` — yelp only, `trials: 3`,
+  `concurrency.trials: 1` (CRITICAL — same-dataset multi-draw collides on the shared named postgres
+  volume at concurrency>1; the dab0018 crma3 lesson, so draws run **serially**).
+- **`--explain` confirmed:** `Tasks: 1` (yelp), `trials: 3`, `reasoning_effort: "high"`, solver hash
+  `sha256:b2cae85c…` → **21 cells** (7 yelp queries × 3 draws).
+- **Handle:** `runs/.rk-handles/dab0022-yelp3-20260622-170140/`
+- **PID:** 1915756 (worker alive at launch; `done` sentinel absent = running)
+- **Started:** 2026-06-22T17:01:40Z. **Sentinel:** `runs/.rk-handles/dab0022-yelp3-20260622-170140/done`
+  (absent until finished; `rc=0` ⇒ OK). **Log:** `…/log`. ntfy: none configured.
+- **ETA:** ~**25–40 min** wall (3 serial yelp draws at concurrency.trials:1; yelp is a mid-weight 7-query
+  free-text dataset — one draw is a fraction of the ~29-min full-panel cycle-3 run, ×3 serial).
+
+**Decision rule (FO, on the `done` sentinel):** per-draw + per-query pass-count for **yelp-q4 and
+yelp-q7** across the 3 clean draws vs anchor 7/7. Exclude any infra-killed draw (coverage_missing) from
+the count.
+- **q4/q7 STABLY drop** (fail in a clear majority of clean draws) → **README-real** → proceed to the
+  option-1 scope-fix REVISE (scope the full-list/ranking rules off single-winner / fixed-top-k questions).
+- **q4/q7 wobble** (pass in a majority) → **variable-band noise**, not the README → the board is
+  effectively a **clean +3-PATENTS-target GO** (all targets solved, the cycle-2 regression fixed, no
+  real canary loss).
+
 ## Smoke result
 
 ### Cycle-3 (effort=high, two README fixes) — THE CURRENT READ
@@ -611,3 +640,14 @@ Re-confirmed the cycle-3 smoke selection at $0 (4 datasets, effort high, new sol
 ### Summary
 
 Cycle-3 audit CLEAN. The two targeted README fixes both worked, confound-free (effort=high): all 3 PATENTS targets now PASS (fix #2 flipped q3), the cycle-2 stockmarket-q3 regression is fixed (fix #1), and the q1/q2 flips survived the effort revert so they are genuinely the README. But the fires-everywhere lever opened 2 NEW yelp regressions (q4, q7 — ranking/aggregation variable-band cells), so the strict zero-regression GO clause is still unmet → REVISE (tighten the full-list/ranking rules to not perturb fixed-k questions), optionally after a cheap yelp repeat to confirm the drops are real. This is on the GO/REVISE boundary — targets fully solved, only blast-radius containment remains; do not advance to full as-is (the unsmoked ranking-heavy datasets would likely regress further).
+
+## Stage Report: smoke (cycle 3 — yelp confirm probe launch, detached)
+
+- DONE: Build a yelp-only 3-draw probe spec — fork the cycle-3 frozen spec to yelp-only, `trials: 3`, `concurrency.trials: 1`, SAME variant solver_workflow + effort high; freeze; `--explain` to confirm yelp only / trials=3 → 21 cells / effort high / solver hash b2cae85c.
+  Built `specs/dab0022-patents-semistructured-rules.yelp3.yaml` + frozen; `--explain` → `Tasks: 1` (yelp), `trials: 3`, `concurrency.trials: 1`, `reasoning_effort: "high"`, solver hash `sha256:b2cae85c…` (= cycle-3 hash, no IV change). 21 cells (7×3).
+- DONE: Launch detached via `drivers/rk-run-detached.sh dab0022-yelp3 …yelp3.frozen.yaml run`; record handle + pid + ETA; return immediately, do NOT poll.
+  Launched: handle `runs/.rk-handles/dab0022-yelp3-20260622-170140/`, pid 1915756 (alive, `done` absent), started 2026-06-22T17:01:40Z. ETA ~25–40 min (3 serial draws, high). Recorded in `## Yelp confirm probe (launched — detached)` with the decision rule. Did NOT poll/wait — handle returned to the FO.
+
+### Summary
+
+Built and launched the captain-chosen yelp-only 3-draw confirm probe (same cycle-3 README + effort high, only task set + trials changed) to settle whether the cycle-3 yelp-q4/q7 drops are README-real or temp=0 variable-band noise. trials:3 / concurrency.trials:1 (serial — avoids the postgres-volume collision per the dab0018 crma3 lesson). `--explain` confirmed yelp-only, 21 cells, effort high, the cycle-3 solver hash. Worker pid 1915756 alive, handle recorded; returned immediately per the launch-phase contract. Decision rule recorded: q4/q7 stable-drop ⇒ README-real ⇒ option-1 scope-fix REVISE; q4/q7 wobble ⇒ noise ⇒ effectively a clean +3-target GO. FO owns the wait via the sentinel scan.
