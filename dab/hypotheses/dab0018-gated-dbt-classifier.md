@@ -306,3 +306,18 @@ cancelling the gain (crmarenapro 9/13→9/13, net 0). The dbt advantage on crmar
 self-cancelling at the dataset grain. Direct-path canary swings (yelp −4, stockmarket −1,
 googlelocal +1) are codex temp=0 variance, not this lever. NO-GO; recommend CONCLUDE/REJECTED —
 dbt family CLOSED for DAB with a sharper boundary than dab0017.
+
+## Multi-trial crmarenapro probe (launched — detached)
+
+AC-mandated ≥3-draw crmarenapro-ONLY probe (captain decision at the smoke gate: the gate
+provably isolated dbt to crmarenapro, so the score can only move via crmarenapro, which netted 0
+on one draw — and dab0017 saw crmarenapro swing to 11/13 on a single draw, so judge by ≥3 draws).
+
+- **Spec:** `specs/dab0018-gated-dbt-classifier.crma3.frozen.yaml` — crmarenapro only, `trials: 3`,
+  SAME `solver_workflow: ./solver_workflows/dab0018-gated-dbt-classifier` (no IV change).
+- **Handle:** `runs/.rk-handles/dab0018-crma3-20260622-063822/` (pid 1457514).
+- **Selection re-confirmed** (`rk run --explain`, $0): Tasks=1 (crmarenapro), trials=3 → 39 cells.
+- **ETA** ~30–45 min (crmarenapro dbt build dominates, ×3 draws at concurrency.trials:2).
+- **Decision rule:** GO-to-full iff crmarenapro STABLY nets ≥+1 vs anchor 9/13 — i.e. ≥10/13 in a
+  clear majority of draws WITH q3/q7 holding. Else NO-GO → conclude/REJECTED.
+- Phase 2 (audit + score + per-draw/per-query analysis) runs after the FO re-engages on `done` rc=0.

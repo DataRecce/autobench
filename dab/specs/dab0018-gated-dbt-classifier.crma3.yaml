@@ -1,0 +1,48 @@
+# ABOUTME: dab0018 AC-mandated multi-trial crmarenapro-ONLY probe — 3 independent draws of the
+# ABOUTME: gated README on the ONLY gate-firing dataset. Same solver_workflow as the full spec
+# ABOUTME: (no IV change); isolates the crmarenapro dbt signal from the 11 non-firing datasets'
+# ABOUTME: temp=0 variance. Decision: GO-to-full iff crmarenapro STABLY nets >=+1 vs anchor 9/13.
+version: 1
+experiment: dab0018-gated-dbt-classifier
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0018-gated-dbt-classifier
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - crmarenapro
+  exclude_tasks:
+  - agnews
+  - bookreview
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+  - yelp
+trials: 3
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
