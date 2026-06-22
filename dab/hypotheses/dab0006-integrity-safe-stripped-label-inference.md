@@ -36,3 +36,23 @@ lever here must be paired with an explicit no-leak rule and artifact-verified at
 
 Primary (stretch): `agnews-q4`. Treat as integrity-sensitive — smoke must artifact-verify the
 answer was inferred, not leaked.
+
+## Stage Report: ideate
+
+- DONE: File 2–5 hypothesis entities (status `hypothesis`, `dab<NNNN>-<slug>.md`, next free dab id), each ONE solver-README change, falsifiable, named target (primary agnews-q4).
+  Filed 3: dab0019-deterministic-keyword-classifier, dab0020-argmax-margin-gate-dual-signal, dab0021-inference-provenance-noleak-audit; ids 0019–0021 are next free (0018 was the max present).
+- DONE: Each keeps the leak-guard intact (no ground_truth/solution/validate/hint reads or pastes) and states the smoke artifact-verification that proves the answer was INFERRED, not leaked.
+  Each has a `## Leak-guard (integrity, G2)` section: no oracle/hint reads, existing no-external prose byte-identical, inference proof = logged content-score table in reasoning.md + verify external-oracle audit on the analyze trace.
+- DONE: Ground each in the current @baseline README + dataset-gap-ranking + latest learnings; derive concrete README changes.
+  Anchored to the actual @baseline failure trace (agnews-q4 committed "South America" on a 357/348/348/346/345 razor-thin band — instability, not effort); each names the exact `analyze`/`verify` stage edit; respects dbt-CLOSED + serialization-only-validated + "talks-but-doesn't-do" by making edits mechanical/gated and avoiding self-anchored verification.
+
+### Summary
+
+Three single-change hypotheses targeting agnews-q4's label-stripped category inference. The
+root cause from the baseline trace is a thin-margin (9-of-6700) coin-flip on a noisy
+content classifier, not insufficient effort. dab0019 removes the randomness (deterministic
+keyword lexicon + fixed tie-break); dab0020 adds a dual-signal agreement gate on thin margins
+(falls back to UNABLE rather than guess); dab0021 isolates the concept's no-leak half as an
+auditable content-provenance rule. All three are precondition-gated so canaries on perfect
+datasets (bookreview/stockindex/music_brainz_20k) are untouched, and all carry an explicit
+inference-vs-leak artifact proof per the integrity-sensitive mandate.
