@@ -18,10 +18,10 @@ agent:
   tools_allowed: []
   tools_denied: []
   append_system_prompt: null
-  reasoning_effort: high
+  reasoning_effort: xhigh
   reasoning_summary: null
   resume_from_freeze: null
-  sealed_hash: ff776c80efb02b02f11f644e1167b725
+  sealed_hash: 8c30f0b29dbb53036a3fb4d93783e65b
   spacedock_skill_version: 1.0.0
   prompt_content_hashes: {}
 benchmark:
@@ -65,7 +65,7 @@ provenance:
   model_resolved_at: null
   image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: bb8be86fec9f04715d2e5e1b935461ce50d7e71d
+  harness_git_sha: a7d17866754eb0926d68e05ed67f6aedc40923f1
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []

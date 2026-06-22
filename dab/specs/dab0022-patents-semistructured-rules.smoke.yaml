@@ -3,14 +3,16 @@
 # ABOUTME: 3 datasets whose ranking / complete-list / free-text-parse query shapes these
 # ABOUTME: fires-everywhere rules most likely perturb — stockmarket (5/5, time-series+peak/rank),
 # ABOUTME: yelp (7/7, free-text reviews + complete-list), googlelocal (q1/q3/q4 pass; q2 fail —
-# ABOUTME: free-text + all-associated). Any non-PATENTS drop here is a generative side-effect.
+# ABOUTME: free-text + all-associated). CAPTAIN-DIRECTED reasoning_effort: xhigh (anchor=high) —
+# ABOUTME: a non-PATENTS drop may be an xhigh effort side-effect (xhigh-hurts-gpt5.5 paradox), not
+# ABOUTME: only the generative README; effort+README are jointly confounded vs the high anchor.
 version: 1
 experiment: dab0022-patents-semistructured-rules
 agent:
   kind: spacedock_solver
   runtime: codex
   model: gpt-5.5
-  reasoning_effort: high
+  reasoning_effort: xhigh
   sampling:
     temperature: 0.0
     top_p: null
