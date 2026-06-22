@@ -1,0 +1,41 @@
+# ABOUTME: Gate-2 smoke for dab0017 — targets (crmarenapro, GITHUB_REPOS) + canary candidates.
+# ABOUTME: Canary set is FINALIZED after Gate 1.5 (Opus ∩ @codex-batch-baseline intersection).
+version: 1
+experiment: dab0017-dbt-pipeline
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0017-dbt-pipeline
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - crmarenapro
+  - GITHUB_REPOS
+  - bookreview
+  - music_brainz_20k
+  - stockindex
+  - stockmarket
+  - yelp
+  - agnews
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout

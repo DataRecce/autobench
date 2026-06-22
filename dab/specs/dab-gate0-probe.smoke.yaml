@@ -1,0 +1,34 @@
+# ABOUTME: Gate-0 feasibility probe — build dbt once on crmarenapro (13 q), answer all via
+# ABOUTME: query_mode:batch + workspace_variant:spacedock, prove verify_batch + scratch survives stages.
+version: 1
+experiment: dab-gate0-probe
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab-gate0-probe
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - crmarenapro
+trials: 1
+concurrency:
+  trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout

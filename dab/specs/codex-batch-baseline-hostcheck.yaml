@@ -1,0 +1,35 @@
+# ABOUTME: Apples-to-apples anchor for the dbt-pipeline hypothesis — current baseline README
+# ABOUTME: (no dbt) under query_mode:batch + workspace_variant:spacedock. Register as @codex-batch-baseline.
+version: 1
+experiment: codex-batch-baseline-hostcheck
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/spacedock-readme-baseline-hostfix
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - yelp
+  - crmarenapro
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
