@@ -288,6 +288,44 @@ README scoping fixes). FO owns the wait via the sentinel scan; I return the hand
 
 ## Smoke result
 
+### Cycle-3 (effort=high, two README fixes) — THE CURRENT READ
+
+**Run dir:** `runs/dab0022-patents-semistructured-rules/2c614e7b01ec1b31` (rc=0, ~29 min).
+**Audit (AC-2): CLEAN** — `coverage_missing: 0`, `tainted: 0`, all 4 trials `clean`. **Panel score: 0.8661**
+(4 datasets only; up from cycle-1's 0.8042). **No effort confound** — effort=high matches the anchor, so
+every attribution below is cleanly README-driven.
+
+**Headline: all 3 PATENTS targets now PASS AND the cycle-2 stockmarket-q3 regression is FIXED — but the
+generative lever opened TWO NEW yelp regressions (q4, q7). GO bar (zero canary regression) still NOT met
+→ REVISE again (or accept the trade as a partial win — captain's call).**
+
+| Cell | Anchor | Cy1 (xhigh) | Cy3 (high) | Validator reason (cy3) | Classification (by committed artifact) |
+|------|--------|-------------|------------|------------------------|----------------------------------------|
+| **PATENTS-q1** | ❌ 0 | ✅ 1 | ✅ 1 | "All CPC codes present." | **flip held** through the effort revert — flat list of level-5 codes. README-attributable, now confound-free. |
+| **PATENTS-q2** | ❌ 0 | ✅ 1 | ✅ 1 | "All fuzzy names matched, CPC/year near each." | **flip held** — level-4 records. README-attributable, confound-free. |
+| **PATENTS-q3** | ❌ 0 | ❌ 0 | ✅ **1** | "All assignee-title pairs matched by at least one method." | **NEW FLIP — fix #2 worked.** The subclass-title level-binding clause bound the title at the right hierarchy level; the 3 (assignee, subclass-title) pairs now match. README-attributable. |
+| **stockmarket-q3** | ✅ 1 | ❌ 0 | ✅ **1** | "All names (≤5 edits) and rounded numbers matched." | **REGRESSION FIXED — fix #1 worked.** The committed answer now pairs the exact name with its avg-volume number (no description blurb), restoring name↔number proximity. README-attributable. |
+| **yelp-q4** | ✅ 1 | ✅ 1 | ❌ **0** | "Value '3.63' not found in LLM output." | **NEW REGRESSION.** Q4 = "which category has the most credit-card businesses, and its avg rating." Committed "Restaurants; average rating **3.5414**" — right category, but the avg-rating cohort/aggregation differs from GT's 3.63. A ranking-over-derived-metric cell (the variable band) the lever perturbed. |
+| **yelp-q7** | ✅ 1 | ✅ 1 | ❌ **0** | "Missing category: Breakfast & Brunch" | **NEW REGRESSION.** Q7 = "top-5 categories by reviews from 2016-registered users." Committed top-5 = `Restaurants; Food; American (New); Shopping; Automotive` — GT wants **Breakfast & Brunch** in the top-5 (the worker ranked Shopping/Automotive into slots 4-5 instead). A complete-list/ranking content difference the lever's category-attribution perturbed. |
+| yelp q1/q2/q3/q5/q6 | ✅ 5 | ✅ 5 | ✅ 5 | all pass | held. |
+| googlelocal q1/q3/q4 | ✅ 1/1/1 | ✅ 1/1/1 | ✅ 1/1/1 | hold | held (q2 still ❌, not a target). |
+| stockmarket q1/q2/q4/q5 | ✅ 4 | ✅ 4 | ✅ 4 | hold | held. |
+
+**Cell net on the panel: +3 PATENTS flips + stockmarket-q3 restored − 2 NEW yelp regressions.** The
+targets are fully solved (3/3 PATENTS, cleanly attributed, confound-free) and the cycle-2 fix worked,
+but the lever traded them for 2 fresh yelp drops — so the strict GO bar (≥1 PATENTS flip AND **zero**
+canary regression) is still not met.
+
+**Single-draw variance caveat (flagged per the checklist):** yelp-q4 and yelp-q7 are both
+**ranking/aggregation-over-derived-metric** cells (largest-category-and-its-average; top-5-by-reviews) —
+exactly the temp=0 *variable band* that wobbles on cohort/tie-break/metric choice (cf. dab0016
+stockmarket-q4, the dab0011 variance band). They held at the anchor (high) AND at cycle-1 (xhigh) — two
+prior passes — then dropped here, which points to a real README-induced ranking shift rather than pure
+noise; but a single high draw cannot fully exclude temp=0 variable-band wobble on these two cells. A
+1-draw repeat (or a 3-draw band read) on yelp alone would disambiguate README-effect vs variance.
+
+### Cycle-1 (xhigh) — superseded by cycle-3; produced the REVISE
+
 **Run dir:** `runs/dab0022-patents-semistructured-rules/e5cb461ef07e9322` (rc=0, ~44 min).
 **Audit (AC-2): CLEAN** — `rk audit --policy strict` → `coverage_missing: 0`, `tainted: 0`; all 4
 dataset trials `taint_status: clean`, zero findings. **Score (focused, 4 datasets): 0.8042 stratified**
@@ -314,6 +352,39 @@ clause.
 ## Run result
 
 ## Behavioral analysis
+
+### Cycle-3 (the current read)
+
+**Both targeted fixes landed, confound-free — this is strong evidence the lever is mechanically
+steerable, not inert.** With effort=high (matching the anchor) the README is the sole variable, so the
+cycle-3 movements attribute cleanly:
+- **Fix #2 flipped PATENTS-q3** (0→1): the new "resolve a code's title at exactly the named hierarchy
+  level" clause moved the worker off the level-5 group title onto the correct subclass title; all 3
+  assignee-title pairs now match. The lever solved all 3 PATENTS targets.
+- **Fix #1 restored stockmarket-q3** (the cycle-2 regression, back to 1): the "output only name+number,
+  no description blurb" clause removed the free-text blurb that had broken the validator's name↔number
+  proximity. The targeted scoping worked exactly as designed.
+- **The 2 PATENTS flips survived the xhigh→high revert** — they were not an xhigh artifact; they are the
+  README. This retroactively resolves the cycle-1 AC-1 confound in the README's favor for q1/q2.
+
+**But the generative lever opened 2 NEW yelp regressions — the same fires-everywhere cost, now
+confound-free.** yelp-q4 ("largest credit-card category + its average rating") and yelp-q7 ("top-5
+categories by reviews from 2016 users") both dropped. These are **ranking/aggregation-over-derived-metric**
+cells — the temp=0 *variable band*. The committed artifacts show content shifts, not format faults:
+q4 committed the right category (Restaurants) with avg 3.5414 vs GT 3.63 (a cohort/aggregation
+difference); q7 committed `Restaurants/Food/American (New)/Shopping/Automotive` vs GT wanting
+Breakfast & Brunch in the top-5 (a ranking/attribution difference). The README's complete-list /
+all-associated / "show the neighborhood, preserve ties" rules plausibly nudged the category cohort and
+the tie/rank cut — which is *generative behavior on a ranking shape*, the dab0016 lesson restated: a
+fires-everywhere lever perturbs the variable band in both directions.
+
+**Net behavioral picture:** the lever now does exactly what it was designed to do on its targets
+(3/3 PATENTS + the regression fix, all by artifact) AND it destabilizes a different pair of perturbable
+ranking cells — a textbook generative trade. The two faults are no longer "is it inert" (clearly not) but
+"can its blast radius be contained to the targets." See Failure Review for whether the yelp drops are
+README-real or variable-band noise and the next-fork options.
+
+### Cycle-1 (xhigh) — superseded; retained below
 
 **The lever is NOT inert — it lands mechanically (refutes the G7 worry).** The cycle-2 gatekeeper's
 top concern was G7: a fires-everywhere prose lever with no worked example might be discussed-and-skipped
@@ -359,6 +430,47 @@ complete-list / free-text cells (agnews, bookreview, music_brainz, crmarenapro, 
 this lever will also fire on; the smoke's +1 cell net is NOT a safe predictor of the full board.
 
 ## Failure Review
+
+### Cycle-3 (the current verdict basis)
+
+**Primary classification: GENERATIVE SIDE-EFFECT REGRESSION (confound-free) — the targeted fixes worked
+but the lever's blast radius moved to two NEW ranking cells.** Cycle-3 is a clean win on everything it
+aimed at — all 3 PATENTS targets PASS (q3 flipped via fix #2), the cycle-2 stockmarket-q3 regression is
+fixed (fix #1), and the q1/q2 flips survived the effort revert so they are genuinely the README. The
+fault is that the same fires-everywhere rules destabilized **yelp-q4 and yelp-q7** (both previously
+stable passers at anchor-high AND cycle-1-xhigh). With effort=high there is no confound: these drops are
+README-attributable ranking/aggregation shifts on the variable band, not effort.
+
+**Why the GO bar is still not met:** GO = ≥1 PATENTS flip AND **zero** canary regression. First clause is
+now overwhelmingly satisfied (3/3 PATENTS by artifact); the second fails (2 yelp regressions). So this is
+not a clean GO — but it is a markedly better board than cycle-2 (targets fully solved, prior regression
+fixed, only the blast-radius problem remains).
+
+**Open question — README-real vs variable-band noise (single draw):** yelp-q4/q7 are
+ranking-over-derived-metric cells in the temp=0 variable band. Two prior passes (anchor + cycle-1) then a
+drop leans toward a real README-induced ranking shift, but one high draw can't fully exclude variance. A
+cheap 1–3-draw yelp-only repeat would settle it before any heavier decision.
+
+**Next-fork options (captain's call — this is genuinely on the GO/REVISE boundary):**
+1. **REVISE again (tighten the blast radius):** the complete-list / all-associated / "show the
+   neighborhood, preserve ties" rules are what plausibly moved the yelp rankings. Scope them so they do
+   NOT alter the cohort or tie/rank cut on a single-winner "which category" or fixed top-k question
+   (q4 is single-winner; q7 is top-5) — apply the full-list discipline only when the question asks for an
+   open complete list, not a fixed-k ranking. This is a REVISE-class in-section edit, idea intact, and it
+   directly targets both yelp drops.
+2. **Disambiguate first (cheapest):** a yelp-only 1-draw repeat (or 3-draw band) at high to confirm
+   whether q4/q7 are README-real or variable-band wobble. If they hold on a repeat, the regression was
+   noise and the board is effectively a clean +3-target GO; if they drop again, do option 1.
+3. **Accept the trade to full (captain may judge the +3-target win worth 2 ranking-cell drops):** but the
+   calibration note below warns the full 12-dataset board has many more unsmoked ranking/complete-list
+   cells this lever will fire on — the panel's net is NOT a safe full-board predictor (dab0016/dab0017).
+
+**Recommendation: REVISE (option 1), optionally preceded by the option-2 yelp repeat to confirm the
+drops are real before spending the edit.** Do not advance to full as-is: a fires-everywhere lever that
+regressed 2 of 7 yelp cells on the smoke panel will likely regress more on the unsmoked ranking-heavy
+datasets, and the stratified metric punishes that.
+
+### Cycle-1 (xhigh) — superseded; retained below
 
 **Primary classification: GENERATIVE SIDE-EFFECT REGRESSION on a perturbable canary (not inert, not
 leak, not infra).** The lever works on its targets (2/3 PATENTS flipped by artifact) but its
@@ -486,3 +598,16 @@ REVISE cycle 3 re-author: kept the one idea (semi-structured data rules), applie
 ### Summary
 
 Re-confirmed the cycle-3 smoke selection at $0 (4 datasets, effort high, new solver hash b2cae85c) and launched the re-smoke detached via the standard driver. Worker pid 1853402 alive, `done` sentinel absent; handle recorded for the FO's sentinel scan. Returned the handle immediately per the launch-phase contract; phase 2 (audit/score/deep-dive) runs when the FO re-engages on the sentinel. This cycle has NO effort confound (high matches the anchor), so all phase-2 attributions are clean — the three watch-items: fix #1 holds stockmarket-q3, the 2 PATENTS flips survive the effort revert, and possibly fix #2 flips PATENTS-q3.
+
+## Stage Report: smoke (cycle 3 — phase 2: audit + score + deep-dive)
+
+- DONE: Audit (AC-2) — `rk audit --policy strict` on `runs/dab0022-patents-semistructured-rules/2c614e7b01ec1b31`; record clean/coverage_missing/tainted; then `rk score` → cycle-3 `## Smoke result`.
+  CLEAN: `coverage_missing: 0`, `tainted: 0`, all 4 trials clean. Panel score 0.8661 (up from cycle-1 0.8042). Recorded in `## Smoke result` → "Cycle-3" subsection.
+- DONE: Per-target + canary deep-dive vs `@codex-batch-baseline`, all by committed artifact — (a) fix #1 restored stockmarket-q3? (b) PATENTS q1/q2 flips survived xhigh→high? (c) fix #2 flipped PATENTS-q3? + all 15 canaries for new drops.
+  (a) YES stockmarket-q3 1 (name+number, no blurb). (b) YES q1/q2 held. (c) YES PATENTS-q3 flipped 0→1 (subclass-title level bound). NEW: yelp-q4 1→0 (avg 3.5414 vs GT 3.63) + yelp-q7 1→0 (top-5 missing Breakfast & Brunch) — both ranking/aggregation content shifts, verified against committed answers. Cycle-3 `## Smoke result` table + `## Behavioral analysis`.
+- DONE: Gate verdict (plain words), single-draw variance flagged; on regression append `## Failure Review`.
+  Verdict: NO-GO-as-is → REVISE (option 1: scope full-list/ranking rules off fixed-k questions), optionally preceded by a cheap yelp-only repeat to confirm the q4/q7 drops are README-real vs variable-band noise. `## Failure Review` cycle-3 subsection appended with the boundary-case framing and 3 next-fork options. Flagged yelp-q4/q7 as variable-band ranking cells (single high draw can't fully exclude temp=0 wobble; 2 prior passes lean toward README-real).
+
+### Summary
+
+Cycle-3 audit CLEAN. The two targeted README fixes both worked, confound-free (effort=high): all 3 PATENTS targets now PASS (fix #2 flipped q3), the cycle-2 stockmarket-q3 regression is fixed (fix #1), and the q1/q2 flips survived the effort revert so they are genuinely the README. But the fires-everywhere lever opened 2 NEW yelp regressions (q4, q7 — ranking/aggregation variable-band cells), so the strict zero-regression GO clause is still unmet → REVISE (tighten the full-list/ranking rules to not perturb fixed-k questions), optionally after a cheap yelp repeat to confirm the drops are real. This is on the GO/REVISE boundary — targets fully solved, only blast-radius containment remains; do not advance to full as-is (the unsmoked ranking-heavy datasets would likely regress further).
