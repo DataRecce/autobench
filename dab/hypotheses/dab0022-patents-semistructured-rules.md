@@ -484,6 +484,73 @@ only.
 
 ## Behavioral analysis
 
+### FULL-RUN analysis (the verdict basis) — the 6 required questions
+
+Run `d0a6f64260336fff`, audit-clean, stratified **0.7675 vs anchor 0.6966 = +0.0709**, confound-free
+(codex-vs-codex, README the sole variable). Every verdict-changed cell confirmed by committed
+`answers.json` recovered from the worker session jsonl.
+
+**Q1 — Net + full per-query ledger, both directions, with mechanism.** Net **+3 cells** (+5 flips,
+−2 regressions):
+
+| Cell | Δ | anchor→full | Mechanism (by committed artifact) | Class |
+|------|---|-------------|-----------------------------------|-------|
+| PATENTS-q1 | +1 | 0→1 | flat newline-list of 72 level-5 codes, built on parser-first profiling (273,364 rows parsed) + complete-list + simple-record rules | **executed-and-helped (README)** |
+| PATENTS-q2 | +1 | 0→1 | flat `TITLE \| CODE \| YEAR` records, level-4 EMA, same rule stack | **executed-and-helped (README)** |
+| googlelocal-q2 | +1 | 0→1 | "All names and scores matched" — the dab0015-known cell that computes correct businesses every run and fails ONLY on JSON-vs-flat output format; the simple-record/flat rules fixed the serialization | **executed-and-helped (README)** — corroborates [[dab-flat-string-serialization-works]] |
+| crmarenapro-q2 | +1 | 0→1 | "Found expected agent ID ka0Wt…Eq0M" — a CRM agent-id lookup; no semi-structured rule has an obvious mechanism here | **variable-band variance** (dab0018 band) |
+| crmarenapro-q7 | +1 | 0→1 | "Found expected agent ID ka0Wt…EoD3" — same | **variable-band variance** (dab0018 band) |
+| crmarenapro-q13 | −1 | 1→0 | committed agent id 005Wt…NEa3 vs expected 005Wt…NIXC — wrong id, no README mechanism; known regression-prone CRM cell ([[dab-mandatory-dbt-rejected]], 1/3 in dab0018) | **variable-band variance** |
+| yelp-q4 | −1 | 1→0 | committed "Restaurants, **3.6523**" (rounds to 3.65) vs GT 3.63 — same category, a near-miss average; PROVEN 3/3 PASS in the dab0022 yelp probe | **variable-band variance** (proven) |
+
+**Only 3 of the 5 flips are README-attributable (the 2 PATENTS targets + googlelocal-q2); the 2
+crmarenapro flips and BOTH regressions are variable-band variance.** Net README-attributable = **+3
+real cells** (PATENTS-q1, PATENTS-q2, googlelocal-q2); the variance cells roughly wash (+2 crma flips −2
+regressions = 0).
+
+**Q2 — Smoke→full: why did PATENTS-q3 drop, what could smoke not see?** q3 PASSED the cycle-3 smoke
+(committed the correct subclass `titleFull` strings, e.g. BLOOM ENERGY CORP → "PROCESSES OR MEANS, e.g.
+BATTERIES, FOR THE DIRECT CONVERSION OF CHEMICAL ENERGY…") but FAILED the full draw (committed
+**coarse/wrong-level** titles — BLOOM ENERGY CORP → "ELECTRIC ELEMENTS", CRYSTAL IS → "ELECTRIC
+ELEMENTS", plus a shifted assignee set incl. CALIFORNIA INST OF TECHN). So fix #2's level-binding rule
+LANDED in the smoke draw but the worker re-derived the title at a coarser hierarchy level on the full
+draw. This is a **smoke→full fork drift on the citation-graph cell, in the variable band**: q3 is a
+multi-join, level-sensitive, large-cohort (169 source pubs × 1.25M citation edges) query whose path
+choice (which CPC level to read titleFull from) is not pinned by the README strongly enough to survive
+temp=0 re-derivation. Smoke (single draw) cannot see this — a cell that's variable across draws will show
+its PASS face in one draw and its FAIL face in another. **q3 is NOT a stable flip; treat it as variance
+that happened to pass at smoke.** (The hypothesis-claim count is therefore 2/3 PATENTS targets stably
+flipped, not 3/3.)
+
+**Q3 — Already-correct-and-broken?** Yes for both regressions: crmarenapro-q13 (anchor 1) and yelp-q4
+(anchor 1) were PASSING at the anchor and the variant "broke" them — but by committed artifact neither is
+a README mechanism failure: q13 is a wrong CRM agent-id (no semi-structured rule touches it) and yelp-q4
+is a 3.65-vs-3.63 rounding near-miss on a cell PROVEN 3/3 in the probe. Both are the variable band
+giving back cells it gives elsewhere, not the lever damaging correct answers (contrast the cycle-2
+stockmarket-q3 regression, which WAS a real README over-formatting bug and was fixed).
+
+**Q4 — Was the change executed (confound attribution)?** Model held constant (codex/gpt-5.5 both sides),
+effort held constant (high both sides) — so attribution is **README-vs-variance, not model-swap and not
+effort**. The README was demonstrably executed: the worker's verification table shows parser-first
+profiling (273,364/277,813 rows parsed), full-axis EMA, explicit citation traversal, and flat
+simple-record output — the exact rule stack. The 3 README-attributable flips reach the committed answer
+through that stack. The variance cells are README-independent (no matching mechanism + known band
+membership).
+
+**Q5 — Prevention + next move.** The +0.0709 headline OVERSTATES the durable lever effect: ~+3 of the
+net cells are real (README) and ~0 net comes from variance cells that happened to land favorably this
+draw (2 crma flips − 2 regressions). On a different seed the variance cells could net negative and drag
+the headline toward the anchor. **Prevention:** judge by the 3 attributed cells, not the 0.7675 — and
+confirm with a multi-draw before promoting (the dab0017 lesson: a generative lever's single full draw
+carries ±0.07 variance). **Next move:** a 3-draw full (or at least a 3-draw on the moving datasets
+PATENTS/crmarenapro/yelp/googlelocal) to separate the stable +3 from the variable band.
+
+**Q6 — Smoke-vs-full fork drift.** One real instance: PATENTS-q3 (smoke PASS → full FAIL, diagnosed
+above as variable-band level-binding drift). The smoke also under-counted variance generally — it saw 0
+crmarenapro cells (crma not in the 4-dataset panel), so the q2/q7 flips and q13 regression were entirely
+invisible to smoke. This is the standing calibration lesson: a generative fires-everywhere lever's smoke
+panel is NOT a faithful predictor of the full board (dab0016/dab0017) — confirmed yet again here.
+
 ### Cycle-3 (the current read)
 
 **Both targeted fixes landed, confound-free — this is strong evidence the lever is mechanically
@@ -639,7 +706,54 @@ us whether the 2 PATENTS flips are the README or the effort.
 
 ## Follow-up Routing
 
+**Verdict recommendation: PROMOTE-CANDIDATE, but NOT-yet on a single draw — confirm with a 3-draw full
+first.** This is the strongest DAB result to date and the first genuinely lever-attributable multi-cell
+gain, but a single full draw's +0.0709 is not yet trustworthy enough to promote outright.
+
+**Why it's a real result (the case FOR):**
+- **3 cells are README-attributable by committed artifact, confound-free** (codex-vs-codex, high-vs-high):
+  PATENTS-q1, PATENTS-q2 (the targets), and googlelocal-q2 (the dab0015-known serialization cell). The
+  README rule stack (parser-first / complete-list / flat simple-record / level-binding) demonstrably
+  reached each committed answer.
+- This **validates the semi-structured-data lever family** as actionable at gpt-5.5/high — refuting the
+  G7 "abstract prose goes inert" worry (dab0012/dab0017). It also independently **reconfirms
+  [[dab-flat-string-serialization-works]]** (googlelocal-q2 via flat serialization), composing two
+  validated mechanisms in one README.
+
+**Why NOT to promote on this draw (the case for one more confirm):**
+- The **+0.0709 headline overstates the durable effect.** Decompose: ~+3 real (README) cells + a
+  net-~0 from variable-band cells that happened to land favorably (crmarenapro-q2/q7 flipped, but
+  crmarenapro-q13 + yelp-q4 regressed — all four are variance, not mechanism). On another seed the
+  variance cells could net negative, dragging the headline toward the anchor. The **honest durable lever
+  estimate is ~+3 cells ≈ +0.04 stratified**, not +0.0709.
+- **PATENTS-q3 did NOT stably flip** — it was a smoke→full fork-drift (variable-band level-binding), so
+  the hypothesis claim is 2/3 targets, not 3/3.
+- The standing DAB calibration rule ([[dab-mandatory-dbt-rejected]], [[dab-determinism-lever-family-dead]]):
+  **a generative fires-everywhere lever's single full draw carries ±0.07 variance — judge by attributed
+  per-query mechanism, never a single-draw headline.** Promoting on one draw would repeat the exact error
+  those notes warn against.
+
+**Recommended next move (cheap, decisive):** a **3-draw full** at `concurrency.trials: 1` (or, to save
+budget, a 3-draw on just the moving datasets PATENTS + crmarenapro + yelp + googlelocal + the 3 stable
+anchors). Decision rule: if PATENTS-q1/q2 + googlelocal-q2 hold ≥2/3 AND the board median stays ≥ anchor,
+**PROMOTE** (set `@codex-batch-baseline` → this README; it becomes the new codex anchor with a genuine
++3-cell mechanism). If the 3 attributed cells wobble or the variance cells net the board back to ~anchor,
+**CONCLUDE validated-but-NOT-promoted** (bank the semi-structured lever as a proven-actionable family for
+future composition, like dab0015 — seed README unchanged).
+
+**Do NOT REVISE** — there is no mechanism bug to fix (the cycle-2 stockmarket-q3 regression was the only
+real README bug, and it's fixed; the current regressions are variance). The only open question is
+durability, which a confirm draw answers, not a re-author.
+
+**This is the captain's call** — I write the recommendation; the FO presents it. I did not edit the seed
+README, promote, or conclude.
+
 ## Verdict
+
+_Pending captain decision at the analyze gate. Ensign recommendation: **PROMOTE-CANDIDATE pending a
+3-draw confirm** (3 README-attributable cells PATENTS-q1/q2 + googlelocal-q2, confound-free; +0.0709
+headline but ~+0.04 durable after removing variable-band cells; single-draw not yet trustworthy per the
+generative-lever ±0.07 calibration rule). Alternatives: PROMOTE-on-confirm or CONCLUDE-validated-not-promoted._
 
 ## Stage Report: propose
 
@@ -786,3 +900,25 @@ Re-confirmed the full-board selection at $0 (12 datasets / 54 cells, effort high
 ### Summary
 
 Full run audit-clean (AC-2): all 12 datasets present and healthy, no PG/Mongo degradation signature, so the board is trustworthy — proceed to analyze. Headline 0.7675 stratified, +0.0709 vs the high codex anchor (confound-free, README sole variable) and +0.114 over the Opus incumbent. 2 of the 3 PATENTS targets flipped and HELD (q1, q2); PATENTS-q3 PASSED in the cycle-3 smoke but did NOT hold on the full draw (single-draw movement on the citation-graph cell). Off-target: +crmarenapro-q2/q7 +googlelocal-q2 flipped, −crmarenapro-q13 −yelp-q4 regressed (both on confirmed/likely variable-band cells). Net +3 cells. Facts only — the lever-real-vs-variance attribution for q3 and the 4 off-target cells is the analyze stage's job; did NOT do the behavioral deep-dive per the dispatch.
+
+## Stage Report: analyze
+
+- DONE: Confirm + attribute every verdict-changed cell by committed artifact, both directions; verify the 2 PATENTS target flips reached the committed answer via the semi-structured rules; diagnose PATENTS-q3 smoke→full separately; check the 2 regressions against variable-band evidence.
+  All 7 cells classified from recovered committed `answers.json`: README-attributable = PATENTS-q1, PATENTS-q2, googlelocal-q2 (3 cells); variable-band variance = crmarenapro-q2/q7 (flips), crmarenapro-q13 + yelp-q4 (regressions). PATENTS-q3 = smoke→full fork drift (smoke committed correct subclass titleFull; full committed coarse "ELECTRIC ELEMENTS" wrong-level titles + shifted assignees) → variable-band, NOT a stable flip. yelp-q4 = "Restaurants, 3.6523" near-miss vs GT 3.63 (proven 3/3 in the probe).
+- DONE: Answer all 6 required analyze questions in `## Behavioral analysis` (FULL-RUN subsection).
+  Q1 ledger+mechanism, Q2 q3 smoke→full drift, Q3 already-correct-and-broken (both regressions were anchor-PASS but variance not mechanism), Q4 executed+confound (model AND effort held constant → README-vs-variance), Q5 prevention+next (durable ≈ +3 cells ≈ +0.04, confirm with 3-draw), Q6 fork drift (q3 + crma invisible to smoke).
+- DONE: `## Follow-up Routing` + verdict recommendation + plain-words captain summary; honest about single-draw trustworthiness.
+  Recommendation: PROMOTE-CANDIDATE but NOT-yet on one draw → run a 3-draw confirm; promote iff the 3 attributed cells hold ≥2/3 and board median ≥ anchor, else CONCLUDE-validated-not-promoted. Do NOT REVISE (no mechanism bug). Did NOT edit seed README / promote / conclude — captain's call.
+
+### Summary
+
+Airtight per-cell attribution by committed artifact: of the +5/−2 ledger, exactly **3 flips are
+README-attributable and confound-free** (PATENTS-q1, PATENTS-q2, googlelocal-q2 — the rule stack reached
+each committed answer, model+effort held constant), while the 2 crmarenapro flips and BOTH regressions
+are variable-band variance (no matching mechanism + known band membership; yelp-q4 proven 3/3 in the
+probe). PATENTS-q3 was a smoke→full fork drift (correct subclass title at smoke, coarse wrong-level title
+at full), so 2/3 targets stably flipped, not 3/3. The +0.0709 headline overstates the durable lever
+effect (~+3 cells ≈ +0.04 after removing the variance cells that happened to land favorably). This is the
+strongest, first genuinely lever-attributable DAB result — recommend PROMOTE-CANDIDATE pending a 3-draw
+confirm, NOT a single-draw promote (per the generative-lever ±0.07 calibration rule). Captain's call; I
+wrote the recommendation only.
