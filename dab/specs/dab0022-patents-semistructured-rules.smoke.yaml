@@ -1,0 +1,50 @@
+# ABOUTME: dab0022 semi-structured data rules — propose-gate smoke. Target PATENTS (all 3 queries,
+# ABOUTME: anchor 0/3 on content under the NEW oracle) + a generative regression panel (G8): the
+# ABOUTME: 3 datasets whose ranking / complete-list / free-text-parse query shapes these
+# ABOUTME: fires-everywhere rules most likely perturb — stockmarket (5/5, time-series+peak/rank),
+# ABOUTME: yelp (7/7, free-text reviews + complete-list), googlelocal (q1/q3/q4 pass; q2 fail —
+# ABOUTME: free-text + all-associated). Any non-PATENTS drop here is a generative side-effect.
+version: 1
+experiment: dab0022-patents-semistructured-rules
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0022-patents-semistructured-rules
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - PATENTS
+  - stockmarket
+  - googlelocal
+  - yelp
+  exclude_tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - stockindex
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
