@@ -444,6 +444,44 @@ DEPS_DEV, GITHUB, PANCANCER) will also see this lever fire.
 
 ## Run result
 
+**Run dir:** `runs/dab0022-patents-semistructured-rules/d0a6f64260336fff` (rc=0, ~77 min).
+
+**Audit (AC-2): CLEAN — run is VALID, not inconclusive.** `rk audit --policy strict` →
+`coverage_missing: 0`, `tainted: 0`; **all 12 datasets present and clean** (54/54 cells scored:
+agnews 4, bookreview 3, crmarenapro 13, DEPS_DEV_V1 2, GITHUB_REPOS 4, googlelocal 4, music_brainz 3,
+PANCANCER 3, PATENTS 3, stockindex 3, stockmarket 5, yelp 7). **No dab-postgres/Mongo degradation
+signature** — grep of every `reward_per_query.json` for "could not translate host name / connection
+refused / serverSelectionTimeout / unhealthy / timed out" = NONE; no whole-dataset drop, no mid-run
+host-abstain. Both PG-dual-signature checks pass, so the board verdict is trustworthy.
+
+**Headline (AC-3): stratified Pass@1 = 0.7675** vs anchor `@codex-batch-baseline` 0.6966 →
+**paired delta +0.0709** (README is the SOLE variable vs the high anchor — confound-free). Also clears
+the Opus incumbent `@baseline` 0.6536 by +0.114. (`rk runs diff` not needed — computed the per-query
+ledger slug-paired from each run's `summary.json`.)
+
+**PATENTS target verdicts (the hypothesis's claim): q1 ✅ PASS, q2 ✅ PASS, q3 ❌ FAIL.**
+- PATENTS-q1 0→1 HELD ("All CPC codes present").
+- PATENTS-q2 0→1 HELD ("All fuzzy names matched, CPC/year near each").
+- **PATENTS-q3 did NOT hold** — it PASSED in the cycle-3 smoke (1/1/1) but FAILS on the full draw
+  ("No match for: BLOOM ENERGY CORP + PROCESSES OR MEANS…"). So **2 of 3 PATENTS targets flipped on the
+  full board**, not 3 — q3 is a single-draw movement (smoke-PASS → full-FAIL) on the citation-graph cell;
+  whether it's variance or a fragile flip is an analyze-stage question.
+
+**Full paired ledger vs anchor (5 flips, 2 regressions):**
+
+| Direction | Cells | Validator note |
+|-----------|-------|----------------|
+| FLIP (FAIL→PASS) | **PATENTS-q1, PATENTS-q2** (targets) | the hypothesis's 2 held target flips |
+| FLIP (FAIL→PASS) | crmarenapro-q2, crmarenapro-q7, googlelocal-q2 | incidental off-target flips (q2/q7 "Found expected agent ID"; googlelocal-q2 was the long-standing non-target failer) |
+| REGRESSION (PASS→FAIL) | crmarenapro-q13 | "Found agent IDs ['005…NEa3'] but expected '005…NIXC'" (wrong agent id) |
+| REGRESSION (PASS→FAIL) | yelp-q4 | "Value '3.63' not found" — the confirmed variable-band cell (3/3 in the probe; wobbled here) |
+
+**Net cells: +5 flips − 2 regressions = +3 on the board → +0.0709 stratified.** Per the smoke
+calibration, the 2 regressions land on confirmed/likely variable-band cells (yelp-q4 proven variable by
+the 3-draw probe; crmarenapro-q13 was 1/3 in the dab0018 probe per the determinism note) — but
+attribution (lever-real vs temp=0 variance) is the analyze stage's job; this section records the facts
+only.
+
 ## Behavioral analysis
 
 ### Cycle-3 (the current read)
@@ -737,3 +775,14 @@ The yelp-only 3-draw probe is unambiguous: all 3 draws clean (AC-2), and yelp-q4
 ### Summary
 
 Re-confirmed the full-board selection at $0 (12 datasets / 54 cells, effort high, cycle-3 solver hash b2cae85c) and launched the detached full run via the standard driver. Worker pid 1973989 alive, `done` sentinel absent; handle recorded for the FO's sentinel scan. Returned the handle immediately per the launch-phase contract; phase 2 (audit/score/diff/per-cell read) runs when the FO re-engages on the sentinel. README is the SOLE variable vs the high anchor (confound-free). Calibration carried: judge by attributed per-query mechanism, not the headline delta — the +3 PATENTS flips are the real signal; variable-band ranking wobbles are variance unless they reproduce.
+
+## Stage Report: full (phase 2 — audit + score + diff)
+
+- DONE: Audit (AC-2), gate the verdict — `rk audit --policy strict` on `…/d0a6f64260336fff`; exclude BOTH dab-postgres degradation signatures; all 12 datasets present + healthy.
+  CLEAN: `coverage_missing: 0`, `tainted: 0`; all 12 datasets clean, 54/54 cells scored; grep for host-name/refused/serverSelectionTimeout/unhealthy across every reward_per_query = NONE. Run is VALID, NOT inconclusive. Recorded in `## Run result`.
+- DONE: Score + diff (audit clean) — `rk score --format json` (vs Opus ~0.6536) and paired delta vs `@codex-batch-baseline`; record run-dir + stratified + delta + PATENTS q1/q2/q3 in `## Run result`.
+  Stratified 0.7675 vs anchor 0.6966 = **+0.0709** (clears Opus 0.6536 by +0.114). Paired ledger computed slug-paired from summary.json (rk runs diff not needed): 5 flips (PATENTS-q1/q2 targets + crmarenapro-q2/q7 + googlelocal-q2), 2 regressions (crmarenapro-q13, yelp-q4). PATENTS verdict q1 ✅ / q2 ✅ / **q3 ❌** (q3 PASSED in cycle-3 smoke but did NOT hold on the full draw). Recorded in `## Run result`.
+
+### Summary
+
+Full run audit-clean (AC-2): all 12 datasets present and healthy, no PG/Mongo degradation signature, so the board is trustworthy — proceed to analyze. Headline 0.7675 stratified, +0.0709 vs the high codex anchor (confound-free, README sole variable) and +0.114 over the Opus incumbent. 2 of the 3 PATENTS targets flipped and HELD (q1, q2); PATENTS-q3 PASSED in the cycle-3 smoke but did NOT hold on the full draw (single-draw movement on the citation-graph cell). Off-target: +crmarenapro-q2/q7 +googlelocal-q2 flipped, −crmarenapro-q13 −yelp-q4 regressed (both on confirmed/likely variable-band cells). Net +3 cells. Facts only — the lever-real-vs-variance attribution for q3 and the 4 off-target cells is the analyze stage's job; did NOT do the behavioral deep-dive per the dispatch.
