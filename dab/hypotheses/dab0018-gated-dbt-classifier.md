@@ -153,3 +153,14 @@ ownership history), so the committed mart answer differs from the direct #-strip
 — curing the dab0017 no-mechanism-delta NO-OP. Gatekeeper APPROVE (sole WARN G7: same generative
 dbt path dab0017 found variance-fragile → honor the ≥3-draw crmarenapro stability test before
 reading a +2 as a flip). Smoke run NOT launched (next gated stage).
+
+## Smoke run (launched — detached)
+
+- **Handle:** `runs/.rk-handles/dab0018-smoke-20260622-044911/` (pid 1387650)
+- **Spec:** `specs/dab0018-gated-dbt-classifier.smoke.frozen.yaml`
+- **Selection re-confirmed** (`rk run --explain`, $0 foreground): exactly 4 datasets =
+  {crmarenapro, googlelocal, stockmarket, yelp} — crmarenapro fires the gate (6 sources → dbt),
+  the other 3 are 2-source (gate must NOT fire → direct path verbatim).
+- **ETA** ~45–75 min (29 query-cells, concurrency.trials:2; crmarenapro's dbt build dominates).
+- Phase 2 (audit `--policy strict` + score + mechanism-delta deep-dive + canary byte-identity
+  check) runs after the FO re-engages on the `done` sentinel (rc=0).
