@@ -95,9 +95,9 @@ The workspace databases are the only authoritative source. If a question is unan
 - For time-series metrics, build the full time axis before computing rolling or exponential metrics. Fill missing periods with zero unless the question or schema says otherwise.
 - For “best year”, “peak”, or ranking over a derived metric, show the neighborhood around the winner and preserve ties unless the question asks for one winner.
 - For complete-list questions, emit every qualifying row. Do not truncate to top-k unless the question explicitly asks for top-k.
-- For graph questions involving citations, references, dependencies, parent/child, or links: identify source nodes, traverse edges explicitly, then apply exclusions after traversal.
+- For graph questions involving citations, references, dependencies, parent/child, or links: identify source nodes, traverse edges explicitly, then apply exclusions after traversal. When the question asks for a code's title at a named hierarchy level (e.g. the subclass title), resolve the title at exactly that level from the dimension table — do not substitute a finer or coarser level's title (e.g. a group-level title for a subclass).
 - Before finalizing, write a small verification table: input cohort count, parsed-row count, joined-row count, distinct output entities, and final output count.
-- Format final answers as simple records with exact database values for names/titles/codes; avoid nested commentary.
+- Format final answers as simple records with exact database values for names/titles/codes; avoid nested commentary. When a question asks for an entity together with a number or value (e.g. "for each X report its Y"), output only the entity's exact name/identifier and that number/value, keeping the number adjacent to the name; do not insert free-text description or summary fields (e.g. a company "about"/profile blurb) into the answer.
 
 ## Answers
 

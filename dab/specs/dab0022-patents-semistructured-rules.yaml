@@ -1,14 +1,14 @@
 # ABOUTME: dab0022 semi-structured data rules — full board. Forked from the BATCH anchor
-# ABOUTME: (specs/codex-dab-batch-baseline.yaml), differing in experiment: + solver_workflow: +
-# ABOUTME: reasoning_effort: (high->xhigh, CAPTAIN-DIRECTED 2026-06-22 — third intentional delta;
-# ABOUTME: confounds clean README attribution vs the high anchor, see entity AC-1).
+# ABOUTME: (specs/codex-dab-batch-baseline.yaml), differing ONLY in experiment: + solver_workflow:.
+# ABOUTME: REVISE cycle 3 (2026-06-22): reasoning_effort reverted xhigh->high (captain attributed the
+# ABOUTME: stockmarket-q3 regression to the README, not effort), restoring README = sole variable.
 version: 1
 experiment: dab0022-patents-semistructured-rules
 agent:
   kind: spacedock_solver
   runtime: codex
   model: gpt-5.5
-  reasoning_effort: xhigh
+  reasoning_effort: high
   sampling:
     temperature: 0.0
     top_p: null

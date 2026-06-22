@@ -67,13 +67,31 @@ run @baseline`) is the rescored run and read its PATENTS per-query baseline from
 If the anchor still carries old-oracle PATENTS scores, the comparison is invalid and the run must
 re-baseline first.
 
-**AC-1 — README change + one captain-directed effort change; full spec differs from the anchor in
-THREE fields.** Verified by `diff specs/codex-dab-batch-baseline.yaml
+**AC-1 — Exactly the README change; full spec differs from the anchor in ONLY TWO fields
+(`experiment:` + `solver_workflow:`).** Verified by `diff specs/codex-dab-batch-baseline.yaml
 specs/dab0022-patents-semistructured-rules.yaml`. The solver README diff vs its parent
-(`spacedock-readme-baseline-hostfix`) adds ONLY the `### Semi-structured data rules` section;
-leak-guard prose byte-intact.
+(`spacedock-readme-baseline-hostfix`) adds ONLY the `### Semi-structured data rules` section
+(now with the two cycle-3 scoping fixes inside it); leak-guard prose byte-intact.
 
-> **CAPTAIN DIRECTIVE (2026-06-22) — third spec delta authorized.** The captain directed this run to
+> **REVISE CYCLE 3 (2026-06-22) — effort reverted to `high`; confound REMOVED; this SUPERSEDES the
+> cycle-2 xhigh directive block below.** Per captain direction after the cycle-2 smoke (which flipped
+> PATENTS-q1/q2 but regressed stockmarket-q3), `agent.reasoning_effort` is reverted **xhigh → high** in
+> both specs. The captain attributed the stockmarket-q3 regression to the **README rule** (the
+> simple-record/free-text rule pulling a description blurb into a name+number answer), not to xhigh
+> effort. Reverting to `high` restores the workflow invariant: the full spec now differs from
+> `specs/codex-dab-batch-baseline.yaml` in **only two** fields (`experiment:` + `solver_workflow:`,
+> confirmed by the diff above; both frozen specs carry `reasoning_effort: high`), so the **README is once
+> more the sole variable vs the high anchor** — the AC-1/AC-3 methodological confound is GONE and a
+> PATENTS flip or a canary drop now attributes cleanly to the README. The cycle-3 re-author also adds
+> two scoping fixes inside the same one section (idea unchanged): (fix #1) the simple-record rule now
+> forbids inserting free-text description/blurb fields into a name+number answer and keeps the number
+> adjacent to the name (targets the stockmarket-q3 regression); (fix #2) the graph/citation rule now
+> binds a code's title at the exact named hierarchy level — the subclass title for a subclass question,
+> not the group-level title (targets PATENTS-q3's wrong-level title). New solver content hash
+> `sha256:b2cae85c…` (was `ff279bd8…`). The cycle-2 block below is retained for audit trail only.
+>
+> ---
+> **[SUPERSEDED — cycle-2 only] CAPTAIN DIRECTIVE (2026-06-22) — third spec delta authorized.** The captain directed this run to
 > use `agent.reasoning_effort: xhigh` (the batch anchor uses `high`). So the dab0022 full spec
 > intentionally differs from `specs/codex-dab-batch-baseline.yaml` in **three** fields —
 > `experiment:`, `solver_workflow:`, AND `agent.reasoning_effort:` (high→xhigh) — confirmed by the
@@ -103,10 +121,10 @@ the same run-dir; `0 coverage_missing`, `0 tainted`).
 confound attributed via the committed-artifact read** (does the README rule reach the committed
 answer on each flipped PATENTS query, vs a flip the model swap would produce regardless). Note the
 anchor `@codex-batch-baseline` is the SAME codex/gpt-5.5 model, so on PATENTS the model is held
-constant and the README is genuinely isolated. **AMENDED per the AC-1 captain directive:** the model
-is held constant but `reasoning_effort` is NOT (anchor `high` vs this run `xhigh`), so the README is
-isolated *jointly with effort*, not alone — see the AC-1 confound note. Treat a PATENTS flip as
-"README+xhigh vs high-anchor" until an xhigh-minus-section baseline disambiguates.
+constant and the README is genuinely isolated. **RE-AMENDED (REVISE cycle 3):** effort is reverted to
+`high`, matching the anchor, so the model AND the effort are now both held constant — the README is once
+more **genuinely isolated** (the cycle-2 "README+xhigh jointly" weakening is withdrawn; the confound is
+removed). A PATENTS flip in the cycle-3 re-smoke is cleanly attributable to the README.
 
 **GO** iff ≥1 of the 3 PATENTS queries flips FAIL→PASS by committed-artifact evidence AND zero
 canary/sentinel regression on the regression panel (stratified Pass@1 not dragged below
@@ -146,25 +164,25 @@ no re-baseline needed. dab0022 attacks 3 genuinely-failing content cells with th
 
 ## Gatekeeper review
 
-_Re-run (cycle 2) after the CAPTAIN DIRECTIVE set `reasoning_effort: xhigh` and both specs were re-frozen. This supersedes the cycle-1 two-field review; the diff now legitimately shows three fields and G3 is ruled PASS under captain-override._
+_Re-run (cycle 3) after the REVISE re-author: `reasoning_effort` reverted xhigh→high (confound removed, two-field diff restored) + two in-section scoping fixes (stockmarket-q3 regression, PATENTS-q3 title level). This supersedes the cycle-2 captain-override review below. The cycle-1 (two-field) and cycle-2 (three-field, captain-override) blocks are retained in git history._
 
-**Recommendation: APPROVE** — no FAILs: clean fork with the README addition matching the claim, leak-guard byte-intact, both specs frozen with kind/runtime preserved, abundant perturbable canary panel. The full spec now differs in THREE fields (`experiment:`, `solver_workflow:`, `reasoning_effort:` high→xhigh); per the recorded CAPTAIN DIRECTIVE in AC-1 the effort delta is authorized, so G3 does NOT fail on the third field — but it introduces a methodological confound and the xhigh-hurts-gpt5.5 prior caveat, both carried to the captain note. G7 inert-risk WARN stands.
-Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-22T11:42:00Z.
+**Recommendation: APPROVE** — cycle-3 re-author (xhigh→high effort revert + two in-section scoping fixes) is clean: full spec back to exactly two fields (README = sole variable, confound removed), README still addition-only / one-section / one-idea, leak-guard byte-intact, both specs re-frozen with kind/runtime/effort preserved, panel unchanged. The G7 inert-risk WARN is softened (fix #1 is now a concrete name+number / no-blurb mechanical instruction) but the section overall remains partly abstract-structural prose, so the WARN stands for the captain note.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-22T12:25:00Z.
 
 | Rule | Verdict | Evidence |
 |------|---------|----------|
-| G1 single idea/stage | PASS | README diff is a single pure addition `88a89,101` — one `### Semi-structured data rules` block in the analyze/methodology section; no other stage touched, no leak-guard prose edited. (README unchanged since first review.) |
-| G2 leak-guard intact | PASS | Added-line grep for `ground_truth`/`db_description_withhint`/`curl`/`wget`/`git clone` = NONE FOUND; diff is addition-only so all parent leak-guard paragraphs are byte-identical. |
-| G3 spec fields | PASS (captain-override) | Full-spec diff vs `codex-dab-batch-baseline.yaml` now changes THREE fields: `experiment:`, `solver_workflow:`, AND `reasoning_effort:` (high→xhigh), plus the ABOUTME comment. The guideline's "exactly two fields / FAIL on any third" is OVERRIDDEN for this entity by the recorded CAPTAIN DIRECTIVE (2026-06-22) in AC-1 authorizing the effort delta as an intentional third change. `kind: spacedock_solver` + `runtime: codex` + `trials: 1` all preserved. Two caveats this introduces are flagged for the captain (see note). |
-| G4 smoke tasks+exclude | PASS | Smoke diff adds only `benchmark.tasks:` (PATENTS/stockmarket/googlelocal/yelp — dataset names, not per-query ids) + dataset-level `exclude_tasks:` (8 non-panel datasets); no field other than tasks/exclude_tasks differs (effort already matches the full spec — both xhigh). Surviving set per ensign `--explain` includes all 3 named targets (PATENTS-q1/q2/q3). |
-| G5 both frozen | PASS | Both `…frozen.yaml` + `…smoke.frozen.yaml` exist; each re-frozen carrying `kind: spacedock_solver` + `runtime: codex` AND `reasoning_effort: xhigh` (verified line 21 in both). |
-| G6 resolver fidelity | PASS | Inserted text is verbatim the 10-bullet block in the Falsifiable claim; same stage, same idea, generative authoring prose, no self-anchored "verify your own answer" phrasing. (Fidelity is about the README change; the effort delta is a spec field, ruled under G3.) |
-| G7 actionability/inert-risk | WARN | Most bullets are abstract-structural prose ("build the full time axis", "traverse edges explicitly", "use all associated values", "emit every qualifying row") with NO worked-example skeleton — the "talks but doesn't do" shape that went inert in dab0012/dab0017 at gpt-5.5/xhigh. The pre-finalize verification-table bullet is the most concrete; the rest carry real inert-risk. |
-| G8 regression-canary coverage | PASS | Generative lever (fires on every shape-matching query). Smoke keeps abundant non-PATENTS `@baseline` passers — stockmarket q1-q5 (5), yelp q1-q7 (7), googlelocal q1/q3/q4 (3). ≥2 perturbable canaries on each most-similar shape: stockmarket (time-series + best-year/peak rank), yelp (free-text + complete-list), googlelocal (free-text + all-associated). Caveat for interpretation moved to captain note (effort confound). |
+| G1 single idea/stage | PASS | README diff is still a single pure addition `88a89,101` — one `### Semi-structured data rules` block. The two cycle-3 fixes are scoping clauses APPENDED inside the existing graph/citation bullet and the final-format bullet (no new bullet, no second section, no new lever) — still one idea, one stage. |
+| G2 leak-guard intact | PASS | Added-line grep for `ground_truth`/`db_description_withhint`/`curl`/`wget`/`git clone` = NONE FOUND; diff is addition-only so all parent leak-guard paragraphs are byte-identical. The two new clauses name only generic schema concepts (hierarchy level / name+number), no oracle file or withheld-hint content. |
+| G3 spec two fields | PASS | Full-spec diff vs `codex-dab-batch-baseline.yaml` is BACK to exactly two fields — `experiment:` + `solver_workflow:` (plus ABOUTME comments). `reasoning_effort:` reverted xhigh→high (now matches the anchor), so the cycle-2 captain-override is no longer needed — clean two-field PASS. `kind: spacedock_solver` + `runtime: codex` + `trials: 1` preserved. README is once again the sole variable vs the high anchor; the AC-1/AC-3 confound is removed. |
+| G4 smoke tasks+exclude | PASS | Smoke diff adds only `benchmark.tasks:` (PATENTS/stockmarket/googlelocal/yelp — dataset names) + dataset-level `exclude_tasks:` (8 non-panel datasets); effort now matches the full spec (both high). Ensign re-confirmed Tasks: 4 via `--explain`; surviving set includes all 3 named targets (PATENTS-q1/q2/q3). |
+| G5 both frozen | PASS | Both `…frozen.yaml` + `…smoke.frozen.yaml` re-frozen this cycle, each carrying `kind: spacedock_solver` + `runtime: codex` AND `reasoning_effort: high` (verified line 21 in both). |
+| G6 resolver fidelity | PASS | Inserted text matches the claim, and the two new clauses match the cycle-2 Failure Review's prescribed scoping: fix #1 (stockmarket-q3) = output only exact name + adjacent number, no description/blurb fields; fix #2 (PATENTS-q3) = resolve a code's title at exactly the named hierarchy level, no finer/coarser substitution. Targeted scoping of the existing idea, not new scope — idea intact, generative authoring prose, no self-anchored verification. |
+| G7 actionability/inert-risk | WARN (softened) | Fix #1 is now a CONCRETE mechanical instruction ("output only the exact name + that number kept adjacent; do NOT insert free-text description/summary fields") — more actionable than the original abstract bullet, genuinely softening the inert-risk on the formatting clause. Fix #2 is a concrete level-resolution rule (good). But the section's core bullets (parser-first, full time axis, traverse edges, all-associated) remain abstract-structural prose with no worked-example skeleton — the dab0012/dab0017 "talks but doesn't do" risk persists for those, so the WARN stands. |
+| G8 regression-canary coverage | PASS | Same generative lever, same 4-dataset panel. Smoke keeps abundant non-PATENTS `@baseline` passers — stockmarket q1-q5 (5), yelp q1-q7 (7), googlelocal q1/q3/q4 (3). ≥2 perturbable canaries on each most-similar shape: stockmarket (time-series + best-year/peak rank — incl. the q3 the fix targets), yelp (free-text + complete-list), googlelocal (free-text + all-associated). Effort now high (matches anchor), so a panel drop this cycle is attributable to the README, not effort. |
 | G9 selector independence | N/A | Generative authoring lever, not a multi-candidate/selector protocol. |
-| G10 self-correcting false-positive | N/A | Authoring discipline, not a check/reconcile/validate-and-fix-on-disagreement lever (the verification table is a pre-finalize scratchpad, not a fix-on-disagreement rule). |
+| G10 self-correcting false-positive | N/A | Authoring discipline, not a check/reconcile/validate-and-fix-on-disagreement lever. |
 
-**For the captain:** No FAILs — clear to advance to smoke, but the captain-authorized xhigh delta carries two consequences to track to the verdict. (1) METHODOLOGICAL CONFOUND: the README is no longer the only variable vs the registered `high` anchor `@codex-batch-baseline`, so a PATENTS flip cannot be cleanly attributed to the README alone (README, xhigh effort, or their interaction) — clean isolation would need an xhigh-minus-section baseline; AC-3's "README genuinely isolated" weakens to "README + effort jointly isolated vs a high anchor." (2) PRIOR-LEARNING CAVEAT: per the xhigh-hurts-gpt5.5 behavioral model, xhigh has historically HURT gpt-5.5 on DAB (more abstention / over-elaboration), so a regression-panel canary drop at smoke may be an effort side-effect rather than a generative-README side-effect — do not attribute a non-PATENTS drop to the README without controlling for effort. Also still honor AC-0: confirmed PASS above (anchor PATENTS rescored against the NEW oracle, commit `94a87c2`, 0/0/0 on content). G7 inert-risk (fires-everywhere prose, no worked example) remains the main pre-smoke risk on the lever itself.
+**For the captain:** No FAILs — clear to advance to smoke (cycle 3). The cycle-2 confound is resolved: effort is back to high, so the README is the sole variable vs `@codex-batch-baseline` and a clean PATENTS attribution is again possible (AC-3 isolation restored). Watch two things at smoke: (1) does fix #1 actually hold stockmarket-q3 (the cycle-2 regression) while the 2 PATENTS flips survive the effort revert — confirm both by committed artifact, since reverting xhigh→high could itself move the PATENTS cells; (2) the remaining abstract bullets (G7) are still the inert-risk surface. Still honor AC-0: confirm the anchor's PATENTS cells are scored against the NEW oracle (commit `94a87c2`).
 
 ## Propose-gate smoke set
 
@@ -419,3 +437,16 @@ Re-confirmed the smoke selection at $0 (4 datasets, xhigh resolved in the run kw
 ### Summary
 
 Audit clean (AC-2 PASS). The lever is genuinely actionable at gpt-5.5/xhigh — it flipped PATENTS-q1 and q2 FAIL→PASS by committed artifact (refuting the G7 inert-risk worry), with PATENTS-q3 closer-but-failing on a wrong CPC-hierarchy-level title (self-anchored false-green). But its generative nature regressed a stable canary, stockmarket-q3 (the simple-record + free-text rules over-formatted a name+number answer with a description blurb), so the zero-regression GO clause is not met → REVISE back to `hypothesis`. Both faults are mechanically fixable (scope the simple-record rule to exclude free-text description fields; bind the subclass title at the right level for q3). AC-1 confound stands: flips are README+xhigh jointly and the regression is README-rule-or-xhigh (same direction) — recommend an xhigh-minus-section baseline on this panel to disentangle before the REVISE re-smoke.
+
+## Stage Report: propose (cycle 3 — REVISE re-author: two README fixes + effort→high)
+
+- DONE: README fix #1 (stockmarket-q3 regression) — scope the simple-record/all-associated rule so it does NOT pull free-text description fields into a name+number answer; keep the number adjacent to the name; rest of section byte-intact.
+  Appended a clause to the "Format final answers as simple records…" bullet: for "for each X report its Y" questions, output only the exact name + that number kept adjacent; do not insert free-text description/summary fields. README diff stays addition-only (`88a89,101`), leak-guard byte-intact.
+- DONE: README fix #2 (PATENTS-q3) — bind the CPC subclass title at the correct hierarchy level from the dimension table (q3 reported the level-5 group title, not the subclass).
+  Appended a clause to the graph/citation bullet: when the question asks for a code's title at a named hierarchy level (e.g. subclass title), resolve the title at exactly that level — do not substitute a finer/coarser level's title.
+- DONE: Effort → high in BOTH specs; re-freeze both; confirm `high` in both frozen; update AC-1 (now 2 fields, sole variable, confound removed, supersedes xhigh addendum); re-run the gatekeeper (cycle-3); re-confirm smoke selection via `--explain`; record the captain's REVISE rationale.
+  Both specs reverted xhigh→high, re-frozen; `grep reasoning_effort …frozen …smoke.frozen` = `high` in both. Full-spec diff vs anchor = exactly 2 fields (`experiment:` + `solver_workflow:`). New solver hash `sha256:b2cae85c…` (was `ff279bd8…`). `--explain` → `Tasks: 4`, `reasoning_effort: "high"`. AC-1/AC-3 updated (cycle-2 xhigh block marked SUPERSEDED; confound removed; README genuinely isolated again). Cycle-3 gatekeeper (Reviewed 2026-06-22T12:25:00Z) recommends **APPROVE**, G3 clean two-field PASS (no override), G7 WARN softened; block in `## Gatekeeper review`. Captain's REVISE rationale (regression = README, effort→high for clean isolation) recorded in AC-1.
+
+### Summary
+
+REVISE cycle 3 re-author: kept the one idea (semi-structured data rules), applied two in-section scoping fixes — fix #1 forbids pulling free-text description blurbs into name+number answers (targets the stockmarket-q3 regression), fix #2 binds a code's title at the exact named hierarchy level (targets PATENTS-q3's wrong-level title) — and reverted `reasoning_effort` xhigh→high in both specs. The effort revert restores the workflow invariant: the full spec differs from the anchor in only two fields (`experiment:` + `solver_workflow:`), the README is once again the sole variable, and the AC-1/AC-3 confound is removed (clean README attribution restored). Both specs re-frozen at `high`, new solver hash, smoke selection unchanged (4 datasets), gatekeeper cycle-3 APPROVE (no FAILs; G7 WARN softened by fix #1's concrete instruction but standing for the remaining abstract bullets). Ready for the cycle-3 smoke re-launch.

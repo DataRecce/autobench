@@ -9,7 +9,7 @@ agent:
     top_p: null
     seed: null
   solver_workflow: solver_workflows/dab0022-patents-semistructured-rules
-  solver_workflow_content_hash: sha256:ff279bd891069af62df2b576026b18515318dfa803acaad4f91ecc5210dadd53
+  solver_workflow_content_hash: sha256:b2cae85c2d33fb08e51e06dc25101462f16646d67066322d6f6d16d2164379f5
   max_turns: 200
   max_budget_usd: null
   override_timeout_sec: null
@@ -18,10 +18,10 @@ agent:
   tools_allowed: []
   tools_denied: []
   append_system_prompt: null
-  reasoning_effort: xhigh
+  reasoning_effort: high
   reasoning_summary: null
   resume_from_freeze: null
-  sealed_hash: 8c30f0b29dbb53036a3fb4d93783e65b
+  sealed_hash: 98a1bcc03aec6391dd622e641d3659cf
   spacedock_skill_version: 1.0.0
   prompt_content_hashes: {}
 benchmark:
@@ -65,9 +65,9 @@ provenance:
   model_resolved_at: null
   image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: a7d17866754eb0926d68e05ed67f6aedc40923f1
+  harness_git_sha: 8b5eaed1893df8f3d061b30d8d6c9c37f824b16f
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
-  solver_workflow_hash: sha256:ff279bd891069af62df2b576026b18515318dfa803acaad4f91ecc5210dadd53
+  solver_workflow_hash: sha256:b2cae85c2d33fb08e51e06dc25101462f16646d67066322d6f6d16d2164379f5
 experiment_meta: null
