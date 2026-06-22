@@ -384,3 +384,18 @@ between +2 and 0, the same temp=0 instability dab0017 flagged.
 dataset whose q13 deterministically regresses — consistent with the smoke-stage finding that the
 crmarenapro dbt advantage **self-cancels at the dataset grain**. Recommend concluding REJECTED;
 the relaunch is optional tie-break, not likely to change the family verdict.
+
+### Tie-break 3rd clean draw (launched — detached)
+
+Captain wants a full 3-draw read; the crma3 3rd draw was infra-killed by a same-dataset volume
+collision, so this draw runs at **`concurrency.trials:1`** (only one crmarenapro instance at a
+time → no shared named-volume race).
+
+- **Spec:** `specs/dab0018-gated-dbt-classifier.crma1.frozen.yaml` — crmarenapro only, `trials:1`,
+  `concurrency.trials:1`, SAME gated `solver_workflow` (no IV change).
+- **Handle:** `runs/.rk-handles/dab0018-crma1-20260622-072128/` (pid 1493371).
+- **Selection** (`rk run --explain`): Tasks=1 (crmarenapro), 13 cells.
+- **ETA** ~12–18 min (one crmarenapro dbt build, single draw).
+- **Decision rule (over 3 clean draws):** GO-to-full iff crmarenapro nets ≥10/13 in a clear
+  majority (≥2 of 3) WITH q3/q7 holding; else NO-GO → conclude/REJECTED. Prior clean draws:
+  W3gXnUG 11/13, hY8viTH 9/13.

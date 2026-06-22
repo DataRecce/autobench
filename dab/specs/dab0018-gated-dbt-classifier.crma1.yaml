@@ -1,0 +1,47 @@
+# ABOUTME: dab0018 tie-break 3rd clean crmarenapro draw — single draw, concurrency.trials:1 so
+# ABOUTME: only ONE crmarenapro instance runs at a time (no same-dataset named-volume race that
+# ABOUTME: infra-killed crma3 draw RLfCSTP). Same gated solver_workflow (no IV change).
+version: 1
+experiment: dab0018-gated-dbt-classifier
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0018-gated-dbt-classifier
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - crmarenapro
+  exclude_tasks:
+  - agnews
+  - bookreview
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+  - yelp
+trials: 1
+concurrency:
+  trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
