@@ -491,6 +491,40 @@ conflict blocking a clean relaunch. This 3rd attempt is a FRESH run dir.
   frozen spec `specs/dab0018-gated-dbt-classifier.frozen.yaml` (no spec change). ETA ~60–120 min.
 - Phase 2 (audit `--policy strict` + score → ## Run result) at the `done` sentinel (rc=0).
 
+## Run result
+
+**Run:** `runs/dab0018-gated-dbt-classifier/adcde4521869777a` (full3, fresh run dir; rc=0,
+~81 min — started 2026-06-22T08:32:53Z, ended 09:54:07Z). **All 12 datasets / 54 cells, trials:1.**
+
+**Audit (`--policy strict`): CLEAN — clean:12 / coverage_missing:0 / tainted:0.** Not an
+auth-taint repeat: the run took ~81 min (the taint signature is every-cell-0 in ~9 min) and every
+dataset has a populated `reward_per_query.json` with executed results.
+
+**Score (`rk score --format json`): stratified Pass@1 = `0.6927` (n_completed=12, n_errored=0).**
+vs anchor `@codex-batch-baseline` (`runs/codex-dab-batch-baseline/bf113446fdd94373`) = **0.6966** →
+**−0.0039**, i.e. essentially flat, INSIDE the direct-path temp=1 noise band the 3-draw probe
+flagged (the gate makes the 11 direct datasets unbiased vs anchor in expectation, but a single full
+draw injects ±several direct-path cells).
+
+**Per-dataset (this draw):**
+
+| Dataset | Pass | Dataset | Pass |
+|---|---|---|---|
+| crmarenapro (Method B, dbt) | **11/13** | bookreview | 3/3 |
+| yelp | 7/7 | music_brainz_20k | 3/3 |
+| stockmarket | 4/5 | stockindex | 3/3 |
+| googlelocal | 3/4 | PANCANCER_ATLAS | 2/3 |
+| GITHUB_REPOS | 2/4 | DEPS_DEV_V1 | 1/2 |
+| agnews | 1/4 | PATENTS | 0/3 |
+
+**crmarenapro per-query (the gate-fires dataset — `N_sources=6 → METHOD B`):** 11/13, fails only
+**q8** (never-crack across all probe draws — `005Wt000003NBcAIAW` vs expected `005Wt000003NIliIAG`)
+and **q9** (`SC` vs expected `MI`). The lever's core derivation flips **HELD**: **q3 PASS**
+(effective_stage=Negotiation), **q7 PASS** (breach `ka0Wt000000EoD3IAK`), and q2/q12/q13 all PASS
+this draw — the +2 / 11-13 outcome the 3-draw probe predicted as the typical case. Full behavioral
+attribution (mechanism delta per flip, direct-path canary band, q8/q9 diagnosis) is deferred to the
+**analyze** stage per the stage split.
+
 ## Stage Report: full
 
 - DONE: Record the dab0018-full3 relaunch in the entity file.
@@ -503,3 +537,19 @@ dir `adcde4521869777a` (auth-tainted, `refresh_token_reused`) was removed becaus
 `lock.json` conflict blocking a clean relaunch, so full3 runs in a fresh run dir on the same full
 frozen spec (no IV/spec change). Run is detached (pid 1573694, verified live); audit + score happen
 when the FO re-engages on the `done` sentinel.
+
+## Stage Report: full (audit + score)
+
+- DONE: `rk audit --policy strict` — confirm clean; not an auth-taint repeat.
+  CLEAN clean:12 / coverage_missing:0 / tainted:0 (all 12 datasets present). NOT auth-taint: ~81 min wall (08:32:53→09:54:07), every dataset has a populated `reward_per_query.json` with executed results.
+- DONE: `rk score --format json` — record absolute stratified Pass@1 + crmarenapro per-query line; write run-dir + headline into `## Run result`.
+  Stratified Pass@1 = 0.6927 (12 completed / 0 errored) vs anchor @codex-batch-baseline 0.6966 → −0.0039 (flat, inside direct-path noise). crmarenapro (Method B, N_sources=6) = 11/13; q3 PASS + q7 PASS hold, q2/q12/q13 also PASS, only q8 (never-crack) + q9 fail. `## Run result` written. Full behavioral attribution deferred to analyze.
+
+### Summary
+
+full3 landed clean (audit 12/0/0, ~81 min — not the ~9 min auth-taint signature). Stratified
+Pass@1 = 0.6927, essentially flat vs anchor 0.6966 (−0.0039, inside the direct-path single-draw
+noise band the 3-draw probe predicted). The gate-fires dataset crmarenapro hit its typical 11/13
+with the proven q3/q7 cross-source int_ derivations holding (q2/q12/q13 also passed this draw; q8
+never-cracks, q9 the only other miss). Mechanism attribution + canary-band judgment are the
+analyze stage's job.
