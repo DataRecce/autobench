@@ -220,6 +220,27 @@ heaviest — billion-row CPC EMA over postgres `patent_CPCDefinition` + sqlite p
 >    Do not read a non-PATENTS regression as a README G8 failure without controlling for effort — though
 >    for the GO/NO-GO bar a drop still counts against the run regardless of which cause it is.
 
+## Smoke run (launched — detached)
+
+Launched the detached smoke run on the frozen smoke spec. The FO owns the wait (sentinel scan); I
+return the handle and do not poll.
+
+- **Handle:** `runs/.rk-handles/dab0022-smoke-20260622-105518/`
+- **PID:** 1755090 (worker alive at launch; `done` sentinel absent = still running)
+- **Spec:** `specs/dab0022-patents-semistructured-rules.smoke.frozen.yaml` (4 datasets, `reasoning_effort: xhigh`)
+- **Selection (re-confirmed $0 via `--explain`):** `Tasks: 4` = PATENTS + stockmarket + googlelocal + yelp;
+  resolved `harbor_agent_kwargs.reasoning_effort: "xhigh"`; solver hash `sha256:ff279bd8…dadd53`.
+- **Cells:** 19 query-cells (PATENTS 3 targets + stockmarket 5 + yelp 7 + googlelocal 4 canaries).
+- **Started:** 2026-06-22T10:55:18Z. **Sentinel:** `runs/.rk-handles/dab0022-smoke-20260622-105518/done`
+  (absent until finished; `rc=0` ⇒ OK). **Log:** `…/log`. ntfy: none configured.
+- **ETA:** ~19 cells at `concurrency.trials:2`, xhigh (slower than high) — expect notably longer than a
+  `high` smoke; rough order ~1–2 h wall, PATENTS the heaviest (billion-row CPC EMA + citation-graph join).
+
+**Next (FO, phase 2 on the `done` sentinel):** `rk audit --policy strict` (AC-2: 0 coverage_missing /
+0 tainted), `rk score`, then the per-cell deep-dive — read PATENTS committed `answers.json` per query
+for FAIL→PASS by-artifact, and check the 15 canaries for any drop (remember the xhigh effort confound:
+a canary drop may be effort, not the README — AC-1 caveats).
+
 ## Smoke result
 
 ## Run result
@@ -276,3 +297,12 @@ Per captain directive, dab0022 now runs at `reasoning_effort: xhigh` (anchor is 
 ### Summary
 
 Re-verification only: the xhigh change had already landed in cycle-2 commit 373ae82 (both source + both frozen specs, committed HEAD on main, clean tree) — the team-lead's `high` report was a stale read. Confirmed authoritatively via `rk run --explain`, whose resolved `harbor_agent_kwargs.reasoning_effort` is `xhigh` and whose smoke selection (Tasks: 4, PATENTS + canary panel) and solver hash are unchanged. AC-1 / Gatekeeper-G3 / smoke-set caveats from cycle 2 stand. No spec edits or commits were needed for the effort field; this report documents the re-check.
+
+## Stage Report: smoke
+
+- DONE: Re-confirm selection ($0) via `rk run --explain` = 4 datasets (PATENTS + stockmarket + yelp + googlelocal); launch DETACHED via `drivers/rk-run-detached.sh dab0022-smoke …smoke.frozen.yaml run`; record handle + pid + ETA.
+  `--explain` → `Tasks: 4`, resolved `reasoning_effort: "xhigh"`, solver hash `sha256:ff279bd8…dadd53`. Launched: handle `runs/.rk-handles/dab0022-smoke-20260622-105518/`, pid 1755090 (alive, `done` absent), started 2026-06-22T10:55:18Z. Recorded in `## Smoke run (launched — detached)`. Did NOT poll/wait — handle returned to the FO immediately.
+
+### Summary
+
+Re-confirmed the smoke selection at $0 (4 datasets, xhigh resolved in the run kwargs) and launched the detached smoke run on the frozen smoke spec via the standard detached driver. Worker is alive (pid 1755090), the `done` sentinel is absent (still running), and the handle is recorded for the FO's sentinel scan. Per the launch-phase contract I returned the handle immediately and did not wait — phase 2 (audit/score/per-cell deep-dive) runs when the FO re-engages on the `done` sentinel. ETA is longer than a `high` smoke because xhigh is slower; PATENTS is the heaviest cell.
