@@ -480,3 +480,26 @@ The first full launch (`runs/dab0018-gated-dbt-classifier/adcde4521869777a`) was
 - **Relaunch handle:** `runs/.rk-handles/dab0018-full2-20260622-082125/` (pid 1569593), SAME full
   frozen spec (no spec change). ETA ~60–120 min.
 - Phase 2 (audit `--policy strict` + score → ## Run result) at the `done` sentinel (rc=0).
+
+### Full run RELAUNCHED (3rd attempt — fresh run dir)
+
+The 2nd full launch's run dir (`runs/dab0018-gated-dbt-classifier/adcde4521869777a`) was removed —
+it was the auth-tainted run (codex `refresh_token_reused` at launch) AND it left a `lock.json`
+conflict blocking a clean relaunch. This 3rd attempt is a FRESH run dir.
+
+- **Relaunch handle:** `runs/.rk-handles/dab0018-full3-20260622-083253/` (pid 1573694), SAME full
+  frozen spec `specs/dab0018-gated-dbt-classifier.frozen.yaml` (no spec change). ETA ~60–120 min.
+- Phase 2 (audit `--policy strict` + score → ## Run result) at the `done` sentinel (rc=0).
+
+## Stage Report: full
+
+- DONE: Record the dab0018-full3 relaunch in the entity file.
+  Appended `### Full run RELAUNCHED (3rd attempt — fresh run dir)` under `## Full run (launched — detached)`: handle `runs/.rk-handles/dab0018-full3-20260622-083253/` (pid 1573694), spec `specs/dab0018-gated-dbt-classifier.frozen.yaml`; context = adcde4521869777a removed (tainted auth + lock.json conflict), fresh run dir. Handle dir + pid 1573694 verified live (`ps`), meta confirms key=dab0018-full3 / mode=run.
+
+### Summary
+
+Pure record-keeping for the full stage: documented the 3rd full-run launch attempt. The prior run
+dir `adcde4521869777a` (auth-tainted, `refresh_token_reused`) was removed because it left a
+`lock.json` conflict blocking a clean relaunch, so full3 runs in a fresh run dir on the same full
+frozen spec (no IV/spec change). Run is detached (pid 1573694, verified live); audit + score happen
+when the FO re-engages on the `done` sentinel.
