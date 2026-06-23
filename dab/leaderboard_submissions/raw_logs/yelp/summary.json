@@ -1,0 +1,100 @@
+{
+  "runs": {
+    "run-001": {
+      "attempt": "attempt-001",
+      "passed": 6,
+      "total": 7,
+      "score": 0.8571428571428571,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-002": {
+      "attempt": "attempt-001",
+      "passed": 7,
+      "total": 7,
+      "score": 1.0,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-003": {
+      "attempt": "attempt-001",
+      "passed": 6,
+      "total": 7,
+      "score": 0.8571428571428571,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-004": {
+      "attempt": "attempt-001",
+      "passed": 6,
+      "total": 7,
+      "score": 0.8571428571428571,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-005": {
+      "attempt": "attempt-001",
+      "passed": 7,
+      "total": 7,
+      "score": 1.0,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    }
+  },
+  "dataset": "yelp",
+  "num_runs": 5,
+  "source_runs": {},
+  "total_trials": 35,
+  "total_passed": 32,
+  "pass_at_1": 0.9142857142857143
+}

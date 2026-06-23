@@ -1,0 +1,100 @@
+{
+  "runs": {
+    "run-001": {
+      "attempt": "attempt-001",
+      "passed": 10,
+      "total": 13,
+      "score": 0.7692307692307693,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-002": {
+      "attempt": "attempt-001",
+      "passed": 8,
+      "total": 13,
+      "score": 0.6153846153846154,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-003": {
+      "attempt": "attempt-001",
+      "passed": 11,
+      "total": 13,
+      "score": 0.8461538461538461,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-004": {
+      "attempt": "attempt-001",
+      "passed": 10,
+      "total": 13,
+      "score": 0.7692307692307693,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-005": {
+      "attempt": "attempt-001",
+      "passed": 9,
+      "total": 13,
+      "score": 0.6923076923076923,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    }
+  },
+  "dataset": "crmarenapro",
+  "num_runs": 5,
+  "source_runs": {},
+  "total_trials": 65,
+  "total_passed": 48,
+  "pass_at_1": 0.7384615384615385
+}

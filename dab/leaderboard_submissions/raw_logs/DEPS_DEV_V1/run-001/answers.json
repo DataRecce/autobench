@@ -1,0 +1,4 @@
+{
+  "q1": "@dmrvos/infrajs>0.0.5>typescript 2.6.2 94931; @dmrvos/infrajs>0.0.6>typescript 2.6.2 94931; @dylanvann/svelte 3.25.4 73499; @dumc11/tailwindcss 0.4.0 73464; @dollarshaveclub/cli>1.0.0>lodash 4.17.4 57779",
+  "q2": "mui-org/material-ui 30522; moment/moment 7201; semantic-org/semantic-ui 4955; react-native-elements/react-native-elements 4623; sveltejs/svelte 4091"
+}

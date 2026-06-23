@@ -1,0 +1,9 @@
+{
+  "_recovery_status": "FAILED",
+  "_note": "committed answers.json computed at runtime and not captured verbatim in worker session; not fabricated",
+  "_expected_keys": [
+    "q1",
+    "q2",
+    "q3"
+  ]
+}

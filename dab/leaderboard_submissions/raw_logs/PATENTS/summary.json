@@ -1,0 +1,100 @@
+{
+  "runs": {
+    "run-001": {
+      "attempt": "attempt-001",
+      "passed": 2,
+      "total": 3,
+      "score": 0.6666666666666666,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-002": {
+      "attempt": "attempt-001",
+      "passed": 3,
+      "total": 3,
+      "score": 1.0,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-003": {
+      "attempt": "attempt-001",
+      "passed": 0,
+      "total": 3,
+      "score": 0.0,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-004": {
+      "attempt": "attempt-001",
+      "passed": 1,
+      "total": 3,
+      "score": 0.3333333333333333,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    },
+    "run-005": {
+      "attempt": "attempt-001",
+      "passed": 2,
+      "total": 3,
+      "score": 0.6666666666666666,
+      "subagent_trace_status": "not_applicable",
+      "subagent_trace_expected": 0,
+      "subagent_trace_captured": 0,
+      "taint_status": "clean",
+      "stats": {
+        "model": "gpt-5.5 (codex, effort high)",
+        "num_turns": null,
+        "duration_s": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_usd": null
+      }
+    }
+  },
+  "dataset": "PATENTS",
+  "num_runs": 5,
+  "source_runs": {},
+  "total_trials": 15,
+  "total_passed": 8,
+  "pass_at_1": 0.5333333333333333
+}

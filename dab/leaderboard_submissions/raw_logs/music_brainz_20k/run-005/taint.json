@@ -1,0 +1,6 @@
+{
+  "schema_version": "dab-taint-v1",
+  "taint_policy": "audit",
+  "status": "clean",
+  "findings": []
+}

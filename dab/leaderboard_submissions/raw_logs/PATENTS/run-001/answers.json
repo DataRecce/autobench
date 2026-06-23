@@ -1,0 +1,23 @@
+{
+  "q1": {
+    "input_cohort_count": 277813,
+    "parsed_row_count": 273364,
+    "joined_row_count": 34446,
+    "distinct_output_entities": 72,
+    "final_output_count": 72
+  },
+  "q2": {
+    "input_cohort_count": 34,
+    "parsed_row_count": 34,
+    "joined_row_count": 37,
+    "distinct_output_entities": 23,
+    "final_output_count": 23
+  },
+  "q3": {
+    "input_cohort_count": 169,
+    "parsed_row_count": 277813,
+    "joined_row_count": 4,
+    "distinct_output_entities": 4,
+    "final_output_count": 4
+  }
+}

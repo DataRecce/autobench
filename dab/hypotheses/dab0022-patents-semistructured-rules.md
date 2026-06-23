@@ -672,6 +672,36 @@ Duration | Summary`). **Committed locally only — NOT pushed; awaiting captain 
 **Next: captain go-ahead to push `~/dataagentbench` `cbff2b41` to origin** (DataRecce/dataagentbench).
 Per the dispatch I stopped at the local commit and did not push / open a PR.
 
+### FORMAL submission package — `dab/leaderboard_submissions/` (captain's chosen mechanism)
+
+Captain directed the formal DAB leaderboard submission package, assembled as a NEW tracked folder
+`dab/leaderboard_submissions/` (NOT under gitignored `runs/`). Two deliverables, each replicating an
+existing DAB reference format; same draw→run-index mapping across both (run "0"/run-001=d0a6f64,
+"1"/"2"/"3"=run-002/003/004=e8ec7dd trials 0/1/2, "4"/run-005=f74c12b).
+
+- **Deliverable 1 — `codex-gpt-5.5_results.json`** (ref: `data/leaderboard_submissions/<model>_results.json`):
+  flat list of `{dataset, query, run, answer}`, run/query as strings, answer = solver's committed answer
+  recovered from each worker session. **267 entries** (target 270 — see the gap below). 2 cells had
+  list-valued committed answers (bookreview run "3" q2/q3), preserved via `json.dumps`.
+- **Deliverable 2 — `raw_logs/`** (ref: `~/spacedock-experiment-opus-4-8-hint/`): 12 dataset dirs ×
+  run-001..run-005 = **60 run dirs**, each with `answers.json` + `codex-output.jsonl` (the codex worker
+  transcript) + `codex-output.fo.jsonl` (the first-officer session) + `taint.json` + `taint.md`; plus 12
+  per-dataset `summary.json`. taint all clean (matches the `rk audit` clean board). 314 files, ~31M.
+- **Deviations from the references** (documented in `leaderboard_submissions/README.md`): transcript named
+  `codex-output.jsonl` (ours is codex/gpt-5.5, not Claude's `claude-output.jsonl`); `summary.json`
+  cost/token fields are `null` (codex flat subscription — not tracked).
+- **KNOWN GAP — `PATENTS` run-005 (run index "4") q1/q2/q3 OMITTED (the 3 missing of 270).** That draw
+  computed answers in a runtime `solve_dataset.py` (live-DB) and only READ `answers.json` back for
+  contract checks (truncated), so the verbatim committed answer is NOT recoverable from the transcript;
+  per the no-fabrication rule it is omitted (its `raw_logs/PATENTS/run-005/answers.json` carries a
+  `_recovery_status: FAILED` marker, not a fabricated answer). The cell scored q1✅ q2✅ q3❌. To make it
+  byte-exact, re-run that single PATENTS cell at trials:1 — **captain's call** whether the 3-cell gap
+  warrants it before submission.
+- **Validation:** Deliverable 1 — 267 entries, every (dataset,query,run) unique, no nulls, strings ✓.
+  Deliverable 2 — 60 run dirs × 4–5 files + 12 summary.json ✓. Cross-check — Deliverable-1 run "0"
+  answers byte-match `raw_logs/<ds>/run-001/answers.json` (spot-checked crmarenapro/yelp/bookreview, 0
+  mismatches). Committed in the dab repo (NOT pushed).
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -1183,3 +1213,18 @@ Built and launched the 5th full draw for the DAB leaderboard aggregate (5 draws 
 ### Summary
 
 Authored the captain-chosen curated 5-draw-mean leaderboard row in `~/dataagentbench`, matching the existing LEADERBOARD.md schema exactly: row `2026-06-23 | dab0022-patents-semistructured-rules | 5-draw mean | codex spacedock-solver | gpt-5.5 (effort high) | 204/270 (76%) — 5-draw mean, stratified 0.7433 (spread 0.6675–0.7985) | n/a (flat sub) | ~259m (5 draws)` + supporting summary artifact (median draw d0a6f64 as the representative table, annotated that the score is the 5-draw mean so artifact and row stay consistent). Cost is honestly n/a (codex flat subscription, cost_usd null in every summary.json); duration ~259m summed from the 3 run handles. Committed LOCALLY only — `~/dataagentbench` `cbff2b41`, ahead of origin by 1, NOT pushed; stopped per dispatch for captain go-ahead before any push to DataRecce/dataagentbench. CONCLUDE-not-promoted verdict unchanged; @baseline and seed README untouched.
+
+## Stage Report: analyze (formal leaderboard submission package)
+
+- DONE: Study both references in full — answers-JSON ref `data/leaderboard_submissions/claude-opus-4-6_results.json` (270 flat objects {dataset,query,run,answer}; run/query strings) + raw-logs ref `~/spacedock-experiment-opus-4-8-hint/` (per-dataset → run-001..005 → answers.json/claude-output.jsonl/taint.json/taint.md + per-dataset summary.json).
+  Schemas confirmed and replicated; draw→run-index mapping fixed (run-001=d0a6f64, 002/003/004=e8ec7dd trials 0/1/2, 005=f74c12b).
+- DONE: Deliverable 1 — `dab/leaderboard_submissions/codex-gpt-5.5_results.json`, committed answers recovered per worker session, integrity-gated against reward_per_query.
+  267/270 entries (3 omitted = PATENTS run-005 q1/q2/q3, unrecoverable runtime-computed answers — NOT fabricated). Validated: unique (dataset,query,run), no nulls, strings.
+- DONE: Deliverable 2 — `dab/leaderboard_submissions/raw_logs/` tree replicating the reference exactly.
+  12 datasets × run-001..005 = 60 run dirs (answers.json + codex-output.jsonl + codex-output.fo.jsonl + taint.json + taint.md) + 12 summary.json; 314 files, ~31M. taint clean throughout (matches rk audit). codex transcript naming + null cost/token fields documented in README.md.
+- DONE: Commit the new tree (NOT under gitignored runs/), do NOT push; report paths/counts/validation/deviations/commit sha; record in entity.
+  Committed in the dab repo (sha in the commit log); NOT pushed anywhere. Recorded in `## Leaderboard submission` → "FORMAL submission package".
+
+### Summary
+
+Assembled the formal DAB leaderboard submission package under the new tracked folder `dab/leaderboard_submissions/`, replicating both DAB reference formats. Deliverable 1 (`codex-gpt-5.5_results.json`) = 267 of 270 `{dataset,query,run,answer}` entries (the 3 missing are PATENTS run-005 q1/q2/q3, genuinely unrecoverable — the draw computed answers in a runtime script that was only read back truncated; omitted not fabricated, flagged in the README + entity with a re-run option for the captain). Deliverable 2 (`raw_logs/`) = the full 12×5 tree (60 run dirs, codex transcript + answers + taint per cell, 12 summary.json), taint clean throughout. Deviations (codex-output.jsonl naming, null cost/token for the flat subscription) documented. A subagent did the 60-cell extraction against an exact recipe I verified; I checked the on-disk result (counts, file sets, the FAILED marker) before committing. Committed in the dab repo, NOT pushed. The earlier hand-authored ~/dataagentbench LEADERBOARD.md row (cbff2b41, local) is left as-is per the dispatch; this formal package is the captain's chosen mechanism.
