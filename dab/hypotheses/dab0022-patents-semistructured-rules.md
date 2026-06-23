@@ -748,6 +748,56 @@ unrecoverable, which is WHY the substitution; the harness-not-persisting-answers
 (durable source = transcript only). The re-run worked because this draw happened to echo the full object
 before writing.
 
+### SCORED FROM answers.json via the DAB validators — stratified Pass@1 = 0.7433 (matches, with caveats)
+
+**Stratified Pass@1 scored directly from `codex-gpt-5.5_results.json` through DAB's OWN per-query
+validators = `0.7433`.** Method: each of the 270 `{dataset,query,run,answer}` entries fed through
+`data/query_<ds>/query<N>/validate.py` (`validate(llm_output)→(bool,reason)`, ground truth embedded;
+`common_scaffold` on `sys.path` from `~/dataagentbench/data`) — this is the exact verifier the DAB team
+scores a submission with (same per-query validators our in-run `verify_batch.py` wraps). All 12 datasets,
+270 cells, no validator errors. Per-query Pass@1 = mean over the 5 runs; per-dataset = mean of its
+per-query; stratified = mean over the 12 datasets.
+
+| Dataset | answers-scored 5-run mean | per-query Pass@1 |
+|---------|---------------------------|------------------|
+| bookreview | 1.000 | q1 1.0 q2 1.0 q3 1.0 |
+| music_brainz_20k | 1.000 | q1 1.0 q2 1.0 q3 1.0 |
+| stockindex | 1.000 | q1 1.0 q2 1.0 q3 1.0 |
+| googlelocal | 0.950 | q1 1.0 q2 0.8 q3 1.0 q4 1.0 |
+| yelp | 0.914 | q1 1.0 q2 1.0 q3 1.0 q4 0.6 q5 0.8 q6 1.0 q7 1.0 |
+| stockmarket | 0.800 | q1 1.0 q2 1.0 q3 0.4 q4 0.6 q5 1.0 |
+| crmarenapro | 0.738 | q1 1.0 q2 0.6 q3 0.0 q4 1.0 q5 1.0 q6 0.8 q7 1.0 q8 0.2 q9 0.6 q10 1.0 q11 1.0 q12 0.8 q13 0.6 |
+| PANCANCER_ATLAS | 0.667 | q1 0.0 q2 1.0 q3 1.0 |
+| DEPS_DEV_V1 | 0.500 | q1 0.0 q2 1.0 |
+| GITHUB_REPOS | 0.500 | q1 0.0 q2 0.0 q3 1.0 q4 1.0 |
+| agnews | 0.450 | q1 1.0 q2 0.0 q3 0.0 q4 0.8 |
+| PATENTS | 0.400 | q1 0.6 q2 0.4 q3 0.2 |
+| **stratified** | **0.7433** | |
+
+**Cross-check vs the earlier 0.7433 (from in-run `reward_per_query.json`): headline MATCHES, but by
+offsetting per-dataset differences on 4 cells — NOT cell-for-cell identical.** The two methods differ on:
+- **bookreview-q2, bookreview-q3: in-run 0.8 → answers-scored 1.0 (+0.2 each).** These were the
+  list-valued committed answers; serialized to the package via `json.dumps` (a JSON array string), and the
+  bookreview substring-validator finds the GT titles inside that array string → scores PASS where the
+  in-run list form had one miss. A serialization-form artifact (the answer content is the same titles).
+- **PATENTS-q1, PATENTS-q2 (run "0" / run-001 cell only): in-run reward = 1 (PASS) but the
+  answers.json entry scores 0 — a RECOVERY-FIDELITY GAP.** The PATENTS run-001 (d0a6f64) cell computed
+  its answers in a runtime script and (like the original draw5) NEVER echoed the full answers object in
+  its transcript — only truncated read-backs — so the text the package stored for PATENTS run-001 q1/q2 is
+  a NON-FAITHFUL partial recovery that under-scores vs the real in-run PASS. This is the SAME
+  harness-doesn't-persist-answers.json root cause as the draw5 gap, now seen to also affect run-001. (The
+  re-run fixed run-005 because that draw happened to echo the full object; run-001 did not, and its
+  verbatim answer is likewise unrecoverable from the transcript.)
+
+**Net:** the two methods coincidentally land on the same 0.7433 (PATENTS −0.4 cells offset by
+bookreview +0.4 cells). The DAB-team-authoritative number depends on which they score: if they score our
+`answers.json` as submitted, they get **0.7433** with PATENTS at 0.400 (under-counting the 2 run-001
+PATENTS PASSes due to the recovery gap); the TRUE in-run result is also 0.7433 with PATENTS at 0.533 and
+bookreview at 0.933. **The headline is robust at ~0.7433 either way**, but the per-dataset PATENTS row is
+understated in the submitted file by the 2 unrecoverable run-001 cells. To make the submission
+cell-faithful, PATENTS run-001 q1/q2 would need the same fresh-draw recovery as run-005 (re-run that one
+cell) — flagged for the captain; it does NOT change the headline.
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -1298,3 +1348,16 @@ Built and launched the captain-approved PATENTS-only re-run (trials:1, fresh run
 ### Summary
 
 PATCHED to 270/270. The fresh PATENTS re-run (audit-clean) echoed the full verbatim q1/q2/q3 (byte-exact, lengths matched its self-report), so the gap is closed without fabrication. Patched `codex-gpt-5.5_results.json` (267→270, re-validated) and replaced `raw_logs/PATENTS/run-005/` with the fresh cell (FAILED marker gone); the README discloses run-005-PATENTS is a fresh independent draw (same score q1✅q2✅q3❌, so summary.json/aggregate unchanged). Root cause of the original gap: the harness does not persist per-cell answers.json out of the container, so recovery depends on whether a draw echoes the full object in its transcript — a known fragility, not luck-per-se, worth a harness fix if byte-exact recovery is needed routinely. The dab-repo package is now a complete 270/270 submission, committed, NOT pushed.
+
+## Stage Report: analyze (score from answers.json)
+
+- DONE: Find DAB's scoring path for a leaderboard results.json.
+  DAB scores via the per-query validators `data/query_<ds>/query<N>/validate.py` (`validate(llm_output)→(bool,reason)`, GT embedded; some import `common_scaffold.validate.levenshtein` → add `~/dataagentbench/data` to sys.path). These are the exact validators our in-run `verify_batch.py` wraps. The repo's `data/stats_scripts/accuracy.py` uses them via `common_scaffold.validate.validate`; no script reads `leaderboard_submissions/` directly, so I scored the flat list cell-by-cell through these validators.
+- DONE: Score our `codex-gpt-5.5_results.json` (270 entries) through that scorer; report stratified + per-dataset + per-query.
+  **Stratified Pass@1 = 0.7433** (12 datasets, 270 cells, no validator errors). Per-dataset + per-query table in `## Leaderboard submission` → "SCORED FROM answers.json".
+- DONE: Cross-check vs the earlier 0.7433 (in-run reward_per_query).
+  Headline MATCHES (0.7433) but via offsetting differences on 4 cells: bookreview-q2/q3 +0.2 each (list→json.dumps serialization scores PASS in the substring validator) and PATENTS-q1/q2 run-001 −0.2 each (RECOVERY-FIDELITY gap — the run-001 PATENTS answer text is a non-faithful partial recovery that under-scores the real in-run PASS; same harness-doesn't-persist-answers.json root cause as draw5). Documented in the entity with the per-cell breakdown.
+
+### Summary
+
+Scored the submission `answers.json` through DAB's own per-query validators (the authoritative scorer, available locally with common_scaffold on the path): **stratified Pass@1 = 0.7433**, matching our earlier in-run number. The match is coincidental at the cell level — 4 cells differ and offset: bookreview-q2/q3 score HIGHER from the answers.json (the list answers were json.dumps-serialized and the substring validator passes them), and PATENTS-q1/q2 run-001 score LOWER (the recovered answer text for that cell is non-faithful — the PATENTS run-001 cell, like the original draw5, never echoed its full answer in the transcript, so its package entry under-scores the real in-run PASS). The headline is robust at ~0.7433 regardless; the only blemish is the submitted PATENTS-run-001 q1/q2 answer text, fixable by the same fresh-draw recovery as run-005 (a one-cell re-run) — flagged for the captain, does not move the headline. No package files were edited this stage (reporting only); did not fabricate the run-001 answers.
