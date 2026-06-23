@@ -255,14 +255,25 @@ a real rule effect that would recur; yelp-q4 is variance that may not.
 
 ## Follow-up Routing
 
-**REVISE in place → re-smoke (idea unchanged).** Tighten the complete-list/flat-record bullet to
-pin the record's leading field to the entity NAME/TITLE (never a description/blurb column), then
-re-freeze and re-smoke the same 4-dataset panel. This is a one-line scope-tightening on the
-existing bullet — the single composition idea is preserved (mirrors dab0022 cycle-2→cycle-3). If
-the revise re-smoke holds stockmarket-q3 while keeping both target banks, advance to a full
-multi-draw confirm (≥2/3 hold on the targets, zero scope-leak) before any PROMOTE.
+**STOP — no follow-up.** (The cycle-1 routing below proposed an in-place REVISE; it was executed
+as cycle-2 and the prescribed lead-field fix proved README-inert by committed-artifact
+byte-comparison — see `## Verdict (cycle 2)` and `## Failure Review (cycle 2)`.) The complete-list
+arm's key-column behavior is a dead end (README cannot steer which COLUMN the solver picks as the
+record key), and the only durable half (flat-string serialization) is already banked in dab0022 —
+so there is no new hypothesis to file and no third revise (pinning the column harder in prose is
+the same dead channel). `@codex-batch-baseline` + seed README UNCHANGED; the dab0022 5-draw 0.7433
+leaderboard submission stands, unaffected. Not a structural workflow change → no WORKFLOW-REFINE
+edit.
 
-## Verdict
+_Cycle-1 routing (superseded — recorded for history):_ **REVISE in place → re-smoke (idea
+unchanged).** Tighten the complete-list/flat-record bullet to pin the record's leading field to
+the entity NAME/TITLE (never a description/blurb column), then re-freeze and re-smoke the same
+4-dataset panel. This is a one-line scope-tightening on the existing bullet — the single
+composition idea is preserved (mirrors dab0022 cycle-2→cycle-3). If the revise re-smoke holds
+stockmarket-q3 while keeping both target banks, advance to a full multi-draw confirm (≥2/3 hold on
+the targets, zero scope-leak) before any PROMOTE.
+
+## Verdict (cycle 1)
 
 **Gate read: REVISE (not GO, not REJECT).** One high draw: both durable targets BANKED by
 committed artifact (googlelocal-q2 flipped; PATENTS swept 0/3→3/3), subset stratified +0.227 over
@@ -424,3 +435,57 @@ Re-confirmed the 4-dataset smoke selection (high) then launched the cycle-2 re-s
 
 ### Summary
 Cycle-2 re-smoke ran clean (rc=0, strict audit 4/0/0), stratified 0.8042 over the 4-panel. The gate-deciding finding: the lead-field scope fix was **INERT** — stockmarket-q3's committed answer is byte-pattern identical to cycle-1 (still leads with the description blurb), so the prescribed fix did not change behavior. PATENTS-q1 (named target) banked across both draws and the flat-string format fired on every target, confirming the durable flat-string lever; the two non-banks (googlelocal-q2, PATENTS-q3) committed correctly-shaped answers and missed on oracle-blind analytic content (row-selection / CPC-subclass variance), not lever failure; yelp-q4 recovered (cycle-1 variance confirmed). Verdict NO-GO-for-promote: the complete-list arm's key-column choice is README-inert (a new boundary for the dab0012 README-output-shape dead family), NOT a third in-place revise. Recommend CONCLUDE validated-but-not-promoted, `@codex-batch-baseline` unchanged. Caveat: single high draw; per-cell content swings are draw variance, but the inert-fix finding is by committed-artifact byte-comparison.
+
+## Verdict
+
+**REJECTED** (captain-concluded 2026-06-23; record-keeping only — `@codex-batch-baseline` + seed
+README UNCHANGED, the FO sets the frontmatter verdict/status and archives).
+
+**The composition hypothesis is FALSIFIED.** It did NOT bank both durable cells without regression:
+across two confound-free high draws (codex-vs-codex, high-vs-high) the named target PATENTS-q1
+banked but googlelocal-q2 did not hold, and a ranking/complete-list canary (stockmarket-q3)
+regressed both times. The h0049 "gated levers compose additively, the gate is the isolation"
+pattern did NOT carry here, because the distinctive new arm could not be gated into safety.
+
+**Why — the distinctive new arm (complete-list KEY-COLUMN pinning) is README-INERT by
+committed-artifact byte-comparison.** The cycle-2 lead-field fix ("use the entity's NAME/TITLE as
+each record's leading field, never a description/blurb column") left stockmarket-q3's committed
+answer *byte-identical to cycle-1* — still blurb-led ("Apex Global Brands Inc. specializes in
+…: 23781.42; …"), failed both draws. The README changed; the behavior did not. A README prose
+instruction about WHICH COLUMN is the record identity is not reliably actionable at gpt-5.5/high
+("talks but doesn't do"). Notably, the *same* name-lead fix that *appeared* to work in dab0022
+cycle-3 was a favorable single draw — dab0023's 2-draw byte-comparison shows it is
+weakly/un-steerable, i.e. draw-dependent rather than a real flip.
+
+**What IS real (but already banked, not a new win):** the FORMAT half — flat-string serialization
+— IS README-steerable and durable. It fired on every target this run and PATENTS-q1 banked across
+BOTH draws, reconfirming [[dab-flat-string-serialization-works]] a third time (after dab0015 +
+dab0022). That is a reconfirmation already captured by the dab0022 leaderboard submission, not a
+new promotable result. The two non-banking targets (googlelocal-q2 row-selection, PATENTS-q3
+CPC-subclass) committed correctly-shaped answers and missed on oracle-blind analytic content —
+draw variance, not lever failure.
+
+**KEY NEW KNOWLEDGE — a sharper boundary on the dab0012 README-output-shape dead family
+([[dab-readme-cannot-suppress-output-shape]]):** the README can steer answer **FORMAT**
+(flat-string: durable) but NOT **which COLUMN** the solver picks as the record key (the complete-list
+key-column choice is README-inert / draw-dependent, proven here by 2-draw byte-comparison). The
+flat-string FORMAT lever and the key-COLUMN selection are on opposite sides of this line.
+
+**Disposition:** `@codex-batch-baseline` and the seed README UNCHANGED. No follow-up (the
+complete-list arm is a dead end; flat-string is already banked in dab0022). The dab0022 5-draw
+0.7433 leaderboard submission stands as the deliverable, unaffected. Caveat: single high draw per
+cycle — the per-cell content swings (googlelocal-q2, PATENTS-q3) are draw noise, but the
+stockmarket-q3 inert-fix finding is by committed-artifact byte-comparison across two draws, not a
+variance call.
+
+## Stage Report: conclude
+
+- DONE: Write dab0023 `## Verdict` = REJECTED (distill the falsification + key new knowledge).
+  Canonical `## Verdict` = **REJECTED** written: composition FALSIFIED (didn't bank both durable cells without regression); the complete-list KEY-COLUMN arm is README-inert by 2-draw byte-comparison (cycle-2 lead-field fix left stockmarket-q3 byte-identical to cycle-1); flat-string FORMAT half durable but already banked in dab0022 (reconfirms 3rd time); key new knowledge = sharper dab0012 boundary (README steers FORMAT not which COLUMN is the record key). Cycle-1 verdict relabelled `## Verdict (cycle 1)` to preserve history.
+- DONE: Append a one-line dab0023 entry to `_artifacts/self-learning.md`.
+  Appended: REJECTED; complete-list key-column README-inert = new dab0012-family boundary; flat-string reconfirmed durable; no seed change.
+- DONE: Set `## Follow-up Routing` = stop.
+  Updated to **STOP — no follow-up** (arm is a dead end, flat-string already banked); cycle-1 REVISE routing kept inline as superseded-for-history. Not a structural change → no WORKFLOW-REFINE edit (noted).
+
+### Summary
+Concluded dab0023 as REJECTED (record-keeping only — `@codex-batch-baseline` + seed README UNCHANGED; FO owns frontmatter verdict/status + archive). Canonical `## Verdict` distills the falsification: the composition did not bank both durable cells without regression, and the distinctive complete-list KEY-COLUMN arm is README-inert by committed-artifact byte-comparison across two draws (the prescribed lead-field fix left stockmarket-q3 byte-identical to cycle-1). The flat-string FORMAT half is durable but already banked in dab0022, so it is a reconfirmation, not a new promotable win. Key new knowledge banked to self-learning: a sharper dab0012-family boundary — the README can steer answer FORMAT (flat-string) but not which COLUMN the solver treats as the record key. Follow-up Routing = stop (dead end, no new hypothesis); no WORKFLOW-REFINE edit (not structural). The dab0022 5-draw 0.7433 leaderboard submission stands unaffected.
