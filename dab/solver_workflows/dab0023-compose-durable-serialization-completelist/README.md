@@ -94,7 +94,7 @@ as the key — e.g., a query in `query2/query.json` writes `{"q2": "answer"}`.
 ### Answer serialization & list rules
 
 - Serialize each answer as a flat string of exact database values, not a JSON object/array or nested structure. For a single value, emit the value; for multiple values, emit them as a flat delimited string (e.g. `A; B; C` or `name | code | year`). Do not wrap the answer in JSON, markdown, or quotes-as-data. (Applies to the answer FORMAT only — it does not change which rows you select.)
-- For a question that asks for a complete list / every qualifying row ("list all", "which X" with no top-k, "for each"), emit EVERY qualifying row as a flat-delimited record; do not truncate to top-k. This rule fires ONLY on open complete-list questions — for a single-winner question ("which one has the most", "the highest") or an explicit fixed top-k, answer with exactly that one / that k and do NOT broaden the row set or the cohort.
+- For a question that asks for a complete list / every qualifying row ("list all", "which X" with no top-k, "for each"), emit EVERY qualifying row as a flat-delimited record; do not truncate to top-k. Use the entity's NAME/TITLE as each record's leading field (e.g. `name: value` or `name | value`), never a description/summary/blurb column. This rule fires ONLY on open complete-list questions — for a single-winner question ("which one has the most", "the highest") or an explicit fixed top-k, answer with exactly that one / that k and do NOT broaden the row set or the cohort.
 
 ## Stages
 

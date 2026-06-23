@@ -9,7 +9,7 @@ agent:
     top_p: null
     seed: null
   solver_workflow: solver_workflows/dab0023-compose-durable-serialization-completelist
-  solver_workflow_content_hash: null
+  solver_workflow_content_hash: sha256:df29203c28edd1febb805394f81db06f0ab06abb0f5ef7a21b148e578134ef2e
   max_turns: 200
   max_budget_usd: null
   override_timeout_sec: null
@@ -21,7 +21,7 @@ agent:
   reasoning_effort: high
   reasoning_summary: null
   resume_from_freeze: null
-  sealed_hash: 5cae1f1d1c286f223f28aec2d323655a
+  sealed_hash: c2d3d60554958dbce08236b84de84dee
   spacedock_skill_version: 1.0.0
   prompt_content_hashes: {}
 benchmark:
@@ -65,9 +65,9 @@ provenance:
   model_resolved_at: null
   image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: 8f79a035499ed093ab06dfb4f9bd6e165f2788dc
+  harness_git_sha: fce0a2ef8a3b23c8a0431fa3839c5219adeb7dfa
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
-  solver_workflow_hash: null
+  solver_workflow_hash: sha256:df29203c28edd1febb805394f81db06f0ab06abb0f5ef7a21b148e578134ef2e
 experiment_meta: null
