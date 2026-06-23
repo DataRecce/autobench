@@ -141,6 +141,15 @@ Anchor full-board context: googlelocal q1/q3/q4 PASS q2 FAIL; PATENTS q1/q2/q3 a
 
 ## Smoke result
 
+### Smoke run (launched — detached)
+
+- **Handle:** `runs/.rk-handles/dab0023-smoke-20260623-073517` (from `dab/`)
+- **PID:** 2719479 (worker alive at launch; `ps` confirmed)
+- **Spec:** `specs/dab0023-compose-durable-serialization-completelist.smoke.frozen.yaml`
+- **Selection (`--explain`):** 4 datasets — googlelocal + PATENTS (targets), stockmarket + yelp (ranking canaries); model gpt-5.5, `reasoning_effort: high`.
+- **Log:** `runs/.rk-handles/dab0023-smoke-20260623-073517/log`; **done sentinel:** `…/done` (absent until finished; then rc/end/rundir).
+- **ETA:** ~21 query-cells at high → ~45–50 min wallclock (extrapolated from dab0022 cycle-1 smoke ~44 min for 19 cells). The FO owns the wait + auto-wakeup; not polling.
+
 ## Run result
 
 ## Behavioral analysis
@@ -166,3 +175,11 @@ Anchor full-board context: googlelocal q1/q3/q4 PASS q2 FAIL; PATENTS q1/q2/q3 a
 
 ### Summary
 Forked the @codex-batch-baseline solver and added exactly one `### Answer serialization & list rules` section with the two pre-verified scoped levers (flat-string serialization + scoped complete-list/flat-record) verbatim; full spec differs from the anchor only in `experiment:` + `solver_workflow:` with `reasoning_effort: high` held (AC-1 confound-free). Both specs frozen; `--explain` confirms the smoke set is exactly the 2 durable targets (googlelocal-q2 ❌, PATENTS-q1 ❌ at anchor) plus the G8 ranking-canary panel (stockmarket q3/q4 ✅, yelp q4/q7 ✅ at anchor) so a scope leak is detectable. Gatekeeper recommends APPROVE with a single advisory G7 WARN (the complete-list bullet is shape-gated abstract prose without a worked skeleton — inert-risk on PATENTS-q1; fixable in place if smoke shows it not firing). All FO reject-condition checks are clean → auto-gate conditions met.
+
+## Stage Report: smoke
+
+- DONE: Launch the dab0023 detached smoke (high) and record the handle/pid/ETA.
+  Launched via `drivers/rk-run-detached.sh dab0023-smoke …smoke.frozen.yaml run`; handle `runs/.rk-handles/dab0023-smoke-20260623-073517`, pid 2719479 (alive, `ps` confirmed); `--explain` re-confirmed 4 datasets + effort high. Section written to `## Smoke result → Smoke run (launched — detached)`. Not polling — FO owns the wait.
+
+### Summary
+Re-confirmed the smoke selection (4 datasets: googlelocal/PATENTS targets + stockmarket/yelp ranking canaries, gpt-5.5/high) then launched the run DETACHED. Handle `runs/.rk-handles/dab0023-smoke-20260623-073517`, pid 2719479 verified alive; `done` sentinel absent (running). Returning the handle to the FO immediately per the detached-run contract.
