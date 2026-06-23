@@ -1,7 +1,7 @@
 ---
 id: dab0023
 title: Compose the 2 durable banked levers — flat-string serialization + complete-list/flat-record — into the seed README as pre-verified levers
-status: hypothesis
+status: propose
 kind: hypothesis
 source: "dab0022 PASSED-validated follow-up (captain-directed). dab0022 validated 2 durable, confound-free flips across draws — googlelocal-q2 (flat-string serialization, reconfirming dab0015) and PATENTS-q1 (complete-list + flat simple-record) — but did NOT promote because the single-lever board lift was variance-swamped. This files the composition play: bank both pre-verified mechanisms into the seed README at once (the ade-bench h0049 gated-levers-compose pattern), scoped so they fire only where validated and do not perturb ranking/single-winner cells."
 started: 2026-06-23T06:38:33Z
