@@ -645,6 +645,33 @@ upstream leaderboard has no native 5-draw aggregation. So:
   `summary.md` copy. **Captain should direct: (a) submit the 5-draw mean as a curated row, or (b) publish
   the median single run via benchctl — and confirm where benchctl reads runs from for this harness.**
 
+### SUBMITTED — curated 5-draw-mean row (captain chose option a); local commit, NOT pushed
+
+Captain chose the curated 5-draw-mean submission. Authored it in the `~/dataagentbench` repo to match
+the existing LEADERBOARD.md schema exactly (`Date | Experiment | Run | Agent | Model | Score | Cost |
+Duration | Summary`). **Committed locally only — NOT pushed; awaiting captain go-ahead for the push.**
+
+- **`~/dataagentbench` local commit:** `cbff2b41` (branch `main`, ahead of origin by 1, not pushed).
+- **LEADERBOARD.md row (newest-first, above the existing Opus-4-7 row):**
+  `| 2026-06-23 | dab0022-patents-semistructured-rules | 5-draw mean | codex spacedock-solver |
+  gpt-5.5 (effort high) | 204/270 (76%) — 5-draw mean, stratified 0.7433 (spread 0.6675–0.7985) |
+  n/a (flat sub) | ~259m (5 draws) | [link](./dab0022-patents-semistructured-rules__5draw-mean.md) |`
+- **Supporting summary artifact:** `~/dataagentbench/results/dab0022-patents-semistructured-rules__5draw-mean.md`
+  — headlines the 5-draw mean (stratified 0.7433), uses the MEDIAN draw `d0a6f64260336fff` (42/54) as the
+  representative per-dataset table, explicitly annotated that the published score is the 5-draw mean so the
+  artifact and row are consistent.
+- **Score form:** matched the existing row's `N/M (P%)` convention with the 5-draw raw-cell micro-average
+  **204/270 (76%)**, and put the stratified 5-draw mean (0.7433) + spread inline in the Run/Score cells so
+  it's not misread as a single run. **Cost = n/a** (codex flat OpenAI subscription — `cost_usd` is null in
+  every run's summary.json; honest rather than invented). **Duration = ~259m (4h19m)** = draw1 76m47s +
+  3-draw confirm 133m09s + draw5 49m05s, summed from the handle `done` sentinels (no duration field in
+  summary.json).
+- **Runs-visibility:** hand-authored (not a benchctl `p` publish), so the runs did NOT need to be in
+  `~/dataagentbench/_runs/` — wrote `results/` directly.
+
+**Next: captain go-ahead to push `~/dataagentbench` `cbff2b41` to origin** (DataRecce/dataagentbench).
+Per the dispatch I stopped at the local commit and did not push / open a PR.
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -1141,3 +1168,18 @@ Built and launched the 5th full draw for the DAB leaderboard aggregate (5 draws 
 ### Summary
 
 5th draw audit-clean; all 5 draws aggregate apples-to-apples (same cycle-3 hash b2cae85c at high, 12 datasets). Aggregate stratified Pass@1 over 5 draws = 0.7433 (vs anchor 0.6966, Opus 0.6536), per-draw spread 0.6675–0.7985 (median 0.7675). The 5-draw read reinforces CONCLUDE-not-promoted: PATENTS-q1 (4/5) + googlelocal-q2 (4/5) are durable, PATENTS-q2 marginal (3/5), q3 variable (1/5); the +0.047 aggregate sits inside a per-draw spread that straddles the anchor. Surfaced the leaderboard submission mechanism (upstream benchctl publish, one-run aggregate — no native 5-draw mean) and recommended the median single run (0.7675) if a single benchctl row is wanted, else a curated 5-draw-mean row; flagged that these run dirs are under dab/runs/ (gitignored) so benchctl's run source needs confirming. Did not promote or edit the seed — that's the captain's call.
+
+## Stage Report: analyze (leaderboard row — curated 5-draw-mean, local only)
+
+- DONE: Read the leaderboard format first — `~/dataagentbench/README.md` §Leaderboard + existing LEADERBOARD.md rows + a sample summary; match the column schema + summary-file convention exactly.
+  Schema: `Date | Experiment | Run | Agent | Model | Score | Cost | Duration | Summary`; Score form `N/M (P%)`; summary artifact `# Run Summary` with aggregate + per-dataset table.
+- DONE: Author the curated row + supporting summary — aggregate 0.7433 (5-draw mean) with explicit spread note; cost+duration from the run dirs; median draw d0a6f64 as the representative annotated artifact.
+  LEADERBOARD.md row added (newest-first); summary `results/dab0022-patents-semistructured-rules__5draw-mean.md` created. Score 204/270 (76%) raw-cell micro-avg + inline "5-draw mean, stratified 0.7433 (spread 0.6675–0.7985)". Cost n/a (flat sub; cost_usd null). Duration ~259m summed from handle sentinels. Median-draw per-dataset table (42/54), annotated that the published score is the 5-draw mean.
+- DONE: Resolve runs-visibility + commit locally; do NOT push.
+  Hand-authored (not benchctl `p`), so no `_runs/` dependency. Committed `~/dataagentbench` `cbff2b41` (main, ahead of origin 1, NOT pushed). STOPPED at local commit per dispatch.
+- DONE: Record the submission in the entity `## Leaderboard submission`.
+  Recorded the commit sha, exact row text, artifact path, cost/duration derivation, and the push-pending note.
+
+### Summary
+
+Authored the captain-chosen curated 5-draw-mean leaderboard row in `~/dataagentbench`, matching the existing LEADERBOARD.md schema exactly: row `2026-06-23 | dab0022-patents-semistructured-rules | 5-draw mean | codex spacedock-solver | gpt-5.5 (effort high) | 204/270 (76%) — 5-draw mean, stratified 0.7433 (spread 0.6675–0.7985) | n/a (flat sub) | ~259m (5 draws)` + supporting summary artifact (median draw d0a6f64 as the representative table, annotated that the score is the 5-draw mean so artifact and row stay consistent). Cost is honestly n/a (codex flat subscription, cost_usd null in every summary.json); duration ~259m summed from the 3 run handles. Committed LOCALLY only — `~/dataagentbench` `cbff2b41`, ahead of origin by 1, NOT pushed; stopped per dispatch for captain go-ahead before any push to DataRecce/dataagentbench. CONCLUDE-not-promoted verdict unchanged; @baseline and seed README untouched.
