@@ -104,6 +104,41 @@ flips into the seed so they STICK.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — clean two-bullet scoped composition lever; single stage section added under `## Answers`, leak-guard byte-intact, specs differ only in `experiment:`/`solver_workflow:`, both frozen, and the smoke set carries the perturbable ranking canaries (stockmarket q3/q4, yelp q4/q7) that prove the scope holds.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-23.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff = one hunk (94–98): adds exactly one `### Answer serialization & list rules` subsection under the `## Answers` stage; no other stage/section touched; two bullets = the one composition idea the claim names. |
+| G2 leak-guard intact | PASS | Only `ground_truth` hit is pre-existing leak-guard at L75 (outside the added hunk); leak-guard prose L81–87 byte-identical to parent; no `db_description_withhint`/`curl`/`wget`/`git clone` in added lines; added text pins answer FORMAT only, names no oracle/hint file. |
+| G3 spec two fields | PASS | `diff` anchor vs full = only `experiment:` + `solver_workflow:` (plus ABOUTME comments); `agent.kind: spacedock_solver`, `runtime: codex`, top-level `trials: 1` preserved (`concurrency.trials:2` is not the G3 `trials`). |
+| G4 smoke tasks+exclude | PASS | Smoke diff = narrows `benchmark.tasks` to the 4 needed datasets + adds `exclude_tasks` dropping the other 8 (dataset names, not per-query ids — correct for the plugin selector); `--explain` resolves exactly googlelocal/PATENTS/stockmarket/yelp; both named targets (googlelocal-q2, PATENTS-q1) survive. |
+| G5 both frozen | PASS | Both `…frozen.yaml` and `…smoke.frozen.yaml` exist (Jun 23 06:42); each carries `kind: spacedock_solver` + `runtime: codex` (L4–5). |
+| G6 resolver fidelity | PASS | Inserted text matches the claim verbatim (bullet 1 = flat-string serialization, format-only; bullet 2 = scoped complete-list off single-winner/fixed-top-k); generative-but-scoped, no self-anchored "verify your own answer" phrasing; no scope creep. |
+| G7 actionability/inert-risk | WARN | Bullet 1 is a concrete mechanical serialization edit (flat-string, worked tokens `A; B; C`) — lands reliably. Bullet 2 is a question-shape-gated list-completeness rule (abstract-structural with cue phrases but no worked-example skeleton); inert-risk on the complete-list arm — consider a worked few-shot if PATENTS-q1 doesn't fire in smoke. |
+| G8 regression-canary coverage | PASS | Generative-but-scoped (both rules fire by question-shape). Smoke keeps perturbable non-target `@baseline`-PASS canaries from datasets OTHER than the targets: stockmarket q3/q4 (ranking, anchor PASS) and yelp q4/q7 (ranking/complete-list, anchor PASS) — ≥2 perturbable canaries on the ranking construct the complete-list rule could perturb; a regression there is the designed scope-leak tripwire. |
+| G9 selector independence | N/A | Not a multi-candidate/selector protocol — two output-format/list-shape rules, single session. |
+| G10 self-correcting false-positive | N/A | Not a check/reconcile/validate-and-fix lever — no verify-and-act-on-disagreement instruction. |
+
+**For the captain:** No FAILs — clear to advance to smoke. One thing to watch: the G7 WARN on bullet 2 (complete-list rule is shape-gated abstract prose with no worked skeleton, so it may "talk but not do" on PATENTS-q1) — if smoke shows PATENTS-q1 not flipping, a worked few-shot is the in-place fix. The G8 panel is well-formed: stockmarket q3/q4 + yelp q4/q7 are exactly the perturbable ranking canaries that must stay PASS to prove the scope holds.
+
+### Smoke set (boxed) — `@codex-batch-baseline` rewards resolved (anchor `dab/runs/codex-dab-batch-baseline/bf113446fdd94373`, stratified 0.6965)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Task         │ Baseline (anchor) │ Should-pass │ Role                                          │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ googlelocal  │ q2 ❌ FAIL        │ 🎯 q2 flip→PASS │ TARGET — flat-string serialization (durable) │
+│ PATENTS      │ q1 ❌ FAIL        │ 🎯 q1 flip→PASS │ TARGET — complete-list + flat-record (durable)│
+│ stockmarket  │ q3 ✅ q4 ✅       │ ✅ stay PASS    │ CANARY — ranking; scope-hold tripwire         │
+│ yelp         │ q4 ✅ q7 ✅       │ ✅ stay PASS    │ CANARY — ranking/complete-list; scope tripwire│
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+Net want: +2 targets flip to PASS (googlelocal-q2, PATENTS-q1), 0 canary regressions (the scope holds).
+A ranking-canary drop (stockmarket q3/q4 or yelp q4/q7 below anchor) = scope LEAKED = the falsification point.
+ETA: 4 datasets in batch mode, concurrency.trials:2 → ~20–40 min wallclock.
+Anchor full-board context: googlelocal q1/q3/q4 PASS q2 FAIL; PATENTS q1/q2/q3 all FAIL; stockmarket q1–q5 all PASS; yelp q1–q7 all PASS.
+```
+
 ## Smoke result
 
 ## Run result
@@ -115,3 +150,19 @@ flips into the seed so they STICK.
 ## Follow-up Routing
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Fork the BATCH anchor solver `solver_workflows/spacedock-readme-baseline-hostfix` to `solver_workflows/dab0023-compose-durable-serialization-completelist` and add ONLY the `### Answer serialization & list rules` section verbatim; change nothing else, leak-guard prose byte-intact.
+  `diff` = single hunk (94a94,98) adding the one subsection + two scoped bullets verbatim from the entity; leak-guard L81–87 byte-identical; no forbidden tokens in added lines.
+- DONE: Build full + smoke specs in BATCH mode by forking `specs/codex-dab-batch-baseline.yaml`; keep `reasoning_effort: high`; full spec differs ONLY in experiment: + solver_workflow:.
+  `diff codex-dab-batch-baseline.yaml dab0023-...yaml` = only `experiment:` + `solver_workflow:` (+ ABOUTME comments); effort `high`, `agent.kind: spacedock_solver`/`runtime: codex`/`trials: 1` preserved.
+- DONE: Freeze both specs.
+  `…frozen.yaml` + `…smoke.frozen.yaml` written (rk freeze --allow-missing); both carry kind: spacedock_solver + runtime: codex.
+- DONE: `rk run --explain` to confirm the smoke selection = durable targets (googlelocal, PATENTS) PLUS the G8 ranking-canary panel (stockmarket, yelp).
+  `--explain` → Tasks: 4; materialized task dirs = PATENTS, googlelocal, stockmarket, yelp; canaries stockmarket q3/q4 + yelp q4/q7 are anchor-PASS and carried (batch mode runs every query in each dataset).
+- DONE: Run the gatekeeper subagent; record per-rule PASS/WARN/FAIL table + APPROVE/REVISE/REJECT; prepare the smoke-set boxed table with @codex-batch-baseline rewards resolved.
+  Gatekeeper = APPROVE (no FAILs; one G7 WARN on bullet 2 inert-risk, advisory only); table + boxed smoke table written to `## Gatekeeper review`.
+
+### Summary
+Forked the @codex-batch-baseline solver and added exactly one `### Answer serialization & list rules` section with the two pre-verified scoped levers (flat-string serialization + scoped complete-list/flat-record) verbatim; full spec differs from the anchor only in `experiment:` + `solver_workflow:` with `reasoning_effort: high` held (AC-1 confound-free). Both specs frozen; `--explain` confirms the smoke set is exactly the 2 durable targets (googlelocal-q2 ❌, PATENTS-q1 ❌ at anchor) plus the G8 ranking-canary panel (stockmarket q3/q4 ✅, yelp q4/q7 ✅ at anchor) so a scope leak is detectable. Gatekeeper recommends APPROVE with a single advisory G7 WARN (the complete-list bullet is shape-gated abstract prose without a worked skeleton — inert-risk on PATENTS-q1; fixable in place if smoke shows it not firing). All FO reject-condition checks are clean → auto-gate conditions met.

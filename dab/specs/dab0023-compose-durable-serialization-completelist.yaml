@@ -1,0 +1,47 @@
+# ABOUTME: dab0023 composition play — fork @codex-batch-baseline (codex/gpt-5.5, high) and add ONLY the
+# ABOUTME: two pre-verified scoped levers (flat-string serialization + scoped complete-list/flat-record).
+# ABOUTME: Differs from the anchor spec ONLY in experiment: + solver_workflow: (effort stays high → README
+# ABOUTME: is the sole variable, AC-1 confound-free). Full 12-dataset board.
+version: 1
+experiment: dab0023-compose-durable-serialization-completelist
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0023-compose-durable-serialization-completelist
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+  - yelp
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout

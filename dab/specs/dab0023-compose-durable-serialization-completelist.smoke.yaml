@@ -1,0 +1,49 @@
+# ABOUTME: dab0023 propose-gate smoke. Durable pre-verified TARGETS (want-hold): googlelocal (q2 flat-string)
+# ABOUTME: + PATENTS (q1 complete-list+flat-record). G8 ranking/single-winner CANARY panel (must-stay-PASS,
+# ABOUTME: scope-hold tripwires): stockmarket (q3/q4) + yelp (q4/q7) — a ranking-cell regression here proves
+# ABOUTME: the complete-list scope leaked, the whole falsification point of a GENERATIVE-but-SCOPED lever.
+# ABOUTME: reasoning_effort=high matches the anchor — README is the SOLE variable (AC-1 confound-free).
+version: 1
+experiment: dab0023-compose-durable-serialization-completelist
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0023-compose-durable-serialization-completelist
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - googlelocal
+  - PATENTS
+  - stockmarket
+  - yelp
+  exclude_tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - stockindex
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
