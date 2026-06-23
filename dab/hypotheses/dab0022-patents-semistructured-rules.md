@@ -584,6 +584,67 @@ independent of the leaderboard aggregate.
 (1 + 3 + 1) for the leaderboard submission. The 5 run dirs: `d0a6f64260336fff`, `e8ec7dd1bde26916`
 (3 draws within), `f74c12b94f2f5172`.
 
+## Leaderboard submission
+
+**5th draw audit (AC-2): CLEAN** — `runs/dab0022-patents-semistructured-rules-draw5/f74c12b94f2f5172`,
+`coverage_missing: 0`, `tainted: 0`, 12/12 datasets clean, no infra signature. Single-draw stratified
+0.7771. All 5 draws are an apples-to-apples set: SAME cycle-3 solver hash `b2cae85c` at `reasoning_effort
+high`, all 12 datasets.
+
+**The 5 draws (1 + 3 + 1):**
+
+| Draw | run dir | per-draw stratified |
+|------|---------|---------------------|
+| 1 (first full) | `d0a6f64260336fff` | 0.7675 |
+| 2 (confirm d0) | `e8ec7dd1bde26916` | 0.7985 |
+| 3 (confirm d1) | `e8ec7dd1bde26916` | 0.7058 |
+| 4 (confirm d2) | `e8ec7dd1bde26916` | 0.6675 |
+| 5 (draw5) | `f74c12b94f2f5172` | 0.7771 |
+
+**Per-draw board spread:** min 0.6675 · **median 0.7675** · max 0.7985 · **mean 0.7433**
+(vs anchor `@codex-batch-baseline` 0.6966, Opus incumbent 0.6536).
+
+**AGGREGATE stratified Pass@1 over 5 draws (per-query 5-draw mean → per-dataset mean → mean of 12) =
+`0.7433`** (= the per-draw mean, as expected). Per-dataset 5-draw table:
+
+| Dataset | 5-draw mean | per-query Pass@1 (over 5 draws) |
+|---------|-------------|----------------------------------|
+| DEPS_DEV_V1 | 0.500 | q1 0.0 · q2 1.0 |
+| GITHUB_REPOS | 0.500 | q1 0.0 · q2 0.0 · q3 1.0 · q4 1.0 |
+| PANCANCER_ATLAS | 0.667 | q1 0.0 · q2 1.0 · q3 1.0 |
+| PATENTS | 0.533 | **q1 0.8 · q2 0.6 · q3 0.2** |
+| agnews | 0.450 | q1 1.0 · q2 0.0 · q3 0.0 · q4 0.8 |
+| bookreview | 0.867 | q1 1.0 · q2 0.8 · q3 0.8 |
+| crmarenapro | 0.738 | q1 1.0 · q2 0.6 · q3 0.0 · q4 1.0 · q5 1.0 · q6 0.8 · q7 1.0 · q8 0.2 · q9 0.6 · q10 1.0 · q11 1.0 · q12 0.8 · q13 0.6 |
+| googlelocal | 0.950 | q1 1.0 · q2 0.8 · q3 1.0 · q4 1.0 |
+| music_brainz_20k | 1.000 | q1 1.0 · q2 1.0 · q3 1.0 |
+| stockindex | 1.000 | q1 1.0 · q2 1.0 · q3 1.0 |
+| stockmarket | 0.800 | q1 1.0 · q2 1.0 · q3 0.4 · q4 0.6 · q5 1.0 |
+| yelp | 0.914 | q1 1.0 · q2 1.0 · q3 1.0 · q4 0.6 · q5 0.8 · q6 1.0 · q7 1.0 |
+
+**Target cells over 5 draws (corroborates the confirm):** PATENTS-q1 **4/5** (0.8), q2 **3/5** (0.6),
+q3 **1/5** (0.2). googlelocal-q2 **4/5** (0.8). So PATENTS-q1 + googlelocal-q2 are durable (4/5);
+PATENTS-q2 is marginal (3/5, just over half — consistent with variable-band, not a clean flip); q3 is
+clearly variable (1/5). This 5-draw read REINFORCES the CONCLUDE-not-promoted verdict: the aggregate
+0.7433 sits +0.047 over the anchor but the per-draw spread (0.6675–0.7985) straddles it, and only 2 cells
+hold durably.
+
+**SUBMISSION-MECHANISM QUESTION (for the captain).** The DAB leaderboard is the **upstream `benchctl`
+publish flow** (`~/dataagentbench/README.md` §"Leaderboard (publishing results)"): pressing **`p`** on a
+finished run in `benchctl` copies that run's `summary.md` → `results/<experiment>__<run-NNN>.md` and
+appends a row to `results/LEADERBOARD.md` (date, agent, model, **aggregate score**, cost, duration);
+`results/` is committed. **Key caveat:** this publishes ONE run's aggregate, not a multi-run mean — the
+upstream leaderboard has no native 5-draw aggregation. So:
+- The **0.7433 5-draw aggregate is OUR (more honest) statistic** — to submit it we'd publish a curated row
+  noting "mean of 5 draws (0.6675–0.7985)", not a single benchctl press.
+- If the captain wants a **single-run** leaderboard row via benchctl's `p`, pick the **median draw
+  (0.7675, run d0a6f64260336fff)** as the representative — NOT the max (0.7985), which would
+  cherry-pick the top of the variance band.
+- These run dirs live under `dab/runs/` (gitignored, not `~/dataagentbench/_runs/`), so a benchctl
+  publish would need the runs visible to benchctl, OR we hand-author the `results/LEADERBOARD.md` row +
+  `summary.md` copy. **Captain should direct: (a) submit the 5-draw mean as a curated row, or (b) publish
+  the median single run via benchctl — and confirm where benchctl reads runs from for this harness.**
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -1067,3 +1128,16 @@ The 3-draw confirm is decisive and audit-clean (36/36 trials clean, 3/3 per data
 ### Summary
 
 Built and launched the 5th full draw for the DAB leaderboard aggregate (5 draws total of the cycle-3 README at high: 1 first-full + 3 confirm + this). Used a distinct experiment label (…-draw5) so it gets a fresh run dir f74c12b94f2f5172 (the identical frozen spec would collide on the deterministic run-dir hash); IV unchanged (same solver hash b2cae85c). trials:1/concurrency:4 is race-safe. Worker pid 2520874 alive; handle returned immediately per the launch-phase contract. This is a draw-count addition for the leaderboard, NOT a hypothesis change — the CONCLUDE validated-but-NOT-promoted recommendation stands. FO owns the wait; on done, audit then aggregate the 5 draws.
+
+## Stage Report: analyze (5-draw leaderboard aggregate)
+
+- DONE: Audit the 5th draw (AC-2) — `rk audit --policy strict` on `…-draw5/f74c12b94f2f5172`; confirm clean, all 12 datasets; exclude any infra signature.
+  CLEAN: `coverage_missing: 0`, `tainted: 0`, 12/12 datasets clean, no infra signature. Single-draw 0.7771. No exclusion.
+- DONE: Aggregate all 5 clean draws (1 + 3 + 1) — per-query 5-draw Pass@1, aggregate stratified + per-draw spread, confirm same solver hash b2cae85c at high; leaderboard table per-dataset + overall.
+  All 5 cells×draws verified (every cell exactly 5 draws). Aggregate stratified **0.7433**; per-draw spread min 0.6675 / median 0.7675 / max 0.7985 / mean 0.7433. Target cells over 5: PATENTS-q1 4/5, q2 3/5, q3 1/5, googlelocal-q2 4/5. Full per-dataset/per-query table in `## Leaderboard submission`.
+- DONE: Report + surface the submission-mechanism question; do NOT promote/edit seed.
+  DAB leaderboard = upstream benchctl `p` publish (one run's summary.md → results/ + LEADERBOARD.md row, aggregate score; no native multi-run mean). Surfaced 2 options for the captain (submit the 5-draw mean as a curated row, or publish the median single run d0a6f64=0.7675 via benchctl) + the runs-location caveat. CONCLUDE-not-promoted stands; seed/@baseline untouched.
+
+### Summary
+
+5th draw audit-clean; all 5 draws aggregate apples-to-apples (same cycle-3 hash b2cae85c at high, 12 datasets). Aggregate stratified Pass@1 over 5 draws = 0.7433 (vs anchor 0.6966, Opus 0.6536), per-draw spread 0.6675–0.7985 (median 0.7675). The 5-draw read reinforces CONCLUDE-not-promoted: PATENTS-q1 (4/5) + googlelocal-q2 (4/5) are durable, PATENTS-q2 marginal (3/5), q3 variable (1/5); the +0.047 aggregate sits inside a per-draw spread that straddles the anchor. Surfaced the leaderboard submission mechanism (upstream benchctl publish, one-run aggregate — no native 5-draw mean) and recommended the median single run (0.7675) if a single benchctl row is wanted, else a curated 5-draw-mean row; flagged that these run dirs are under dab/runs/ (gitignored) so benchctl's run source needs confirming. Did not promote or edit the seed — that's the captain's call.
