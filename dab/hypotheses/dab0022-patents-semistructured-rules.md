@@ -558,6 +558,32 @@ but do NOT move `@codex-batch-baseline` — the board median is within the ±0.0
 headline gain is variance-dominated. Seed README unchanged. The lever's PATENTS-q1 + googlelocal-q2
 mechanism is bankable for future composition.
 
+## 5th draw (leaderboard) (launched — detached)
+
+Captain wants a 5th draw to aggregate **5 draws of the cycle-3 README at high** for a DAB leaderboard
+submission: `d0a6f64260336fff` (first full, 1 draw) + `e8ec7dd1bde26916` (confirm, 3 draws) + this draw5
+(1 draw) = 5 total. NOT an IV change (same cycle-3 solver hash `b2cae85c`, effort high, 12 datasets);
+this is a draw-count addition, not a hypothesis change — the CONCLUDE recommendation above stands
+independent of the leaderboard aggregate.
+
+- **Spec:** `specs/dab0022-patents-semistructured-rules.draw5.frozen.yaml` — `experiment:
+  dab0022-patents-semistructured-rules-draw5` (DISTINCT label → fresh run dir; the identical frozen spec
+  would collide on the deterministic run-dir hash), `trials: 1`, `concurrency.trials: 4` (safe at
+  trials:1 — one instance per dataset, no same-dataset postgres-volume race).
+- **`--explain` confirmed:** `Tasks: 12`, `trials 1`, `reasoning_effort: "high"`, solver hash
+  `sha256:b2cae85c…` (IV unchanged), **fresh run dir
+  `runs/dab0022-patents-semistructured-rules-draw5/f74c12b94f2f5172`** (distinct from d0a6f64260336fff).
+- **Handle:** `runs/.rk-handles/dab0022-draw5-20260623-023350/`
+- **PID:** 2520874 (worker alive at launch; `done` sentinel absent = running)
+- **Started:** 2026-06-23T02:33:50Z. **Sentinel:** `runs/.rk-handles/dab0022-draw5-20260623-023350/done`
+  (absent until finished; `rc=0` ⇒ OK). **Log:** `…/log`. ntfy: none configured.
+- **ETA:** ~**45–60 min** wall (54 cells, trials:1, concurrency:4 — faster than the first full's ~77 min
+  at concurrency:2). PATENTS the heaviest cell.
+
+**On done (FO):** `rk audit --policy strict` (exclude any infra signature), then aggregate all 5 draws
+(1 + 3 + 1) for the leaderboard submission. The 5 run dirs: `d0a6f64260336fff`, `e8ec7dd1bde26916`
+(3 draws within), `f74c12b94f2f5172`.
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -1030,3 +1056,14 @@ Built and launched the captain-approved 3-draw full confirm (concurrency.trials:
 ### Summary
 
 The 3-draw confirm is decisive and audit-clean (36/36 trials clean, 3/3 per dataset). It does NOT meet the promote rule: PATENTS-q2 held only 1/3 (the confirm revealed it as variable-band, not the durable flip the single draw suggested — the level-4 EMA ranking computes a different CPC set per draw), and the board median 0.7058 clears the anchor by only +0.009 (inside the ±0.07 noise floor). Durable confound-free README signal = 2 cells (PATENTS-q1 + googlelocal-q2) ≈ +0.03, variance-swamped. Recommendation: CONCLUDE validated-but-NOT-promoted — bank the semi-structured lever family (2 durable flips, reconfirms flat-string serialization) without moving the anchor. The confirm worked exactly as designed: it caught the single-draw inflation of PATENTS-q2. Captain's call; recommendation only.
+
+## Stage Report: analyze (5th draw — leaderboard launch, detached)
+
+- DONE: Build the 5th-draw spec with a fresh run dir — fork the cycle-3 frozen spec, DISTINCT `experiment: …-draw5`, `trials: 1`, `concurrency.trials: 4`, SAME solver_workflow (IV) + effort + 12 datasets; freeze; `--explain` to confirm 54 cells / trials 1 / effort high / solver hash b2cae85c / a NEW run-dir.
+  Built `specs/dab0022-patents-semistructured-rules.draw5.{yaml,frozen.yaml}`; `--explain` → `Tasks: 12`, trials 1, effort high, solver hash `b2cae85c…`, fresh run dir `runs/dab0022-patents-semistructured-rules-draw5/f74c12b94f2f5172` (distinct from d0a6f64260336fff). ✓
+- DONE: Launch detached via `drivers/rk-run-detached.sh dab0022-draw5 …draw5.frozen.yaml run`; record handle + pid + ETA; return immediately, do NOT poll.
+  Launched: handle `runs/.rk-handles/dab0022-draw5-20260623-023350/`, pid 2520874 (alive, `done` absent), started 2026-06-23T02:33:50Z. ETA ~45–60 min. Recorded in `## 5th draw (leaderboard) (launched — detached)`. Did NOT poll/wait — handle returned to the FO.
+
+### Summary
+
+Built and launched the 5th full draw for the DAB leaderboard aggregate (5 draws total of the cycle-3 README at high: 1 first-full + 3 confirm + this). Used a distinct experiment label (…-draw5) so it gets a fresh run dir f74c12b94f2f5172 (the identical frozen spec would collide on the deterministic run-dir hash); IV unchanged (same solver hash b2cae85c). trials:1/concurrency:4 is race-safe. Worker pid 2520874 alive; handle returned immediately per the launch-phase contract. This is a draw-count addition for the leaderboard, NOT a hypothesis change — the CONCLUDE validated-but-NOT-promoted recommendation stands. FO owns the wait; on done, audit then aggregate the 5 draws.
