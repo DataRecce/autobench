@@ -150,15 +150,121 @@ Anchor full-board context: googlelocal q1/q3/q4 PASS q2 FAIL; PATENTS q1/q2/q3 a
 - **Log:** `runs/.rk-handles/dab0023-smoke-20260623-073517/log`; **done sentinel:** `…/done` (absent until finished; then rc/end/rundir).
 - **ETA:** ~21 query-cells at high → ~45–50 min wallclock (extrapolated from dab0022 cycle-1 smoke ~44 min for 19 cells). The FO owns the wait + auto-wakeup; not polling.
 
+### Smoke outcome — phase 2 (audit + score + flip/scope table)
+
+**Run:** `runs/dab0023-compose-durable-serialization-completelist/496bc7774f468ff7` (rc=0, ~29 min).
+**Audit (AC-2):** `rk audit --policy strict` = **clean 4 / coverage_missing 0 / tainted 0** — no dab-postgres dual-signature, all 4 datasets present. Scores attestable.
+**Score:** stratified Pass@1 over the 4 smoke datasets = **0.9143** (n_completed 4, n_errored 0) vs anchor on the same 4-subset **0.6875** → +0.227 on the subset. (Single high draw — not a board number; the full 12-dataset draw is what the gate-to-promote would read.)
+
+**Flip / scope table (by committed artifact vs `@codex-batch-baseline` `bf113446fdd94373`):**
+
+| Cell | Role | Anchor | Variant | Verdict | Attribution (committed artifact) |
+|------|------|--------|---------|---------|----------------------------------|
+| googlelocal-q2 | 🎯 TARGET (flat-string) | 0.0 FAIL | **1.0 PASS** | **BANKED** | "All names and scores matched successfully" — the flat-string serialization reached the answer. |
+| PATENTS-q1 | 🎯 TARGET (complete-list+flat-record) | 0.0 FAIL | **1.0 PASS** | **BANKED** | "All CPC codes present in LLM output" — complete-list+flat-record fired; full CPC set emitted, not truncated. |
+| PATENTS-q2 | (bonus, same dataset) | 0.0 FAIL | **1.0 PASS** | bonus flip | "All fuzzy names matched, CPC/year found near each name." |
+| PATENTS-q3 | (bonus, same dataset) | 0.0 FAIL | **1.0 PASS** | bonus flip | "All assignee-title pairs matched." PATENTS swept 0/3 → 3/3. |
+| stockmarket-q3 | ✅ CANARY (complete-list "for each") | 1.0 PASS | **0.0 FAIL** | **REGRESSED** | NOT row-broadening, NOT format: variant emitted the company **DESCRIPTION blurb** as the name field ("Apex Global Brands Inc. specializes in creating and marketing…: 23781.42; …") where the anchor emitted the clean **NAME** ("Apex Global Brands Inc.: 23781.42; …"). Same rows, same numbers, same `name: num; …` flat shape — wrong COLUMN. Verifier: "No number found near name" (the 200-char blurb pushed the number out of the name's match window). |
+| stockmarket-q4 | ✅ CANARY (top-5 single-winner) | 1.0 PASS | 1.0 PASS | HELD | scope held on the explicit top-k cell. |
+| yelp-q4 | ✅ CANARY (category avg-star) | 1.0 PASS | **0.0 FAIL** | **REGRESSED (variance)** | NOT a scope leak: variant "Restaurants \| **3.6648**" vs anchor "Restaurants, **3.6407**" — same category, **different computed average** (3.66 vs 3.64); 3.66 rounds past the verifier's tolerance for expected 3.63 while 3.64 matched. The `,`→` \| ` delimiter is the flat-string format and the verifier accepts both; the cause is the underlying number (temp=0 aggregate-grain variance on a borderline-rounding cell — yelp-q4 is confirmed variable-band from dab0022). |
+| yelp-q7 | ✅ CANARY (complete-list categories) | 1.0 PASS | 1.0 PASS | HELD | "All categories are present" — complete-list fired correctly on a genuine list cell. |
+
+**Headline:** Both durable targets BANKED by artifact (PATENTS swept 0/3→3/3, googlelocal-q2 flipped). BUT **two canaries regressed** — stockmarket-q3 (a real complete-list-rule interaction: wrong column, see Failure Review) and yelp-q4 (temp=0 variable-band, not the rule).
+
 ## Run result
 
 ## Behavioral analysis
 
+**The two targets banked, and the composition was additive on the target side.** Both
+pre-verified mechanisms fired by artifact in one README: flat-string serialization banked
+googlelocal-q2, and complete-list+flat-record banked PATENTS — not just q1 (the named target)
+but the whole PATENTS dataset (q1/q2/q3, 0/3→3/3). PATENTS-q1's prior anchor failure was the
+JSON-list serialization crash dab0022 identified; the flat-record form fixed it, and the
+complete-list rule kept the full CPC set un-truncated. This reconfirms
+[[dab-flat-string-serialization-works]] and the dab0022 semi-structured-rules result, and shows
+the two levers compose without cancelling on the cells they target (the h0049
+[[ade-bench-gated-levers-compose]] pattern held on the target side).
+
+**But the scope did NOT fully hold — one real interaction, one variance.** The whole
+falsification point of a GENERATIVE-but-SCOPED lever is whether the scope keeps the ranking /
+complete-list canaries safe. Two regressed; attribution by committed artifact splits them:
+
+- **stockmarket-q3 = a REAL complete-list-rule interaction (scope-relevant).** q3 is a genuine
+  open complete-list "for each" question ("List all company names … and for each, report its
+  average daily trading volume"), so the complete-list rule *correctly* fired — it did NOT
+  broaden the row set (anchor and variant have the same companies and the same numbers in the
+  same flat `key: number; …` shape). The regression is a **column-selection** error: under the
+  added rules the solver emitted the company **description blurb** as the record key instead of
+  the **name**. The verifier matches the name then looks for a number in its neighborhood; a
+  200-char description between name and number pushed the number out of the match window →
+  "No number found near name". This is the rule's blast radius even when scoped correctly: the
+  flat-record instruction says emit "EVERY qualifying row as a flat-delimited record" but does
+  not pin WHICH column is the identity field, so on a name+number "for each" cell the solver can
+  pick the wrong identity column. **The scope (single-winner vs complete-list) was right; the
+  rule under-specifies the record's key column.**
+
+- **yelp-q4 = temp=0 variable-band, NOT a scope leak.** Same category ("Restaurants"), correct
+  flat-string shape, but a different computed average (3.6648 vs anchor 3.6407) that rounds past
+  the verifier's tolerance for the expected 3.63. The `,`→`|` delimiter is exactly the
+  flat-string rule's prescribed form and the verifier accepts both; the cause is the underlying
+  aggregate number, which yelp-q4 is confirmed to wobble on at temp=0
+  ([[dab-opus-vs-gpt55-behavioral-model]] variable-band; dab0022 flagged yelp-q4/q7 as variable).
+  This drop attributes to draw variance, not the rules.
+
+**Calibration note (single high draw).** This is ONE high draw; per [[dab-mandatory-dbt-rejected]]
+and AC-3, a generative lever's single draw carries ±0.07 and the +0.227 subset lift is not a
+board number. The target banks are artifact-attributable (durable, pre-verified, and here
+re-fired), but the canary picture must be read by mechanism, not the headline: stockmarket-q3 is
+a real rule effect that would recur; yelp-q4 is variance that may not.
+
 ## Failure Review
+
+**Scope-leak finding — stockmarket-q3 (complete-list rule, key-column under-specification).**
+
+- **What broke:** a currently-passing complete-list canary (stockmarket-q3, anchor 1.0) regressed
+  to 0.0 under the added rules.
+- **Root cause (by artifact):** the complete-list / flat-record bullet tells the solver to emit
+  "EVERY qualifying row as a flat-delimited record" but does not say the record's leading field
+  must be the entity **identity** column (name/title), not a free-text description. On a
+  name+number "for each" cell the solver chose the description column as the key; the verifier's
+  name→nearby-number match then failed. The complete-list rule's *scope* (it should fire on this
+  open-list cell, and it did) was correct — the defect is the rule's *record shape* leaving the
+  key column unpinned.
+- **Not the other lever:** flat-string serialization is innocent (both anchor and variant use the
+  same flat `key: number; …` form). Row selection is innocent (same rows, same numbers).
+- **Fixable in place (REVISE-class):** tighten the complete-list bullet to pin the record key —
+  e.g. "emit each row as `<entity name/identifier>: <value>` (or `name | value`); use the
+  entity's NAME/TITLE as the leading field, never a description/blurb column." This keeps the
+  single idea (it is still the complete-list/flat-record rule) and removes the stockmarket-q3
+  blast radius, mirroring the dab0022 cycle-2→cycle-3 scoping-fix pattern that removed a ranking
+  regression without dropping the durable flip.
+- **yelp-q4 is NOT in this review** — attributed to temp=0 variable-band, not the rule (no scope
+  fix would address it; a multi-draw read would show it wobbling at the anchor too).
 
 ## Follow-up Routing
 
+**REVISE in place → re-smoke (idea unchanged).** Tighten the complete-list/flat-record bullet to
+pin the record's leading field to the entity NAME/TITLE (never a description/blurb column), then
+re-freeze and re-smoke the same 4-dataset panel. This is a one-line scope-tightening on the
+existing bullet — the single composition idea is preserved (mirrors dab0022 cycle-2→cycle-3). If
+the revise re-smoke holds stockmarket-q3 while keeping both target banks, advance to a full
+multi-draw confirm (≥2/3 hold on the targets, zero scope-leak) before any PROMOTE.
+
 ## Verdict
+
+**Gate read: REVISE (not GO, not REJECT).** One high draw: both durable targets BANKED by
+committed artifact (googlelocal-q2 flipped; PATENTS swept 0/3→3/3), subset stratified +0.227 over
+anchor — the composition works on the target side. But the scope did NOT fully hold: **one real
+scope interaction** (stockmarket-q3, a complete-list canary, regressed because the flat-record
+rule leaves the record's key column unpinned and the solver emitted the description blurb instead
+of the name — verified by artifact) plus **one variance drop** (yelp-q4, temp=0 variable-band, not
+the rule). GO required zero scope-leak regression; stockmarket-q3 is a genuine rule-caused
+regression, so the gate cannot be GO. It is REVISE rather than REJECT because the fix is a
+one-line tightening of the existing bullet (pin the key column to name/title) that keeps the
+single idea — exactly the dab0022 scoping-fix shape — not a dead-family wall. **Recommended next:
+REVISE the complete-list bullet, re-freeze, re-smoke the 4-panel; advance to full only if
+stockmarket-q3 holds with both targets still banked.** Caveat: single high draw — yelp-q4's drop
+is variance and the +0.227 is not a board number (AC-3).
 
 ## Stage Report: propose
 
@@ -183,3 +289,21 @@ Forked the @codex-batch-baseline solver and added exactly one `### Answer serial
 
 ### Summary
 Re-confirmed the smoke selection (4 datasets: googlelocal/PATENTS targets + stockmarket/yelp ranking canaries, gpt-5.5/high) then launched the run DETACHED. Handle `runs/.rk-handles/dab0023-smoke-20260623-073517`, pid 2719479 verified alive; `done` sentinel absent (running). Returning the handle to the FO immediately per the detached-run contract.
+
+### Stage Report: smoke (phase 2 — audit + score + deep-dive)
+
+- DONE: Audit (AC-2) — `rk audit --policy strict`.
+  clean 4 / coverage_missing 0 / tainted 0; no dab-postgres dual-signature; scores attestable.
+- DONE: Score — `rk score`.
+  Stratified Pass@1 = 0.9143 over the 4 smoke datasets (n_completed 4, n_errored 0); anchor 4-subset 0.6875 → +0.227 (single high draw, not a board number).
+- DONE: Deep-dive (a) did the 2 durable targets bank?
+  BOTH banked by committed artifact: googlelocal-q2 0→1 ("All names and scores matched"); PATENTS-q1 0→1 ("All CPC codes present") + bonus PATENTS q2/q3 also flipped (dataset 0/3→3/3). Recoverability: answers extracted verbatim from the codex rollout transcripts (escaped form), not truncated prefixes.
+- DONE: Deep-dive (b) did the scope hold?
+  PARTIAL — two canaries regressed. stockmarket-q3 (complete-list "for each") = REAL rule interaction by artifact: solver emitted the description blurb as the record key instead of the name (anchor used names; same rows/numbers/flat-shape) → wrong column, not row-broadening. yelp-q4 = temp=0 variable-band (3.6648 vs anchor 3.6407 avg, rounds past tolerance) — NOT the rule. stockmarket-q4 + yelp-q7 HELD.
+- DONE: `## Smoke result` flip/scope table + `## Behavioral analysis` + `## Failure Review` written.
+  Full attribution tables and root-cause for the stockmarket-q3 scope interaction recorded.
+- DONE: Gate verdict (plain words).
+  REVISE: both targets banked, but stockmarket-q3 is a real complete-list-rule regression (key column unpinned) → tighten the bullet to pin the leading field to name/title, re-freeze, re-smoke; advance to full only if it holds. REJECT not warranted (one-line in-place fix, single idea preserved); GO not warranted (scope-leak by artifact). yelp-q4 flagged as variance.
+
+### Summary
+Smoke ran clean (rc=0, strict audit 4/0/0). Both pre-verified targets BANKED by committed artifact — googlelocal-q2 flipped and PATENTS swept 0/3→3/3 — confirming the two levers compose additively on the cells they target (h0049 pattern). The scope did not fully hold: stockmarket-q3 (a genuine complete-list canary) regressed because the flat-record rule leaves the record's identity column unpinned and the solver emitted the description blurb instead of the name (artifact-verified; not row-broadening, not format), while yelp-q4 dropped on temp=0 variable-band variance unrelated to the rule. Verdict REVISE: pin the complete-list bullet's key column to name/title (one-line, single-idea-preserving, dab0022 cycle-2→cycle-3 shape), re-smoke the 4-panel, advance to full only if stockmarket-q3 holds with both targets still banked.
