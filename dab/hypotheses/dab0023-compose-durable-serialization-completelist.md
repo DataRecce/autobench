@@ -150,6 +150,18 @@ Anchor full-board context: googlelocal q1/q3/q4 PASS q2 FAIL; PATENTS q1/q2/q3 a
 - **Log:** `runs/.rk-handles/dab0023-smoke-20260623-073517/log`; **done sentinel:** `…/done` (absent until finished; then rc/end/rundir).
 - **ETA:** ~21 query-cells at high → ~45–50 min wallclock (extrapolated from dab0022 cycle-1 smoke ~44 min for 19 cells). The FO owns the wait + auto-wakeup; not polling.
 
+### Smoke run cycle-2 (launched — detached)
+
+Re-smoke after the cycle-2 scope fix (bullet 2 lead-field pinned to entity NAME/TITLE; gatekeeper cycle-2 APPROVE). Launched DETACHED and VERIFIED alive (the cycle-1 launch had silently no-op'd, so liveness was confirmed this time).
+
+- **Handle:** `runs/.rk-handles/dab0023-smoke2-20260623-082848` (from `dab/`)
+- **PID:** 2772504 — **VERIFIED alive** (`ps -p 2772504` → STAT `S`, the `__worker` running the run; `done` sentinel ABSENT = still running).
+- **Spec:** `specs/dab0023-compose-durable-serialization-completelist.smoke.frozen.yaml` (solver_workflow_content_hash `sha256:df29203c…` = cycle-2 README).
+- **Selection (`--explain`):** 4 datasets — googlelocal + PATENTS (targets), stockmarket + yelp (ranking canaries); model gpt-5.5, `reasoning_effort: high` (Tasks: 4, confirmed pre-launch).
+- **Log:** `runs/.rk-handles/dab0023-smoke2-20260623-082848/log`; **done sentinel:** `…/done` (absent until finished; then rc/end/rundir).
+- **ETA:** ~30 min wallclock (cycle-1 4-panel ran ~29 min). The FO owns the wait + auto-wakeup; not polling.
+- **Cell to watch:** stockmarket-q3 must now HOLD PASS (the cycle-1 leak); both target banks (googlelocal-q2, PATENTS-q1) must stay flipped; yelp-q4's cycle-1 drop was temp=0 variance.
+
 ### Smoke outcome — phase 2 (audit + score + flip/scope table)
 
 **Run:** `runs/dab0023-compose-durable-serialization-completelist/496bc7774f468ff7` (rc=0, ~29 min).
@@ -339,3 +351,11 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
 
 ### Summary
 Applied the captain-approved cycle-2 one-line scope fix: bullet 2 of the `### Answer serialization & list rules` section now pins each complete-list record's leading field to the entity NAME/TITLE (never a description/summary/blurb column) — the dab0022 cycle-2→cycle-3 scoping-fix shape that addresses the cycle-1 stockmarket-q3 leak (solver had emitted the company description blurb as the key, pushing the required number out of the validator's name-number match window). Bullet 1 and the leak-guard prose stay byte-intact; the section remains one idea. Both specs re-frozen; the full spec still differs from the anchor only in `experiment:` + `solver_workflow:` with `reasoning_effort: high` held; `--explain` re-confirms the unchanged 4-dataset smoke panel. The cycle-2 gatekeeper recommends APPROVE with zero FAILs and the prior G7 inert-risk WARN now resolved.
+
+## Stage Report: smoke (cycle-2 launch)
+
+- DONE: Launch the dab0023 cycle-2 re-smoke (high) DETACHED and VERIFY the handle (the cycle-1 launch silently no-op'd).
+  `--explain` re-confirmed Tasks: 4 (googlelocal/PATENTS targets + stockmarket/yelp canaries, gpt-5.5/high, content-hash df29203c) then launched via `drivers/rk-run-detached.sh dab0023-smoke2 …smoke.frozen.yaml run`. Handle `runs/.rk-handles/dab0023-smoke2-20260623-082848`, pid 2772504 VERIFIED alive (`ps` → STAT `S`, `__worker` running; `done` sentinel ABSENT). Recorded in `## Smoke result → Smoke run cycle-2 (launched — detached)`. ETA ~30 min. Not polling — FO owns the wait.
+
+### Summary
+Re-confirmed the 4-dataset smoke selection (high) then launched the cycle-2 re-smoke DETACHED. Unlike the cycle-1 launch (which silently no-op'd), this one was VERIFIED: handle dir `runs/.rk-handles/dab0023-smoke2-20260623-082848` exists, worker pid 2772504 confirmed alive via `ps`, `done` sentinel absent (running). Returning the handle to the FO immediately per the detached-run contract — the FO owns the wait + auto-wakeup.
