@@ -1022,6 +1022,20 @@ us whether the 2 PATENTS flips are the README or the effort.
 
 ## Follow-up Routing
 
+**Route: `file` → dab0023 (compose the 2 durable banked levers).** Captain concluded dab0022 PASSED-validated
+and directed a compose follow-up. Filed `hypotheses/dab0023-compose-durable-serialization-completelist.md`
+(status: hypothesis): compose the 2 dab0022-durable confound-free flips + the dab0015 flat-string
+reconfirmation into the seed README as PRE-VERIFIED BANKED levers (the ade-bench h0049
+gated-levers-compose pattern) — a flat-string serialization rule + a complete-list/flat-record rule,
+scoped so they fire only where validated and do NOT perturb ranking/single-winner cells (carrying forward
+the dab0022 cycle-2 scoping lesson). dab0023 will PROPOSE the seed/anchor change at its own propose gate;
+dab0022 conclude only FILES it (no promote / no seed / no @baseline edit here).
+
+---
+
+_The pre-confirm recommendation is retained below for the audit trail (superseded by the PASSED-validated
+verdict above)._
+
 **Verdict recommendation: PROMOTE-CANDIDATE, but NOT-yet on a single draw — confirm with a 3-draw full
 first.** This is the strongest DAB result to date and the first genuinely lever-attributable multi-cell
 gain, but a single full draw's +0.0709 is not yet trustworthy enough to promote outright.
@@ -1066,18 +1080,35 @@ README, promote, or conclude.
 
 ## Verdict
 
-_Pending captain decision at the analyze gate. **UPDATED after the 3-draw confirm — Ensign
-recommendation: CONCLUDE validated-but-NOT-promoted.** The confirm decision rule was NOT met:
-PATENTS-q2 held only 1/3 across clean draws (revealed as variable-band, not a durable flip), so the
-"all 3 attributed cells ≥2/3" clause fails; board median 0.7058 clears the anchor 0.6966 by only +0.009
-(inside the ±0.07 noise floor). Durable confound-free signal = 2 cells (PATENTS-q1 2/3 + googlelocal-q2
-2/3) ≈ +0.03, variance-swamped. Bank the semi-structured-data lever as a validated-actionable family
-(2 durable flips, reconfirms [[dab-flat-string-serialization-works]]); do NOT move @codex-batch-baseline;
-seed README unchanged. This is the captain's call — recommendation only; I did not promote/conclude/edit
-the registry or seed._
+**PASSED — validated, NOT promoted (captain decision).**
 
-_(Prior single-draw analyze recommendation was PROMOTE-CANDIDATE-pending-confirm; the confirm correctly
-caught that the single draw over-credited PATENTS-q2 — the system worked as designed.)_
+The semi-structured-data lever is genuinely **validated**: **2 durable, confound-free flips proven across
+draws** (codex-vs-codex, high-vs-high — README the sole variable):
+- **PATENTS-q1** (2/3 in the confirm, 4/5 over all 5 draws) — parser-first profiling + complete-list +
+  flat simple-record reached the committed answer.
+- **googlelocal-q2** (2/3 confirm, 4/5 over 5 draws) — flat-string serialization; **RECONFIRMS
+  [[dab-flat-string-serialization-works]]** (dab0015), composing two validated mechanisms in one README.
+
+**NOT promoted** because the durable lift (~+0.04 from those 2 cells) is **variance-swamped**: the 5-draw
+mean is 0.7433 but the **median draw is 0.7058 — only +0.009 over the codex anchor 0.6966**, and the
+per-draw spread 0.6675–0.7985 is wider than the lift and sits inside the ±0.07 generative-lever noise
+band. The confirm's decision rule (all 3 attributed cells ≥2/3 AND median ≥ anchor) was NOT met —
+PATENTS-q2 held only 1/3 (revealed variable-band, not a durable flip). So the **seed README and
+`@baseline` / `@codex-batch-baseline` stay UNCHANGED.**
+
+**Real deliverable banked:** a complete **270/270 DAB leaderboard submission** (`dab/leaderboard_submissions/`)
+scored **0.7433 stratified Pass@1** (> Opus incumbent 0.6536; > codex anchor 0.6966 on the 5-draw
+aggregate), validated through DAB's own per-query validators.
+
+**Knowledge banked:** the semi-structured-data lever FAMILY is now **validated-actionable at gpt-5.5/high**
+— the worker demonstrably executes parser-first / complete-list / flat-record / graph-traversal, refuting
+the dab0012/dab0017 "abstract prose goes inert" (G7) worry. The 2 durable cells + the dab0015
+reconfirmation are PRE-VERIFIED banked levers for composition → filed as **dab0023**.
+
+_(Process note: the single-draw analyze read recommended PROMOTE-CANDIDATE-pending-confirm; the 3-draw
+confirm correctly caught that the single draw over-credited PATENTS-q2 as stable. The confirm worked as
+designed — single-draw deltas are not promotable even with airtight committed-artifact attribution; only
+a multi-draw hold-rate separates a durable flip from a lucky draw. See [[dab-semistructured-rules-first-real-go]].)_
 
 ## Stage Report: propose
 
@@ -1361,3 +1392,15 @@ PATCHED to 270/270. The fresh PATENTS re-run (audit-clean) echoed the full verba
 ### Summary
 
 Scored the submission `answers.json` through DAB's own per-query validators (the authoritative scorer, available locally with common_scaffold on the path): **stratified Pass@1 = 0.7433**, matching our earlier in-run number. The match is coincidental at the cell level — 4 cells differ and offset: bookreview-q2/q3 score HIGHER from the answers.json (the list answers were json.dumps-serialized and the substring validator passes them), and PATENTS-q1/q2 run-001 score LOWER (the recovered answer text for that cell is non-faithful — the PATENTS run-001 cell, like the original draw5, never echoed its full answer in the transcript, so its package entry under-scores the real in-run PASS). The headline is robust at ~0.7433 regardless; the only blemish is the submitted PATENTS-run-001 q1/q2 answer text, fixable by the same fresh-draw recovery as run-005 (a one-cell re-run) — flagged for the captain, does not move the headline. No package files were edited this stage (reporting only); did not fabricate the run-001 answers.
+
+## Stage Report: conclude
+
+- DONE: Finalize `## Verdict` = PASSED-validated (NOT promoted); set `## Follow-up Routing` to `file` with the compose direction; append a self-learning entry.
+  Verdict written: PASSED, validated (2 durable confound-free flips PATENTS-q1 + googlelocal-q2, reconfirms dab0015), NOT promoted (durable ~+0.04 variance-swamped: median 0.7058 vs anchor 0.6966 +0.009, spread 0.6675–0.7985 inside ±0.07); seed README + @baseline/@codex-batch-baseline UNCHANGED; 270/270 leaderboard submission scored 0.7433 banked. Follow-up Routing = `file` → dab0023. `_artifacts/self-learning.md` appended.
+- DONE: FILE the compose follow-up `hypotheses/dab0023-compose-durable-serialization-completelist.md` (status hypothesis, kind hypothesis, id dab0023).
+  One falsifiable hypothesis: compose the 2 dab0022-durable flips + dab0015 flat-string into the seed README as pre-verified banked levers (h0049 gated-compose pattern), scoped off ranking/single-winner cells. Forks `@codex-batch-baseline` (`spacedock-readme-baseline-hostfix`). Template stubs left empty.
+- DONE: Did NOT promote / edit seed / edit @baseline / touch frontmatter verdict/status (FO sets verdict + archives; dab0023 will propose the seed change at its own gate).
+
+### Summary
+
+Concluded dab0022 as PASSED-validated per the captain: the semi-structured-data lever is genuinely validated (2 durable confound-free flips — PATENTS-q1 complete-list/flat-record + googlelocal-q2 flat-serialization reconfirming dab0015 — and the FAMILY proven actionable at gpt-5.5/high), but NOT promoted because the ~+0.04 durable lift is swamped by the ±0.07 generative variance (median draw 0.7058 ≈ anchor). Seed README and @baseline/@codex-batch-baseline stay unchanged. Banked the real deliverable: a 270/270 leaderboard submission scored 0.7433. Filed the compose follow-up dab0023 (compose the 2 durable + dab0015 levers as pre-verified banked levers via the h0049 gated-compose pattern, scoped off ranking cells) — dab0023 proposes the seed change at its own propose gate; conclude only files it. No promote/seed/registry/frontmatter edits.
