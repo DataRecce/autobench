@@ -1,0 +1,53 @@
+# ABOUTME: dab0022 PATENTS-only re-run to fill the leaderboard gap — the prior draw5 PATENTS cell
+# ABOUTME: computed answers in a runtime solve_dataset.py and only echoed truncated prefixes, so its
+# ABOUTME: verbatim q1/q2/q3 committed answers were unrecoverable (267/270). This fresh PATENTS draw
+# ABOUTME: gives byte-exact recoverable answers for run "4" (run-005) to reach 270/270.
+# ABOUTME: NOT an IV change: same cycle-3 solver README (hash b2cae85c) + reasoning_effort high.
+# ABOUTME: DISTINCT experiment label (…-patents-r5) → fresh run dir (avoids the deterministic-hash
+# ABOUTME: collision). PATENTS only, trials:1. NOTE for phase 2: confirm the cell's on-disk answers.json
+# ABOUTME: carries the FULL q1/q2/q3 strings (not truncated) at audit time; if not, flag — a re-run
+# ABOUTME: alone won't fix it and a different recovery is needed.
+version: 1
+experiment: dab0022-patents-semistructured-rules-patents-r5
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0022-patents-semistructured-rules
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - PATENTS
+  exclude_tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - stockindex
+  - stockmarket
+  - yelp
+trials: 1
+concurrency:
+  trials: 1
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout

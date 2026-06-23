@@ -702,6 +702,31 @@ existing DAB reference format; same draw→run-index mapping across both (run "0
   answers byte-match `raw_logs/<ds>/run-001/answers.json` (spot-checked crmarenapro/yelp/bookreview, 0
   mismatches). Committed in the dab repo (NOT pushed).
 
+### PATENTS draw5 re-run (launched — detached) — to fill the 267→270 gap
+
+Captain approved re-running the one PATENTS draw5 cell to close the 3-entry gap (PATENTS run "4"
+q1/q2/q3) for a byte-exact 270/270. PATENTS-only, trials:1, same cycle-3 README (the IV), fresh run dir.
+
+- **Spec:** `specs/dab0022-patents-semistructured-rules.patents-r5.frozen.yaml` — `experiment:
+  dab0022-patents-semistructured-rules-patents-r5` (DISTINCT → fresh run dir), PATENTS only, `trials: 1`,
+  `concurrency.trials: 1`.
+- **`--explain` confirmed:** `Tasks: 1` (PATENTS, 3 cells q1/q2/q3), `reasoning_effort: "high"`, solver
+  hash `sha256:b2cae85c…` (IV unchanged), fresh run dir
+  `runs/dab0022-patents-semistructured-rules-patents-r5/7e0f83df055ce078`.
+- **Handle:** `runs/.rk-handles/dab0022-patents-r5-20260623-035538/` · **PID:** 2656592 (alive, `done` absent).
+- **Started:** 2026-06-23T03:55:38Z. **Sentinel:** `…/done` (rc=0 ⇒ OK). ntfy: none.
+- **ETA:** ~12–20 min (PATENTS is the heaviest dataset — billion-row CPC EMA + citation-graph join — but
+  only 3 cells, trials:1).
+
+**Phase-2 (FO, on done):** audit the cell; **CONFIRM the on-disk answers.json carries the FULL verbatim
+q1/q2/q3 strings (not truncated)** — this is the whole point of the re-run; if it's still truncated/
+computed-not-persisted, FLAG (a re-run alone won't fix it, we'd need a different recovery). Then PATCH
+`codex-gpt-5.5_results.json` run "4" PATENTS q1/q2/q3 (267→270) and replace
+`raw_logs/PATENTS/run-005/` with this fresh cell's transcript + answers.json + taint (drop the
+`_recovery_status:FAILED` marker). Note in the README that draw5-PATENTS is a FRESH independent draw (the
+original verbatim answers were unrecoverable) — honest disclosure. This is a fresh draw substituting for
+the original run-005 PATENTS cell; the other 11 datasets' run-005 cells stay from f74c12b.
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -1228,3 +1253,14 @@ Authored the captain-chosen curated 5-draw-mean leaderboard row in `~/dataagentb
 ### Summary
 
 Assembled the formal DAB leaderboard submission package under the new tracked folder `dab/leaderboard_submissions/`, replicating both DAB reference formats. Deliverable 1 (`codex-gpt-5.5_results.json`) = 267 of 270 `{dataset,query,run,answer}` entries (the 3 missing are PATENTS run-005 q1/q2/q3, genuinely unrecoverable — the draw computed answers in a runtime script that was only read back truncated; omitted not fabricated, flagged in the README + entity with a re-run option for the captain). Deliverable 2 (`raw_logs/`) = the full 12×5 tree (60 run dirs, codex transcript + answers + taint per cell, 12 summary.json), taint clean throughout. Deviations (codex-output.jsonl naming, null cost/token for the flat subscription) documented. A subagent did the 60-cell extraction against an exact recipe I verified; I checked the on-disk result (counts, file sets, the FAILED marker) before committing. Committed in the dab repo, NOT pushed. The earlier hand-authored ~/dataagentbench LEADERBOARD.md row (cbff2b41, local) is left as-is per the dispatch; this formal package is the captain's chosen mechanism.
+
+## Stage Report: analyze (PATENTS draw5 re-run launch — detached)
+
+- DONE: Build a PATENTS-only trials:1 spec with a fresh run dir — fork the cycle-3 frozen spec, PATENTS only, trials:1, DISTINCT experiment …-patents-r5, SAME solver_workflow (IV) + effort high; freeze; `--explain` to confirm PATENTS only / 3 cells / effort high / solver hash b2cae85c / fresh run-dir.
+  Built `specs/dab0022-patents-semistructured-rules.patents-r5.{yaml,frozen.yaml}`; `--explain` → `Tasks: 1` (PATENTS), trials 1, effort high, solver hash `b2cae85c…`, fresh run dir `runs/dab0022-patents-semistructured-rules-patents-r5/7e0f83df055ce078`. Recorded the phase-2 reminder to confirm answers.json is full (not truncated).
+- DONE: Launch detached via `drivers/rk-run-detached.sh dab0022-patents-r5 …patents-r5.frozen.yaml run`; record handle + pid + ETA; return immediately, do NOT poll.
+  Launched: handle `runs/.rk-handles/dab0022-patents-r5-20260623-035538/`, pid 2656592 (alive, `done` absent), started 2026-06-23T03:55:38Z. ETA ~12–20 min. Recorded in `## Leaderboard submission` → "PATENTS draw5 re-run". Did NOT poll/wait — handle returned to the FO.
+
+### Summary
+
+Built and launched the captain-approved PATENTS-only re-run (trials:1, fresh run dir, same cycle-3 README at high) to fill the 3-entry leaderboard gap with byte-exact recoverable answers. Worker pid 2656592 alive; handle returned immediately per the launch-phase contract. Phase 2 (on done): confirm the cell's on-disk answers.json carries the FULL verbatim q1/q2/q3 (the whole point — flag if still truncated), then patch codex-gpt-5.5_results.json run "4" PATENTS (267→270) and replace raw_logs/PATENTS/run-005/ with this fresh cell, with honest README disclosure that draw5-PATENTS is a fresh independent draw. FO owns the wait.
