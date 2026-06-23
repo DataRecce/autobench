@@ -43,14 +43,19 @@ solver content hash `sha256:b2cae85c…`) over all 12 datasets / 54 queries.
 3. **`answers.json` recovery:** the run-dirs do not persist `answers.json` (only the rollout transcript +
    verifier outputs), so each cell's `answers.json` is recovered from the worker transcript's final write
    to `/workspace/answers.json`. Integrity is gated by matching the recovered key set to the stored
-   `reward_per_query.json`. 59 of 60 cells recovered cleanly (integrity-gate PASS).
-4. **One unrecoverable cell — `PATENTS` run-005 (run index `"4"`), q1/q2/q3.** That draw computed its
-   answers inside a runtime `solve_dataset.py` (live-DB query) that `json.dump`'d to `answers.json`; the
-   worker only ever READ the file back for contract checks (truncated prefixes), so the verbatim committed
-   answer was never echoed in the transcript and is not recoverable without re-executing the worker's SQL
-   against the PATENTS sqlite + postgres DBs. Per the no-fabrication rule it is OMITTED from
-   `codex-gpt-5.5_results.json` (→ **267 entries, not 270**) and its `raw_logs/PATENTS/run-005/answers.json`
-   carries a `_recovery_status: FAILED` marker (NOT a fabricated answer). The cell's transcript, taint,
-   and summary are still present. (For reference, this cell scored q1✅ q2✅ q3❌ per its
-   `reward_per_query.json`.) To make it byte-exact, re-run that single PATENTS cell at trials:1 — captain's
-   call whether the 3-cell gap warrants it.
+   `reward_per_query.json`. 59 of 60 cells recovered cleanly on the first pass; the 60th (PATENTS run-005)
+   was filled by a fresh re-run — see note 4. **All 270 entries are now present.**
+4. **`PATENTS` run-005 (run index `"4"`) is a FRESH INDEPENDENT DRAW — honest disclosure.** The ORIGINAL
+   draw-5 PATENTS cell (`runs/dab0022-patents-semistructured-rules-draw5/f74c12b94f2f5172`) computed its
+   answers inside a runtime `solve_dataset.py` (live-DB query) that `json.dump`'d to `answers.json`, and
+   the worker only READ the file back for contract checks (truncated prefixes) — so its verbatim committed
+   answer was NOT recoverable from the transcript (the harness does not persist the per-cell `answers.json`
+   out of the container; the only durable source is the transcript). Rather than fabricate, a **fresh
+   PATENTS-only re-run** was launched at the same cycle-3 README + high (run dir
+   `runs/dab0022-patents-semistructured-rules-patents-r5/7e0f83df055ce078`); that draw echoed the full
+   answers object verbatim (q1 430 / q2 1393 / q3 255 chars — lengths matched its own self-report), so its
+   q1/q2/q3 now populate run "4" in `codex-gpt-5.5_results.json` and `raw_logs/PATENTS/run-005/`. **This
+   means the PATENTS run-005 cell is a different draw than the other 11 datasets' run-005 cells (which are
+   from f74c12b)** — a deliberate, disclosed substitution to achieve a byte-exact 270/270 without
+   fabrication. The fresh cell scored the same as the original (q1✅ q2✅ q3❌, 2/3), so the per-dataset
+   `summary.json` and aggregate are unchanged.

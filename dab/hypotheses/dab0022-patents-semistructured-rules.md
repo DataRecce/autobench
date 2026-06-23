@@ -727,6 +727,27 @@ computed-not-persisted, FLAG (a re-run alone won't fix it, we'd need a different
 original verbatim answers were unrecoverable) — honest disclosure. This is a fresh draw substituting for
 the original run-005 PATENTS cell; the other 11 datasets' run-005 cells stay from f74c12b.
 
+**PATCHED — 270/270 (re-run RECOVERY SUCCEEDED).** Run `7e0f83df055ce078` audit-CLEAN
+(coverage_missing 0, tainted 0, clean). The fresh PATENTS cell scored q1✅ q2✅ q3❌ (same as the
+original) AND **echoed the full verbatim answers object** in an intermediate worker print — q1 (430
+chars, the 72-code list), q2 (1393, title|code|year records), q3 (255, the BLOOM ENERGY CORP / CRYSTAL
+IS / SCHOWALTER pairs) — lengths matching the worker's own self-report {q1:430, q2:1393, q3:255}, so the
+recovery is byte-exact, not truncated. Patched:
+- `codex-gpt-5.5_results.json`: added PATENTS run "4" q1/q2/q3 → **270 entries**, re-validated (unique
+  (dataset,query,run), no nulls, all strings).
+- `raw_logs/PATENTS/run-005/`: replaced with the fresh cell's `answers.json` (full), `codex-output.jsonl`
+  (worker) + `codex-output.fo.jsonl` (FO), `taint.json`/`taint.md` (clean); the `_recovery_status:FAILED`
+  marker is gone.
+- `raw_logs/PATENTS/summary.json`: run-005 stays passed=2/3 (the score was always known from the original
+  reward_per_query; only the answer TEXT was missing), so the per-dataset/aggregate numbers are unchanged.
+- `leaderboard_submissions/README.md`: updated note 4 to disclose run-005-PATENTS is a fresh independent
+  draw (same score, full answers).
+
+The original draw5 PATENTS cell (f74c12b) had only truncated read-backs — its verbatim answer remains
+unrecoverable, which is WHY the substitution; the harness-not-persisting-answers.json is the root cause
+(durable source = transcript only). The re-run worked because this draw happened to echo the full object
+before writing.
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -1264,3 +1285,16 @@ Assembled the formal DAB leaderboard submission package under the new tracked fo
 ### Summary
 
 Built and launched the captain-approved PATENTS-only re-run (trials:1, fresh run dir, same cycle-3 README at high) to fill the 3-entry leaderboard gap with byte-exact recoverable answers. Worker pid 2656592 alive; handle returned immediately per the launch-phase contract. Phase 2 (on done): confirm the cell's on-disk answers.json carries the FULL verbatim q1/q2/q3 (the whole point — flag if still truncated), then patch codex-gpt-5.5_results.json run "4" PATENTS (267→270) and replace raw_logs/PATENTS/run-005/ with this fresh cell, with honest README disclosure that draw5-PATENTS is a fresh independent draw. FO owns the wait.
+
+## Stage Report: analyze (PATENTS re-run phase 2 — recover + patch to 270)
+
+- DONE: Audit the fresh cell — `rk audit --policy strict` on `…-patents-r5/7e0f83df055ce078`.
+  CLEAN: coverage_missing 0, tainted 0, clean. Scored q1✅ q2✅ q3❌.
+- DONE: RECOVERY CHECK (decisive) — determine whether the FULL verbatim q1/q2/q3 are recoverable.
+  RECOVERABLE: a worker `function_call_output` echoed the complete answers object verbatim (q1 430 / q2 1393 / q3 255 chars; lengths matched the worker's self-report → byte-exact, not truncated). The harness still does NOT persist answers.json out of the container; this draw succeeded because it printed the full object before writing (the original f74c12b draw printed only lengths).
+- DONE: Patch to 270 — update results JSON run "4" PATENTS; replace raw_logs/PATENTS/run-005/; re-validate; update README; commit.
+  `codex-gpt-5.5_results.json` → 270 entries (validated: unique, no nulls, strings). `raw_logs/PATENTS/run-005/` = fresh answers.json + worker/FO transcripts + clean taint (FAILED marker dropped). summary.json unchanged (score was always known, 2/3). README note 4 rewritten as fresh-independent-draw disclosure. Committed.
+
+### Summary
+
+PATCHED to 270/270. The fresh PATENTS re-run (audit-clean) echoed the full verbatim q1/q2/q3 (byte-exact, lengths matched its self-report), so the gap is closed without fabrication. Patched `codex-gpt-5.5_results.json` (267→270, re-validated) and replaced `raw_logs/PATENTS/run-005/` with the fresh cell (FAILED marker gone); the README discloses run-005-PATENTS is a fresh independent draw (same score q1✅q2✅q3❌, so summary.json/aggregate unchanged). Root cause of the original gap: the harness does not persist per-cell answers.json out of the container, so recovery depends on whether a draw echoes the full object in its transcript — a known fragility, not luck-per-se, worth a harness fix if byte-exact recovery is needed routinely. The dab-repo package is now a complete 270/270 submission, committed, NOT pushed.
