@@ -359,3 +359,68 @@ Applied the captain-approved cycle-2 one-line scope fix: bullet 2 of the `### An
 
 ### Summary
 Re-confirmed the 4-dataset smoke selection (high) then launched the cycle-2 re-smoke DETACHED. Unlike the cycle-1 launch (which silently no-op'd), this one was VERIFIED: handle dir `runs/.rk-handles/dab0023-smoke2-20260623-082848` exists, worker pid 2772504 confirmed alive via `ps`, `done` sentinel absent (running). Returning the handle to the FO immediately per the detached-run contract — the FO owns the wait + auto-wakeup.
+
+## Smoke result (cycle 2 — phase 2: audit + score + scope-fix verification)
+
+**Run:** `runs/dab0023-compose-durable-serialization-completelist/2df5f0e5c3907715` (rc=0, ~30 min; done sentinel end 08:58).
+**Audit (AC-2):** `rk audit --policy strict` = **clean 4 / coverage_missing 0 / tainted 0** — no dab-postgres dual-signature, all 4 datasets present. Scores attestable.
+**Score:** stratified Pass@1 over the 4 smoke datasets = **0.8042** (n_completed 4, n_errored 0) vs cycle-1 **0.9143** and the anchor 4-subset baseline. Single high draw — NOT a board number.
+
+**Cycle-2 flip/scope table (by committed artifact vs anchor `bf113446fdd94373`; per-query = anchor / cycle-1 / cycle-2):**
+
+| Cell | Role | Anchor | C1 | C2 | C2 verdict | Attribution (committed artifact) |
+|------|------|--------|----|----|-----------|----------------------------------|
+| googlelocal-q2 | 🎯 TARGET (flat-string) | FAIL | PASS | **FAIL** | **format FIRED, row-selection miss (variance).** Committed `"Elite Massage \| 5.0; Angel-A Massage \| 4.333…; Aurora Massage \| 4.178…"` — correct flat `name \| value` shape (flat-string lever worked) but wrong row set: expected "J B Oriental Inc" absent. Confirmed variable-band (dab0022: 4/5 over 5 draws); this draw is the natural ~1/5 miss, NOT a serialization failure. |
+| PATENTS-q1 | 🎯 TARGET (complete-list+flat-record) | FAIL | PASS | **PASS** | **STILL BANKED.** "All CPC codes present in LLM output" — complete-list+flat-record fired, full CPC set emitted un-truncated. The named target holds across both draws. |
+| PATENTS-q2 | (bonus) | FAIL | PASS | **PASS** | "All fuzzy names matched, CPC/year found near each name." Holds. |
+| PATENTS-q3 | (bonus) | FAIL | PASS | **FAIL** | **name-lead FIRED, CPC-subclass-selection miss (variance).** Committed answer leads with the NAME (`BLOOM ENERGY CORP \| …`, `CRYSTAL IS INC \| SEMICONDUCTOR DEVICES NOT COVERED BY CLASS H10`) — name-lead + flat-record both correct. Failed because the verifier expected CRYSTAL IS INC paired with a different/longer CPC subclass title ("SINGLE-CRYSTAL GROWTH; …"); the solver chose the wrong CPC subclass. Analytic join-semantics variance, NOT format/row-count. |
+| stockmarket-q3 | ✅ CANARY (complete-list "for each") | PASS | FAIL | **FAIL** | **SCOPE FIX WAS INERT (still regressed).** Committed q3 STILL leads each record with the description BLURB: `"Apex Global Brands Inc. specializes in creating and marketing…: 23781.42; BIO-key International, Inc. specializes in…: 10988.14; …"` — byte-pattern identical to cycle-1. The lead-field pin ("use NAME/TITLE, never a description/blurb") did NOT change the committed output. Verifier "No number found near name" (the blurb pushes the number out of the name's match window). |
+| stockmarket-q4 | ✅ CANARY (top-5) | PASS | PASS | **PASS** | HELD. |
+| yelp-q4 | ✅ CANARY (category avg-star) | PASS | FAIL | **PASS** | **RECOVERED** — confirming the cycle-1 drop was temp=0 variable-band variance, not the rule (as attributed). |
+| yelp-q7 | ✅ CANARY (complete-list categories) | PASS | PASS | **PASS** | HELD. |
+
+**Headline:** The named target PATENTS-q1 STILL banks; the other target googlelocal-q2 missed on row-selection variance (format fired). The scope fix was **INERT on its own target cell** — stockmarket-q3 still emits the blurb-led answer, byte-identical to cycle-1. yelp-q4 recovered (confirming cycle-1's variance call).
+
+## Behavioral analysis (cycle 2)
+
+**The lead-field scope fix did NOT change behavior on stockmarket-q3 — it was inert.** This is the gate-deciding finding. The cycle-2 README adds a concrete, worked instruction to bullet 2: "Use the entity's NAME/TITLE as each record's leading field (e.g. `name: value` or `name | value`), never a description/summary/blurb column." By committed artifact the solver's q3 answer is *byte-pattern identical to cycle-1* — it still leads each record with the full company description blurb. The solver did not adopt the rule on this cell. This is the **"talks but doesn't do"** inert-risk the cycle-1 G7 WARN flagged (and which the cycle-2 gatekeeper believed resolved by the worked skeleton): a README prose instruction about WHICH COLUMN to use as the record key is **not reliably actionable** at gpt-5.5/high — the solver had already built its q3 result keyed on the description column during exploration and the README rule did not redirect that choice. The dab0012/[[dab-readme-cannot-suppress-output-shape]] family wall recurs: README prose can pin FORMAT (flat-string fired everywhere) but cannot reliably steer WHICH FIELD the solver treats as identity.
+
+**The two non-banking targets are FORMAT-fired / CONTENT-variance, not lever failures.** googlelocal-q2 and PATENTS-q3 both committed correctly-shaped flat / name-led answers (the levers fired) but missed on analytic content — googlelocal-q2 on row selection (3 massage businesses vs the expected set incl. "J B Oriental Inc"; confirmed variable-band 4/5), PATENTS-q3 on CPC-subclass choice (wrong subclass title for CRYSTAL IS INC). These are the oracle-blind variable band, not the rules. PATENTS-q1 (the named target) held both draws.
+
+**Calibration note (single high draw).** Per AC-3 and [[dab-mandatory-dbt-rejected]], a generative lever's single draw carries ±0.07; the cycle-2↔cycle-1 swings (googlelocal-q2 PASS→FAIL, PATENTS-q3 PASS→FAIL, yelp-q4 FAIL→PASS) are exactly that draw variance on the oracle-blind band. The durable signal across BOTH draws: PATENTS-q1 banks; flat-string format fires; stockmarket-q3 regresses with the SAME blurb-led mechanism (the fix is inert).
+
+## Failure Review (cycle 2)
+
+**The cycle-2 scope fix is INERT on stockmarket-q3 — the regression persists by the same mechanism.**
+
+- **What broke:** the stockmarket-q3 canary (anchor PASS) regressed to 0.0 again, IDENTICALLY to cycle-1 — committed answer leads each record with the description blurb, not the name.
+- **Root cause (by artifact):** the cycle-2 README instruction pinning the leading field to NAME/TITLE was NOT adopted by the solver on this cell. The committed q3 string is byte-pattern identical to cycle-1's blurb-led output. The fix changed the README but not the behavior — a README prose instruction about which column is the record identity is not reliably actionable at gpt-5.5/high (the "talks but doesn't do" inert-risk; same wall as [[dab-readme-cannot-suppress-output-shape]] / dab0012 for output-shape steering).
+- **Not row-selection, not flat-string:** rows and numbers are the same as the anchor; the flat `key: number; …` shape is correct. The single defect is the identity COLUMN, and the README could not move it.
+- **Why a third in-place revise is NOT indicated:** cycle-1 attributed this to an unpinned key column and prescribed the lead-field pin; cycle-2 added exactly that pin and it was inert by artifact. The same one-line-prose family has now failed to move this cell once it was tried. Pinning the column harder in prose is the same dead channel (README-cannot-steer-which-field). This crosses from "fixable scoping nuance" into the dab0012 README-output-shape dead-family boundary for the complete-list arm's key-column behavior.
+
+## Verdict (cycle 2)
+
+**Gate read: NO-GO for promote; the composition is VALIDATED-BUT-NOT-PROMOTABLE (the dab0022 outcome), and the complete-list arm's key-column behavior is REJECTED as README-inert.** One high draw, clean audit (4/0/0). The decisive reads:
+1. **The scope fix was INERT** — stockmarket-q3 still regressed by the identical blurb-led mechanism (committed answer byte-pattern identical to cycle-1). GO required stockmarket-q3 to HOLD PASS; it did not, and the prescribed in-place fix did not move it. This is not a new leak — it is the *same* leak surviving the fix, which reclassifies it from REVISE-able to README-inert ([[dab-readme-cannot-suppress-output-shape]] family).
+2. **The flat-string serialization lever is real and durable** — it fired (correct flat shape) on every target; PATENTS-q1 (named target) banked across BOTH draws. This reconfirms [[dab-flat-string-serialization-works]].
+3. **The two non-banks (googlelocal-q2, PATENTS-q3) are oracle-blind content variance, not lever failures** — both committed correctly-formatted answers and missed on analytic content; the format/shape levers fired.
+
+**Recommendation:** Do NOT advance to full (the scope fix is inert → a full board would carry the stockmarket-q3-style key-column regression on every complete-list "for each" name+number cell, with no in-prose remedy). CONCLUDE the hypothesis **validated-but-not-promoted**: bank the knowledge — (a) flat-string serialization durably fires (already in [[dab-flat-string-serialization-works]]); (b) the complete-list/flat-record arm's KEY-COLUMN choice is README-inert (the lead-field prose fix did not move stockmarket-q3 by artifact), a new boundary for [[dab-readme-cannot-suppress-output-shape]]. Leave `@codex-batch-baseline` UNCHANGED. **NOT a third in-place revise** — the one-line key-column pin was the prescribed fix and it was inert; pinning harder in prose is the same dead channel. Caveat: single high draw — the per-cell variance (googlelocal-q2, PATENTS-q3) is draw noise, but the stockmarket-q3 inert-fix finding is by committed-artifact byte-comparison, not a variance call.
+
+## Stage Report: smoke (cycle-2 phase 2 — audit + score + scope-fix verification)
+
+- DONE: Audit (AC-2) — `rk audit --policy strict` on `2df5f0e5c3907715`.
+  clean 4 / coverage_missing 0 / tainted 0; no dab-postgres dual-signature; scores attestable. Run-dir confirmed = the smoke2 done sentinel (rc=0, end 08:58).
+- DONE: Score — `rk score`.
+  Stratified Pass@1 = 0.8042 over the 4 smoke datasets (n_completed 4, n_errored 0); cycle-1 was 0.9143. Single high draw, not a board number.
+- DONE: Deep-dive (a) do the 2 targets still bank?
+  PATENTS-q1 (named target) STILL banks by artifact ("All CPC codes present"). googlelocal-q2 did NOT bank this draw — but by committed artifact the flat-string format fired (`name | value`); the miss is row-selection variance (variable-band 4/5 in dab0022), not the lever.
+- DONE: Deep-dive (b) DID THE SCOPE FIX WORK? (stockmarket-q3).
+  NO — INERT by committed artifact. The cycle-2 q3 answer is byte-pattern identical to cycle-1: it STILL leads each record with the description blurb ("Apex Global Brands Inc. specializes in…: 23781.42; …"), not the name. The lead-field pin did not change behavior. stockmarket-q4 + yelp-q7 HELD; yelp-q4 RECOVERED (confirming cycle-1's variance attribution).
+- DONE: Cycle-2 flip/scope table + `## Behavioral analysis (cycle 2)` + `## Failure Review (cycle 2)` written.
+  Full per-cell attribution (anchor/C1/C2) recorded; stockmarket-q3 inert-fix established by byte-comparison; PATENTS-q3 non-bank attributed to CPC-subclass-selection variance.
+- DONE: Gate verdict (plain words).
+  NO-GO for promote; the prescribed scope fix was INERT (stockmarket-q3 unchanged by artifact) → reclassify the complete-list key-column behavior as README-inert ([[dab-readme-cannot-suppress-output-shape]] family), NOT a third revise. Flat-string lever durable (PATENTS-q1 banks both draws). CONCLUDE validated-but-not-promoted; leave `@codex-batch-baseline` unchanged.
+
+### Summary
+Cycle-2 re-smoke ran clean (rc=0, strict audit 4/0/0), stratified 0.8042 over the 4-panel. The gate-deciding finding: the lead-field scope fix was **INERT** — stockmarket-q3's committed answer is byte-pattern identical to cycle-1 (still leads with the description blurb), so the prescribed fix did not change behavior. PATENTS-q1 (named target) banked across both draws and the flat-string format fired on every target, confirming the durable flat-string lever; the two non-banks (googlelocal-q2, PATENTS-q3) committed correctly-shaped answers and missed on oracle-blind analytic content (row-selection / CPC-subclass variance), not lever failure; yelp-q4 recovered (cycle-1 variance confirmed). Verdict NO-GO-for-promote: the complete-list arm's key-column choice is README-inert (a new boundary for the dab0012 README-output-shape dead family), NOT a third in-place revise. Recommend CONCLUDE validated-but-not-promoted, `@codex-batch-baseline` unchanged. Caveat: single high draw; per-cell content swings are draw variance, but the inert-fix finding is by committed-artifact byte-comparison.
