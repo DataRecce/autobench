@@ -482,6 +482,39 @@ the 3-draw probe; crmarenapro-q13 was 1/3 in the dab0018 probe per the determini
 attribution (lever-real vs temp=0 variance) is the analyze stage's job; this section records the facts
 only.
 
+## 3-draw confirm run (launched — detached)
+
+Captain approved a 3-draw full CONFIRM before any promote — to separate the analyze stage's ~+3
+README-attributable cells from the variable-band cells that landed favorably on the single full draw
+(per the generative-lever ±0.07 calibration rule). NOT an IV change: same cycle-3 solver README (hash
+`b2cae85c…`), effort high, all 12 datasets; only `trials` (1→3) and `concurrency.trials` (2→4, a
+THROUGHPUT knob) change.
+
+- **Spec:** `specs/dab0022-patents-semistructured-rules.confirm3.frozen.yaml` — `trials: 3`,
+  `concurrency.trials: 4`, all 12 datasets.
+- **`--explain` confirmed:** `Tasks: 12`, `reasoning_effort: "high"`, solver hash `sha256:b2cae85c…`
+  → **162 cells** (12 datasets × 3 draws).
+- **Handle:** `runs/.rk-handles/dab0022-confirm3-20260623-001040/`
+- **PID:** 2145114 (worker alive at launch; `done` sentinel absent = running)
+- **Started:** 2026-06-23T00:10:40Z. **Sentinel:** `runs/.rk-handles/dab0022-confirm3-20260623-001040/done`
+  (absent until finished; `rc=0` ⇒ OK). **Log:** `…/log`. ntfy: none configured.
+- **ETA:** ~**2–2.5 h** wall (162 cells; the single 54-cell draw at concurrency:2 ran ~77 min — 3× the
+  cells at 2× the slots ≈ 1.5× wall, but PATENTS/crmarenapro serialize on the shared postgres volume so
+  real parallelism is capped above that).
+
+> **INFRA CAVEAT (record before the audit).** At `concurrency.trials: 4`, two draws of the SAME dataset
+> can run concurrently and collide on the shared **named postgres volume** — the dab0018 crma3 signature:
+> `volume … already exists but was created for project …` → that draw is **infra-killed with
+> coverage_missing**. That is INFRA, **not a result**: on the phase-2 audit, EXCLUDE any such infra-killed
+> draw from the per-query counts and **re-run it at `trials: 1`**. A clean read needs ≥2 clean draws per
+> dataset.
+
+**Decision rule (FO, on the `done` sentinel):** per the analyze recommendation — **PROMOTE** iff the 3
+README-attributable cells (PATENTS-q1, PATENTS-q2, googlelocal-q2) hold **≥2/3 across CLEAN draws** AND
+the board **median stratified ≥ anchor 0.6966**; else **CONCLUDE validated-but-NOT-promoted** (bank the
+lever family, seed README unchanged). Judge by those attributed cells + the median, not a single draw's
+headline.
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -922,3 +955,14 @@ effect (~+3 cells ≈ +0.04 after removing the variance cells that happened to l
 strongest, first genuinely lever-attributable DAB result — recommend PROMOTE-CANDIDATE pending a 3-draw
 confirm, NOT a single-draw promote (per the generative-lever ±0.07 calibration rule). Captain's call; I
 wrote the recommendation only.
+
+## Stage Report: analyze (3-draw confirm launch — detached)
+
+- DONE: Build the 3-draw confirm spec — fork the cycle-3 frozen spec, `trials: 3`, `concurrency.trials: 4` (throughput knob, NOT IV), SAME solver_workflow + effort + all 12 datasets; freeze; `--explain` to confirm 12×3=162 cells / effort high / solver hash b2cae85c.
+  Built `specs/dab0022-patents-semistructured-rules.confirm3.{yaml,frozen.yaml}`; `--explain` → `Tasks: 12`, `trials: 3`, `concurrency.trials: 4`, `reasoning_effort: "high"`, solver hash `sha256:b2cae85c…` → 162 cells.
+- DONE: Launch detached via `drivers/rk-run-detached.sh dab0022-confirm3 …confirm3.frozen.yaml run`; record handle + pid + ETA + the infra caveat; return immediately, do NOT poll.
+  Launched: handle `runs/.rk-handles/dab0022-confirm3-20260623-001040/`, pid 2145114 (alive, `done` absent), started 2026-06-23T00:10:40Z. ETA ~2–2.5 h. Recorded in `## 3-draw confirm run (launched — detached)` with the postgres-volume infra caveat + the PROMOTE/CONCLUDE decision rule. Did NOT poll/wait — handle returned to the FO.
+
+### Summary
+
+Built and launched the captain-approved 3-draw full confirm (concurrency.trials:4 for throughput — not an IV; same cycle-3 README, effort high, 12 datasets, 162 cells) to verify the single-draw +0.0709 before any promote. Worker pid 2145114 alive, handle recorded; returned immediately per the launch-phase contract. Recorded the concurrency:4 postgres-volume collision caveat (exclude any infra-killed draw, re-run at trials:1) and the decision rule: PROMOTE iff PATENTS-q1/q2 + googlelocal-q2 hold ≥2/3 across clean draws AND board median ≥ anchor 0.6966, else CONCLUDE validated-but-not-promoted. FO owns the wait via the sentinel scan.

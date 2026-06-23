@@ -1,0 +1,55 @@
+# ABOUTME: dab0022 3-draw full CONFIRM run — verify the single-draw +0.0709 before any promote.
+# ABOUTME: NOT an IV change: same cycle-3 solver README (hash b2cae85c) + reasoning_effort high +
+# ABOUTME: all 12 datasets. Only trials (1->3) and concurrency.trials (2->4, a THROUGHPUT knob) change.
+# ABOUTME: Purpose: separate the ~+3 README-attributable cells (PATENTS-q1/q2 + googlelocal-q2) from
+# ABOUTME: the variable-band cells that landed favorably on the single full draw (dab0016/dab0017:
+# ABOUTME: a generative single full draw carries +/-0.07 variance).
+# ABOUTME: INFRA CAVEAT: at concurrency.trials:4 two draws of the SAME dataset may run concurrently and
+# ABOUTME: collide on the shared named postgres volume (dab0018 crma3 signature: "volume ... already
+# ABOUTME: exists but was created for project ..." -> that draw infra-killed with coverage_missing).
+# ABOUTME: That is INFRA, not a result: on phase-2 audit EXCLUDE any such infra-killed draw and re-run
+# ABOUTME: it at trials:1. PROMOTE iff PATENTS-q1/q2 + googlelocal-q2 hold >=2/3 across CLEAN draws AND
+# ABOUTME: board median stratified >= anchor 0.6966; else CONCLUDE validated-but-not-promoted.
+version: 1
+experiment: dab0022-patents-semistructured-rules
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0022-patents-semistructured-rules
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+  - yelp
+trials: 3
+concurrency:
+  trials: 4
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
