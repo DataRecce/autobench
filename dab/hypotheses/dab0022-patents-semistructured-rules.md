@@ -515,6 +515,49 @@ the board **median stratified ≥ anchor 0.6966**; else **CONCLUDE validated-but
 lever family, seed README unchanged). Judge by those attributed cells + the median, not a single draw's
 headline.
 
+### Confirm RESULT — decision rule NOT met → CONCLUDE validated-but-NOT-promoted
+
+**Run dir:** `runs/dab0022-patents-semistructured-rules/e8ec7dd1bde26916` (rc=0, ~2h13m).
+**Audit (AC-2): CLEAN — all 36 trials (12 datasets × 3 draws) clean**, `coverage_missing: 0`,
+`tainted: 0`. No infra-kill: the infra-signature grep hits were the benign `serverSelectionTimeoutMS=5000`
+parameter inside the routine Mongo healthcheck command (every Mongo trial has it), NOT failures — all
+suspect trials scored normally. **Clean-draw map: 3/3 for every dataset** (no exclusions, no trials:1
+re-run needed).
+
+**Per-draw board stratified Pass@1:** draw0 **0.7985**, draw1 **0.7058**, draw2 **0.6675** →
+**MEDIAN 0.7058** vs anchor 0.6966 (**+0.009**). The ~0.13 draw spread (0.6675–0.7985) IS the
+generative-lever ±0.07 variance the calibration rule warned about — the single full draw's 0.7675 was a
+high-ish draw, not the center.
+
+**The 3 README-attributable cells across the 3 clean draws:**
+
+| Cell | draw0 | draw1 | draw2 | hold-rate | ≥2/3? |
+|------|-------|-------|-------|-----------|-------|
+| **PATENTS-q1** | ✅ | ❌ | ✅ | **2/3** | ✅ holds |
+| **PATENTS-q2** | ✅ | ❌ | ❌ | **1/3** | ❌ **FAILS** |
+| **googlelocal-q2** | ✅ | ✅ | ❌ | **2/3** | ✅ holds |
+
+**DECISION RULE NOT MET.** It required **all 3** attributed cells ≥2/3 AND median ≥ anchor. The median
+clears (0.7058 ≥ 0.6966, barely), but **PATENTS-q2 holds only 1/3** — so the rule fails. Critically, the
+3-draw confirm REVEALS that PATENTS-q2 is itself variable-band, not a durable flip: its 3 draws fail on
+different content each time (draw1 "Code/year not found near OPTICS"; draw2 "Name fuzzy match failed for
+BAKING; EDIBLE DOUGHS") — the level-4 EMA ranking computes a different CPC set per draw, exactly like
+q3. So of the 3 PATENTS targets, **only q1 is durable (2/3); q2 and q3 are both variable-band.** The
+single-draw analyze read (which counted q1+q2 as stable) over-credited q2 — this is precisely the
+single-draw-inflation the confirm was ordered to catch.
+
+**Durable, confound-free README signal = 2 cells (PATENTS-q1 ≥2/3, googlelocal-q2 ≥2/3).** That is real
+and valuable, but it is +2 cells ≈ +0.03 stratified, and the board median sits only +0.009 above the
+anchor — well inside the noise floor. The variable-band cells (PATENTS-q2/q3, crmarenapro-q2/q7/q13,
+yelp-q4) wobble enough to move the board ±0.07 draw-to-draw, swamping the +2-cell signal.
+
+**RECOMMENDATION: CONCLUDE validated-but-NOT-promoted** (mirrors dab0015). Bank the semi-structured-data
+lever as a validated-actionable family with **2 durable confound-free flips** (PATENTS-q1 complete-list/
+flat-record; googlelocal-q2 flat-serialization — reconfirming [[dab-flat-string-serialization-works]]),
+but do NOT move `@codex-batch-baseline` — the board median is within the ±0.07 noise floor and the
+headline gain is variance-dominated. Seed README unchanged. The lever's PATENTS-q1 + googlelocal-q2
+mechanism is bankable for future composition.
+
 ## Behavioral analysis
 
 ### FULL-RUN analysis (the verdict basis) — the 6 required questions
@@ -783,10 +826,18 @@ README, promote, or conclude.
 
 ## Verdict
 
-_Pending captain decision at the analyze gate. Ensign recommendation: **PROMOTE-CANDIDATE pending a
-3-draw confirm** (3 README-attributable cells PATENTS-q1/q2 + googlelocal-q2, confound-free; +0.0709
-headline but ~+0.04 durable after removing variable-band cells; single-draw not yet trustworthy per the
-generative-lever ±0.07 calibration rule). Alternatives: PROMOTE-on-confirm or CONCLUDE-validated-not-promoted._
+_Pending captain decision at the analyze gate. **UPDATED after the 3-draw confirm — Ensign
+recommendation: CONCLUDE validated-but-NOT-promoted.** The confirm decision rule was NOT met:
+PATENTS-q2 held only 1/3 across clean draws (revealed as variable-band, not a durable flip), so the
+"all 3 attributed cells ≥2/3" clause fails; board median 0.7058 clears the anchor 0.6966 by only +0.009
+(inside the ±0.07 noise floor). Durable confound-free signal = 2 cells (PATENTS-q1 2/3 + googlelocal-q2
+2/3) ≈ +0.03, variance-swamped. Bank the semi-structured-data lever as a validated-actionable family
+(2 durable flips, reconfirms [[dab-flat-string-serialization-works]]); do NOT move @codex-batch-baseline;
+seed README unchanged. This is the captain's call — recommendation only; I did not promote/conclude/edit
+the registry or seed._
+
+_(Prior single-draw analyze recommendation was PROMOTE-CANDIDATE-pending-confirm; the confirm correctly
+caught that the single draw over-credited PATENTS-q2 — the system worked as designed.)_
 
 ## Stage Report: propose
 
@@ -966,3 +1017,16 @@ wrote the recommendation only.
 ### Summary
 
 Built and launched the captain-approved 3-draw full confirm (concurrency.trials:4 for throughput — not an IV; same cycle-3 README, effort high, 12 datasets, 162 cells) to verify the single-draw +0.0709 before any promote. Worker pid 2145114 alive, handle recorded; returned immediately per the launch-phase contract. Recorded the concurrency:4 postgres-volume collision caveat (exclude any infra-killed draw, re-run at trials:1) and the decision rule: PROMOTE iff PATENTS-q1/q2 + googlelocal-q2 hold ≥2/3 across clean draws AND board median ≥ anchor 0.6966, else CONCLUDE validated-but-not-promoted. FO owns the wait via the sentinel scan.
+
+## Stage Report: analyze (3-draw confirm analysis)
+
+- DONE: Audit (AC-2) + infra exclusion — `rk audit --policy strict` on `…/e8ec7dd1bde26916`; exclude same-dataset postgres-volume collisions + PG/Mongo abstains; per-dataset clean-draw count; flag any dataset <2 clean.
+  CLEAN: all 36 trials clean, `coverage_missing: 0`, `tainted: 0`. Infra-signature grep hits = benign Mongo healthcheck `serverSelectionTimeoutMS=5000` params (all suspect trials scored normally), NOT kills. Clean-draw map: 3/3 for every dataset — no exclusions, no trials:1 re-run needed.
+- DONE: Per-cell + board read across clean draws — hold-rate for PATENTS-q1/q2 + googlelocal-q2; per-draw board stratified + median vs anchor 0.6966.
+  Per-draw board: 0.7985 / 0.7058 / 0.6675 → MEDIAN 0.7058 (anchor +0.009). Hold-rates: PATENTS-q1 2/3 ✅, PATENTS-q2 **1/3 ❌** (revealed variable-band — fails on different content each draw), googlelocal-q2 2/3 ✅. Recorded in `## 3-draw confirm run` → "Confirm RESULT".
+- DONE: DECISION + recommendation; did NOT promote/conclude/edit registry or seed.
+  Decision rule NOT met (PATENTS-q2 <2/3). Recommendation: **CONCLUDE validated-but-NOT-promoted** — bank 2 durable confound-free flips (PATENTS-q1 + googlelocal-q2), do NOT move `@codex-batch-baseline`, seed unchanged. Recorded in `## 3-draw confirm run` + `## Verdict`.
+
+### Summary
+
+The 3-draw confirm is decisive and audit-clean (36/36 trials clean, 3/3 per dataset). It does NOT meet the promote rule: PATENTS-q2 held only 1/3 (the confirm revealed it as variable-band, not the durable flip the single draw suggested — the level-4 EMA ranking computes a different CPC set per draw), and the board median 0.7058 clears the anchor by only +0.009 (inside the ±0.07 noise floor). Durable confound-free README signal = 2 cells (PATENTS-q1 + googlelocal-q2) ≈ +0.03, variance-swamped. Recommendation: CONCLUDE validated-but-NOT-promoted — bank the semi-structured lever family (2 durable flips, reconfirms flat-string serialization) without moving the anchor. The confirm worked exactly as designed: it caught the single-draw inflation of PATENTS-q2. Captain's call; recommendation only.
