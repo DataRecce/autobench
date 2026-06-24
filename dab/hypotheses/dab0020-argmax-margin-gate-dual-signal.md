@@ -10,9 +10,10 @@ score: 0.3
 
 ## Hypothesis
 
-The @baseline failure on `agnews-q4` is a **thin-margin instability**, not an effort gap. Its
-trace commits "South America" on a top ranking of 357 / 348 / 348 / 346 / 345 across ~6700 World
-articles — the top three regions are within 9 of each other (<3%). At that margin a single noisy
+The @baseline failure on `agnews-q4` is a **thin-margin instability**, not an effort gap. The
+@codex-batch-baseline trace commits **North America** (ground truth **Africa**) on a top ranking
+bunched across the five regions within ~3% over ~6700 World articles — the leaders sit within a
+single-digit-article margin of each other. At that margin a single noisy
 content classifier's argmax is a coin-flip; the baseline even narrates "a close margin can be
 overturned by boundary cases" and then commits anyway. The lever attacks the *decision under thin
 margin*: when the leading group's lead is inside the noise band, the single-signal argmax must NOT
@@ -125,4 +126,4 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
   No rk run beyond --explain launched. Findings below.
 
 ### Summary
-Forked the batch baseline (spacedock-readme-baseline-hostfix) into dab0020 with ONE added analyze-stage gated checklist item — the thin-margin dual-signal argmax gate — and built/froze full + smoke specs differing only in the allowed fields. Gatekeeper APPROVE with two advisory WARNs (G7 inert-risk: no worked-example skeleton; G10: the two "independent" signals re-derive from the same title/description text, so agreement can be correlated-wrong, but the design fails safe). NOTE: the @codex-batch-baseline agnews-q4 trace committed "North America" (truth "Africa"), not "South America" as the hypothesis narrative states — the thin-margin framing holds but the committed-region detail drifted.
+Forked the batch baseline (spacedock-readme-baseline-hostfix) into dab0020 with ONE added analyze-stage gated checklist item — the thin-margin dual-signal argmax gate — and built/froze full + smoke specs differing only in the allowed fields. Gatekeeper APPROVE with two advisory WARNs (G7 inert-risk: no worked-example skeleton; G10: the two "independent" signals re-derive from the same title/description text, so agreement can be correlated-wrong, but the design fails safe). NOTE: the @codex-batch-baseline agnews-q4 trace committed "North America" (truth "Africa"); the hypothesis body has been corrected (it previously cited "South America" with an unverified count ranking) — the thin-margin framing is unchanged.

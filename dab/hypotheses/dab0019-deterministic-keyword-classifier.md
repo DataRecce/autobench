@@ -14,9 +14,9 @@ score: 0.3
 category?") has **no `category` column** — the AG-News labels are stripped, so the solver must
 *infer* each article's category from `title`+`description` content and then argmax the per-region
 World count. The @baseline solver already attempts this (seeded TF-IDF + a "stress-test" rule
-scorer), yet commits the WRONG region: its own trace shows the 2015 World-count ranking as
-South America 357, Africa 348, North America 348, Asia 346, Europe 345 — five regions inside a
-~3% band, a 9-article margin over ~6700 articles. The classification *effort* is not the gap; the
+scorer), yet commits the WRONG region: the @codex-batch-baseline trace commits **North America**
+(ground truth is **Africa**), with the 2015 World-count ranking bunched across the five regions
+inside a ~3% band — a single-digit-article margin over ~6700 articles. The classification *effort* is not the gap; the
 **non-determinism** is: an ad-hoc, model-authored lexicon + a seeded random component makes the
 argmax a coin-flip that lands on a wrong region. The fix is to remove the randomness, not add more
 of it.
@@ -53,7 +53,7 @@ in the question, never from any hint/oracle file (see leak-guard below).
 ## Targets
 
 - **PRIMARY flip — agnews-q4** (Opus 1/5, gpt-5.5 0/1 by trace): flip to PASS. Acceptance =
-  committed `answers.json` region differs from the baseline's "South America", AND
+  committed `answers.json` region differs from the baseline's "North America" (GT "Africa"), AND
   `_artifacts/reasoning.md` shows the fixed lexicon + a deterministic per-region World-count table
   with the stated tie-break — proving the answer was *inferred deterministically from content*, not
   drawn from any oracle.
