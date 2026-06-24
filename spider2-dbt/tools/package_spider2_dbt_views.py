@@ -134,6 +134,66 @@ def _resolve_gold(gold_root: Path, task_id: str, eval_line: dict) -> tuple[Path,
     return None
 
 
+def _duckdb_relations(project_dir: Path) -> tuple[set[tuple[str, str]], set[str]]:
+    """Return ({(schema_lower, table_lower)}, {schema_lower}) for the project's source DuckDB."""
+    db = _find_source_duckdb(project_dir)
+    if db is None:
+        return set(), set()
+    import duckdb
+
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        rows = con.execute(
+            "select table_schema, table_name from information_schema.tables "
+            "where table_schema not in ('information_schema','pg_catalog')"
+        ).fetchall()
+    finally:
+        con.close()
+    rels = {(s.lower(), t.lower()) for s, t in rows}
+    return rels, {s for s, _ in rels}
+
+
+def _align_source_schemas_to_main(project_dir: Path) -> None:
+    """Set `schema: main` on any `sources:` source whose default-name schema is
+    absent from the DuckDB but whose tables live in `main`. Faithful + idempotent."""
+    import yaml
+
+    rels, schemas = _duckdb_relations(project_dir)
+    if not rels or "main" not in schemas:
+        return
+    for yml in sorted(project_dir.rglob("*.yml")) + sorted(project_dir.rglob("*.yaml")):
+        # Skip vendored package YAML — only normalize the project's own models.
+        if "dbt_packages" in yml.parts:
+            continue
+        try:
+            doc = yaml.safe_load(yml.read_text())
+        except Exception:
+            continue
+        if not isinstance(doc, dict) or not isinstance(doc.get("sources"), list):
+            continue
+        changed = False
+        for source in doc["sources"]:
+            if not isinstance(source, dict) or source.get("schema"):
+                continue
+            name = source.get("name")
+            tables = [
+                t.get("name")
+                for t in source.get("tables", [])
+                if isinstance(t, dict) and t.get("name")
+            ]
+            if not (isinstance(name, str) and tables):
+                continue
+            default = name.lower()
+            in_default = sum(1 for t in tables if (default, t.lower()) in rels)
+            in_main = sum(1 for t in tables if ("main", t.lower()) in rels)
+            if in_default == 0 and in_main >= 1:
+                source["schema"] = "main"
+                changed = True
+        if changed:
+            yml.write_text(yaml.safe_dump(doc, sort_keys=False))
+            print(f"   [schema-align] {yml.relative_to(project_dir)} -> schema: main")
+
+
 def _stage_task(
     *,
     task_id: str,
@@ -156,6 +216,17 @@ def _stage_task(
 
     # dbt_project/ <- the whole upstream example (project + source DuckDB + vendored packages)
     shutil.copytree(example_dir, src / "dbt_project")
+
+    # Faithful repair: some upstream exports declare a `sources:` block whose
+    # source omits `schema:` (dbt then defaults the source schema to the source
+    # NAME), yet the export loaded every raw table into `main`. dbt build — and
+    # the build-time preflight that validates declared source tables — then
+    # fails because `<source_name>.<table>` does not exist. Sibling tasks ship
+    # the correct form (e.g. tpch001's `TPCH_SF1` declares `schema: main`); align
+    # any such source to where its data actually lives. Only touches a source
+    # whose default-name schema is absent from the DuckDB while `main` holds its
+    # tables — a no-op for already-consistent projects (tpch001, chinook001).
+    _align_source_schemas_to_main(src / "dbt_project")
 
     # environment/Dockerfile (materializer appends COPY dbt_project + preflight)
     (src / "environment" / "Dockerfile").write_text(
