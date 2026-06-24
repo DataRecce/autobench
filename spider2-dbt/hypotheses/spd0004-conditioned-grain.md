@@ -1,7 +1,7 @@
 ---
 id: spd0004
 title: Conditioned grain — PRESERVE-COVERAGE vs SCOPE-TO-ACTIVE classifier (fix the under-emit GRAIN family)
-status: propose
+status: smoke
 kind: hypothesis
 source: 42-task @baseline failure analysis (docs/failure-analysis-2026-06-24.md) — GRAIN is the largest addressable family
 started: 2026-06-24T14:32:32Z
