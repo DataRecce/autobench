@@ -1,12 +1,12 @@
 ---
 id: spd0004
 title: Conditioned grain — PRESERVE-COVERAGE vs SCOPE-TO-ACTIVE classifier (fix the under-emit GRAIN family)
-status: full
+status: conclude
 kind: hypothesis
 source: 42-task @baseline failure analysis (docs/failure-analysis-2026-06-24.md) — GRAIN is the largest addressable family
 started: 2026-06-24T14:32:32Z
-completed:
-verdict:
+completed: 2026-06-24T18:48:07Z
+verdict: validated-not-promoted
 score: 0.85
 worktree:
 ---
@@ -146,3 +146,28 @@ gated, and it does not disturb the SCOPE-TO-ACTIVE / aggregate tasks. The 3 non-
 (jira/pendo/xero) now carry the CORRECT grain but fail on value-level residuals = spd0003's family —
 evidence for a future spd0004+spd0003 composition, not a spd0004 defect. Holding at the smoke→full
 boundary for captain go on the multi-hour full run (not auto-launched).
+
+## Stage Report (analyze + conclude)
+
+Full run: `runs/spider2-dbt-spd0004-full/7e2d204bc5c4a978` (rc=0). `rk score`: **21 pass / 60 completed
+(1 errored) = stratified_pass_at_1 0.35**; counting the errored cell as fail vs the 61-task @baseline,
+**21/61 = 0.3443 vs @baseline 19/61 = 0.3115, NET +2**.
+
+- FLIPS (+3): marketo001 (grain-attributable, full-coverage templates — stable across smoke+full),
+  quickbooks003, retail001 (value-def "count-grain"/teachable cells — partly serendipity/variance).
+- REGRESSION (−1): f1001 (recovered in smoke c2 but regressed on the full draw; transcript still shows
+  residual spine/coverage reasoning — a boundary/coin-flip cell the aggregate-exclusion only partly tames).
+- The DESIGNED flip **salesforce001 did NOT hold full-board** (passed smoke, failed full) — single-trial
+  variance on a boundary cell.
+- 1 new errored cell (flaky build, not solver-attributable).
+
+**Verdict: PASSED-validated, NOT promoted.** The conditioned-grain lever is construct-validated (smoke:
+5/5 should-flips adopt the regime, marketo+salesforce flip, over-fire gateable) and yields a grain-
+attributable flip (marketo) that holds across draws. BUT the full-board **+2 is inside the single-draw
+variance band**: the designed flip (salesforce) is non-reproducible smoke→full, f1001 regressed, and the
+other flips are partly serendipitous. Per the standing discipline (a single full draw is not promotable
+without a ≥3-draw hold-rate; grain levers add ±variance), **@baseline stays 19/61 — NOT re-registered.**
+
+Durable signal banked: (1) conditioned grain is README-steerable and the right diagnosis for the
+under-emit family; (2) grain-fixed cells (jira/salesforce/pendo) still fail on VALUE-level residuals →
+the durable path is a **spd0004(grain)+spd0003(value) composition**, not grain alone. → filed spd0005.
