@@ -1,0 +1,15 @@
+# spider2-dbt champion pointer (mirror of the @baseline registry entry).
+# Updated on every promote at `conclude`. The live registry
+# (/home/kent/autobench/spider2-dbt/razorback-registry.yaml) is the source of truth;
+# this file is a human-readable mirror + the champion's headline.
+#
+# SEED STATE: no scored full board exists yet. @baseline is established by the spd0001 anchor
+# run (full run of the spider2-dbt-baseline output-contract solver), then promoted.
+champion:
+  solver_workflow: ./solver_workflows/spider2-dbt-baseline   # seed; output-contract README
+  run_dir: null            # set after spd0001 anchor run + `rk baseline promote`
+  pass_rate: null          # stratified_pass_at_1 over the 61 duckdb-runnable tasks
+  promoted_by: null        # spd<NNNN> that established/last moved @baseline
+  promoted_on: null
+model: codex / gpt-5.5, reasoning_effort xhigh, trials 1   # held fixed across all variants (no model-swap confound)
+board: 61 duckdb-runnable tasks (68 declared - 4 goldless - 3 postgres-backed)
