@@ -16,7 +16,7 @@ import tty
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import IO, Iterable
+from typing import IO, Callable, Iterable
 
 from rich import box
 from rich.align import Align
@@ -1545,9 +1545,17 @@ def trial_reward_value(trial_dir: Path) -> float | None:
 
 
 def discover_trials(job_dir: Path) -> list[Trial]:
+    # Harbor truncates long cell-dir names (e.g. `…analytics_engineering001`
+    # becomes `…analytics_engineerin`), so a trial dir's `<task-id>__…` prefix can
+    # be a shortened form of the configured task name. Canonicalize it back to the
+    # full configured name; otherwise the reconciliation below fabricates a phantom
+    # "pending" trial for a long-named task that actually ran.
+    configured_names = [task_path.name for task_path in configured_task_paths(job_dir)]
+    canonical_task_id = make_canonical_task_id(configured_names)
+
     trials = []
     for trial_dir in sorted(p for p in job_dir.iterdir() if p.is_dir() and "__" in p.name):
-        task_id = trial_dir.name.split("__", 1)[0]
+        task_id = canonical_task_id(trial_dir.name.split("__", 1)[0])
         status = trial_status(trial_dir)
         pass_at_1, query_passed, query_total = trial_batch_outcome(trial_dir)
         trials.append(
@@ -1588,6 +1596,27 @@ def discover_trials(job_dir: Path) -> list[Trial]:
 
     trials.sort(key=lambda trial: (status_sort_key(trial.status), trial.task_id))
     return trials
+
+
+def make_canonical_task_id(configured_names: list[str]) -> Callable[[str], str]:
+    """Return a mapper from a (possibly Harbor-truncated) cell-dir task id to the
+    full configured task name.
+
+    Harbor truncates long trial-dir names, so a cell's `<task-id>` can be a strict
+    prefix of the real task name. Map it back when EXACTLY ONE configured name has
+    that prefix and the prefix is not itself a configured name (so a genuinely
+    short task like `foo` never shadows a longer `foobar001`). Ambiguous or
+    unmatched ids pass through unchanged, so genuinely-missing trials still surface
+    as pending."""
+    configured_set = set(configured_names)
+
+    def canonical(raw: str) -> str:
+        if raw in configured_set:
+            return raw
+        matches = [name for name in configured_names if name != raw and name.startswith(raw)]
+        return matches[0] if len(matches) == 1 else raw
+
+    return canonical
 
 
 def configured_task_paths(job_dir: Path) -> Iterable[Path]:

@@ -755,3 +755,60 @@ def test_handle_wheel_moves_trial_selection(tmp_path: Path):
     trials_region = Region(x=34, y=1, width=66, height=12)
     monitor.handle_wheel(m.MouseEvent("wheel", "wheel-down", 40, 5), {"trials": trials_region})
     assert monitor.trial_index == 1
+
+
+def test_make_canonical_task_id_maps_truncated_prefix():
+    configured = [
+        "spider2-dbt-analytics_engineering001",
+        "spider2-dbt-shopify_holistic_reporting001",
+        "spider2-dbt-tpch001",
+    ]
+    canonical = m.make_canonical_task_id(configured)
+    # Harbor-truncated prefixes map back to the full configured name.
+    assert canonical("spider2-dbt-analytics_engineerin") == "spider2-dbt-analytics_engineering001"
+    assert canonical("spider2-dbt-shopify_holistic_rep") == "spider2-dbt-shopify_holistic_reporting001"
+    # Exact names pass through; unknown ids pass through unchanged.
+    assert canonical("spider2-dbt-tpch001") == "spider2-dbt-tpch001"
+    assert canonical("spider2-dbt-unknown") == "spider2-dbt-unknown"
+
+
+def test_make_canonical_task_id_does_not_shadow_or_guess_ambiguous():
+    # A real short task is not shadowed by a longer sibling sharing its prefix,
+    # and an ambiguous prefix (two configured matches) passes through unchanged.
+    configured = ["foo", "foobar001", "foobaz001"]
+    canonical = m.make_canonical_task_id(configured)
+    assert canonical("foo") == "foo"            # exact short task wins
+    assert canonical("fooba") == "fooba"        # ambiguous (foobar001 + foobaz001) -> unchanged
+
+
+def _write_cell(job: Path, dirname: str, reward: float):
+    cell = job / dirname
+    cell.mkdir(parents=True)
+    (cell / "result.json").write_text(json.dumps({"verifier_result": {"rewards": {"reward": reward}}}))
+    return cell
+
+
+def test_discover_trials_no_phantom_pending_for_truncated_cell(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    (job / "config.json").write_text(json.dumps({"tasks": [
+        {"path": "/v/spider2-dbt-analytics_engineering001"},
+        {"path": "/v/spider2-dbt-tpch001"},
+        {"path": "/v/spider2-dbt-never_ran001"},
+    ]}))
+    # truncated long-name cell + a normal cell that ran; never_ran001 has no cell.
+    _write_cell(job, "spider2-dbt-analytics_engineerin__AbC123", 0.0)
+    _write_cell(job, "spider2-dbt-tpch001__XyZ789", 1.0)
+
+    trials = m.discover_trials(job)
+    by_task = {t.task_id: t for t in trials}
+
+    # Truncated cell is canonicalized to the full name and is NOT pending.
+    assert "spider2-dbt-analytics_engineering001" in by_task
+    assert by_task["spider2-dbt-analytics_engineering001"].status == "completed"
+    # No phantom pending for the long-named task that actually ran.
+    assert not any(t.status == "pending" and "analytics" in t.task_id for t in trials)
+    # Genuinely-missing trial still surfaces as pending.
+    assert by_task["spider2-dbt-never_ran001"].status == "pending"
+    # Exactly 3 trials total: 2 completed + 1 pending.
+    assert len(trials) == 3
