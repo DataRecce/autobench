@@ -1,7 +1,7 @@
 ---
 id: dab0019
 title: agnews-q4 - deterministic keyword-anchored content classifier for label-stripped category queries
-status: hypothesis
+status: propose
 kind: hypothesis
 source: dab0006 ideate (integrity-safe stripped-label inference); forks spacedock-readme-baseline @baseline
 started: 2026-06-22T10:45:00Z
