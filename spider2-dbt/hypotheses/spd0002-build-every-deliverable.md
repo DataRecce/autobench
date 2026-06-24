@@ -110,15 +110,117 @@ lists exactly these 5 tasks (`Tasks: 5`), no more, none missing.
 Net hoped-for: flip ≥1 of the 2 targets, lose zero sentinels/canaries. (movie_recomm001 omitted from the
 smoke unless the propose read confirms it is the same completeness family rather than a value/scope miss.)
 
-## Run result
+## Smoke result
+
+**NO-GO — confirmed.** Run `runs/spider2-dbt-spd0002-build-every-deliverable/e911007671be4f08`
+(rc=0, 2/5). 0 of 2 targets flipped, and a `@baseline` PASSER (mrr001) REGRESSED to FAIL — a canary
+regression is an automatic NO-GO regardless of targets.
+
+**Clean-audit attestation:** `rk audit --policy strict` on the run-dir → `summary: {clean: 5,
+coverage_missing: 0, tainted: 0}`, every cell `taint_status: clean`, no findings. The 2/5 is a real
+behavioral result, not infra taint.
+
+| Task | Baseline | Smoke | Δ | Built tables (committed artifact) | Distance to PASS |
+|---|---|---|---|---|---|
+| intercom001 (🎯) | ❌ 0.0 | ❌ 0.0 | — | only `intercom__admin_metrics` (0 rows) | 2nd table `intercom__company_metrics` NEVER built — rule INERT |
+| analytics_engineering001 (🎯) | ❌ 0.0 | ❌ 0.0 | — | BOTH `fact_purchase_order` (14r) + `obt_customer_reporting` (14r) | 2nd table BUILT, but values/row-set wrong — fired-but-still-fail |
+| app_reporting002 (✅ canary) | ✅ 1.0 | ✅ 1.0 | held | (PASS, empty verifier stdout) | held |
+| mrr001 (✅ canary) | ✅ 1.0 | ❌ 0.0 | **REGRESSED** | `mrr` 417 rows (+ added `util_months` spine) | baseline `mrr` was 410 rows — +7 phantom rows |
+| activity001 (✅ sentinel) | ✅ 1.0 | ✅ 1.0 | held | (PASS, empty verifier stdout) | held |
+
+Verifier stdout for all 3 fails = `mismatch (predicted=/app/<db>.duckdb)` (a row/value/count mismatch,
+not a missing-table error — the named tables all exist; they just don't match gold).
 
 ## Behavioral analysis
 
+Per-cell whys from the committed artifacts (built tables + model file list in the worker's final
+validation summary), NOT the agent's "0 mismatches" self-report.
+
+**intercom001 — INERT (rule discussed-or-skipped, 2nd table NOT built).** The solver built only
+`main.intercom__admin_metrics` (0 rows — upstream had 0 conversations with `last_close_by_admin_id`).
+The previously-missing `intercom__company_metrics` was NEVER built; grep of the transcript for
+`company_metrics` = 0 hits. The enumerate-deliverables reflex did not fire on the second table at all.
+This is the gatekeeper's G7 WARN materialising exactly as predicted: a count-and-add rule with NO
+worked enumeration skeleton is acknowledged-but-skipped at gpt-5.5/xhigh — the solver re-counted the
+instruction's deliverables to the same (wrong) count of one and stopped. (Note also: even had the rule
+fired, the built `admin_metrics` is 0 rows, so intercom001 has a deeper data/grain problem behind the
+completeness miss.)
+
+**analytics_engineering001 — FIRED-BUT-STILL-FAIL (2nd table built, wrong values/row-set).** The rule
+DID fire: the solver built BOTH `main.fact_purchase_order` (14 rows, grain `purchase_order_detail_id`)
+AND `main.obt_customer_reporting` — the missing second gold table now exists as a base table. But it
+still scored 0.0, and worse, building the new `fact_purchase_order` and re-sourcing the OBT off it
+COLLAPSED `obt_customer_reporting` from the baseline's **55 rows → 14 rows**. The completeness rule
+fixed the count (1→2 tables) but the constructed fact narrowed the row set 4x (14 received/approved
+detail lines vs the 55 the baseline OBT carried), so neither table matches gold. Adding the second
+deliverable changed the FIRST deliverable's row set — the rule is not value-safe in practice even
+though it is ADD-ONLY in letter.
+
+**mrr001 — REGRESSION (headline; see Failure Review).** Single `mrr` table both runs, but the rule
+drove an extra helper model + a grain expansion 410→417.
+
 ## Failure Review
+
+**Primary failure type: `canary-bleed`.** (The lone gate-decisive fact is the mrr001 regression: a
+generative ADD-ONLY rule, claimed value-safe at the gate, bled onto an unrelated single-deliverable
+passer and broke it. The two targets are secondary — one inert, one fired-but-still-fail — and neither
+flips, but the canary regression alone forces the verdict.)
+
+**mrr001 regression root-cause (the headline).** Baseline mrr001 (`13fb630e2cae3eb8/…__cmzeCgv`,
+reward 1.0) built ONE model `models/mrr.sql` → `main.mrr` at **410 rows**, first row
+`2019-04-01, customer_id=1, mrr=50.0, change_category=reactivation`. Under the lever
+(`e911…/…__HhNGgtW`, reward 0.0) the solver built `main.mrr` at **417 rows** AND added a SECOND model
+`models/utils/util_months.sql` — a month-spine helper. The "build a separate base table for EACH
+enumerated deliverable / build EVERY deliverable" rule was read as license to construct a complete
+month dimension and join `mrr` against it, zero-filling ~7 phantom customer-months that have no MRR
+activity (410→417). The committed first row shifted from `2019-04-01` to `2019-06-01` and from
+`change_category=reactivation` to `upgrade`, so the row-by-row compare against gold mismatches. This
+is a direct violation of Output-Contract §4 ("scope output to the entities that actually have the
+relevant activity unless completeness is explicitly requested; do not zero-fill phantom rows"): the
+new completeness paragraph under §1 semantically OVER-RODE the §4 anti-zero-fill rule. The exact
+mechanism the gatekeeper flagged borderline at G8 — an ungated generative reflex perturbing a passer.
+The lever is "ADD-ONLY" only at the table-COUNT level; at the ROW-SET level it is destructive (the
+spine helper expands grain on a table that was already correct).
+
+**The 5 questions.**
+1. **Original hypothesized fork:** the solver stops after the first deliverable; a count-and-add rule
+   makes it build the missing second gold table → intercom001 / analytics_engineering001 flip.
+2. **Fork the artifact actually revealed:** the rule is BOTH inert (intercom — no skeleton, re-counts
+   to one) AND, where it fires, not row-set-safe (analytics — building deliverable #2 collapses
+   deliverable #1 from 55→14; mrr — the "build every deliverable" framing licenses a spurious month
+   spine that zero-fills 7 phantom rows). Completeness-of-COUNT does not equal correctness-of-ROW-SET,
+   and the rule trades against the existing anti-zero-fill contract.
+3. **Did the rule fire, with artifact evidence?** Mixed: INERT on intercom001 (`company_metrics`
+   never built, 0 grep hits); FIRED on analytics_engineering001 (both `fact_purchase_order` +
+   `obt_customer_reporting` materialized as base tables); FIRED-and-overbuilt on mrr001 (added
+   `util_months` spine, 410→417 rows). Evidence = each cell's worker final validation summary (built
+   table names, grain, row counts, representative rows) cross-checked vs the baseline cells.
+4. **New fork / mechanism to test next:** none promising. The two distinct failure modes (no-skeleton
+   inertness; count-safe-but-row-set-destructive over-fire) are in tension — adding a worked skeleton
+   to cure the inertness would make the over-fire HOTTER (more spurious spines / wider grain on more
+   tasks), worsening the canary bleed. A count-of-deliverables reflex cannot be made row-set-safe via
+   README prose because it has no oracle for the correct row scope; "every deliverable" is intrinsically
+   pro-completeness and fights §4's pro-activity-scope rule. This is the same wall as DAB's generative
+   over-fire family (e.g. dab0017 fires-everywhere levers add ±variance not stable lift).
+5. **Next step:** `stop` → conclude REJECTED. Cleanly falsified by committed artifacts: 0/2 targets
+   flip, a 6/6-equivalent single-draw passer regresses via a lever-attributable spurious-spine
+   mechanism, and the two failure modes are mutually exclusive to fix.
+
+**Route recommendation: smoke → conclude (REJECTED).** Not revisable — a worked skeleton (the only
+obvious "fix" for the intercom inertness) would amplify the mrr/analytics over-fire, not cure it.
+This is a rule tweak inside an existing §1, NOT a structural solver-workflow change, so no
+WORKFLOW-REFINE entry is required (entity + self-learning suffice).
 
 ## Follow-up Routing
 
+`smoke → conclude (REJECTED)`. No follow-up hypothesis. The completeness/enumerate-deliverables
+README lever family is closed for spider2-dbt at gpt-5.5/xhigh on this evidence: count-completeness is
+not row-set-correctness, and the reflex cannot be tightened (skeleton) without worsening the canary
+bleed it already causes. Do NOT advance the stage here — the FO presents the gate.
+
 ## Verdict
+
+(pending captain gate — recommendation REJECTED)
 
 ## Stage Report: propose
 
@@ -140,3 +242,16 @@ spec differs from the anchor in only the two allowed fields, smoke narrows to ex
 (verified via `--explain`), and all five @baseline rewards re-confirmed. Gatekeeper returned APPROVE
 (no FAILs; G7 WARN on inert-risk, G8 borderline-PASS with one perturbable multi-deliverable canary).
 Did NOT launch the smoke run or advance the stage — that is the FO/captain's call.
+
+## Stage Report: smoke
+
+- DONE: Per-TARGET behavioral why (intercom001, analytics_engineering001): did the completeness rule FIRE — i.e., did the solver build the previously-missing SECOND gold table as a base table? Classify each. Cite the artifact, not the agent's self-report.
+  intercom001 = INERT: only `intercom__admin_metrics` (0 rows) built; `intercom__company_metrics` NEVER materialized (0 grep hits) — G7 WARN realized. analytics_engineering001 = FIRED-but-still-fail: BOTH `fact_purchase_order` (14r) + `obt_customer_reporting` built, but the new fact collapsed the OBT row set 55→14 vs baseline. Evidence = each cell's worker final validation summary (built table names + grain + row counts).
+- DONE: mrr001 REGRESSION root-cause (headline): compare smoke vs @baseline; name the exact mechanism.
+  Baseline `main.mrr` = 410 rows (one model). Smoke `main.mrr` = 417 rows + an added `models/utils/util_months.sql` spine. The "build EVERY deliverable" rule licensed a complete month dimension joined to `mrr`, zero-filling ~7 phantom customer-months (violates Output-Contract §4 anti-zero-fill) → row-by-row mismatch. The G8 generative canary-bleed the gatekeeper flagged borderline.
+- DONE: Write `## Smoke result` (flip/distance table + clean-audit attestation), `## Behavioral analysis`, `## Failure Review` (one primary type + 5 questions + route). Do NOT advance the stage.
+  All sections written. Clean-audit attested: `rk audit --policy strict` → clean 5 / coverage_missing 0 / tainted 0. Primary failure type = `canary-bleed`. Route recommendation = smoke → conclude (REJECTED). Stage NOT advanced (FO presents the gate).
+
+### Summary
+
+spd0002 smoke is a confirmed NO-GO. Clean strict audit (5 clean, 0 coverage_missing, 0 tainted) — the 2/5 is real, not infra. Both targets miss: intercom001 INERT (no worked skeleton → count-reflex re-counts to one, second table never built), analytics_engineering001 FIRED-but-still-fail (built deliverable #2 but the new fact collapsed deliverable #1's row set 55→14). The headline is the mrr001 regression: the generative "build every deliverable" rule drove a spurious `util_months` month-spine that zero-filled 7 phantom rows (410→417), breaking a passer and directly contradicting Output-Contract §4. Primary failure type `canary-bleed`; recommend conclude REJECTED — the two failure modes are mutually exclusive to fix (a skeleton cures inertness but amplifies the over-fire bleed). Rule tweak inside §1, so no WORKFLOW-REFINE entry needed.
