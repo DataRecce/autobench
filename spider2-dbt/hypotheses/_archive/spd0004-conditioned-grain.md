@@ -9,6 +9,7 @@ completed: 2026-06-24T18:48:07Z
 verdict: validated-not-promoted
 score: 0.85
 worktree:
+archived: 2026-06-24T18:48:39Z
 ---
 
 ## Hypothesis
