@@ -6,6 +6,7 @@ kind: hypothesis
 source: dab0006 ideate (integrity-safe stripped-label inference); forks spacedock-readme-baseline @baseline
 started: 2026-06-22T10:45:00Z
 score: 0.3
+verdict: REJECTED
 ---
 
 ## Hypothesis
@@ -133,3 +134,86 @@ Net target: +1 (agnews-q4) with zero canary regression; ETA ~1 dataset smoke.
 ### Summary
 
 Forked the batch baseline README and added ONE precondition-gated analyze-stage bullet that makes a label-stripped category classifier deterministic (fixed lexicon + count-hit scoring + lexicographic tie-break). Gatekeeper APPROVE with a single advisory WARN (the keyword lexicon is author-derived, so the smoke run is the real test of whether a README-buildable lexicon flips agnews-q4). Key finding: per-query `-qN` excludes are inert in DAB batch mode (one task per dataset), so the smoke uses dataset-level selection; @codex-batch-baseline reference confirms agnews-q4 FAIL (committed "North America", GT "Africa") and both canaries PASS.
+
+## Behavioral analysis
+
+**Smoke run of record:** `runs/dab0019-deterministic-keyword-classifier/b1c5e442c1818cf2`
+(rc=0, 18m12s, clean audit — 3/3 trials completed, 0 errored, no `coverage_missing`, no taint).
+Per the smoke→conclude rule, a clean falsification at smoke does NOT advance to a full run.
+
+**Failure mechanism (the thin-margin wall).** agnews-q4 scored reward 0.0. The dab0019
+deterministic lever committed **South America** (332 World-category articles, 2015); ground
+truth is **Africa** (320), with North America also at 320. The committed answer misses by ~12
+counts / ~3.7% over ~6700 articles — the five World-category region counts are bunched inside a
+~3% band. This is the falsified branch of dab0019's own acceptance criteria: a deterministic
+classifier landed on the wrong region, so the lexicon (not the determinism) was the gap — and
+more precisely, the *content signal itself* does not separate the regions at this margin.
+
+**Did the change reach the committed artifact? No — recipe under-fired.** Grep of the analyze
+transcript for a fixed-keyword-lexicon execution signature (`keyword`/`lexicon`) was **empty**:
+the prescribed deterministic recipe did not execute as written. The solver narrated/used its own
+classification rather than the README's fixed lexicon — a partial **dab0012 "talks but doesn't
+do"** pattern. So the run is BOTH "recipe under-fired" AND "even the resulting classification
+missed by a thin margin."
+
+**Two-methods-two-wrong-regions — the margin is irreducible.** The no-lever
+`@codex-batch-baseline` committed **North America**; the dab0019 deterministic lever committed
+**South America** — TWO different methods landing on TWO different WRONG regions, both clustered
+within ~12 counts of the true answer (Africa). This is direct evidence the content signal does
+NOT separate these regions at this margin: the ~3% spread is irreducible noise, not a
+determinism gap a README recipe can close.
+
+**Distance to pass.** Effectively unbridgeable by this lever-family: a ~12-count / ~3.7% margin
+sitting below the resolution of any keyword-count classifier a README can author, compounded by
+the recipe never firing as written. No tweaking of the author-built lexicon is expected to
+separate Africa from South America / North America at this band.
+
+**Canaries.** ALL HELD: bookreview-q1/q2/q3 = 1.0/1.0/1.0; stockindex-q1/q2/q3 = 1.0/1.0/1.0.
+The precondition gate stayed correctly scoped — it did NOT fire on non-category queries. (agnews-q1
+incidentally 1.0; agnews-q2/q3 observe 0.0.)
+
+**Transferable rule.** A README-buildable deterministic keyword classifier cannot separate the
+AG-news World-category regions at a ~3% margin — the thin margin is the wall, not the recipe.
+Combined with the empty no-lexicon-signature finding, this reconfirms the dab0012 boundary:
+gpt-5.5 narrates a prescribed analytic recipe but commits its own method.
+
+## Verdict
+
+**verdict: REJECTED** — cleanly falsified at smoke (no full run, per the smoke→conclude rule).
+
+agnews-q4 did NOT flip (committed South America 332 vs GT Africa 320, ~3.7% margin), and the
+prescribed deterministic recipe left no execution signature in the transcript. This matches the
+explicit NO-GO/falsified branch of dab0019's acceptance criteria: deterministic classification
+with an author-built lexicon is insufficient because the content signal is too weak for ANY
+README-buildable classifier.
+
+This **closes the keyword-classifier sub-family for agnews-q4 ONLY**. Canaries held; audit clean.
+Do NOT promote, do NOT run `rk baseline promote`, do NOT touch `@baseline`.
+
+## Follow-up Routing
+
+**stop** for the keyword-classifier sub-family.
+
+Siblings dab0020 (dual-signal agreement gate) and dab0021 (provenance no-leak audit) are
+DIFFERENT mechanisms, not keyword classifiers, and are CURRENTLY SMOKING concurrently. dab0019's
+reject closes only the keyword-classifier sub-family; the **agnews-q4 family-level verdict awaits
+dab0020/dab0021**. No new hypothesis filed. Not workflow-structural → no WORKFLOW-REFINE entry.
+
+## Stage Report: conclude
+
+- DONE: Read the evidence package at /tmp/dab0019-conclude-evidence.txt and the entity file.
+  Captain REJECTED verdict + full smoke artifact evidence consumed; numbers used verbatim.
+- DONE: Write ## Behavioral analysis into the entity.
+  Covers committed South America 332 vs GT Africa 320 (~3.7% margin), empty no-lexicon-signature (recipe under-fired / partial dab0012), two-methods-two-wrong-regions irreducible margin, distance-to-pass, transferable rule.
+- DONE: Write ## Verdict with verdict: REJECTED.
+  Falsified at smoke (no full run); closes keyword-classifier sub-family for agnews-q4 ONLY; canaries held; audit clean; no promote, no @baseline touch.
+- DONE: Set frontmatter verdict: REJECTED and append self-learning line.
+  Frontmatter field added; one dab0019 entry appended to _artifacts/self-learning.md with the transferable rule.
+- DONE: Write ## Follow-up Routing = stop for the keyword-classifier sub-family.
+  Notes siblings dab0020/dab0021 are different mechanisms currently smoking; family verdict awaits them; no new hypothesis; no WORKFLOW-REFINE entry.
+- DONE: Archive the entity to _archive/ and commit with a conclude: prefix.
+  git mv + path-scoped commit (see SHA in completion signal).
+
+### Summary
+
+dab0019 CONCLUDED REJECTED — cleanly falsified at smoke. A README-buildable deterministic keyword classifier could not separate the AG-news World-category regions at a ~3% content-signal margin (committed South America 332 vs GT Africa 320); two distinct methods landed on two different wrong regions within ~12 counts of the truth, proving the margin is irreducible noise, and the prescribed lexicon recipe left no execution signature (partial dab0012 talks-but-doesnt-do). Closes the keyword-classifier sub-family for agnews-q4 only; canaries held, audit clean, @baseline untouched; siblings dab0020/dab0021 (different mechanisms) still smoking.
