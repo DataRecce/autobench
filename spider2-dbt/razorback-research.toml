@@ -1,0 +1,5 @@
+# razorback-research.toml — named-reference registry seed for spider2-dbt autoresearch.
+# Operators `rk registry add run <name> <path>` to bind references.
+#   @baseline → the first scored spider2-dbt run-dir (promotion target, set after smoke)
+slug = "spider2-dbt"
+dataset = "spider2-dbt@1.0"

@@ -1,4 +1,6 @@
-# ABOUTME: dab0021 SMOKE — surviving set agnews(target+observe) + bookreview/music_brainz_20k/stockindex canaries.
+# ABOUTME: dab0021 SMOKE — surviving set agnews(target+observe) + music_brainz_20k/stockindex canaries.
+# ABOUTME: bookreview (postgres) DROPPED for infra-safety: its global named pg volume would collide with a
+# ABOUTME: concurrent dab0020 smoke (dab0018 scar). agnews=mongo isolated per-session, duckdb canaries read-only.
 # ABOUTME: Gated lever; query_mode:batch + workspace_variant:spacedock, reasoning_effort:high (1-variable vs @codex-batch-baseline).
 version: 1
 experiment: dab0021-inference-provenance-noleak-audit
@@ -25,10 +27,10 @@ benchmark:
     workspace_variant: spacedock
   tasks:
   - agnews
-  - bookreview
   - music_brainz_20k
   - stockindex
   exclude_tasks:
+  - bookreview
   - crmarenapro
   - DEPS_DEV_V1
   - GITHUB_REPOS
