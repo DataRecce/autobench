@@ -1,7 +1,7 @@
 ---
 id: spd0001
 title: Establish @baseline — full run of the spider2-dbt-baseline output-contract solver
-status: full
+status: analyze
 kind: hypothesis
 source: commission seed (loop-anchor; no scored full board exists yet)
 started: 2026-06-24
