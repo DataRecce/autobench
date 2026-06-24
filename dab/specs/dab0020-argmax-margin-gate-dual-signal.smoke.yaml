@@ -1,0 +1,46 @@
+# ABOUTME: dab0020 thin-margin category-inference gate — propose-gate smoke. The lever is PRECONDITION-GATED
+# ABOUTME: (fires ONLY on a label-stripped category-inference ranking whose top margin is within 5%), not
+# ABOUTME: generative, so a lighter canary set is sufficient. Surviving set = agnews-q4 (target flip) +
+# ABOUTME: agnews-q3 (secondary observe, also an inferred-category cell) + bookreview-q1 / stockindex-q3
+# ABOUTME: (gate-scope canaries — neither is a label-stripped category question, so the 5% clause never fires).
+version: 1
+experiment: dab0020-argmax-margin-gate-dual-signal
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/dab0020-argmax-margin-gate-dual-signal
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+  tasks:
+  - agnews
+  - bookreview
+  - stockindex
+  exclude_tasks:
+  - agnews-q1
+  - agnews-q2
+  - bookreview-q2
+  - bookreview-q3
+  - stockindex-q1
+  - stockindex-q2
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout

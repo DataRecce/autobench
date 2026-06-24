@@ -84,3 +84,45 @@ committed `_artifacts/reasoning.md` carries TWO independently-constructed per-re
 | stockindex-q3 | ✅ PASS | ✅ PASS (gate must NOT fire) | gate-scope canary |
 
 Net target: +1 (agnews-q4) with zero canary regression; ETA ~1 dataset smoke.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — clean single-stage gated lever; integrity rules (G2/G3/G6) all PASS; one G10 WARN on second-signal independence (both signals re-derive from the same title/description text).
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-24T03:03:42Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | README diff vs parent `spacedock-readme-baseline-hostfix` adds ONE block (207a208-229) in the `analyze` stage only — the "Thin-margin category-inference gate" checklist item; no other stage, no leak-guard prose touched. |
+| G2 leak-guard intact | PASS | grep over added `>` lines for `ground_truth`/`db_description_withhint`/`curl`/`wget`/`git clone`/`expected_*`/`answer_key`/`gold`/`huggingface`/`hf://` = NONE FOUND. Rules + "Use only the workspace data" block byte-identical to parent (diff empty). Both signals computed from in-workspace title/description only. |
+| G3 spec two fields | PASS | Diffed vs the TRUE fork parent `specs/codex-dab-batch-baseline.yaml` (batch lineage), not dab-anchor-codex. Only substantive changes: `experiment:` (→dab0020-...) and `solver_workflow:` (→./solver_workflows/dab0020-...); ABOUTME comments cosmetic. `agent.kind: spacedock_solver`, `runtime: codex`, `trials: 1` all preserved. |
+| G4 smoke tasks+exclude | PASS | Smoke diff adds ONLY `benchmark.tasks` (agnews, bookreview, stockindex — dataset names) + `benchmark.exclude_tasks` (6 q-ids). Nothing else differs (ABOUTME cosmetic). Surviving set = agnews-q3, agnews-q4, bookreview-q1, stockindex-q3 — the named PRIMARY target **agnews-q4 survives**. (rk --explain not run per gatekeeper constraints; surviving set derived from exclude_tasks.) |
+| G5 both frozen | PASS | Both `…frozen.yaml` and `…smoke.frozen.yaml` exist (1871/1823 bytes); each carries `kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim verbatim-in-spirit: same `analyze` stage, dual independent content signals (keyword-hit + TF-weighted) must AGREE before commit, widen-threshold-then-UNABLE-TO-DETERMINE fallback. Generative/independent in form (constructs two scoring methods), not self-anchored "re-run your own query and trust it"; no scope creep beyond the gate. |
+| G7 actionability/inert-risk | WARN | Instruction class = abstract-structural (asks the solver to construct two scoring methods — "fixed-keyword hit count", "TF-weighted category similarity" — and a thresholding/widen loop) WITHOUT a worked-example skeleton or copyable SQL/Python. Inert-risk at gpt-5.5: solver may narrate the gate but commit the single-classifier argmax anyway. Suggest a worked-example skeleton for both signal computations. |
+| G8 regression-canary coverage | N/A (PASS) | Lever is PRECONDITION-GATED (fires only when category was text-inferred AND top margin within 5%), NOT generative — does not fire on every query. Canary regression structurally bounded to gates that mis-fire; smoke still carries 2 non-target passers (bookreview-q1, stockindex-q3) as gate-scope canaries. |
+| G9 selector independence | N/A (PASS) | Not a multi-candidate run-N-and-select protocol — it does not spawn N candidate sessions and pick one. It computes two scoring signals within the single analyze session and gates the commit on their agreement. Selector-independence axes do not apply. |
+| G10 self-correcting false-positive | WARN | Self-correcting (check second signal, act on disagreement). (a) Scope: gated to the 5%-margin + text-inferred precondition — does NOT fire on already-clean/clear-margin queries (good). (c) Check-don't-replace: fallback is widen-threshold → UNABLE TO DETERMINE, not a mandate to swap in a "structurally different" query (good). (b) Independence source: BOTH signals read the SAME title/description content, scored by two methods — separately *constructed* but re-derived from the same source, not a separately-sourced raw signal. Different-method-same-content agreement can re-correlate (both wrong the same way when the content genuinely doesn't separate the regions), giving a false-green. The hypothesis acknowledges this as its own falsification condition ("if the two signals agree on the WRONG region … the margin is irreducible"), so the design fails SAFE rather than committing a confident wrong answer. WARN, not FAIL: gated (axis a) + check-don't-replace (axis c) both clear; only axis-(b) independence is correlated-re-derivation rather than separately-sourced. |
+
+**For the captain:** No FAILs → advances to smoke. Two WARNs to weigh: (G7) the dual-signal computation is abstract prose with no worked-example skeleton — high inert-risk at gpt-5.5 (the solver may discuss the gate but commit the single argmax); consider asking the ensign to add copyable signal-A/signal-B skeletons before smoke. (G10) the two "independent" signals both re-derive from the same title/description text — not double-entry from a different source, so agreement can be correlated-wrong; this is exactly the dab0020-vs-dab0019 question the hypothesis poses, and the UNABLE-TO-DETERMINE fallback makes it fail safe. Smoke should confirm agnews-q4 either flips with two genuinely-divergent per-region tables in `_artifacts/reasoning.md` or yields a defensible UNABLE (not a coin-flip commit), and that the gate does NOT fire on bookreview-q1 / stockindex-q3.
+
+## Stage Report: propose
+
+- DONE: Read dab0020-argmax-margin-gate-dual-signal.md fully; verify AC-0.
+  Single-knob (one analyze-stage gated checklist item), target named (agnews-q4 PRIMARY flip); entity well-formed.
+- DONE: BATCH lineage fork; edit ONLY README.md to add the single lever; leak-guard byte-intact.
+  cp from solver_workflows/spacedock-readme-baseline-hostfix; diff = pure addition 207a208-229 (the "Thin-margin category-inference gate" block); no forbidden tokens in added lines.
+- DONE: Full spec from codex-dab-batch-baseline.yaml; experiment + solver_workflow only.
+  diff vs codex-dab-batch-baseline.yaml = only experiment:, solver_workflow:, ABOUTME; query_mode:batch, workspace_variant:spacedock, reasoning_effort:high preserved.
+- DONE: Smoke spec adds benchmark.tasks + exclude_tasks; gated lever → lighter canary set.
+  tasks=agnews,bookreview,stockindex; exclude=agnews-q1/q2,bookreview-q2/q3,stockindex-q1/q2 → surviving scored set = agnews-q4(target)+agnews-q3(observe)+bookreview-q1+stockindex-q3 canaries. Lever is PRECONDITION-GATED (not generative), so no full G8 panel required.
+- DONE: export RAZORBACK_REGISTRY + RAZORBACK_SPACEDOCK_PLUGIN_DIR; freeze both.
+  wrote dab0020-...frozen.yaml + .smoke.frozen.yaml; both carry kind:spacedock_solver, runtime:codex.
+- DONE: Verify smoke selection via --explain.
+  Tasks: 3 (agnews, bookreview, stockindex); lever present in composed prompt (line 297). exclude_tasks survives freeze; surviving scored cells = the 4 expected.
+- DONE: Run gatekeeper subagent; write ## Gatekeeper review block.
+  Recommendation APPROVE (no FAILs); G7 WARN (abstract-structural, inert-risk) + G10 WARN (both signals re-derive same title/description content — correlated-wrong risk, fails safe via UNABLE-TO-DETERMINE). G8/G9 N/A (gated, not selector).
+- DONE: STOP at propose gate; report to FO.
+  No rk run beyond --explain launched. Findings below.
+
+### Summary
+Forked the batch baseline (spacedock-readme-baseline-hostfix) into dab0020 with ONE added analyze-stage gated checklist item — the thin-margin dual-signal argmax gate — and built/froze full + smoke specs differing only in the allowed fields. Gatekeeper APPROVE with two advisory WARNs (G7 inert-risk: no worked-example skeleton; G10: the two "independent" signals re-derive from the same title/description text, so agreement can be correlated-wrong, but the design fails safe). NOTE: the @codex-batch-baseline agnews-q4 trace committed "North America" (truth "Africa"), not "South America" as the hypothesis narrative states — the thin-margin framing holds but the committed-region detail drifted.
