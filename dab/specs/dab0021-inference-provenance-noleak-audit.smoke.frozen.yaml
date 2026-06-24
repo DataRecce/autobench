@@ -1,0 +1,73 @@
+version: 1
+experiment: dab0021-inference-provenance-noleak-audit
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: solver_workflows/dab0021-inference-provenance-noleak-audit
+  solver_workflow_content_hash: sha256:e1873b4d5b78e040bf8a08a59c8efbd1c6b753aa1c359ccd9462d4058292b805
+  max_turns: 200
+  max_budget_usd: null
+  override_timeout_sec: null
+  override_setup_timeout_sec: null
+  max_timeout_sec: null
+  tools_allowed: []
+  tools_denied: []
+  append_system_prompt: null
+  reasoning_effort: high
+  reasoning_summary: null
+  resume_from_freeze: null
+  sealed_hash: 546f32cc511453363c25da6b0ce4f244
+  spacedock_skill_version: 1.0.0
+  prompt_content_hashes: {}
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  tasks:
+  - agnews
+  - bookreview
+  - music_brainz_20k
+  - stockindex
+  exclude_tasks:
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockmarket
+  - yelp
+  n_tasks: null
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: spacedock
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
+provenance:
+  pin_model_version: true
+  pin_image_digest: true
+  pin_agent_cli_hash: true
+  pin_git_sha: true
+  model_resolved_version: null
+  model_resolved_at: null
+  image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
+  agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
+  harness_git_sha: 81d92eb2b5380cc780fb0c0a78e61d3fdabc2d6c
+  harbor_version: 0.6.6
+  prompt_file_hashes: {}
+  plugins: []
+  solver_workflow_hash: sha256:e1873b4d5b78e040bf8a08a59c8efbd1c6b753aa1c359ccd9462d4058292b805
+experiment_meta: null

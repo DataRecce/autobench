@@ -89,3 +89,47 @@ oracle-read in a probe trace must produce a REJECT.
 
 Net target: integrity boundary enforced at zero correctness cost (no canary regression); ETA ~1
 dataset smoke. This is the "no-leak rule paired with the inference lever" the concept names.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — single gated provenance idea, leak-guard strengthened (not weakened), specs/frozen clean; WARNs only (two-stage split, audit inert-risk, solver-authored provenance signal).
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-24T00:00:00Z.
+
+Parent-resolution note: `source:` says it forks `spacedock-readme-baseline @baseline`, but the apples-to-apples codex/gpt-5.5 anchor is `spacedock-readme-baseline-hostfix` (= `@codex-batch-baseline`); the fork README and both specs use it as parent. In the DAB registry `@baseline` resolves to the Opus-4-8 incumbent (known gotcha — NOT the codex anchor). Diffed against `solver_workflows/spacedock-readme-baseline-hostfix` and full-spec anchor `specs/codex-dab-batch-baseline.yaml`.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | WARN | Diff touches TWO sections — an analyze clause (mandate logged per-class score table) at 221a222 and a verify clause (provenance audit) at 241c247, appended to the EXISTING "External-oracle audit" paragraph (`specific external source.` → `…Additionally…`). Strictly two stage sections, but ONE coupled idea (provenance: log + audit), the verify edit extends existing audit prose (no new stage), no unrelated guardrail touched. Captain confirm the two-stage split is acceptable. |
+| G2 leak-guard intact | PASS | grep hits are both FORBID/audit, not instruct-to-read: L75 pre-existing "Do NOT access `validate.py` or `ground_truth.csv`" (byte-identical to parent), L251 new audit clause forbidding any read of `ground_truth.csv`/`*_withhint`/`expected_*`/`answer_key`/`gold`. No curl/wget/git clone; no `db_description_withhint` content pasted. Leak-guard strengthened. |
+| G3 spec two fields | PASS | diff vs `codex-dab-batch-baseline.yaml` shows only ABOUTME comments + `experiment:` (→dab0021…) + `solver_workflow:` (→./solver_workflows/dab0021…). `agent.kind: spacedock_solver` + `runtime: codex` preserved (frozen confirms); trials:1. |
+| G4 smoke tasks+exclude | PASS | Smoke adds `tasks:` [agnews, bookreview, music_brainz_20k, stockindex] + `exclude_tasks:` [other 8 datasets]; nothing else differs. --explain surviving set = agnews (q4 target + q2 observe) + bookreview/music_brainz_20k/stockindex canaries; both target queries present. |
+| G5 both frozen | PASS | Both `.frozen.yaml` and `.smoke.frozen.yaml` exist; both carry `kind: spacedock_solver` (L4) + `runtime: codex` (L5). |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim verbatim (analyze: log per-class content-score table; verify: confirm table present + trace shows title/description scoring + no oracle/hint read, REJECT with event index). Independent audit of pre-existing artifacts (trace + score table), explicitly NOT a self-anchored re-run; same stages/idea, no scope creep. |
+| G7 actionability/inert-risk | WARN | Concrete artifact-production (log a named table to `_artifacts/reasoning.md`) + concrete check (confirm file contains table, scan trace for forbidden reads, REJECT w/ event index) — not abstract-structural. Inert-risk: README audit clauses are the known DAB "talks but doesn't do" family (dab0012); watch at smoke that the verdict actually changes, not just gets discussed. |
+| G8 regression-canary coverage | N/A | Precondition-GATED (fires only when a category answer is inferred from text / not a column). Canary datasets have no inferred-category queries → gate does not fire (scope-canary test); not a fires-everywhere generative lever. |
+| G9 selector independence | N/A | Not a multi-candidate / selector protocol. |
+| G10 self-correcting false-positive | WARN | Verify-and-REJECT lever, but: (a) GATED to inferred-category answers (not generative — non-inferred passers untouched); (c) REJECTs/flags, does not mandate replacing a correct query. Mild (b) note: the provenance signal (logged score table) is solver-AUTHORED, so a solver that leaks AND fabricates a plausible table self-passes (correlated evidence) — the hypothesis itself names this as its false-negative falsification condition. Low passer-flip risk because gated off non-inferred queries; watch at smoke that the audit can actually distinguish inferred from leaked. |
+
+**For the captain:** No FAILs → advance to smoke. Three things to weigh: (1) G1 — the lever edits two sections (analyze + verify) but as one coupled provenance idea, the verify half merely extends the existing external-oracle audit paragraph; confirm you accept the two-stage split rather than requiring a single-stage variant. (2) G7/G10 — both flag the same risk in different language: an audit clause may be inert ("talks but doesn't do") and its evidence is solver-authored, so verify at smoke that the verify verdict actually changes AND that it could distinguish a content-inferred answer from a planted oracle-read (the hypothesis's own GO/NO-GO test). (3) Parent resolves to `@codex-batch-baseline` (hostfix), not the Opus `@baseline` the `source:` line cites.
+
+## Stage Report: propose
+
+- DONE: Read dab0021 fully; verified AC-0 (entity well-formed, single provenance idea, target agnews-q4 named).
+  ## Hypothesis names one lever (provenance: analyze-log + verify-audit); PRIMARY target agnews-q4.
+- DONE: BATCH lineage fork.
+  `cp -r solver_workflows/spacedock-readme-baseline-hostfix solver_workflows/dab0021-inference-provenance-noleak-audit`; README diff = two added blocks only (analyze provenance clause + verify audit extension); leak-guard byte-intact; no oracle/hint content pasted.
+- DONE: Full spec.
+  `specs/dab0021-inference-provenance-noleak-audit.yaml`; diff vs codex-dab-batch-baseline.yaml = ABOUTME + `experiment:` + `solver_workflow:` only; query_mode:batch, workspace_variant:spacedock, reasoning_effort:high preserved.
+- DONE: Smoke spec.
+  `…smoke.yaml` adds `tasks:` [agnews, bookreview, music_brainz_20k, stockindex] + `exclude_tasks:` [other 8]. Lever is PRECONDITION-GATED (inferred-category only) → lighter scope-canary set; canaries carry no inferred-category query so gate cannot fire on them.
+- DONE: Export registry + plugin dir; freeze both.
+  Wrote `…frozen.yaml` and `…smoke.frozen.yaml`; both carry kind:spacedock_solver + runtime:codex.
+- DONE: Verify smoke selection via --explain.
+  `rk run …smoke.frozen.yaml --explain` → Tasks: 4; materialized dirs = agnews, bookreview, music_brainz_20k, stockindex (target agnews-q4 + agnews-q2 observe + 3 canaries; none extra/missing).
+- DONE: Run gatekeeper subagent; write ## Gatekeeper review block.
+  Appended above: APPROVE, no FAILs; WARNs on G1 (two-stage split, one idea), G7 (audit inert-risk), G10 (solver-authored provenance evidence); G8/G9 N/A.
+- DONE: STOP at propose gate.
+  No rk run beyond --explain; reporting to FO.
+
+### Summary
+Forked the batch-baseline solver (spacedock-readme-baseline-hostfix = @codex-batch-baseline) into dab0021 and added the single gated provenance lever as two coupled blocks: an analyze clause mandating a logged per-class content-score table for any text-inferred category answer, and an extension of the EXISTING verify "External-oracle audit" paragraph that confirms the table is present and the analyze trace shows title/description scoring with no oracle/hint read (REJECT with event index otherwise). Full-spec diff is exactly the 2 allowed fields + ABOUTME; smoke surviving set is agnews (q4 target FAIL + q2 observe FAIL) + bookreview/music_brainz_20k/stockindex canaries (all PASS at @codex-batch-baseline). Gatekeeper recommends APPROVE (no FAILs; three WARNs, none blocking). Auto-gate condition met: gatekeeper APPROVE + clean reject-checks (one-knob README, leak-guard byte-intact, spec diff = only experiment+solver_workflow, kind/runtime preserved).
