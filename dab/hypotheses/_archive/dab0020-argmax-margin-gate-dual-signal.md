@@ -2,6 +2,7 @@
 id: dab0020
 title: agnews-q4 - argmax margin-gate requiring two independent content signals to agree before committing
 status: smoke
+verdict: REJECTED
 kind: hypothesis
 source: dab0006 ideate (integrity-safe stripped-label inference); forks spacedock-readme-baseline @baseline
 started: 2026-06-22T10:46:00Z
@@ -127,3 +128,86 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
 
 ### Summary
 Forked the batch baseline (spacedock-readme-baseline-hostfix) into dab0020 with ONE added analyze-stage gated checklist item — the thin-margin dual-signal argmax gate — and built/froze full + smoke specs differing only in the allowed fields. Gatekeeper APPROVE with two advisory WARNs (G7 inert-risk: no worked-example skeleton; G10: the two "independent" signals re-derive from the same title/description text, so agreement can be correlated-wrong, but the design fails safe). NOTE: the @codex-batch-baseline agnews-q4 trace committed "North America" (truth "Africa"); the hypothesis body has been corrected (it previously cited "South America" with an unverified count ranking) — the thin-margin framing is unchanged.
+
+## Behavioral analysis: the failure mechanism
+
+Smoke run of record: `runs/dab0020-argmax-margin-gate-dual-signal/a31d65e077b5dea1`
+(rc=0, clean audit: 3/3 trials, 0 errored, no `coverage_missing` / taint; smoke stratified 0.75).
+
+**Primary target agnews-q4: reward 0.0 — did NOT flip.** The solver committed
+`"UNABLE TO DETERMINE"` against ground truth **Africa**. Distance-to-pass on the
+secondary observe cell agnews-q3 narrowed but stayed RED (334.36 vs GT 336.64, still 0.0);
+agnews-q2 0.0; agnews-q1 1.0.
+
+**The committed `"UNABLE TO DETERMINE"` is itself proof the dual-signal gate FIRED.** A plain
+single-classifier argmax always commits *some* region — the only way to produce an UNABLE
+verdict is the require-agreement gate refusing to coin-flip. The two independently-constructed
+content signals (signal A = fixed-keyword hit count, signal B = TF-weighted category similarity)
+did NOT agree on the top region even after the rule widened the assignment threshold and dropped
+no-signal articles. So the rule executed exactly as specified and took its own
+step-3 fallback. This is the *defensible UNABLE-TO-DETERMINE* branch the acceptance criteria
+anticipated — a knowledge gain, not an inert no-op (contrast dab0019, where the deterministic
+recipe left NO execution signature and gpt-5.5 narrated its own method instead).
+
+**Mechanism-level conclusion:** when two independently-constructed content signals cannot agree
+on the top region, the content does not separate the regions at the ~3% margin. This is the
+strongest single piece of evidence across the agnews-q4 family that the margin is **irreducible
+noise**, not a determinism gap a README recipe can close.
+
+**Canaries all held:** bookreview-q1/q2/q3 = 1.0; stockindex-q1/q2/q3 = 1.0. The precondition
+gate stayed correctly scoped — it fired only on the label-stripped category-inference target and
+stayed dormant on the non-category passers. Clean audit, no bleed.
+
+## Verdict
+
+**REJECTED** — falsified-informative at smoke (smoke → conclude, no full run per the
+cleanly-falsified routing rule). The dual-signal agreement gate did NOT flip agnews-q4; it took
+the defensible UNABLE-TO-DETERMINE branch its own AC names as the falsification condition (the
+two signals "agree on the wrong region / cannot agree" → margin irreducible). Do NOT promote; do
+NOT touch `@baseline` / `@codex-batch-baseline`; seed README UNCHANGED.
+
+**Knowledge gain:** a require-agreement gate PROVES the agnews-q4 ~3% content-signal margin is
+irreducible — it converts a coin-flip argmax into a defensible abstention, and the abstention is
+the proof. The true answer (Africa) is not recoverable from any README-buildable text
+classification of the World-category articles.
+
+**Transferable rule:** a require-agreement / dual-signal gate is the right tool to PROVE a margin
+is irreducible (it fails SAFE — abstains rather than committing a confident wrong answer), but it
+cannot CREATE separating signal that is not present in the content. Two methods that re-derive
+from the same source text can both be wrong the same way; agreement is a genuine cross-check only
+where the content actually separates the classes. When it doesn't, the gate's value is the
+honest UNABLE, not a flip.
+
+## Follow-up Routing
+
+**stop** — agnews-q4 README-inference family EXHAUSTED on tested evidence. Three distinct
+mechanisms, NONE reached Africa:
+- dab0019 (deterministic keyword classifier) → committed South America (~332, ~3.7% off),
+  recipe left no execution signature ("talks but doesn't do").
+- dab0020 (dual-signal agreement gate) → committed UNABLE TO DETERMINE (gate fired, signals
+  could not agree).
+- dab0021 (provenance audit) → committed South America AND regressed a 6/6 sentinel.
+
+Three independently-constructed mechanisms cluster within ~12 counts of the truth and none recover
+Africa → the ~3% margin is irreducible noise, not a determinism gap a README recipe can close.
+This is mechanism-level proof, not a guess. No new hypothesis filed (family exhausted). NOT
+workflow-structural → no WORKFLOW-REFINE entry.
+
+## Stage Report: conclude
+
+- DONE: Read /tmp/dab0020-conclude-evidence.txt (captain REJECTED verdict + full smoke evidence already extracted by FO) and dab0020-argmax-margin-gate-dual-signal.md.
+  Evidence file + entity read in full; smoke run of record a31d65e077b5dea1, clean audit.
+- DONE: Write ## Behavioral analysis: the failure mechanism.
+  agnews-q4 committed UNABLE TO DETERMINE vs GT Africa; UNABLE is proof the agreement-gate fired (single argmax always commits); two signals could not agree -> margin irreducible; canaries held; clean audit. No invented numbers (all from evidence file).
+- DONE: Write ## Verdict, verdict REJECTED (falsified-informative at smoke, no full run).
+  Knowledge gain (require-agreement gate proves ~3% margin irreducible) + transferable rule (gate fails safe, cannot create absent signal). No promote, @baseline untouched.
+- DONE: Set frontmatter verdict: REJECTED. Append ONE line to _artifacts/self-learning.md for dab0020.
+  verdict: REJECTED added; one dab0020 line appended to self-learning.md.
+- DONE: Write ## Follow-up Routing = stop with family context.
+  stop — 3 mechanisms (dab0019/0020/0021), none reached Africa, agnews-q4 README-inference family exhausted. No new hypothesis, no WORKFLOW-REFINE entry.
+- DONE: Archive (git mv to _archive/) and commit with conclude: prefix.
+  See archive path + commit in summary below.
+
+### Summary
+
+dab0020 (dual-signal argmax agreement gate for label-stripped category inference) CONCLUDED REJECTED — falsified-informative at smoke. agnews-q4 did not flip: the solver committed "UNABLE TO DETERMINE" vs GT Africa, which is itself proof the require-agreement gate fired (a plain single-classifier argmax always commits a region). The two independently-constructed content signals could not agree on the top region even after widening the threshold, proving the ~3% margin is irreducible noise, not a determinism gap a README can close. Canaries all held; clean audit. Family verdict: 2nd of 3 agnews-q4 mechanisms, all three missed Africa -> family exhausted, no follow-up filed.
