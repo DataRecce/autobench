@@ -1,10 +1,10 @@
 ---
 id: spd0002
 title: Build EVERY result table the instruction enumerates (completeness lever)
-status: hypothesis
+status: propose
 kind: hypothesis
 source: re-scoped from spd0001 anchor deep-dive (the original materialization framing is dead — 0 ephemeral fails board-wide; re-aimed at the 3 tractable incomplete-deliverable fails)
-started:
+started: 2026-06-24T14:34:28Z
 completed:
 verdict:
 score: 0.9
