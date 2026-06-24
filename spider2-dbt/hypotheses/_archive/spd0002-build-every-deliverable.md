@@ -1,14 +1,15 @@
 ---
 id: spd0002
 title: Build EVERY result table the instruction enumerates (completeness lever)
-status: smoke
+status: conclude
 kind: hypothesis
 source: re-scoped from spd0001 anchor deep-dive (the original materialization framing is dead — 0 ephemeral fails board-wide; re-aimed at the 3 tractable incomplete-deliverable fails)
 started: 2026-06-24T14:34:28Z
-completed:
-verdict:
+completed: 2026-06-24T15:31:51Z
+verdict: REJECTED
 score: 0.9
 worktree:
+archived: 2026-06-24T15:31:51Z
 ---
 
 ## Hypothesis
@@ -220,7 +221,27 @@ bleed it already causes. Do NOT advance the stage here — the FO presents the g
 
 ## Verdict
 
-(pending captain gate — recommendation REJECTED)
+**REJECTED** at smoke (captain-approved 2026-06-24; routed `smoke → conclude`, no full run). Clean
+strict audit (5/5 clean, 0 coverage_missing, 0 tainted) — the 2/5 is a real behavioral result.
+
+The "build EVERY deliverable the instruction enumerates" completeness lever failed on both axes:
+- **0/2 targets flipped.** intercom001 INERT (count-reflex re-counted to one, never built the 2nd
+  table — the G7 no-skeleton inert-risk, realized); analytics_engineering001 FIRED-but-still-fail
+  (built deliverable #2 but the new `fact_purchase_order` collapsed deliverable #1's OBT row set
+  55→14 — adding the 2nd table broke the 1st).
+- **mrr001 canary REGRESSED** (PASS→FAIL): the generative rule licensed a spurious `util_months`
+  month-spine, zero-filling ~7 phantom customer-months (410→417 rows), directly violating the output
+  contract's anti-zero-fill rule. The G8 generative bleed the gatekeeper flagged borderline.
+
+**Transferable lesson (also `_artifacts/self-learning.md`):** count-completeness is NOT
+row-set-correctness. A generative "build every deliverable" reflex has no oracle for *correct scope*,
+so it structurally fights the contract's row-set discipline — and the only cure for the inert target
+(a worked skeleton) makes the over-fire bleed *hotter*. The two failure modes are mutually exclusive
+to fix via README prose. The completeness/enumerate-deliverables lever family is **closed** for
+spider2-dbt at gpt-5.5/xhigh. This also refines the spd0001 anchor read: the "3 tractable
+incomplete-deliverable" misses were not a single closeable gap — analytics over-built when pushed, and
+the generic push damages single-deliverable passers board-wide. Same wall as DAB's generative
+over-fire family.
 
 ## Stage Report: propose
 

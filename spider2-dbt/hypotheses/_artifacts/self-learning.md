@@ -42,3 +42,19 @@ The entity body is the source of truth; this is the scannable index.
   — it's a gold-side packaging defect (gold DB ships only raw sources, never the dim/fct/obt tables), a
   non-signal. **Lesson:** a 6-task smoke can mis-attribute a failure class; the full-board committed-
   artifact read is what reveals the true bucket distribution and kills/keeps a lever family.
+
+- **spd0002 — REJECTED at smoke (completeness/build-every-deliverable lever; 2/5, clean audit).**
+  A generative "enumerate EVERY result table the instruction names; build a base table for each;
+  confirm built-count == enumerated-count" rule. NO-GO on both axes: **0/2 targets flipped**
+  (intercom001 INERT — count-reflex re-counted to one with no worked skeleton, the G7 risk realized;
+  analytics_engineering001 FIRED-but-fail — built deliverable #2 but the new `fact_purchase_order`
+  collapsed deliverable #1's row set 55→14) AND a **canary REGRESSED** (mrr001 PASS→FAIL: the rule
+  licensed a spurious `util_months` month-spine that zero-filled ~7 phantom rows, 410→417, violating
+  the anti-zero-fill contract). **Lesson:** count-completeness ≠ row-set-correctness; a generative
+  "build everything" reflex has no oracle for correct SCOPE and structurally fights the row-set
+  discipline — and the two failure modes are mutually exclusive to fix (a skeleton cures inertness but
+  amplifies the over-fire bleed). The **completeness/enumerate-deliverables family is CLOSED** at
+  gpt-5.5/xhigh. Refines spd0001: the "3 tractable" misses were not one closeable gap — pushing
+  completeness makes the solver OVER-build and damages single-deliverable passers board-wide. Same
+  wall as DAB's generative over-fire family ([[dab-readme-prose-output-contract-inert]],
+  [[dab-determinism-lever-family-dead]]).

@@ -77,3 +77,45 @@ Authored by the operator (single-entity propose prep):
   intact (1 match, unchanged from baseline); no new fetch/oracle affordance introduced. `diff` confirms
   only the grain rule changed.
 - **Smoke table**: above (5 should-flip + 1 over-emit canary + 2 regression canaries).
+
+## Stage Report (smoke)
+
+Run: `runs/spider2-dbt-spd0004-smoke/9785222d3cf0c206` (rc=0, ~28m, 8 cells, conc 4).
+Net pass: marketo001 FLIP→PASS, mrr001 held, f1001 REGRESSED → **net +1 −1 = 0**. But the
+**construct-touch is strong** (judge by this, per calibration), with a real over-fire defect:
+
+| task | role | @base rows | spd0004 rows (gold) | regime adopted? | outcome |
+|---|---|---|---|---|---|
+| marketo001 | flip | 3 | (79) all templates | ✅ PRESERVE-COVERAGE | **PASS 🎯** |
+| salesforce001 | flip | 55 | **91 = gold 91** | ✅ full 91-day spine | grain FIXED, value-def residual → fail |
+| jira001 | flip | 2 | **3 = gold 3** | ✅ LEFT-join projects | grain FIXED, value-def residual → fail |
+| pendo001 | flip | (few) | date_day spine built | ✅ spine | grain touched, residual → fail |
+| xero001 | flip | 345 | 1614 (gold 1170) | ⚠️ expanded but over-shot (account_name not _id) | over-corrected → fail |
+| tpch001 | over-emit canary | 76777 | 76777 (NOT 150k) | ✅ stayed SCOPE-TO-ACTIVE | **AC-2 HOLDS** |
+| mrr001 | regression canary | PASS | PASS | n/a | held ✅ |
+| f1001 | regression canary | PASS | applied coverage/spine/LEFT-join to F1 stats | ❌ OVER-FIRE | **REGRESSED** |
+
+**Read:** the conditioned-grain lever is VALIDATED as construct-steering — **5/5 should-flips adopted
+the coverage regime**, 2 hit the EXACT gold row count (salesforce 55→91, jira 2→3), marketo fully
+flipped, and the tpch over-emit canary correctly did NOT flip (AC-2 holds). BUT (a) the grain-fixed
+cells (jira/salesforce/pendo) still fail on **value-level** residuals — that is **spd0003's** family,
+not spd0004's, so grain alone can't PASS them; and (b) the PRESERVE-COVERAGE default **OVER-FIRES**:
+it applied spine/LEFT-join to f1001's F1-stats models (a non-coverage task) and regressed a passer.
+
+**AC status:** AC-1 (≥2 FAIL→PASS) NOT met (1 pass; but the construct flipped on 5/5). AC-2 HOLDS.
+AC-3 (canary regression) FAILS (f1001 over-fire). AC-4 holds (diff clean, leak-guard intact).
+
+**Verdict recommendation: smoke → hypothesis (REVISE), do NOT go to full as-is.** The lever is real
+but needs a TIGHTER gate so PRESERVE-COVERAGE fires only on genuine reporting/dimension/daily targets
+and never on aggregate/stats tasks (the f1001 over-fire). Re-smoke after tightening. The grain-fixed-
+but-value-failing cells (jira/salesforce) argue for eventually COMPOSING spd0004 (grain) with spd0003
+(value) rather than expecting grain alone to flip them.
+
+### Feedback Cycles
+
+**Cycle 2 (auto-revise, no gate wait).** Smoke c1 over-fired on f1001 (applied spine/LEFT-join to F1
+`most_*`/stats models, regressed a passer). Fix: added a NEITHER-regime clause to §4 — aggregate /
+ranking / superlative / total targets (`most_*`/`top_*`/"most/top/fastest/total/career/season") get
+the ordinary GROUP BY/window aggregate, never a spine or coverage padding; this OVERRIDES the
+PRESERVE-COVERAGE default. Keeps marketo/salesforce/jira coverage (genuine dimension/daily/report
+targets). Re-smoke as cycle 2.
