@@ -1,14 +1,15 @@
 ---
 id: spd0001
 title: Establish @baseline — full run of the spider2-dbt-baseline output-contract solver
-status: analyze
+status: conclude
 kind: hypothesis
 source: commission seed (loop-anchor; no scored full board exists yet)
 started: 2026-06-24
-completed:
-verdict:
+completed: 2026-06-24T14:10:58Z
+verdict: PASSED
 score: 1.0
 worktree:
+archived: 2026-06-24T14:10:58Z
 ---
 
 ## Hypothesis
@@ -184,6 +185,23 @@ worth carrying forward:
 - Promotion of this run to `@baseline` is the captain's decision at conclude (AC-2 binding step).
 
 ## Verdict
+
+**PASSED** (anchor — established `@baseline`). The seed `spider2-dbt-baseline` output-contract solver
+ran clean over the full 61-task board: **19/61 = 0.3115** stratified Pass@1, 0 errored, 0
+coverage_missing, 0 tainted (strict audit). `@baseline` bound to
+`runs/spider2-dbt-full-baseline/13fb630e2cae3eb8` via `rk registry add run baseline` (the registry
+binding the README's conclude recipe relies on; the secondary `rk baseline promote --to baseline`
+subcommand was blocked by the auto-mode classifier and is redundant once `@baseline` resolves).
+
+Transferable findings (also in `_artifacts/self-learning.md`):
+- **Shape is solved; semantics are the wall.** The output-contract README lands the correct gold table
+  name as a BASE TABLE on 100% of fails — 0 ephemeral, 0 wrong-materialization board-wide. 38 of 42
+  fails are wrong-columns-or-grain (the oracle-blind wall: defensible-but-different reading of an
+  under-specified instruction, self-validated green).
+- **Only 3 fails are tractable** (wrong-table-name / built 1 of 2 required gold tables): intercom001,
+  analytics_engineering001, movie_recomm001 → re-scoped spd0002 (completeness lever).
+- **chinook001 is a gold-side packaging defect, not ephemeral** — the 6-task smoke's bucket was wrong;
+  the full-board artifact read corrected it. The materialization lever family is empty (no target).
 
 ## Stage Report: analyze
 

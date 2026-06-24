@@ -29,3 +29,16 @@ The entity body is the source of truth; this is the scannable index.
 ## Concluded hypotheses
 
 <!-- spd<NNNN> — VERDICT (one-line lesson). Append on conclude. -->
+
+- **spd0001 — PASSED (anchor; @baseline = 19/61 = 0.3115, clean audit).** Established the champion. The
+  output-contract seed README has fully solved the SHAPE problem: every one of the 42 fails builds the
+  correctly-named gold table as a BASE TABLE — **0 ephemeral, 0 wrong-materialization board-wide**, so
+  the seeded materialization lever (old spd0002) has NO live target and is dead-on-arrival. The board's
+  failure is almost entirely the **oracle-blind wall**: 38/42 fails are wrong-columns-or-grain — correct
+  table, wrong analytic content, self-validated green against the agent's own reading of an
+  under-specified instruction (no gold to check against; same wall as ade-bench/DAB). Only **3** fails
+  are tractable (wrong-table-name / built only 1 of 2 required gold tables: intercom001,
+  analytics_engineering001, movie_recomm001). **One smoke→full correction:** chinook001 is NOT ephemeral
+  — it's a gold-side packaging defect (gold DB ships only raw sources, never the dim/fct/obt tables), a
+  non-signal. **Lesson:** a 6-task smoke can mis-attribute a failure class; the full-board committed-
+  artifact read is what reveals the true bucket distribution and kills/keeps a lever family.
