@@ -119,3 +119,30 @@ ranking / superlative / total targets (`most_*`/`top_*`/"most/top/fastest/total/
 the ordinary GROUP BY/window aggregate, never a spine or coverage padding; this OVERRIDES the
 PRESERVE-COVERAGE default. Keeps marketo/salesforce/jira coverage (genuine dimension/daily/report
 targets). Re-smoke as cycle 2.
+
+## Stage Report (smoke — cycle 2, GO)
+
+Run: `runs/spider2-dbt-spd0004-smoke-c2/4ff7d67ce38432b0` (rc=0, ~27m, 8 cells). **Clean GO.**
+
+| task | role | base | c2 | note |
+|---|---|---|---|---|
+| marketo001 | flip | ❌ | ✅ FLIP | full 79-template coverage |
+| salesforce001 | flip | ❌ | ✅ FLIP | full 91-day spine, now passes (c1 had grain but value residual) |
+| f1001 | regression canary | ✅ | ✅ | **over-fire FIXED** by the aggregate/ranking exclusion |
+| mrr001 | regression canary | ✅ | ✅ | held |
+| tpch001 | over-emit canary | ❌ | ❌ | stayed SCOPE-TO-ACTIVE (~76777, not 150k) — AC-2 holds |
+| jira001 | flip | ❌ | ❌ | grain fixed (3=gold) but value-level residual → spd0003 |
+| pendo001 | flip | ❌ | ❌ | spine adopted, value/column residual → spd0003 |
+| xero001 | flip | ❌ | ❌ | over-shoots (account_name key) — value/key residual |
+
+**flips=2, regressions=0, tpch held.** GO bar met (≥2 flips ∧ 0 regr ∧ tpch scoped).
+
+**AC scorecard:** AC-1 ✅ (2 FAIL→PASS: marketo, salesforce). AC-2 ✅. AC-3 ✅ (0 regressions — f1001
+over-fire fixed in c2). AC-4 ✅ (grain-only diff, leak-guard intact). **All ACs met.**
+
+**Verdict: smoke PASSES → recommend FULL.** The conditioned-grain lever is validated and converged in
+2 cycles: it steers grain correctly (5/5 should-flips adopt the regime; 2 fully flip), the over-fire is
+gated, and it does not disturb the SCOPE-TO-ACTIVE / aggregate tasks. The 3 non-flipping should-flips
+(jira/pendo/xero) now carry the CORRECT grain but fail on value-level residuals = spd0003's family —
+evidence for a future spd0004+spd0003 composition, not a spd0004 defect. Holding at the smoke→full
+boundary for captain go on the multi-hour full run (not auto-launched).

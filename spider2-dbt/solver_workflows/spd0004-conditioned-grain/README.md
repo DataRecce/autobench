@@ -83,12 +83,27 @@ even if the logic is sound.
      that actually transacted.
    - Build FROM the fact and INNER JOIN the dimension; do not emit zero-activity rows.
 
-   When unsure, PREFER PRESERVE-COVERAGE — under-emitting by inner-joining away
-   entities/periods is the more common miss. Do not collapse a per-row/per-timestamp
-   source to a coarser period unless the target name IS the aggregate. Sanity-check
-   the row count against the driving source's distinct-key (or spine-period) count —
-   a target far SMALLER than its source dimension is an over-restrictive-join smell;
-   far LARGER is an un-collapsed fan-out.
+   NEITHER regime — PLAIN AGGREGATE / RANKING / SUPERLATIVE (do NOT pad, do NOT
+   spine, do NOT LEFT-join phantom rows). When the target is an aggregate, ranking,
+   leaderboard, superlative, or total — its name reads `most_*`/`top_*`/`*_ranking`/
+   `*_summary` or "most / top / fewest / best / fastest / total / career / season"
+   — it is NOT a coverage table. Compute it as the ordinary GROUP BY / window
+   aggregate at its own natural grain over the existing models, exactly as the
+   project already builds its sibling aggregates. PRESERVE-COVERAGE does NOT apply:
+   adding a date spine, a full-dimension LEFT join, or zero/NULL padding rows here
+   CORRUPTS the aggregate and regresses it. This exclusion OVERRIDES the
+   PRESERVE-COVERAGE default below.
+
+   When unsure BETWEEN coverage and active-scope FOR A PER-ENTITY OR DATED TARGET
+   (a dimension, a `*_report`/`*_metrics`/`*_enhanced` rollup, a daily series),
+   PREFER PRESERVE-COVERAGE — under-emitting by inner-joining away entities/periods
+   is the more common miss. But do NOT reach for coverage on a plain aggregate /
+   ranking / superlative (above) — those get the ordinary aggregate, never a spine.
+   Do not collapse a per-row/per-timestamp source to a coarser period unless the
+   target name IS the aggregate. Sanity-check the row count against the driving
+   source's distinct-key (or spine-period) count — far SMALLER than its source
+   dimension is an over-restrictive-join smell; far LARGER is an un-collapsed
+   fan-out (or wrong padding on an aggregate).
 
 5. SCHEMA / LOCATION. Build into the project's default schema (the active
    `profiles.yml` output, normally `main`) so the table is visible at the top
