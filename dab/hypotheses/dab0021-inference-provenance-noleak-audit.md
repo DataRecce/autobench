@@ -1,7 +1,7 @@
 ---
 id: dab0021
 title: agnews-q4 - inference-provenance no-leak rule (committed category must trace to a logged content-score table)
-status: propose
+status: smoke
 kind: hypothesis
 source: dab0006 ideate (integrity-safe stripped-label inference); the explicit no-leak half of the concept; forks spacedock-readme-baseline @baseline
 started: 2026-06-22T10:47:00Z

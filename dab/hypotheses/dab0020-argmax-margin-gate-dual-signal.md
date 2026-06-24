@@ -1,7 +1,7 @@
 ---
 id: dab0020
 title: agnews-q4 - argmax margin-gate requiring two independent content signals to agree before committing
-status: propose
+status: smoke
 kind: hypothesis
 source: dab0006 ideate (integrity-safe stripped-label inference); forks spacedock-readme-baseline @baseline
 started: 2026-06-22T10:46:00Z
