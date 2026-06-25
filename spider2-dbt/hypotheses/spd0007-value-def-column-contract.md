@@ -1,7 +1,7 @@
 ---
 id: spd0007
 title: Axis-2 G3 — per-column-name VALUE_DEF contract (id-cast / COUNT(*) vs DISTINCT / %-convert / NULL-vs-0 / 2dp-round / key-grain)
-status: propose
+status: smoke
 kind: hypothesis
 source: "resolution-survey-2026-06-25 ranked-backlog #2; COMPOSES the spd0006 router (banked validated-not-promoted) as base + value-def G3 as the one knob" #2; stacks on spd0006's promoted solver
 started: 2026-06-25
