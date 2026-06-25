@@ -117,7 +117,12 @@ even if the logic is sound.
    re-reading raw tables ad hoc.
 
 7. VALUE-LEVEL DISCIPLINE (once the grain/row-set is right per §4, the residual
-   misses are wrong column VALUES — address them here):
+   misses are wrong column VALUES — address them here). APPLY MINIMALLY: this
+   discipline is for getting a WRONG or incomplete value right, NOT for re-litigating
+   a model that already builds clean. If a target already builds and its columns
+   already match the instruction's described semantics on inspection, LEAVE IT —
+   re-engineering a correct model (extra re-derivations, refactors, "tidying") is a
+   net regression risk, not an improvement. Touch only what is demonstrably wrong.
    - COLUMN COMPLETENESS + TYPE. Enumerate every column the instruction names or
      implies; ensure each target column is present AND of the right kind. In a mart,
      a FACT carries dimension surrogate-key FK columns (`dim_*_id`), NOT the
@@ -132,12 +137,15 @@ even if the logic is sound.
      the package's own join scope); do not re-derive the measure from the
      instruction's narrative wording, and do not invent a column the prose names but
      the package omits.
-   - INDEPENDENT RE-DERIVATION (the only oracle-free guard against false-green). The
-     gold is not visible, so "it builds / 0 dup keys" proves nothing about values.
-     For at least one key output metric, compute it a SECOND independent way (a
-     different join path or aggregation order) and reconcile the two numbers; a
-     mismatch means your interpretation is wrong — fix it before finalizing. Validate
-     against the instruction's described semantics, never against your own build.
+   - INDEPENDENT RE-DERIVATION (the only oracle-free guard against false-green),
+     applied to the PRIMARY target metric ONLY. The gold is not visible, so "it
+     builds / 0 dup keys" proves nothing about values. For the single most important
+     output metric, compute it a SECOND independent way (a different join path or
+     aggregation order) and reconcile the two numbers. If they AGREE, you are done —
+     stop, do not keep changing the model. If they disagree, your interpretation is
+     wrong — fix it. This is a one-shot check on the primary metric, not a license to
+     refactor every column; validate against the instruction's described semantics,
+     never against your own build.
 
 ## Stage: Exploration
 

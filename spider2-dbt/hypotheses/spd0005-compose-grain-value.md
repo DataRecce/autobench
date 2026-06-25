@@ -63,3 +63,12 @@ GO read: ≥2 should-flip via the value layer AND holds (marketo/retail/quickboo
   intact; the INDEPENDENT RE-DERIVATION rule is explicitly oracle-FREE (reconcile two of the agent's
   OWN derivations, no gold). `diff @baseline` = grain §4 + value §7 only.
 - **Smoke table**: above. Auto-approved propose → smoke (captain directive: auto-approve until smoke go).
+
+### Feedback Cycles
+
+**Cycle 2 (auto-revise toward smoke go).** Smoke c1: jira001 FLIP (value layer worked on the designed
+target) + held marketo/quickbooks003/retail001, BUT regressed BOTH stable canaries f1001 AND mrr001 —
+the generic value-§7 over-fired, making the solver rework already-correct models and break them
+(mrr001 rock-stable across all prior runs). Fix: added an APPLY-MINIMALLY guard ("if a target already
+builds clean and matches the instruction, LEAVE IT — re-engineering a correct model is a regression
+risk") and scoped INDEPENDENT RE-DERIVATION to the PRIMARY metric only ("if the two agree, stop"). Re-smoke c2.
