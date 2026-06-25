@@ -1,9 +1,10 @@
 # ABOUTME: swe-bench-pro mechanism smoke (N=1) — Harbor published dataset ref
 # ABOUTME: scale-ai/swe-bench-pro@latest (kind: harbor, task-view materializer path).
-# ABOUTME: De-risks hydration + leakage-strip + solver fit + scoring end-to-end before any
-# ABOUTME: full run. A LIVE run requires the scale-ai/swe-bench-pro harbor package to be
-# ABOUTME: hydrated/checked-out first (PKG-40-style git-checkout blocker, + working harbor
-# ABOUTME: auth); freeze + schema-validate work offline via `rk freeze --allow-missing`.
+# ABOUTME: De-risks hydration + leakage-strip + solver fit + scoring end-to-end. PROVEN
+# ABOUTME: 2026-06-25: dataset hydrates clean (no PKG-40 blocker), default `rk run` works
+# ABOUTME: out of the box after razorback PR #26 (no --materialize copy needed). Result:
+# ABOUTME: reward 1.0 on the ansible task (see docs/smoke1-2026-06-25.md). Needs working
+# ABOUTME: harbor auth + Docker; freeze offline via `rk freeze --allow-missing`.
 # ABOUTME: Run from swe/ after `export RAZORBACK_SPACEDOCK_PLUGIN_DIR=<repo>/spacedock`.
 version: 1
 experiment: swe-bench-pro-smoke1
@@ -17,9 +18,12 @@ agent:
     seed: null
   solver_workflow: ./solver_workflows/swe-bench-pro-baseline
   spacedock_skill_version: "1.0.0"
-  # SWE-tuned budget — above the 1200s codex default: large repos + long test
-  # suites need more turns and a longer per-attempt/overall timeout.
-  max_turns: 400
+  # SWE-tuned budget. The codex runtime does NOT honor a custom max_turns — only
+  # 200 (the canonical default, a no-op) or None pass the codex adapter; any other
+  # value raises SpacedockSolverAgentError (razorback PR #26 made that error
+  # actionable). So leave max_turns at 200 and buy the "large repo + long test
+  # suite" headroom via the TIMEOUTS below (harbor trial config, not codex kwargs).
+  max_turns: 200
   override_timeout_sec: 5400
   max_timeout_sec: 7200
   reasoning_effort: xhigh
