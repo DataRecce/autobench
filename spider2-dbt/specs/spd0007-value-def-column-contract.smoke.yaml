@@ -1,5 +1,5 @@
-# ABOUTME: spd0007 SMOKE — value-def targets social_media001(linkedin coalesce)/superstore001(order_id dtype)/
-# ABOUTME: retail001(total_invoices COUNT*)/divvy001(id->varchar) + canaries activity001,mrr001 (stable) + quickbooks002 (perturbable financial passer).
+# ABOUTME: spd0007 v2 RE-SMOKE (id-cast R1-precedence guard) — GAINS retail001/f1003 must HOLD; REGRESSIONS
+# ABOUTME: mrr002/hubspot001 must RECOVER to PASS; canaries mrr001/activity001 stable. Only solver_workflow+tasks differ.
 version: 1
 experiment: spider2-dbt-spd0007-smoke
 agent:
@@ -22,13 +22,12 @@ benchmark:
   kind: harbor-local
   tasks_root: /home/kent/autobench/spider2-dbt/_views
   tasks:
-    - spider2-dbt-social_media001
-    - spider2-dbt-superstore001
     - spider2-dbt-retail001
-    - spider2-dbt-divvy001
-    - spider2-dbt-activity001
+    - spider2-dbt-f1003
+    - spider2-dbt-mrr002
+    - spider2-dbt-hubspot001
     - spider2-dbt-mrr001
-    - spider2-dbt-quickbooks002
+    - spider2-dbt-activity001
 trials: 1
 concurrency:
   trials: 4

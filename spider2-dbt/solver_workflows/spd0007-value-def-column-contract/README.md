@@ -155,9 +155,19 @@ NOT generative — each fires ONLY on the named-column / source-dtype signal sta
 per column, never table-wide. Applying any of them blanket is net-negative; the gate is the
 isolation.
 
-- **Identifier dtype.** If a column is described in `schema.yml` as "the unique identifier" / an id
-  and the raw source column is NUMERIC, CAST it to VARCHAR in the output (the gold id column is a
-  string). Conversely, never cast a genuinely-numeric id. *(divvy001 id; intercom admin_id.)*
+**R1-PRECEDENCE GUARD (applies to EVERY G3 clause below).** These column-value rules apply ONLY to
+columns of a model you are NEWLY AUTHORING (R2 / R4 / R6). NEVER apply a value-def edit — a dtype
+cast, a count-semantics change, a conversion, a re-rounding — to a column in a PRE-EXISTING model
+(R1 build-as-is) or to an existing intermediate it `ref()`s. Those are built UNMODIFIED per R1:
+gold was produced from them as-is, so "correcting" a column there diverges from gold. If a
+pre-existing model's column looks wrong (an id that "should" be a string, a count that "should" be
+distinct), LEAVE IT. (Casting `customer_id` in a pre-existing R1 model — and rebuilding its date
+spine to match — is exactly what corrupted a passing `mrr` target 410→417 rows.)
+
+- **Identifier dtype.** When NEWLY AUTHORING a model (never an R1 model — see the guard above): if a
+  column is described in `schema.yml` as "the unique identifier" / an id and the raw source column
+  is NUMERIC, CAST it to VARCHAR in the output (the gold id column is a string). Conversely, never
+  cast a genuinely-numeric id. *(divvy001 id; intercom admin_id.)*
 - **COUNT(\*) vs COUNT(DISTINCT) by NAME.** Choose the count semantics from the column NAME:
   `total_*` / "number of <rows>" → `COUNT(*)` (every row); `num_*` / "distinct <X>" / "unique" →
   `COUNT(DISTINCT ...)`. Disambiguate by the name, never default to one. *(a `total_invoices`

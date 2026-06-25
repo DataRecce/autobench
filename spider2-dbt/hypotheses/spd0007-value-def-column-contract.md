@@ -1,7 +1,7 @@
 ---
 id: spd0007
 title: Axis-2 G3 — per-column-name VALUE_DEF contract (id-cast / COUNT(*) vs DISTINCT / %-convert / NULL-vs-0 / 2dp-round / key-grain)
-status: full
+status: smoke
 kind: hypothesis
 source: "resolution-survey-2026-06-25 ranked-backlog #2; COMPOSES the spd0006 router (banked validated-not-promoted) as base + value-def G3 as the one knob" #2; stacks on spd0006's promoted solver
 started: 2026-06-25
@@ -172,4 +172,27 @@ downstream FK diagnosis), not spd0007-blocking.
 
 ## Follow-up Routing
 
+`probe` (revise + re-smoke + hold-rate) — captain-approved. The value-def lever is validated
+(retail001 + f1003 attributable) but the single +1 full draw is variance-band and carries a
+fixable lever-caused regression. Re-route `→ smoke` with the v2 fix; if clean, a ≥3-draw hold-rate
+gates promotion. Spinoffs filed/routed: divvy001→spd0010 (build-nondeterminism, NOT a verifier
+bug), social_media001→new text-fallback clause (follow-up), superstore001→FK-gap diagnosis.
+
+## Revision v2 (captain-approved — id-cast R1-precedence guard, 2026-06-25)
+
+Root fix for the mrr002 regression: added an **R1-PRECEDENCE GUARD** to the entire G3 block — the
+value-def clauses apply ONLY to columns of a NEWLY-AUTHORED model (R2/R4/R6), NEVER to a
+pre-existing R1 model or an intermediate it `ref()`s (those are built unmodified per R1; "fixing" a
+column there diverges from gold). Directly stops the mrr002 customer_id cast + upstream rewrite, and
+de-risks the hubspot001 path. Still one knob (the value-def lever, now correctly R1-scoped); diff
+vs @baseline solver purely additive, leak-guard intact.
+
+**Re-smoke panel** (`specs/spd0007-value-def-column-contract.smoke.frozen.yaml`, 6 cells): GAINS
+retail001 + f1003 must HOLD PASS (guard must not break the COUNT*/sibling-mirror gains); REGRESSIONS
+mrr002 + hubspot001 must RECOVER to PASS; canaries mrr001 + activity001 stable. GO = both gains
+hold + both regressions recover + canaries hold → then a ≥3-draw hold-rate before promotion.
+
 ## Verdict
+
+Pending the v2 re-smoke + hold-rate. Full v1 draw = 20/61 net +1, validated-not-yet-promoted
+(2 attributable gains, 1 fixable lever-caused regression). `@baseline` stays 19/61.
