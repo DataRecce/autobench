@@ -194,6 +194,46 @@ def _align_source_schemas_to_main(project_dir: Path) -> None:
             print(f"   [schema-align] {yml.relative_to(project_dir)} -> schema: main")
 
 
+_DBT_UTILS_DONOR = Path(__file__).resolve().parent / "vendor" / "dbt_utils"
+
+
+def _vendor_dbt_utils(project_dir: Path) -> None:
+    """Vendor the in-repo dbt_utils donor into a project that references it but
+    ships no copy. Faithful + idempotent: copies only when a model under models/
+    references a ``dbt_utils.`` macro AND ``dbt_packages/dbt_utils`` is absent, then
+    ensures a minimal packages.yml entry so the dependency is declared. dbt loads
+    installed packages from dbt_packages/ by presence (no network/`dbt deps`), so
+    the ``dbt_utils.`` macro namespace resolves offline. No-op for projects that
+    already vendor dbt_utils (the fivetran-package tasks) or never reference it."""
+    models = project_dir / "models"
+    if not models.is_dir():
+        return
+    references = any(
+        "dbt_utils." in p.read_text(errors="ignore")
+        for p in models.rglob("*.sql")
+    )
+    if not references:
+        return
+    dest = project_dir / "dbt_packages" / "dbt_utils"
+    if dest.exists():
+        return  # already vendored (e.g. a fivetran-package task) — never overwrite
+    if not _DBT_UTILS_DONOR.is_dir():
+        raise FileNotFoundError(
+            f"dbt_utils donor missing at {_DBT_UTILS_DONOR}; cannot vendor for "
+            f"{project_dir.parent.name}"
+        )
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(_DBT_UTILS_DONOR, dest)
+    # Declare it (the project shipped no packages.yml). A `local:` entry keeps any
+    # `dbt deps` the solver may run offline-safe (resolves to the vendored copy).
+    pkg_yml = project_dir / "packages.yml"
+    decl = "  - local: dbt_packages/dbt_utils\n"
+    if not pkg_yml.exists():
+        pkg_yml.write_text("packages:\n" + decl)
+    elif "dbt_packages/dbt_utils" not in pkg_yml.read_text():
+        pkg_yml.write_text(pkg_yml.read_text().rstrip() + "\n" + decl)
+
+
 def _stage_task(
     *,
     task_id: str,
@@ -227,6 +267,16 @@ def _stage_task(
     # whose default-name schema is absent from the DuckDB while `main` holds its
     # tables — a no-op for already-consistent projects (tpch001, chinook001).
     _align_source_schemas_to_main(src / "dbt_project")
+
+    # Faithful repair: some upstream examples reference dbt_utils macros (e.g.
+    # synthea001's staging uses dbt_utils.get_filtered_columns_in_relation) but
+    # ship NO packages.yml and NO vendored dbt_packages/. The gold was built with
+    # dbt_utils present, but the run container is offline so `dbt deps` cannot
+    # fetch it — the solver then hand-shims the macro and perturbs row sets. Vendor
+    # a known-good, gold-compatible dbt_utils from the in-repo donor when a project
+    # references it but lacks it. Version-stable macros only (dbt_utils); a no-op
+    # when dbt_packages/dbt_utils is already present.
+    _vendor_dbt_utils(src / "dbt_project")
 
     # environment/Dockerfile (materializer appends COPY dbt_project + preflight)
     (src / "environment" / "Dockerfile").write_text(
