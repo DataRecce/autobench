@@ -192,6 +192,13 @@ retail001 + f1003 must HOLD PASS (guard must not break the COUNT*/sibling-mirror
 mrr002 + hubspot001 must RECOVER to PASS; canaries mrr001 + activity001 stable. GO = both gains
 hold + both regressions recover + canaries hold → then a ≥3-draw hold-rate before promotion.
 
+**CAPTAIN AUTHORIZATION (2026-06-25, captain asleep):** on a re-smoke **GO** — primarily mrr002
+RECOVERS to PASS (the guard's target) + retail001/f1003 HOLD + canaries hold — **AUTO-ADVANCE to a
+full run** (handle `spd0007-full-v2`) without waiting; gather the `analyze` data when it lands and
+have the promote/conclude decision ready for the captain on wake. HALT + hold for the captain if
+the re-smoke is NO-GO (mrr002 stays FAIL = guard failed, or a gain breaks). Promotion still requires
+the captain + the hold-rate (this full draw is draw-2-of-3 toward that).
+
 ## Verdict
 
 Pending the v2 re-smoke + hold-rate. Full v1 draw = 20/61 net +1, validated-not-yet-promoted
