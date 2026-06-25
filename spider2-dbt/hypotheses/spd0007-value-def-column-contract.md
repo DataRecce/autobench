@@ -224,7 +224,48 @@ sentinel rundir == v1's). Re-froze the full spec → guarded hash `07ebe131…` 
 artifact). LESSON: always re-freeze BOTH full + smoke after any solver edit — a stale full frozen
 silently resolves to the prior run dir.
 
+## Run result — guarded full v2 (DECISIVE)
+
+Run `runs/spider2-dbt-spd0007-full/d4a4a6892a86e985` (rc=0, audit strict CLEAN — 61 clean, 0
+tainted, 0 errored). **16/61 = 0.2623 vs @baseline 19/61 = 0.3115 — net −3.** The two full draws of
+this lever now read **+1 (v1) then −3 (v2), with DISJOINT regression sets** (only hubspot001
+common) — variance dominates the headline. Per-cell attribution:
+
+| cell | Δ vs baseline | attribution |
+|---|---|---|
+| **retail001** | +PASS | **VALUE-DEF (COUNT*) — durable**: baseline-FAIL→PASS across v1 + v2 + smoke. The one real, oracle-safe win. |
+| greenhouse001 | −FAIL | **VARIANCE** — no G3 clause applicable to its graded cols; flicker (held baseline+v1) |
+| maturity001 | −FAIL | **VARIANCE this draw + LATENT TRAP** — id-cast clause *applicable* (schema.yml "unique identifier"+numeric) but gold ids are BIGINT; obeying the cast breaks it. Held v1 (didn't cast that draw) |
+| **tpch002** | −FAIL | **LEVER-CAUSED (id-cast clause)** — cast `p_partkey` numeric→VARCHAR, but gold `p_partkey` is NUMERIC → broke the compared column. Deterministic, not variance |
+| hubspot001 | −FAIL | unclear-variance (carried from v1; R2-author+id-cast nudge) |
+| marketo001/quickbooks003/f1003 | (v1 gains gone) | **VARIANCE** — did not reproduce in v2 |
+
+**DECISIVE FINDING — the G3 Identifier-dtype clause is ORACLE-BLIND and net-destabilizing.** Its
+heuristic ("a `schema.yml` 'unique identifier' column + numeric source → cast VARCHAR") *guesses*
+what gold wants — which is the oracle problem. Gold keeps ids NUMERIC (tpch002 `p_partkey`,
+maturity001 `doctor_id`/`patient_id`) about as often as it wants string (divvy001), and the clause
+cannot tell which oracle-free. It breaks tpch002 deterministically, is a latent trap on
+maturity001, and the divvy001 "win" was build-nondeterminism anyway. The **COUNT(*)-vs-DISTINCT
+by-NAME clause is the opposite** — deterministic, name-gated, oracle-SAFE, and durable (retail001).
+
 ## Verdict
 
-Pending the v2 full run (draw-2-of-3 toward hold-rate). Re-smoke recovered mrr002 (guard works); full will confirm board-wide. Prior v1 full = 20/61 net +1 + hold-rate. Full v1 draw = 20/61 net +1, validated-not-yet-promoted
-(2 attributable gains, 1 fixable lever-caused regression). `@baseline` stays 19/61.
+**validated-not-promoted; the value-def FAMILY splits into a keeper and a destabilizer.** Two full
+draws (+1, −3) are variance-band, and v2 surfaced a CONFIRMED oracle-blind destabilizer — so NOT
+promotable; `@baseline` stays 19/61. But it is not a flat reject:
+
+- **KEEP (banked, durable):** the **COUNT(*)-vs-COUNT(DISTINCT) by column-NAME** clause — retail001
+  is attributable and held every draw; deterministic and oracle-safe. Plus the mrr002
+  **R1-precedence guard** learning (a value-def edit must never touch a pre-existing R1 model).
+- **REJECT (oracle-blind):** the **Identifier-dtype cast** clause — it guesses gold dtype (the
+  oracle problem), breaking numeric-id tasks (tpch002) as readily as it fixes string-id ones.
+  Same wall as [[ade-bench-solver-blind-to-oracle]] / the spd0005 generative-value finding: you
+  cannot infer a value DEFINITION oracle-free; you can only pin a value SEMANTICS the NAME dictates.
+- Other deterministic name/discriminator-gated clauses (percentage-convert, NULL-vs-0, key-grain,
+  sign) were inert/neutral this draw — keep but unproven.
+
+**RECOMMENDATION (captain decision — HALTED here per policy):** CONCLUDE spd0007
+validated-not-promoted; bank the COUNT-by-name clause + R1-guard; REJECT the id-cast clause. File
+**spd0007b = value-def MINUS the id-cast clause** (COUNT-by-name + percentage + NULL-vs-0 +
+key-grain + sign) and run it as a **≥3-draw hold-rate**, since single full draws here swing ±3 on
+variance alone. `@baseline` stays 19/61. Flake-ledger updated with v2 as a new full-board draw.
