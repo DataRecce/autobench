@@ -1,7 +1,7 @@
 ---
 id: spd0007b
 title: Value-def MINUS the oracle-blind id-cast clause (COUNT-by-name keeper + preserve-source-dtype)
-status: smoke
+status: full
 kind: hypothesis
 source: spd0007 conclude follow-up — id-cast clause rejected as oracle-blind (broke tpch002/maturity001); isolate the durable value-def signal
 started: 2026-06-25
@@ -91,6 +91,19 @@ clean), retail001 must still flip by committed artifact, canaries hold. Per AC-3
 decision needs the ≥3-draw hold-rate, which remains yours after the full run.
 
 ## Smoke result
+
+## Smoke result
+
+Run `runs/spider2-dbt-spd0007b-smoke/a80088ac0af1a9de` (rc=0, audit strict CLEAN). **7/7 PASS —
+strongest smoke of the program. GO.**
+- 3 TARGET FLIPS (FAIL→PASS), all deterministic value-def clauses: retail001 (COUNT-by-name),
+  recharge001 (percentage-convert), f1002 (NULL-vs-0).
+- 2 id-cast VICTIMS RECOVERED + held: tpch002, maturity001 — direct proof the oracle-blind cast
+  removal fixed them.
+- canaries activity001 + quickbooks002 held.
+Caveat: single draw; recharge001/f1002 flips + the holds need the ≥3-draw hold-rate (these cells
+are flaky per the ledger). Auto-advanced to full per captain authorization.
+
 
 ## Run result
 
