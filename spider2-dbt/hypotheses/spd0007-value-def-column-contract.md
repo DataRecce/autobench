@@ -201,7 +201,18 @@ promote/conclude decision written up and ready for the captain on wake. **ONLY H
 failure** (re-smoke or full `rc≠0`, audit taint/coverage_missing, backend down) — infra is not a
 result. Promotion still requires the captain + the ≥3-draw hold-rate (this full = draw-2-of-3).
 
+
+## Re-smoke (v2) result
+
+Run `runs/spider2-dbt-spd0007-smoke/43b63849a28fc1b0` (rc=0, audit strict CLEAN). Mixed panel,
+guard achieved its purpose: **mrr002 RECOVERED to PASS** (the R1-precedence guard fixed the exact
+lever-caused regression) + **retail001 HELD** (value-def gain survives) + activity001 held.
+f1003→0.0 (router gain didn't reproduce — 2/4 flaky per the ledger) + mrr001→0.0 (canary; 10/12
+flaky, smoke flicker) + hubspot001→0.0 (didn't recover — unclear-variance, not a clean guard
+target). Per captain authorization, AUTO-ADVANCED to full regardless (full board = the real signal;
+will show whether mrr001/f1003 were variance). Full draw = `spd0007-full-v2`.
+
 ## Verdict
 
-Pending the v2 re-smoke + hold-rate. Full v1 draw = 20/61 net +1, validated-not-yet-promoted
+Pending the v2 full run (draw-2-of-3 toward hold-rate). Re-smoke recovered mrr002 (guard works); full will confirm board-wide. Prior v1 full = 20/61 net +1 + hold-rate. Full v1 draw = 20/61 net +1, validated-not-yet-promoted
 (2 attributable gains, 1 fixable lever-caused regression). `@baseline` stays 19/61.
