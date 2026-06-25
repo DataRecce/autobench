@@ -212,6 +212,18 @@ flaky, smoke flicker) + hubspot001→0.0 (didn't recover — unclear-variance, n
 target). Per captain authorization, AUTO-ADVANCED to full regardless (full board = the real signal;
 will show whether mrr001/f1003 were variance). Full draw = `spd0007-full-v2`.
 
+
+## Full v2 — launch correction (2026-06-25)
+
+First `spd0007-full-v2` launch used a STALE full frozen spec (I'd re-frozen only the smoke after the
+guard edit), so its solver hash was the PRE-guard `7bca0568…` → rk resolved it to the EXISTING v1
+run dir `088a896e` and returned identical v1 results (NOT the guarded solver). Caught it (the
+sentinel rundir == v1's). Re-froze the full spec → guarded hash `07ebe131…` / sealed `93c429a7`
+(matches the guarded smoke-v2 frozen). **Real guarded full v2 = run dir `d4a4a689…`, handle
+`spd0007-full-v2b`** (pid 930820). The mislaunched 088a896e is just the v1 board (discard as a v2
+artifact). LESSON: always re-freeze BOTH full + smoke after any solver edit — a stale full frozen
+silently resolves to the prior run dir.
+
 ## Verdict
 
 Pending the v2 full run (draw-2-of-3 toward hold-rate). Re-smoke recovered mrr002 (guard works); full will confirm board-wide. Prior v1 full = 20/61 net +1 + hold-rate. Full v1 draw = 20/61 net +1, validated-not-yet-promoted
