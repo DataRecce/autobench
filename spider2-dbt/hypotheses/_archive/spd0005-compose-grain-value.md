@@ -9,6 +9,7 @@ completed: 2026-06-25T04:24:11Z
 verdict: rejected
 score:
 worktree:
+archived: 2026-06-25T04:24:11Z
 ---
 
 ## Hypothesis
