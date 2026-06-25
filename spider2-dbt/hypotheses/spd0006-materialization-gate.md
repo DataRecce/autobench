@@ -1,7 +1,7 @@
 ---
 id: spd0006
 title: Classifier router + Axis-1 materialization gate (BUILD_AS_IS / AUTHOR / enumerate-every-target / verbatim-union)
-status: hypothesis
+status: propose
 kind: hypothesis
 source: resolution-survey-2026-06-25 (docs/resolution-survey-2026-06-25.md) ranked-backlog #1; reframes spd0002 (build-every-deliverable, REJECTED) into a precondition-GATED router
 started: 2026-06-25
@@ -88,6 +88,27 @@ SQL matches the recipe). Smoke GO requires ≥1 target flip proven by artifact +
 regression.
 
 ## Gatekeeper review
+
+**Recommendation: APPROVE** — a purely-additive, precondition-GATED `## Stage: Classify (router)` block with leak-guard byte-intact, specs differ in exactly the two allowed fields, both frozen, and a regression panel that exercises the R4 default path; no FAIL on any rule.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-24). Reviewed 2026-06-25.
+Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke).
+
+Fork parent resolved: `source:` = `solver_workflows/spider2-dbt-baseline`; `@baseline` resolves to `runs/spider2-dbt-full-baseline/13fb630e2cae3eb8` whose `agent.solver_workflow` = `solver_workflows/spider2-dbt-baseline`. They agree — G1 diffed against the seed solver.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea | PASS | README diff is purely additive (`82a83,128`): one new `## Stage: Classify (router)` block with R1–R6; no other section edited. The single idea = the Axis-1 materialization router named in the claim. |
+| G2 leak-guard (hidden gold) | PASS | No-fetch paragraph (README lines 11–13: `curl`/`wget`/`git clone`/`git ls-remote`/web lookup/published solutions) byte-identical in both files. Added-line `gold` hits are all leak-REINFORCING ("Never read or guess gold values"; "if gold was built from this project, your correction diverges from gold") — no gold table/columns named, no `expected_`/`answer_key`/`ground_truth`/fetch token; R3 says report ungradeable, don't fabricate. |
+| G3 spec two fields | PASS | `diff full-baseline.yaml … spd0006…yaml` differs only in `experiment:` + `agent.solver_workflow:` (+ ABOUTME). `kind: spacedock_solver`, `runtime: codex`, `model: gpt-5.5`, `reasoning_effort: xhigh`, agent `trials: 1` all preserved (`concurrency.trials: 4` = parallelism, same as baseline). |
+| G4 smoke narrows tasks only | PASS | Smoke diff changes only `experiment:` + `benchmark.tasks` (narrowed to 7), no `exclude_tasks`. Surviving set = 4 targets (zuora001/superstore001/synthea001/intercom001 — every target the `## Hypothesis` smoke names) + 3 passing canaries; ≥1 currently-PASSING sentinel present. |
+| G5 both frozen | PASS | `spd0006-materialization-gate.frozen.yaml` (3201B) + `…smoke.frozen.yaml` (1709B) both exist; both carry `kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted R1–R6 match the claim's branches 1:1 (R1 BUILD_AS_IS / R2 AUTHOR-from-recipe / R3 fixture-flag / R4 default / R5 enumerate-every-target / R6 verbatim-union); decisions on oracle-free signals only (stem, schema.yml, dbt_project vars, information_schema). Not self-anchored — R1 explicitly forbids rewriting a passing build; no "verify your answer matches" disease. |
+| G7 actionability/inert-risk | PASS | Mechanical, not abstract: named file-signal preconditions (`models/**/<T>.sql` stem, `int_*__<T>_*`), concrete edits (`dbt deps && dbt build`, `UNION ALL`/`FULL OUTER JOIN`, copy sibling's surrogate-key offset). Each branch is a literal file/name/schema test, not a "get the grain right" abstraction. |
+| G8 regression-canary coverage | PASS (N/A-gated) | GATED, not generative — every branch fires only on a file/name/schema precondition and R4 (default authoring) leaves plain new-model tasks unchanged ("this router never changes behavior on a plain new-model task"). Panel still keeps non-target `@baseline` passers: activity001 (1.0, exercises the R4 default path), f1001 (1.0), mrr001 (1.0). Targets baseline-FAIL (all 0.0), canaries baseline-PASS (all 1.0) — confirmed in per_trial_outcomes.json. |
+| G9 selector independence | N/A (PASS) | Not a multi-candidate/selector protocol — the router picks one branch per table by precondition, no N-candidate generation. |
+| G10 self-correcting false-positive | PASS | The only check-flavored prose is R1's "repair ONLY if `dbt build` fails — never to improve a passing build", gated to the existing-stem precondition and explicitly ANTI-rewrite (it suppresses value-rewriting). No branch re-derives against the solver's own answer; R3 flags-don't-fabricate. A gated, structure/existence-anchored, no-rewrite check is the SAFE class. |
+
+**For the captain:** Auto-approved to smoke. This is a precondition-gated router (the gate is the isolation), so the regression risk is contained to tasks whose signals trip a non-R4 branch; the panel correctly includes activity001 as an R4-default-path passer plus two stable sentinels. Baseline statuses verified from per_trial_outcomes.json (4 targets 0.0, 3 canaries 1.0). No WARNs. Watch at smoke (per the sim-validates-tendency scar): does the temp=0 solver actually pick the right branch and suppress the "create a new model"/"fix the math" reflex — judge by committed artifact (empty `models/` diff for zuora001 R1; new `<T>.sql` matching recipe/union for the others).
 
 ## Smoke result
 
