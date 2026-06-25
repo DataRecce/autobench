@@ -72,3 +72,32 @@ the generic value-§7 over-fired, making the solver rework already-correct model
 (mrr001 rock-stable across all prior runs). Fix: added an APPLY-MINIMALLY guard ("if a target already
 builds clean and matches the instruction, LEAVE IT — re-engineering a correct model is a regression
 risk") and scoped INDEPENDENT RE-DERIVATION to the PRIMARY metric only ("if the two agree, stop"). Re-smoke c2.
+
+## Stage Report (smoke — cycles 1 & 2: VARIANCE-DOMINATED, no clean GO)
+
+Both single-draw smokes vs @baseline (run dirs `…spd0005-smoke/66b144ed`, `…-c2/e0cf153d`):
+
+| cell | role | c1 | c2 | cross-draw |
+|---|---|---|---|---|
+| marketo001 | hold-g | PASS | PASS | ✅ STABLE pass (grain, spd0004 carryover) |
+| quickbooks003 | hold-v | PASS | PASS | ✅ STABLE pass |
+| salesforce001 | flip | fail | **PASS** | ⚠️ FLICKER |
+| jira001 | flip | **PASS** | fail | ⚠️ FLICKER |
+| retail001 | hold-v | PASS | fail | ⚠️ FLICKER |
+| mrr001 | regr-canary | fail | PASS | ⚠️ FLICKER (c2 guard recovered it) |
+| f1001 | regr-canary | fail | fail | ❌ CONSISTENT regression |
+| pendo001/xero001/tpch001 | flip/scope | fail | fail | consistent fail |
+
+c1: 4 flips, 2 canary-regr. c2: 3 flips, 1 canary-regr. **The two draws disagree on 4 of 10 cells**
+(salesforce, jira, retail, mrr001 all flip PASS↔fail between identical-README draws).
+
+**Verdict: NO clean smoke GO — the composition's signal is single-draw VARIANCE-DOMINATED.** Durable
+cross-draw signal = marketo001 + quickbooks003 stable-pass (already in spd0004's reach), f1001 a
+CONSISTENT regression the composition introduces, and the designed value-flips (jira/salesforce)
+merely FLICKER — no stable new flip attributable to the value layer. This reconfirms the standing
+lesson (spd0004; DAB dab0016/dab0017): grain+value README levers add ±variance, and a single draw —
+or even two — cannot establish a GO. A trustworthy decision needs a per-cell ≥3-draw HOLD-RATE.
+
+Bounded stop reached (smoke-go decision = NO clean GO). Recommend: 3-draw hold-rate confirm on the
+flicker cells, OR conclude spd0005 validated-not-promoted (value layer = generative destabilizer,
+confirming spd0003's low-ceiling prediction). Holding for captain — not auto-advancing to full.
