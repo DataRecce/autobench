@@ -1,0 +1,5 @@
+# razorback-research.toml — named-reference registry seed for swe-bench-pro autoresearch.
+# Operators `rk registry add run <name> <path>` to bind references.
+#   @baseline → the first scored swe-bench-pro run-dir (promotion target, set after smoke)
+slug = "swe-bench-pro"
+dataset = "scale-ai/swe-bench-pro@latest"
