@@ -1,5 +1,6 @@
-# ABOUTME: spd0006 SMOKE — 4 targets (zuora001 R1 build-as-is / superstore001 R2 author / synthea001 R6 union / intercom001 R5 enumerate)
-# ABOUTME: + 3 passer canaries (activity001 R4-default-authoring, f1001, mrr001). Forks @baseline, ONLY solver_workflow + tasks change.
+# ABOUTME: spd0006 v2 SMOKE — synthea001 R6-union [dbt_utils vendored] + social_media001 R2-author + apple_store001 R6-union
+# ABOUTME: + canaries activity001 (R4 default) / f1001 / mrr001. zuora001->spd0010 (zuora_source pkg unobtainable offline);
+# ABOUTME: superstore001->spd0007; intercom001->spd0009. Only solver_workflow + tasks differ from @baseline.
 version: 1
 experiment: spider2-dbt-spd0006-smoke
 agent:
@@ -22,10 +23,9 @@ benchmark:
   kind: harbor-local
   tasks_root: /home/kent/autobench/spider2-dbt/_views
   tasks:
-    - spider2-dbt-zuora001
-    - spider2-dbt-superstore001
     - spider2-dbt-synthea001
-    - spider2-dbt-intercom001
+    - spider2-dbt-social_media001
+    - spider2-dbt-apple_store001
     - spider2-dbt-activity001
     - spider2-dbt-f1001
     - spider2-dbt-mrr001

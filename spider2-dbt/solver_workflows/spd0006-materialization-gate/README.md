@@ -91,10 +91,20 @@ instruction implies (enumerate them all — see R5), pick exactly one branch:
 - **R1 — BUILD_AS_IS.** If a model file whose stem equals `T` ALREADY EXISTS
   (`models/**/<T>.sql`), the gold answer is "what this project produces when built
   unmodified." Run `dbt deps` (if needed) then `dbt build` and DO NOT create or edit that
-  model's SQL. Repair an existing model ONLY if `dbt build` fails — never to "improve" or
-  "fix" a model that already builds. In particular, do NOT rewrite a computation that looks
-  buggy (a formula, ratio, unit conversion): if gold was built from this project, your
-  "correction" diverges from gold.
+  model's SQL. Do NOT rewrite a computation that looks buggy (a formula, ratio, unit
+  conversion): if gold was built from this project, your "correction" diverges from gold.
+  **BOUNDED REPAIR.** Repair an existing model ONLY if `dbt build` fails, and the repair is
+  STRICTLY bounded: you may disable or stub the FAILING UPSTREAM (an absent-source staging
+  model, a broken disabled feature) — you may NEVER alter the grain, join, row set, or
+  column logic of `T` itself or any intermediate `T` depends on. If making the build pass
+  would require changing a target/intermediate's own SELECT (grain/join/filter), STOP: do
+  not force a green build — the failure is structural, route it to R3. (Forcing a green
+  build by re-deriving an intermediate's grain is the exact move that collapsed an
+  account-overview target 4 rows → 1.)
+  **R3 PRECEDENCE.** Before any R1 repair, run the R3 absent-source/-package check on the
+  failing model's `source()`s and package `ref()`s; if the build failure traces to an
+  absent source table or an uninstalled package model, route that subtree to R3 (disable
+  it) rather than re-deriving `T`.
 
 - **R2 — AUTHOR from the declared recipe.** If `T` is documented in a `schema.yml` (a model
   name with `refs` and per-column descriptions) but no `<T>.sql` exists, AUTHOR `<T>.sql`
@@ -111,10 +121,16 @@ instruction implies (enumerate them all — see R5), pick exactly one branch:
 - **R4 — AUTHOR as a new model.** Otherwise `T` is a genuine new authoring task: create
   `<T>.sql` (continue to Exploration/Implementation as normal).
 
-- **R5 — ENUMERATE EVERY TARGET.** The instruction often names one obvious deliverable while
-  the graded contract has several. Enumerate EVERY result table the instruction implies (a
-  dimension + a fact + an OBT; multiple named outputs) and run R1–R4 for each. Never build
-  only the prose-named one and treat the rest as out of scope.
+- **R5 — ENUMERATE EVERY TARGET (the declared table set IS the target list).** Do not let the
+  instruction prose scope the deliverables — the project's declared model set does. A model
+  that is declared in a `schema.yml` (or surfaced by dbt as a "missing model" / undefined-ref
+  warning) but is ABSENT from `models/` and from installed packages is an IN-SCOPE target —
+  build it (route it through R1–R4/R6), regardless of whether the instruction prose names it.
+  Never dismiss a declared-but-unbuilt model as "unrelated" or "out of scope" because the prose
+  only mentioned a sibling. Before finishing, list the declared model set and confirm every one
+  that the grader could compare physically exists as a base table. (A task whose contract has a
+  `*_company_metrics` AND a `*_admin_metrics` table fails outright if you build only the
+  prose-named one.)
 
 - **R6 — VERBATIM UNION of existing intermediates.** If `int_*__<T>_*` intermediate models
   already exist and `<T>` is the lone missing FINAL model in an otherwise-complete directory,

@@ -24,6 +24,14 @@ packaging/harness repair, NOT a solver README lever (the verifier itself stays u
 - **sap001 (fixture defect):** the three GL fact source tables (`sap_faglflext` / `faglflexa` /
   `bkpf_data`) are omitted from the task-image source DB, so the targets are unbuildable from the
   shipped workspace. **Repair:** ship the omitted GL source tables in the packaged view.
+- **zuora001 (fixture-incompleteness, re-routed from spd0006):** the project declares
+  `fivetran/zuora_source` in `packages.yml` and refs its `stg_zuora__*` package staging models
+  (e.g. `stg_zuora__payment_method`), but the `zuora_source` package is NOT vendored and is
+  **unobtainable offline** (not in the Spider2 checkout, no dbt-hub network in the container).
+  So the project cannot `dbt build` as shipped — the R1 build-as-is path is package-blocked.
+  **Repair:** vendor the `zuora_source` package (+ its `fivetran_utils`/`dbt_utils` deps) into the
+  zuora001 view at packaging time (same vendor-donor mechanism added for `dbt_utils`), OR confirm
+  it is a true upstream fixture gap. Until then zuora001 is not solver-addressable.
 - **Guard:** add a pre-flight **gold-integrity gate** (assert each `condition_tab` exists in gold
   + each declared source-id exists in the source `information_schema`) so future fixture defects
   surface as a packaging error instead of a silent solver FAIL.

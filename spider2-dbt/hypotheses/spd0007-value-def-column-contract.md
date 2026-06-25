@@ -33,7 +33,9 @@ value-contract block), each clause gated on an oracle-free per-column signal:
 - group by the timestamp grain the KEY embeds, even when the prompt says "daily" *[asset001]*
 
 **Target tasks (REACHABLE_VERIFIED):** f1002, divvy001, recharge001, retail001, tpch001,
-twilio001, asset001.
+twilio001, asset001, **superstore001** (re-routed from spd0006: R2 authored the star schema +
+fixed the surrogate offsets correctly, but emitted `fct_sales.order_id` as a raw string while
+gold's is integer-typed — a per-column type contract = this hypothesis, not materialization).
 
 ## Pre-smoke Decision-Fork Probe
 

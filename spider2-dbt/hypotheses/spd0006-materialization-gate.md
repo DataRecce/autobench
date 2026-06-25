@@ -207,6 +207,40 @@ smoke) but it is entangled with (a) an infra packaging fix (`dbt_utils`) that is
 main-branch edit and needs captain sign-off, and (b) a scope decision (move superstore001→spd0007,
 intercom001→spd0009). Surface to the captain at the smoke gate with a single REVISE recommendation.
 
+## Revision v2 (captain-approved REVISE + re-smoke, 2026-06-25)
+
+Captain approved REVISE. Changes (still ONE knob — the materialization router; diff vs baseline
+remains purely additive, leak-guard byte-intact):
+1. **R1 BOUNDED REPAIR** — repair on build-failure may only disable/stub the failing UPSTREAM
+   (absent-source staging); NEVER alter a target/intermediate's grain/join/row set. If the build
+   can only pass by changing a target's own SELECT, STOP and route to R3. (Fixes the zuora 4→1
+   collapse.)
+2. **R3 PRECEDENCE** — run the R3 absent-source/-package check BEFORE any R1 repair; an absent
+   source/package model routes to R3 (disable), not target re-derivation.
+3. **R5 HARDENED** — from a soft reminder to a hard rule: the declared `schema.yml` model set (and
+   dbt "missing model" warnings) IS the target list; a declared-but-unbuilt model is in scope even
+   if the prose omits it; never dismiss it as "unrelated." (Fixes intercom building 1 of 2.)
+
+Infra fix landed first (captain-approved): `dbt_utils` vendored via a packager donor
+(`tools/vendor/dbt_utils`, `_vendor_dbt_utils()`) — synthea001 view fixed for the re-smoke; gold
+was built with `dbt_utils`, the offline container could not `dbt deps` it, so the solver shimmed
+and dropped rows.
+
+**Re-scoped smoke** (spd0006-attributable + infra-clean only): targets synthea001 (R6 union,
+dbt_utils now present), social_media001 (R2 author, packages complete), apple_store001 (R6 union,
+packages complete); canaries activity001 (R4 default) / f1001 / mrr001. Dropped: zuora001
+(zuora_source package unobtainable offline → spd0010), superstore001 (order_id dtype → spd0007),
+intercom001 (full-dimension grain → spd0009).
+
+Self reject-checks (re-run): README diff vs baseline purely additive (`82a83,144`); leak-guard
+intact; full-spec diff = `experiment:` + `solver_workflow:` only; smoke `--explain` = exactly the
+6 cells. Frozen: `specs/spd0006-materialization-gate.smoke.frozen.yaml`.
+
+## Smoke result (v2)
+
+_(pending re-run)_
+
 ## Verdict
 
-Pending captain decision at the smoke gate (recommend REVISE: `smoke → hypothesis`).
+Pending the v2 smoke gate. (v1 was NO-GO: router classification validated, secondary walls
+diagnosed and addressed in v2 + re-scope.)
