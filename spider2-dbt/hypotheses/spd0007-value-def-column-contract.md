@@ -192,12 +192,14 @@ retail001 + f1003 must HOLD PASS (guard must not break the COUNT*/sibling-mirror
 mrr002 + hubspot001 must RECOVER to PASS; canaries mrr001 + activity001 stable. GO = both gains
 hold + both regressions recover + canaries hold → then a ≥3-draw hold-rate before promotion.
 
-**CAPTAIN AUTHORIZATION (2026-06-25, captain asleep):** on a re-smoke **GO** — primarily mrr002
-RECOVERS to PASS (the guard's target) + retail001/f1003 HOLD + canaries hold — **AUTO-ADVANCE to a
-full run** (handle `spd0007-full-v2`) without waiting; gather the `analyze` data when it lands and
-have the promote/conclude decision ready for the captain on wake. HALT + hold for the captain if
-the re-smoke is NO-GO (mrr002 stays FAIL = guard failed, or a gain breaks). Promotion still requires
-the captain + the hold-rate (this full draw is draw-2-of-3 toward that).
+**CAPTAIN AUTHORIZATION (2026-06-25, captain asleep — UPDATED):** when the re-smoke lands,
+**AUTO-ADVANCE to a full run** (handle `spd0007-full-v2`) **regardless of the smoke GO/NO-GO
+result** — the full board is the real signal and feeds the hold-rate either way. Record the
+re-smoke read (did mrr002 recover? did retail001/f1003 hold?) for context, then launch the full,
+gather the `analyze` data (per-cell attribution vs @baseline) when it lands, and have the
+promote/conclude decision written up and ready for the captain on wake. **ONLY HALT for INFRA
+failure** (re-smoke or full `rc≠0`, audit taint/coverage_missing, backend down) — infra is not a
+result. Promotion still requires the captain + the ≥3-draw hold-rate (this full = draw-2-of-3).
 
 ## Verdict
 
