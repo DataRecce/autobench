@@ -77,11 +77,66 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 
 ## Smoke result
 
+Run `runs/spider2-dbt-spd0007-smoke/6632327508cac86f` (rc=0, audit strict CLEAN — 7 clean, 0
+tainted, 0 errored). **retail001 FLIPPED FAIL→PASS** (the program's first genuine flip); canaries
+activity001 + mrr001 + **quickbooks002 (perturbable)** all HELD; 3 targets did not flip.
+
+| cell | role | baseline | smoke | result |
+|---|---|---|---|---|
+| **retail001** | 🎯 total_*→COUNT(*) | FAIL | **PASS** | **flip (attributable)** |
+| social_media001 | 🎯 linkedin coalesce | FAIL | FAIL | gap not covered by G3 → follow-up |
+| superstore001 | 🎯 order_id dtype | FAIL | FAIL | id-cast inert (premise wrong) → downstream FK gap |
+| divvy001 | 🎯 id→VARCHAR | FAIL | FAIL | rule complied; in-container build dropped 1 row |
+| activity001 | ✅ sentinel | PASS | PASS | held |
+| mrr001 | ✅ sentinel | PASS | PASS | held |
+| quickbooks002 | ✅ perturbable canary | PASS | PASS | held (value-def gating did NOT bleed) |
+
+**GO** on the smoke→full guardrail: ≥1 target flipped by committed artifact + 0 canary regression
++ audit clean + low-baseline target.
+
 ## Run result
+
+_(pending full run)_
 
 ## Behavioral analysis
 
+- **retail001 = ATTRIBUTABLE.** Committed SQL: `COUNT(*) AS total_invoices` over line-grain
+  `fct_invoices` (354321 = gold), while the project's `num_invoices` column was correctly kept as
+  `COUNT(DISTINCT)` — the name-based disambiguation worked exactly as written. The solver cited the
+  rule. The flip is on the exact column the baseline got wrong (COUNT(DISTINCT)=16646). Real +1.
+- **divvy001 = rule WORKS, blocked by build-nondeterminism (NOT the lever, NOT a verifier bug).**
+  The id→VARCHAR cast fired; the committed `stg_divvy_data` SQL reproduces gold OFFLINE (426,887
+  rows, `duckdb_match` True). But the in-container `dbt build` materialized 426,886 — one row short
+  of an UNFILTERED `SELECT *` (no WHERE/DISTINCT/GROUP BY could cause it). The verifier faithfully
+  compared the built table → correct mismatch. **This REFUTES the standing "divvy001 verifier
+  false-negative" suspicion (survey + debrief): the verifier is fine; the in-container build is
+  nondeterministic.** → spd0010 (harness). May flip on a re-draw; do NOT read this 0.0 as the
+  value-def rule being inert.
+- **social_media001 = RULE_NOT_APPLICABLE → new clause needed (follow-up).** Router rebuilt all 5
+  tables gold-exact again; the only gap (linkedin `post_message = coalesce(post_title,
+  commentary)`) is a TEXT-FALLBACK-from-another-column, which NONE of the 7 G3 clauses cover (not
+  id/count/percentage/null/round/sign/key). The G3 family correctly stayed inert. Needs a NEW
+  gated clause: "rollup-feeder text fallback — when a `*__rollup`/UNION target's graded columns are
+  a superset of the feeders', derive every feeder's text column faithfully incl. documented
+  `coalesce(primary, fallback)`." → file as a follow-up, not a spd0007 revise.
+- **superstore001 = RULE_NOT_APPLICABLE + premise mis-stated.** The id-cast clause correctly did
+  NOT fire (order_id is already VARCHAR at source = gold; casting it would be wrong). The solver
+  reproduced the survey's verified gold-matching recipe (offsets fixed 1001/101, 9994 rows) yet
+  scored 0.0 — so the residual is a DOWNSTREAM FK/value/date gap the offline survey's check didn't
+  capture (a survey-vs-live discrepancy). Not an id-dtype problem; needs its own diagnosis (likely
+  spd0008 grain or a deeper value-def). Re-run `duckdb_match` against the live built
+  `superstore.duckdb` to find the rejected column.
+
+**Net:** the value-def lever is VALIDATED — 1 attributable flip, 0 canary bleed (the column-name
+gating answers spd0005's generative-REJECT), and divvy001 shows the rules produce gold-correct SQL
+even where the build flaked. The other two non-flips are NOT G3 failures (one needs a new clause,
+one is a different family). GO to full to measure the board-wide value-def gain.
+
 ## Failure Review
+
+n/a — GO (≥1 attributable flip, canaries held). The non-flips are diagnosed and routed (divvy001→
+spd0010 build-nondeterminism; social_media001→follow-up text-fallback clause; superstore001→
+downstream FK diagnosis), not spd0007-blocking.
 
 ## Follow-up Routing
 
