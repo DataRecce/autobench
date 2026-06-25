@@ -1,0 +1,46 @@
+# ABOUTME: direct-minimal DAB FULL board — plain codex agent (agent.kind=codex, NO solver workflow),
+# ABOUTME: gpt-5.5 / reasoning_effort=high, query_mode:batch + workspace_variant:direct-minimal.
+# ABOUTME: The minimal-harness counterpart to @codex-batch-baseline (spacedock variant, same model/effort)
+# ABOUTME: — tests whether the spacedock multi-stage methodology helps or HURTS vs a direct minimal workspace
+# ABOUTME: (dab0005 concept: CAIS scans showed minimal workspaces solve cells spacedock suppresses).
+version: 1
+experiment: codex-dab-direct-minimal-batch
+agent:
+  kind: codex
+  model: gpt-5.5
+  reasoning_effort: high
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  override_timeout_sec: 3600
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: direct-minimal
+  tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+  - yelp
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
