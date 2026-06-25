@@ -1,12 +1,12 @@
 ---
 id: spd0005
 title: Compose conditioned-grain (spd0004) + value-level semantics (spd0003) — the grain-fixed-but-value-failing cells
-status: smoke
+status: conclude
 kind: hypothesis
 source: spd0004 conclude (validated-not-promoted) — grain-fixed cells (jira/salesforce/pendo) still fail on value-level residuals; grain alone nets only variance-band +2
 started: 2026-06-25T01:02:44Z
-completed:
-verdict:
+completed: 2026-06-25T04:24:11Z
+verdict: rejected
 score:
 worktree:
 ---
@@ -101,3 +101,31 @@ or even two — cannot establish a GO. A trustworthy decision needs a per-cell �
 Bounded stop reached (smoke-go decision = NO clean GO). Recommend: 3-draw hold-rate confirm on the
 flicker cells, OR conclude spd0005 validated-not-promoted (value layer = generative destabilizer,
 confirming spd0003's low-ceiling prediction). Holding for captain — not auto-advancing to full.
+
+## Stage Report (3-draw confirm + conclude) — REJECTED
+
+Run `runs/spider2-dbt-spd0005-confirm3/92a1ec58b427ae05` (trials:3 × 10 cells = 30, rc=0). Per-cell hold-rate:
+
+| cell | base | hold-rate | verdict |
+|---|---|---|---|
+| marketo001 | 0 | **3/3** | durable pass — but GRAIN (spd0004 carryover), not value-attributable |
+| quickbooks003 | 0 | **2/3** | durable pass — already in spd0004's reach, not value-attributable |
+| jira001 | 0 | 1/3 | flicker (the designed value-flip — NOT durable) |
+| salesforce001 | 0 | 1/3 | flicker |
+| retail001 | 0 | 1/3 | flicker |
+| pendo001 | 0 | 0/3 | never |
+| xero001 | 0 | 0/3 | never |
+| tpch001 | 0 | 0/3 | never (value-def hard core) |
+| **f1001** | 1 | **1/3** | **REGRESSION** (value layer destabilizes) |
+| **mrr001** | 1 | **1/3** | **REGRESSION** (was rock-stable everywhere prior) |
+
+**Verdict: REJECTED.** The value-level §7 layer adds **0 durable value-attributable flips** (the 2 durable
+passes are spd0004 grain/value-def carryover; all 4 designed value-flips flicker ≤1/3) while **durably
+regressing 2 stable canaries** (f1001, mrr001 each hold only 1/3). Net-negative. This confirms spd0003's
+low-ceiling prediction and the standing lesson (DAB dab0016, ade Category-C): a generative value-discipline
+README lever **destabilizes more than it fixes** — the spider2-dbt value-level core (right table, wrong
+values) is genuine benchmark difficulty under column-containment grading, NOT a README-addressable gap.
+@baseline stays 19/61. No follow-up filed — the value-lever family is closed; bears on spd0003 (its
+direction is now largely falsified). The durable, banked spider2-dbt signal remains spd0004's
+construct-validated conditioned-grain (variance-swamped standalone) + the multi-target/completeness
+findings; the path to a real lift is benchmark-difficulty work, not more prose levers.
