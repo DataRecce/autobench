@@ -96,7 +96,39 @@ activity001 + mrr001 + **quickbooks002 (perturbable)** all HELD; 3 targets did n
 
 ## Run result
 
-_(pending full run)_
+Full run `runs/spider2-dbt-spd0007-full/088a896e75c15b7b` (rc=0, audit strict CLEAN — 61 clean, 0
+tainted, 0 errored). **20/61 = 0.3279 vs @baseline 19/61 = 0.3115 — net +1.** But the shape is
+4 gains − 3 regressions, and per-cell attribution puts the net inside the single-draw variance
+band with one fixable lever-caused regression:
+
+| cell | Δ | attribution (committed artifact) |
+|---|---|---|
+| **retail001** | +PASS | **VALUE-DEF ATTRIBUTABLE** — `COUNT(*) total_invoices=354321=gold`, `num_*` kept DISTINCT |
+| **f1003** | +PASS | **ROUTER ATTRIBUTABLE** — R6-narrowed sibling-mirror: copied `constructor_podiums` `position` filter onto driver (854→853=gold), self-corrected at validation |
+| marketo001 | +PASS | **VARIANCE** — flip = absent baseline FO inner-join nudge + standing rule #4, no spd0007 rule fired; coin-flip history |
+| quickbooks003 | +PASS | **VARIANCE** — both runs committed identical balance values; build-completeness coin-flip (flickered 2/3 in spd0005) |
+| f1001 | −FAIL | **VARIANCE** — known value-level coin-flip (proven in spd0006 v2) |
+| hubspot001 | −FAIL | **UNCLEAR→variance + risk** — R2-author + G3 id-cast plausibly nudged solver off the populated package-intermediate path onto a zero-metric re-derivation; not a confirmed lever break (baseline also authored R2) |
+| **mrr002** | −FAIL | **CONFIRMED LEVER-CAUSED REGRESSION** — G3 Identifier-dtype clause fired on `customer_id` in a PRE-EXISTING R1 model, licensed an upstream rewrite (cast + rebuilt date spine) → mrr 410→417 rows. The id-cast clause does NOT respect R1 "don't edit existing models" precedence |
+
+**Required analyze answers:**
+1. **Net + ledger:** +1 net (4 gains/3 regs, above). Lever-attributable = +2 gains (retail001
+   value-def, f1003 router) − 1 reg (mrr002 id-cast); marketo001/quickbooks003/f1001 are variance.
+2. **Smoke vs full:** smoke saw only retail001 (the other smoke targets were value-def-non-flips or
+   build-flaky); full surfaced f1003 (router gain) + the mrr002 regression the smoke panel didn't
+   sample (mrr001 held, mrr002 wasn't in the panel — a canary-coverage gap).
+3. **Already-correct-and-broken:** mrr002 (confirmed lever-broken via id-cast/R1 violation),
+   hubspot001 (risk), f1001 (variance). The value-def family did NOT broadly bleed (most passers
+   held); the damage is the id-cast clause's R1-precedence hole.
+4. **Was the change executed:** YES for retail001 (COUNT* in committed SQL) + f1003 (sibling-mirror
+   edit) + mrr002 (id-cast→upstream rewrite, committed). The other moves are variance/inert.
+5. **Prevention + next move:** the value-def lever is real (2 attributable gains) but **NOT
+   promotable on this single draw** — net +1 is variance-band AND mrr002 is a deterministic
+   lever-caused regression. FIX: add an **R1-precedence guard to the G3 id-cast clause** — "apply a
+   column dtype cast ONLY to a model you are NEWLY authoring; NEVER cast a column in a pre-existing
+   R1 model" (also de-risks hubspot001). Then re-smoke the fix (mrr002 + mrr001 + hubspot001 +
+   retail001 + f1003) and require a ≥3-draw hold-rate before promotion (the spd0004/dab0023
+   discipline — a single +1 with variance-band gains and a fixable regression is not durable).
 
 ## Behavioral analysis
 
