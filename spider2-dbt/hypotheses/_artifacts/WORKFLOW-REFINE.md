@@ -42,4 +42,23 @@ Entry format:
   `dbt_utils` packaging defect are harness-side).
 - evidence: `runs/spider2-dbt-spd0006-smoke/8f185cee4407c0f4` (strict-clean); per-target committed-artifact
   deep-dive in spd0006 `## Behavioral analysis`.
-- status: open — revise route (bound R1 repair + R3 precedence, harden R5, re-scope smoke); re-smoke pending.
+- status: open — v2 re-smoke done (`runs/spider2-dbt-spd0006-smoke/1d1af6c748b8fce8`). Verdict on the
+  STRUCTURE: the materialization router (R1–R5) is VALIDATED and PROVEN NON-DESTABILIZING — the f1001
+  canary "regression" is gpt-5.5 value-level variance (v1/v2 built identical model sets; hardened R5
+  added 0 extra tables; identical reported values), NOT router over-fire. So the central risk of the
+  classifier-stage strategy (a generative router regressing passers) is DISPROVEN. Two refinements
+  remain: (1) **R6 "verbatim union" is defective** — correct for synthea's `cost` (union is the right
+  shape) but actively WRONG for apple_store's source_type/territory reports (a naive union of the
+  sub-grain intermediates reproduces the over-emit baseline 29/36 vs gold 9/17; the fix is a grain
+  ANCHOR + LEFT-join = spd0008's job). R6 should be narrowed or dropped; apple_store routes to spd0008.
+  (2) the bounded-repair rule still let the solver edit upstream `int_` intermediates feeding an R6
+  union (synthea −13 rows) — verbatim-union must mean `SELECT *` from the intermediates, never edit them.
+- learning (v2): a materialization router is NECESSARY-NOT-SUFFICIENT — it makes targets materialize at
+  the right name/grain (social_media001: all 5 tables gold-exact) but standalone rarely FLIPS a cell,
+  because the residual gap is almost always value-def (spd0007) or grain (spd0008). The "each lever must
+  flip ≥1 standalone" smoke gate is mis-fit for enabling-infrastructure; the router's value is realized
+  only when composed with the value/grain lever. → recommend banking R1–R5 as a structural base and
+  testing spd0007 ON TOP, where the flips (social_media, superstore, retail, divvy…) actually land.
+- bears-on: spd0007 (social_media + superstore flips are gated here, router already materializes them),
+  spd0008 (apple_store grain-anchor; R6 rework), spd0010 (synthea `lowercase_columns` macro + zuora_source
+  are fixture gaps).

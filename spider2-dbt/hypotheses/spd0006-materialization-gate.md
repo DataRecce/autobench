@@ -238,7 +238,41 @@ intact; full-spec diff = `experiment:` + `solver_workflow:` only; smoke `--expla
 
 ## Smoke result (v2)
 
-_(pending re-run)_
+Run `runs/spider2-dbt-spd0006-smoke/1d1af6c748b8fce8` (rc=0, audit strict CLEAN — 6 clean, 0
+tainted, 0 errored). 0/3 targets flipped; canaries activity001 + mrr001 HELD; **f1001 dropped to
+0.0**. Per-target committed-artifact deep-dive:
+
+- **f1001 (canary drop) = VARIANCE, NOT router over-fire (the key finding).** v1(PASS) and
+  v2(FAIL) built IDENTICAL model sets (both `dbt build` PASS=40), same R2 classification on all 4
+  targets, byte-identical SQL on 3/4, logically identical on the 4th, and IDENTICAL reported
+  values (Hamilton 348 races/201 podiums/104 poles/66 fastest). The hardened R5 added ZERO extra
+  tables. The FAIL is a gpt-5.5 value-level coin-flip on non-echoed `position_desc`-derived status
+  columns (condition_cols 27–32) — a known f1001 variable cell (cf. spd0004 history). **The
+  classifier-router does NOT over-fire / is NOT generative — the central risk for the whole
+  classifier-stage strategy is disproven.**
+- **social_media001 = router materialization SUCCESS, flip gated on spd0007.** Router fired
+  R2/R5, built ALL 5 contract tables as base tables at GOLD-EXACT rowcounts (ig 3, tw 100, rollup
+  180). The sole 0-reward cause is the linkedin `post_message` value-def (`coalesce(post_title,
+  commentary)`) — invisible on the per-platform tables, fails only the rollup col-3 containment.
+  This is a per-column VALUE-DEF = **spd0007**, not materialization. Clean evidence the router does
+  its job and the flip is gated on the NEXT lever.
+- **synthea001 = dbt_utils fix WORKED + new gaps.** The vendored dbt_utils loaded (no re-shim; the
+  `local:` packages.yml form + env copy resolved) and R6 authored `cost` as a verbatim union. But
+  (a) the solver still EDITED the upstream `int__cost_*` intermediates (added datetime-equality
+  joins + QUALIFY dedup), over-filtering 13 rows (796 vs gold 809) — the bounded-repair/"don't
+  touch upstream grain" rule is not strong enough to stop editing intermediates feeding an R6
+  union; (b) a SECOND fixture gap — the project-local `lowercase_columns` macro (referenced by 74
+  staging models) is not shipped, so the solver had to author it. synthea is fixture-gap-laden.
+- **apple_store001 = R6 MISFIRES (the one real router defect).** The solver applied R6 "verbatim
+  UNION ALL of the intermediates" and got 29/36 rows = the EXACT over-emit baseline (gold 9/17).
+  For these report-grain tables a naive union of the sub-grain intermediates IS the over-emission;
+  the verified fix is the OPPOSITE (anchor on the app_store impressions intermediate + LEFT-join,
+  = a grain rule). **R6 is mis-scoped; apple_store belongs to spd0008.**
+
+**WORKFLOW-REFINEMENT (v2):** router classification validated + proven non-destabilizing (R5 adds
+0 tables; f1001 is variance). R6 "verbatim union" is defective — correct for synthea's `cost`,
+wrong for apple_store's reports. Materialization routing is NECESSARY-NOT-SUFFICIENT: standalone
+flips are gated on value-def (spd0007) / grain (spd0008). Logged in `_artifacts/WORKFLOW-REFINE.md`.
 
 ## Verdict
 
