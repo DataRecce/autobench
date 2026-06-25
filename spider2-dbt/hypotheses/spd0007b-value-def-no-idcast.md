@@ -1,7 +1,7 @@
 ---
 id: spd0007b
 title: Value-def MINUS the oracle-blind id-cast clause (COUNT-by-name keeper + preserve-source-dtype)
-status: hypothesis
+status: smoke
 kind: hypothesis
 source: spd0007 conclude follow-up — id-cast clause rejected as oracle-blind (broke tpch002/maturity001); isolate the durable value-def signal
 started: 2026-06-25
@@ -57,6 +57,38 @@ canaries hold + audit clean. HALT for captain on NO-GO or infra failure. After t
 analyze and HALT — the promote decision + the ≥3-draw hold-rate stay the captain's.
 
 ## Gatekeeper review
+
+**Recommendation: APPROVE** — purely-subtractive variant: the oracle-blind id-cast clause is
+replaced by an oracle-free "preserve source dtype, DO NOT GUESS" rule (the only spd0007→spd0007b
+diff); router + value-def superset is additive over @baseline, leak-guard byte-intact, specs scope
+clean, both frozen.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-24). Reviewed 2026-06-25.
+Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke).
+
+Fork parent: `@baseline` resolves to `runs/spider2-dbt-full-baseline/13fb630e2cae3eb8` →
+solver_workflow `spider2-dbt-baseline` (the seed). The hypothesis `source:` forks the banked-but-
+unpromoted spd0007 solver; spd0007b is reviewed as additive-vs-seed (G1/G2) AND as a one-clause
+subtraction-vs-spd0007 (the documented single change). Both diffs confirmed.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea | PASS | vs seed: one additive block (README 82a83,196 = router R1–R6 + Axis-2 G3 value-def). vs spd0007: a SINGLE hunk (167,170c167,170) swaps the cast clause for the preserve-dtype rule — no other line moved. Leak-guard prose untouched. |
+| G2 leak-guard (hidden gold) | PASS | no-fetch sentence (README:11–12 `curl`/`wget`/`git clone`/`git ls-remote`/web) byte-identical seed↔spd0007b. All `gold` hits are pre-existing baseline prose ("hidden gold", "Gold table names…NOT given") + router guard rails ("Never read or guess gold values", "diverges from gold"); zero gold values/dtypes/columns/counts embedded. No `expected_`/`answer_key`/`ground_truth`. The new id rule explicitly tells the solver NOT to guess gold dtype. |
+| G3 spec two fields | PASS | `diff full-baseline.yaml spd0007b-…yaml` = `experiment:` + `agent.solver_workflow:` (+ ABOUTME comment) only. kind=spacedock_solver, runtime=codex, model=gpt-5.5, reasoning_effort=xhigh, trials=1 all preserved (full spec lines 6/7/8/18/86). |
+| G4 smoke narrows tasks only | PASS | smoke diff = experiment + `benchmark.tasks` (+ABOUTME) only; no `exclude_tasks`. Surviving 7: retail001/recharge001/f1002 (targets) + tpch002/maturity001 (id-cast victims) + activity001/quickbooks002 (canaries). All 3 hypothesis-named smoke targets present. |
+| G5 both frozen | PASS | `…frozen.yaml` (3202B) + `…smoke.frozen.yaml` (1713B) both exist; both carry `kind: spacedock_solver` + `runtime: codex` (frozen lines 4/5). |
+| G6 resolver fidelity | PASS | Inserted text "Identifier dtype — DO NOT GUESS. Carry an identifier column through at its SOURCE dtype unchanged… never re-type an id column" matches the claim verbatim (delete the cast, add preserve-dtype). Independent/generative-derive rules, not self-anchored validation. No scope creep. |
+| G7 actionability/inert-risk | PASS | The replacement is a concrete mechanical negative-instruction (a do-not-edit on a named column class, gated by source dtype) — strictly easier to obey than the deleted cast; remaining value-def clauses are name/dtype-gated mechanical edits. |
+| G8 regression-canary coverage | PASS | Value-def clauses are per-column NAME/dtype-gated (not generative) and R1-precedence-guarded off pre-existing models; still, the smoke keeps non-target passing canaries activity001 + quickbooks002 AND the two PASS id-cast victims tpch002/maturity001 as perturbable regression sentinels — coverage on the most-at-risk (id/dtype) family. |
+| G9 selector independence | N/A | No multi-candidate / selector protocol declared. |
+| G10 self-correcting false-positive | N/A | No validate-and-fix / reconcile lever; the change is a build-time dtype-preservation rule, not a check-and-replace. |
+
+**For the captain:** AUTO-APPROVED to smoke. This is the cleanest possible variant — a single-hunk
+subtraction of the clause already concluded harmful (id-cast broke tpch002/maturity001 by guessing
+gold dtype), replaced by an oracle-free preserve-dtype rule; no FAILs, no WARNs. Smoke watch: the
+two recovery targets tpch002 + maturity001 must now HOLD (they are the proof the cast removal is
+clean), retail001 must still flip by committed artifact, canaries hold. Per AC-3 the promote
+decision needs the ≥3-draw hold-rate, which remains yours after the full run.
 
 ## Smoke result
 
