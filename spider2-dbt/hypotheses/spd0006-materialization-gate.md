@@ -112,12 +112,101 @@ Fork parent resolved: `source:` = `solver_workflows/spider2-dbt-baseline`; `@bas
 
 ## Smoke result
 
+Run `runs/spider2-dbt-spd0006-smoke/8f185cee4407c0f4` (rc=0, audit strict CLEAN — 0 tainted,
+0 errored). Score 3/7 = **0/4 targets flipped, 3/3 canaries held**.
+
+| cell | role | baseline | smoke | flip? |
+|---|---|---|---|---|
+| zuora001 | 🎯 R1 build-as-is | FAIL | FAIL | no |
+| superstore001 | 🎯 R2 author | FAIL | FAIL | no |
+| synthea001 | 🎯 R6 union | FAIL | FAIL | no |
+| intercom001 | 🎯 R5 enumerate | FAIL | FAIL | no |
+| activity001 | ✅ R4-default authoring canary | PASS | PASS | held |
+| f1001 | ✅ sentinel | PASS | PASS | held |
+| mrr001 | ✅ sentinel | PASS | PASS | held |
+
+NO-GO on the auto-advance guardrail (target flipped by committed artifact = 0). **But not
+inert and not a regression** — the router fired and moved every target's artifact toward gold.
+
 ## Run result
+
+n/a — no full run (NO-GO at smoke).
 
 ## Behavioral analysis
 
+The router **classification mechanism is validated**: all 4 targets were routed to the
+correct branch by oracle-free signals (zuora→R1, superstore→R2, synthea→R6, intercom→R5).
+None flipped because each hit a DISTINCT secondary wall:
+
+- **zuora001 — ROUTER_FIRED_NONCOMPLIANT (spd0006-attributable).** R1 fired and the solver did
+  NOT create new models (the baseline failure mode) — an improvement. But the stock project
+  does NOT `dbt build` clean: it refs an absent source `stg_zuora__payment_method`. R1's
+  "repair only if build fails" escape-hatch is UNBOUNDED, so the solver rewrote
+  `int_zuora__account_enriched`'s grain/join to force a green build, collapsing
+  `zuora__account_overview` to 1 row (gold = 4, NULL name/number on the lone row — exactly the
+  compared cols). Two findings: (1) R1's repair clause must be bounded to the feature boundary
+  (disable the absent-source staging subtree; NEVER alter a target/intermediate's grain or
+  join); (2) an absent `source()` is the **R3 fixture-defect** signal — R3 must take precedence
+  over R1's repair. (3) the survey's REACHABLE_VERIFIED for zuora was over-optimistic: the flip
+  needs a *bounded disable-absent-source* edit, not zero edits.
+- **synthea001 — ROUTER_COMPLIED_STILL_FAILED (infra, NOT steerability).** R6 fired and was
+  obeyed: the solver authored `cost` as a verbatim union of the shipped `int__cost_*`
+  intermediates and did NOT fabricate condition rows (baseline = 836 with 32 spurious rows;
+  this run = 807, 0 fabricated — the R6 mechanism WORKS). The 2-row miss (807 vs gold 809) is
+  an ENVIRONMENT defect: `dbt_utils` is absent from the image, the solver hand-shimmed it with
+  `adapter.get_columns_in_relation` (violating the README's standing "never shim dbt_utils"
+  guard), and the shim dropped 1 row from each of 2 staging domains. Fix is package-layer
+  (ensure `dbt deps` installs `dbt_utils`) — same class as the wrong-DuckDB packaging memory.
+- **superstore001 — ROUTER_FIRED_NONCOMPLIANT (spd0007-attributable, NOT spd0006).** R2 fired,
+  authored the star schema, and FIXED the surrogate-key offsets (1001/101 correct). Residual
+  miss: it emitted `fct_sales.order_id` as the raw STRING while gold's `order_id` is
+  integer-typed (+ an extra leading surrogate column). That is a per-column VALUE/TYPE contract
+  issue = **spd0007 (value-def)** territory, not materialization. This target was mis-scoped
+  into spd0006's smoke.
+- **intercom001 — ROUTER_FIRED_NONCOMPLIANT + deeper (spd0009-attributable).** R5 read as a
+  soft reminder; the solver built only `intercom__admin_metrics` (1 of 2 contract tables) and
+  explicitly dismissed the declared-but-unbuilt `intercom__company_metrics` as "unrelated"
+  because the prose named only admin metrics. AND the built table needs full-dimension grain
+  (4 rows; it emitted 1 via the README's dominant inner-join rule) = **spd0009 (spine)**
+  conflict. Doubly-blocked; mis-scoped into spd0006's smoke.
+
+**WORKFLOW-REFINEMENT (automatic — spd0006 adds a new `## Stage: Classify (router)` to the
+solver workflow):** the new stage FIRED across the whole smoke set and produced correct
+classifications; it is a real, exercised structural change with a positive effect on artifacts
+(zuora stopped creating new models; synthea stopped fabricating rows). Logged in
+`_artifacts/WORKFLOW-REFINE.md`.
+
 ## Failure Review
+
+**Primary type: `incomplete-artifact` (router classifies correctly but secondary walls block the
+flip), compounded by one `infrastructure-failure` (synthea dbt_utils) and two mis-scoped targets.**
+
+1. **Original fork:** materialization routing (what-to-build) is the decisive lever for this
+   cluster; reachability proven offline.
+2. **What the artifacts revealed:** routing fires correctly, but (a) R1's repair escape-hatch is
+   unbounded and corrupts targets when the stock build fails on an absent source; (b) the AUTHOR
+   path doesn't pin the per-column type/projection contract; (c) the image lacks `dbt_utils`; (d)
+   R5 is too soft to beat prose-scoping; and (e) 2 of the 4 targets' residual gaps belong to
+   spd0007/spd0009, not spd0006.
+3. **Did the rule fire + evidence:** YES — committed artifacts show correct branch selection on
+   all 4 (zuora no-new-models; synthea verbatim-union no-fabrication 836→807; superstore correct
+   offsets; intercom acknowledged the missing table). Canaries held (R4 default unchanged).
+4. **Next fork to test (revise):** bound R1's repair to the feature boundary + give R3 precedence
+   over R1 repair; harden R5 from a reminder into a hard "the declared schema.yml table set IS the
+   target list — a declared-but-unbuilt model is in scope even if the prose omits it" rule;
+   RE-SCOPE the smoke to spd0006-attributable targets only (zuora001 + synthea001 + one clean
+   R2/R6 target), moving superstore001→spd0007 and intercom001→spd0009. Separately ESCALATE the
+   `dbt_utils` packaging defect (infra code fix — not an FO main-branch edit).
+5. **Next step: `file`/revise** — route `smoke → hypothesis` with the bounded-repair + hardened-R5
+   + re-scoped-smoke revision; escalate the dbt_utils infra fix to the captain.
 
 ## Follow-up Routing
 
+`escalate` — the revision is concrete (bound R1 repair + R3 precedence, harden R5, re-scope
+smoke) but it is entangled with (a) an infra packaging fix (`dbt_utils`) that is NOT an FO
+main-branch edit and needs captain sign-off, and (b) a scope decision (move superstore001→spd0007,
+intercom001→spd0009). Surface to the captain at the smoke gate with a single REVISE recommendation.
+
 ## Verdict
+
+Pending captain decision at the smoke gate (recommend REVISE: `smoke → hypothesis`).
