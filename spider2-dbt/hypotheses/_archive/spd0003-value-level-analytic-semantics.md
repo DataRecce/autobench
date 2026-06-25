@@ -7,6 +7,7 @@ source: commission seed (smoke6-output-contract deep-dive, residual-failure buck
 started: 2026-06-25T06:51:28Z
 completed: 2026-06-25T06:51:28Z
 verdict: exhausted
+archived: 2026-06-25T06:51:28Z
 ---
 
 ## Direction
