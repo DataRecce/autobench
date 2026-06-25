@@ -62,3 +62,8 @@ Entry format:
 - bears-on: spd0007 (social_media + superstore flips are gated here, router already materializes them),
   spd0008 (apple_store grain-anchor; R6 rework), spd0010 (synthea `lowercase_columns` macro + zuora_source
   are fixture gaps).
+- status: **adopted-as-scaffolding** (concluded validated-not-promoted 2026-06-25). The router (R1–R5)
+  is carried into spd0007 as the base solver with R6 NARROWED (same-grain domain-partition unions only;
+  never report/rollup targets; never edit the intermediates). Not promoted to `@baseline` standalone
+  (0 flips), but proven non-destabilizing and necessary infrastructure; earns promotion by composition
+  in spd0007 where the value-def lever supplies the flips.

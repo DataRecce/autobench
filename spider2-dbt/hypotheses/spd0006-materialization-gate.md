@@ -1,12 +1,12 @@
 ---
 id: spd0006
 title: Classifier router + Axis-1 materialization gate (BUILD_AS_IS / AUTHOR / enumerate-every-target / verbatim-union)
-status: smoke
+status: conclude
 kind: hypothesis
 source: resolution-survey-2026-06-25 (docs/resolution-survey-2026-06-25.md) ranked-backlog #1; reframes spd0002 (build-every-deliverable, REJECTED) into a precondition-GATED router
 started: 2026-06-25
-completed:
-verdict:
+completed: 2026-06-25T11:35:35Z
+verdict: validated-not-promoted
 score: 0.9
 worktree:
 ---
@@ -202,10 +202,11 @@ flip), compounded by one `infrastructure-failure` (synthea dbt_utils) and two mi
 
 ## Follow-up Routing
 
-`escalate` — the revision is concrete (bound R1 repair + R3 precedence, harden R5, re-scope
-smoke) but it is entangled with (a) an infra packaging fix (`dbt_utils`) that is NOT an FO
-main-branch edit and needs captain sign-off, and (b) a scope decision (move superstore001→spd0007,
-intercom001→spd0009). Surface to the captain at the smoke gate with a single REVISE recommendation.
+`file` (compose) — captain approved the pivot: conclude spd0006 validated-not-promoted and carry
+the router into spd0007 as its base (router R1–R5 + R6 NARROWED + the value-def lever as the one
+knob). The router's natural flips are gated on value-def (spd0007) and grain (spd0008), so it is
+tested-by-composition there, not standalone. Fixture follow-ups (`lowercase_columns` macro for
+synthea, `zuora_source` package for zuora) routed to spd0010. apple_store grain-anchor → spd0008.
 
 ## Revision v2 (captain-approved REVISE + re-smoke, 2026-06-25)
 
@@ -276,5 +277,24 @@ flips are gated on value-def (spd0007) / grain (spd0008). Logged in `_artifacts/
 
 ## Verdict
 
-Pending the v2 smoke gate. (v1 was NO-GO: router classification validated, secondary walls
-diagnosed and addressed in v2 + re-scope.)
+**validated-not-promoted.** Two standalone smokes (v1, v2; both audit-clean) produced 0 flips, so
+the materialization router is NOT promoted to `@baseline` on its own. But it is VALIDATED as
+correct, steerable, and — the key result — **non-destabilizing**: classification fires on the right
+oracle-free signal every time (zuora→R1, superstore→R2, synthea→R6, social_media/intercom→R2/R5),
+the hardened R5 added ZERO extra tables, and the only canary "regression" (f1001) is proven
+gpt-5.5 value-level variance (identical v1/v2 builds), NOT over-fire. social_media001 shows the
+router materializing all 5 contract tables at gold-exact rowcounts — a clean materialization
+success whose flip is gated purely on a value-def column (spd0007).
+
+**Transferable learning:** a materialization/what-to-build router is NECESSARY-NOT-SUFFICIENT
+enabling infrastructure — it rarely flips a cell alone (the residual is value-def or grain), so the
+"each lever flips ≥1 standalone" smoke gate is mis-fit for it; its value is realized composed with
+the value/grain lever (gated-levers-compose). One genuine defect: **R6 "verbatim union" is correct
+for a same-grain domain partition (synthea `cost`) but misfires on report/rollup targets
+(apple_store: a naive union = the over-emit baseline 29/36 vs gold 9/17) — those need a grain
+ANCHOR (→ spd0008).** Also: verbatim union must mean `SELECT *` from intermediates, never editing
+them (synthea −13 rows came from the solver "tightening" upstream `int_` joins).
+
+**Banked into spd0007** as the base solver: router R1–R5 + R6 narrowed (only same-grain
+domain-partition unions; never report/rollup targets; never edit the intermediates) + the new
+value-def lever as the one knob. `@baseline` UNCHANGED (19/61).
