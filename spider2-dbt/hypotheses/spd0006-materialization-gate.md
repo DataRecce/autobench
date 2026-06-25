@@ -1,7 +1,7 @@
 ---
 id: spd0006
 title: Classifier router + Axis-1 materialization gate (BUILD_AS_IS / AUTHOR / enumerate-every-target / verbatim-union)
-status: propose
+status: smoke
 kind: hypothesis
 source: resolution-survey-2026-06-25 (docs/resolution-survey-2026-06-25.md) ranked-backlog #1; reframes spd0002 (build-every-deliverable, REJECTED) into a precondition-GATED router
 started: 2026-06-25
