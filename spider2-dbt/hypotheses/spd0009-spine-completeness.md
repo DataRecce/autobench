@@ -99,3 +99,52 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 ## Follow-up Routing
 
 ## Verdict
+
+## Smoke result (step 1 — SMALL, gate-isolation)
+
+Run `runs/spider2-dbt-spd0009-smoke-sm/4fc7a44b9c1373f5` (rc=0, audit strict CLEAN). **NO-GO: 0/3
+spine targets flipped; mrr001 canary dropped.** Large smoke (step 2) NOT run — small is a NO-GO and
+the targets are blocked (running it would be predictable non-flips). But the deep-dive is positive
+on the central risk and pinpoints the blockers:
+
+- **GATE IS SAFE (binding-constraint risk ALLAYED).** mrr001's drop = **VARIANCE, not gate bleed**:
+  G1 did NOT fire on mrr001 (no precondition matched — name fails the regex, no completeness phrase,
+  not `*_enhanced`; mrr is an R1 build-as-is task). The 410→417 over-emit is the known flaky
+  date-spine-rebuild flicker. The DO-NOT-FIRE exclusion held — G1 did not bleed onto an active-grain
+  passer, which was the whole risk of this lever. marketo001/app_reporting001/activity001 all held.
+- **salesforce001 = G1 COMPLIED, blocked by FROZEN-CLOCK spine non-determinism.** G1 drove from
+  `int_salesforce__date_spine` correctly (LEFT-join, keep NULL) — textbook. But that spine computes
+  `last_date = greatest(max(created_date), current_date)` → a fresh `dbt build` floored it to TODAY
+  (2026-06-26) = 752 rows vs gold's 91 (gold ends 2024-09-03 = max activity). G1's mechanism is
+  right; the package spine model over-runs to current_date. **FIXABLE** (gold ends at max-fact-date,
+  deterministic — unlike the truly-frozen pendo001/atp_tour001): clamp the spine upper bound to the
+  max observed fact/source date, not current_date.
+- **jira001 = G1 COMPLIED (under-emit FIXED), blocked by a 2nd value-def gap.** G1 drove from the
+  full project dimension → 3 rows = gold (the baseline's 2-row under-emit is fixed). Residual 0.0 is
+  a column-VALUE divergence in the hand-rolled `epics`/`components` string-aggs vs the canonical
+  Fivetran output — a value-def gap G1 doesn't address.
+
+## Failure Review
+
+Primary type: **incomplete-artifact** (G1 mechanism works + gate is safe, but each target has a 2nd
+blocker), NOT canary-bleed (mrr001 = variance, gate held).
+1. G1 fires correctly on the spine shapes and drives from the spine/dimension; the gate did NOT
+   bleed onto active-grain passers (the binding-constraint risk is allayed).
+2. Blockers are downstream of G1: (a) FROZEN-CLOCK spine non-determinism — package date-spine models
+   floor to `current_date`, over-emitting future-empty periods at 2026 wall-clock (salesforce001;
+   likely xero balance-sheet too) — FIXABLE via a max-fact-date spine clamp where gold ends at max
+   activity, but genuinely UNREACHABLE where gold's spine is itself at the frozen build-clock
+   (pendo001/atp_tour001); (b) residual value-def (jira001 epics/components agg).
+3. Next fork: REVISE G1 to add a **spine upper-bound clamp** ("clamp the spine to the max observed
+   fact/source date; do not let a package spine's `current_date` floor extend it") — would flip
+   salesforce001 and any current_date-floored spine target whose gold ends at max activity. jira001
+   needs an additional epics/components value-def clause (separate). Add `mrr`/lag-MRR as a named
+   DO-NOT-FIRE negative example to fully de-risk the salience caveat.
+4. Step: **escalate** — revise-vs-conclude is the captain's call; the large smoke is deferred until
+   the spine-clamp revise (running it now = predictable non-flips on frozen-clock-blocked targets).
+
+## Verdict
+
+Pending captain. G1 lever VALIDATED + gate-safe, but the spine target family is contaminated by
+frozen-clock spine non-determinism (a reframe: some "spine" targets are current_date-blocked, not
+spine-addressable) + residual value-def. `@baseline` unchanged (spd0008 24/60).
