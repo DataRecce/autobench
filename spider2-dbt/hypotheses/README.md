@@ -606,8 +606,8 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
 
 The reigning champion is the `@baseline` run-dir in the DAB-local `razorback-registry.yaml`
 (resolve it after `export RAZORBACK_REGISTRY=/home/kent/autobench/spider2-dbt/razorback-registry.yaml`).
-The seed champion is the converted Opus-4.8 incumbent (~0.65 / 0.6536 stratified Pass@1). New hypotheses
-fork from its solver README (`spacedock-readme-baseline` until a codex variant is promoted);
+**CHAMPION as of 2026-06-26: spd0007b @ 24/61 = 0.3934** (`solver_workflows/spd0007b-value-def-no-idcast`; resolve `@baseline`). New hypotheses
+fork from the CURRENT champion's solver README (now `spd0007b-value-def-no-idcast`, was `spider2-dbt-baseline`);
 `analyze` diffs against its run-dir.
 
 ## Templates
