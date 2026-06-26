@@ -149,3 +149,40 @@ Entry format:
 - status: rejected-as-written (concluded REJECTED / validated-not-promoted 2026-06-26). The contract checkpoint +
   LAG-method MECHANISM is validated and bankable, but the whole-solver is net+0 and the heavy prose may diffusely
   cost a borderline passer; `@baseline` UNCHANGED = spd0008 24/60. Isolation follow-up filed as spd0013.
+
+## spd0013 — lean inline LAG-over-own-output rule (NO contract scaffold) — isolation of the spd0012 airbnb001 flip
+
+- layer: solver-workflow structure — STRIPS the entire spd0011/spd0012 contract-checkpoint scaffold
+  (Classify-output block, Exploration-for-contract block, Implementation Contract stage, contract-aware
+  Validation signature) and keeps ONLY the lean inline LAG-over-own-output period-over-period clause in
+  spd0008's existing G3 list.
+- refinement type: replace (heavyweight contract STAGE removed → single inline rule). The isolation test.
+- finding (FULL, `runs/spd0013-lean-lag-period-over-period/7f3278d0d61d2577`, strict-clean 60/0/0 rc=0,
+  **27/60 = 0.45 = `@baseline` net +3 over spd0008, captain promote on the headline**): the LEVER TARGET
+  airbnb001 FLIPPED in the targeted smoke (1.0) but REVERTED at full (0.0) — committed airbnb001 full
+  transcript shows `prior-period window` ×4 / `re-materializ` ×2 / `LAG(REVIEW_TOTALS,30)` ×3 = the worker
+  re-materialized a prior 30-day SOURCE window instead of LAG-over-its-own single-window output → real MoM%
+  ≠ gold NULL → reward 0.0. Side-by-side vs spd0012: airbnb001 flipped **2/2 WITH the contract scaffold**,
+  only **1/2 WITHOUT it** (lean inline, smoke-only). The +3 GAINS (asset001/divvy001/f1001/recharge001 =
+  documented flake cells bouncing up; sap001 = the deterministic spd0010 fixture repair) are NOT
+  lever-attributable; quickbooks003's smoke "recovery" was variance (regressed again at full). ZERO durable
+  lever flips.
+- learning: **this RESOLVES the spd0011/spd0012 open fork = OUTCOME (b).** A method-constraint inline rule
+  is *steerable-but-unreliable* — it reached the worker's reasoning but was not reliably obeyed; the
+  write-then-obey **contract checkpoint forcing-function WAS load-bearing for RELIABLE compliance**. A real
+  tradeoff: reliable airbnb compliance needs the heavy scaffold, which itself costs quickbooks003 + the
+  prose. The lightest-vehicle-that-lands heuristic has a floor: below the contract checkpoint, the flip
+  does not hold. CALIBRATION: a single-draw targeted-smoke GO on a HIGH-VARIANCE target is NOT durable
+  evidence — both airbnb001 and quickbooks003 flipped SIGN smoke→full.
+- bears-on: future contract/compliance hypotheses (a forcing-function — not just wording — is what makes a
+  method-constraint reliable; do NOT expect a lean inline rule to substitute for the checkpoint on a
+  variable target); spd0012 (its airbnb flip rode the scaffold, confirmed); the value-def/method-constraint
+  family (method reaches the artifact, only the checkpoint makes it reliable).
+- evidence: full run above (per_trial_outcomes paired vs `runs/spider2-dbt-spd0008-full/4ba55fba0138a84d`);
+  airbnb001 transcript greps in spd0013 `## Behavioral analysis`; smoke
+  `runs/spd0013-lean-lag-period-over-period/9a6749cd13212912`.
+- status: rejected-as-written (the lean-rule isolation answered outcome b — the contract forcing-function
+  was load-bearing for reliable airbnb compliance; the lean inline rule flips airbnb only 1/2). The
+  solver-workflow was PROMOTED as `@baseline` on a CAPTAIN DECISION on the headline number, OVER the FO
+  recommendation to conclude validated-not-promoted; the +3 is variance + fixture, NOT this lever. The
+  champion now carries the lean clause (harmless) but the lever's durable signal is negative.

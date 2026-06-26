@@ -3,16 +3,22 @@
 # (/home/kent/autobench/spider2-dbt/razorback-registry.yaml) is the source of truth;
 # this file is a human-readable mirror + the champion's headline.
 #
-# SEED STATE: no scored full board exists yet. @baseline is established by the spd0001 anchor
-# run (full run of the spider2-dbt-baseline output-contract solver), then promoted.
+# HONESTY CAVEAT (spd0013 promote): the +3 over spd0008 is NOT lever-attributable. It is VARIANCE
+# (four documented flake cells — asset001/divvy001/f1001/recharge001 — bouncing up) + the sap001
+# FIXTURE repair (deterministic, free to any solver on the repaired board). The lever target
+# airbnb001 did NOT flip at full (smoke 1.0 -> full 0.0; outcome b — the contract forcing-function
+# was load-bearing). 27/60 is the program HIGH-WATER draw but a HIGH-VARIANCE single draw a re-run
+# may NOT reproduce (band 19/21/20/16/24/24/27; 27 is a new high). Promoted on the HEADLINE number by
+# CAPTAIN DECISION, OVER the FO recommendation to conclude validated-not-promoted. Do NOT mistake this
+# for a stable lever-driven champion.
 champion:
-  solver_workflow: ./solver_workflows/spider2-dbt-baseline   # seed; output-contract README
-  run_dir: runs/spider2-dbt-full-baseline/13fb630e2cae3eb8
-  pass_rate: 0.3115        # stratified_pass_at_1 = 19/61 (clean strict audit; 0 errored/missing/tainted)
-  promoted_by: spd0001     # anchor; established @baseline (registry add run baseline)
-  promoted_on: 2026-06-24
-  # board reality: 1 of the 42 fails (chinook001) is a gold-side packaging defect (non-signal),
-  # so the content-effective board is 19/60. Fail buckets: 38 wrong-columns-or-grain (the wall),
-  # 3 wrong-table-name/incomplete-deliverable, 0 ephemeral, 0 correct-artifact-still-fail.
+  solver_workflow: ./solver_workflows/spd0013-lean-lag-period-over-period   # spd0008 + one lean inline LAG-over-own-output G3 clause
+  run_dir: runs/spd0013-lean-lag-period-over-period/7f3278d0d61d2577
+  pass_rate: 0.45          # stratified_pass_at_1 = 27/60 (clean strict audit; 60 clean / 0 errored / 0 missing / 0 tainted)
+  promoted_by: spd0013     # captain decision on the headline; +3 = variance + sap001 fixture, NOT lever-attributable
+  promoted_on: 2026-06-26
+  # paired vs prior @baseline spd0008 (24/60): GAINS asset001/divvy001/f1001/recharge001/sap001;
+  # REGRESSIONS quickbooks003/recharge002 (both documented bouncers); net +3.
 model: codex / gpt-5.5, reasoning_effort xhigh, trials 1   # held fixed across all variants (no model-swap confound)
-board: 61 duckdb-runnable tasks (68 declared - 4 goldless - 3 postgres-backed)
+board: 60 duckdb-runnable tasks (post spd0010 fixture repair; chinook001 packaging-defect excluded)
+# prior champions: spd0008 24/60 (promoted_by spd0008); spd0001 anchor 19/61 = 0.3115.

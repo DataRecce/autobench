@@ -1,13 +1,13 @@
 ---
 id: spd0013
 title: Lean inline LAG-over-own-output period-over-period rule (NO contract scaffold) — isolate the airbnb001 flip from the heavy contract checkpoint
-status: full
+status: conclude
 kind: hypothesis
 source: "forks the CURRENT champion @baseline = spd0008-over-emit-collapse (spd0012 NOT promoted); adds ONLY a lean inline derivation-METHOD clause to spd0008's existing G3 COLUMN-VALUE CONTRACT guidance — the LAG/LEAD-over-own-output period-over-period rule — and DROPS the entire spd0011/spd0012 contract checkpoint scaffold (no Classify-output block, no Exploration-for-contract block, no Implementation Contract stage, no contract-aware Validation signature). Isolation test of spd0012's durable airbnb001 flip."
 started:
-completed:
-verdict:
-score:
+completed: 2026-06-26
+verdict: PASSED
+score: 0.45
 worktree:
 ---
 
@@ -184,13 +184,126 @@ Advanced to full per the captain GO→full delegation.
 
 ## Run result
 
+**Full run:** `runs/spd0013-lean-lag-period-over-period/7f3278d0d61d2577` — **27/60 = 0.45**.
+Strict audit CLEAN: **60 clean / 0 coverage_missing / 0 tainted, rc=0** (`rk audit --policy strict`,
+60 records all `taint_status: clean`). AC-2 met.
+
+Paired per-query ledger vs the PRIOR `@baseline` spd0008
+(`runs/spider2-dbt-spd0008-full/4ba55fba0138a84d`, 24/60), computed slug-paired from
+`per_trial_outcomes.json`:
+
+| Direction | Tasks | Net |
+|---|---|---|
+| **GAINS** (new PASS, spd0008 FAIL) | asset001, divvy001, f1001, recharge001, sap001 | +5 |
+| **REGRESSIONS** (new FAIL, spd0008 PASS) | quickbooks003, recharge002 | −2 |
+| **NET** | | **+3** (27 vs 24) |
+
+**CRITICAL — the lever target did NOT flip.** `airbnb001` = **0.0** at full (verified
+`per_trial_outcomes.json` trial `spider2-dbt-airbnb001__Ti58wVg` reward 0.0), despite flipping to
+**1.0 in the targeted smoke**. The smoke→full sign flip means the smoke GO was a **single-draw false
+positive on the target**.
+
 ## Behavioral analysis
+
+**The lever target airbnb001 reverted at full (smoke 1.0 → full 0.0).** The committed airbnb001 full
+artifact (session
+`spider2-dbt-airbnb001__Ti58wVg/agent/sessions/.../rollout-2026-06-26T16-46-35-...jsonl`) shows the
+worker REVERTED to **re-materializing a prior-period window** instead of doing LAG-over-its-own-output:
+grep counts in that transcript = `prior-period window` ×4, `re-materializ` ×2, `LAG(REVIEW_TOTALS,30)`
+×3 (a 30-day offset over the SOURCE, not `LAG(...) OVER (PARTITION BY … ORDER BY …)` over the model's
+own single-window output). The lean inline rule reached the worker's reasoning but was **not reliably
+obeyed without the contract forcing-function** → reward 0.0, the same prior-window re-materialization
+reflex spd0008/spd0011 documented.
+
+**This RESOLVES the spd0011/spd0012 fork = OUTCOME (b).** Side-by-side: `airbnb001` flipped **2/2 WITH
+the spd0012 contract scaffold** (the Classify-output / Exploration-for-contract / Implementation
+Contract stage / contract-aware Validation checkpoint; held smoke + full) but only **1/2 WITHOUT it**
+(spd0013 lean inline rule — smoke 1.0, full 0.0). The write-then-obey contract checkpoint
+**forcing-function WAS load-bearing for RELIABLE compliance**; a lean inline method-constraint is
+*steerable-but-unreliable*. This is a real tradeoff: reliable airbnb compliance needs the heavy
+scaffold, which itself costs quickbooks003 + the prose.
+
+**The +3 GAINS are NOT lever-attributable.** None of the five gains is the LAG rule:
+- `asset001` (1/6 FLAKE), `divvy001` (0/6 NEVER-FULL, documented build-nondeterminism), `f1001` (2/6
+  FLAKE), `recharge001` (1/6 FLAKE) are all **documented flake/variable cells bouncing UP this draw**
+  (see flake-candidate-ledger) — not a derivation-method flip.
+- `sap001` 0→1 is the **spd0010 FIXTURE repair** — deterministic, available to ANY solver on the
+  repaired 60-board (it is now passing post-fixture regardless of README).
+- `quickbooks003` 1→0 **regressed AGAIN** at full; its spd0013-smoke "recovery" (the contract-prose
+  diffuse-cost probe) was itself **variance**, not a durable un-cost. `recharge002` 1→0 is a known
+  bouncer (1/6 FLAKE) flip-flopping.
+
+**The lever (lean LAG rule) produced ZERO durable flips at full.** The headline +3 is variance (four
+flake cells up) + a fixture repair (sap001), confounded, not a lever effect.
+
+### Analyze required questions
+
+1. **Net + full bidirectional ledger.** Net **+3** (27/60 vs spd0008 24/60). GAINS asset001 / divvy001
+   / f1001 / recharge001 / sap001; REGRESSIONS quickbooks003 / recharge002. airbnb001 (lever target)
+   stayed 0.0.
+2. **Smoke-vs-full divergence.** BOTH `airbnb001` (smoke 1.0 → full 0.0) and `quickbooks003` (smoke 1.0
+   → full 0.0) flipped SIGN smoke→full. The lean rule's smoke GO was a **single-draw false positive on
+   the target**; quickbooks003's smoke "recovery" was equally variance. A 12-cell targeted smoke does
+   not predict the full-board draw of a high-variance board.
+3. **Already-correct-and-broken.** `quickbooks003` and `recharge002` were spd0008 passers and both
+   regressed — both are documented **bouncers** (qb003 4/6, recharge002 1/6), not lever-caused breaks.
+4. **Was the change executed?** At full, **NO** — airbnb001 is inert/reverted: the worker did NOT obey
+   the lean LAG-over-own-output rule, it re-materialized a prior-period window (transcript evidence
+   above). The +3 gains were NOT the lever (flake + fixture).
+5. **Prevention + next move.** The smoke was a single draw on a high-variance target; a single-draw
+   GO on a variable cell is not durable evidence — needs a multi-draw hold-rate before trusting a flip.
+   Next move: the lean inline method-constraint is NOT a reliable compliance vehicle; reliable airbnb
+   compliance requires the contract forcing-function (outcome b). See `## Follow-up Routing`.
+6. **Smoke-vs-full fork drift.** The lean rule did NOT hold the airbnb flip at full → the contract
+   forcing-function mattered. The smoke's single passing draw masked that the inline rule is
+   steerable-but-unreliable; the full board exposed the reversion.
 
 ## Failure Review
 
+The verdict hinges on AC-3: airbnb001 flips iff committed `mom_agg_reviews.MOM` is NULL ×3. At full the
+worker re-materialized a prior 30-day window (`LAG(REVIEW_TOTALS,30)` over the SOURCE) and emitted real
+MoM percentages ≠ gold NULL → reward 0.0. This is outcome (b): the lean inline rule was detected but
+not obeyed without the contract checkpoint. No hard-gate canary broke from the lever (the two
+regressions, quickbooks003 + recharge002, are documented bouncers, and quickbooks003's break is the
+same direction it was already variable in). No audit taint.
+
 ## Follow-up Routing
 
+**Routing: stop (no new auto-filed hypothesis).** The lean-rule isolation has cleanly answered the
+spd0011/spd0012 open question (outcome b — the contract forcing-function is load-bearing for reliable
+compliance). The two viable directions both carry known costs and neither is a clean single-knob bet:
+(i) re-adopt the spd0012 contract scaffold for the airbnb flip (reliable but net+0 with a quickbooks003
++ prose cost) — already concluded validated-not-promoted; (ii) chase a lighter-than-contract but
+stronger-than-inline forcing-function (untested wording, no offline evidence it lands). Surface both to
+the captain as a strategy choice rather than reflexively filing another contract-vehicle variant. The
+value-def/method-constraint family is now well-mapped: a method-constraint CAN reach the artifact, but
+only the contract checkpoint makes it RELIABLE — and reliability is not free.
+
 ## Verdict
+
+**PROMOTED — on captain decision, over the FO recommendation.** `@baseline` was promoted from spd0008
+(24/60) to **spd0013 (27/60 = 0.45)**, the program's **HIGH-WATER mark**, by a **CAPTAIN DECISION on
+the headline number**, OVER the first officer's recommendation to conclude *validated-not-promoted*.
+The registry promote is already executed: `@baseline` now resolves to
+`runs/spd0013-lean-lag-period-over-period/7f3278d0d61d2577`.
+
+**HONEST caveat — read this before treating 27/60 as a champion:**
+
+- The **+3 is NOT lever-attributable.** It is **variance** (four documented flake cells —
+  asset001 / divvy001 / f1001 / recharge001 — bouncing up this draw) **+ the sap001 FIXTURE repair**
+  (deterministic, free to any solver on the repaired board). The lean LAG rule produced **zero durable
+  flips**.
+- The **lever target airbnb001 did NOT flip at full** (smoke 1.0 → full 0.0); the lean inline rule is
+  **steerable-but-unreliable** (outcome b — the contract forcing-function was load-bearing).
+- `@baseline` is now a **HIGH-VARIANCE single draw a re-run may NOT reproduce.** The full-board band
+  was 19 / 21 / 20 / 16 / 24 / 24, and **27 is a new high** — likely the top of the variance band, not
+  a stable lever-driven lift.
+- **The next-session FO must NOT mistake 27/60 for a stable lever-driven champion.** It is the program
+  high-water draw, promoted on the headline, with the durable lever signal = negative (outcome b).
+
+Frontmatter: `verdict: PASSED`, `completed: 2026-06-26`. Champion solver is now
+`solver_workflows/spd0013-lean-lag-period-over-period` (= spd0008 + the one lean inline
+LAG-over-own-output G3 clause); future hypotheses fork from it.
 
 ## Stage Report: propose
 
@@ -216,3 +329,28 @@ Advanced to full per the captain GO→full delegation.
 ### Summary
 
 Verified the pre-forked spd0013 README is the clean one-knob isolation of spd0012's durable airbnb001 flip — exactly one inline G3 LAG-over-own-output period-over-period clause on the spd0008 champion, with the entire contract-checkpoint scaffold removed (grep = 0). Built and froze the full spec (cp from full-baseline.frozen, two-field edit) and the 12-task smoke spec (positive allowlist, --explain = Tasks: 12); the full frozen diff is only experiment + solver_workflow + auto hashes. Gatekeeper recommends APPROVE with no FAILs and no WARNs, so the propose auto-gate's gatekeeper condition is clean.
+
+## Stage Report: conclude
+
+- DONE: Write the ## Run result block (full 27/60=0.45, strict audit CLEAN 60/0/0 rc=0, paired ledger vs spd0008, net +3)
+  Audit rc=0, 60 clean records; GAINS asset001/divvy001/f1001/recharge001/sap001, REGRESSIONS quickbooks003/recharge002 (computed slug-paired from per_trial_outcomes.json).
+- DONE: Write/extend ## Behavioral analysis with the HONEST full-run attribution
+  airbnb001 reverted (smoke 1.0 -> full 0.0); transcript greps verified `prior-period window`×4 / `re-materializ`×2 / `LAG(REVIEW_TOTALS,30)`×3; +3 = variance (4 flake cells) + sap001 fixture, NOT lever; outcome (b) recorded.
+- DONE: Answer the 6 analyze required questions in the entity
+  Added "### Analyze required questions" subsection (net+ledger; smoke-vs-full sign-flip divergence; already-correct-and-broken bouncers; change NOT executed at full; prevention/next-move; fork drift).
+- DONE: Set frontmatter verdict: PASSED and completed: 2026-06-26; write ## Verdict = PROMOTED-on-captain-decision with FULL HONESTY
+  Frontmatter verdict: PASSED, completed: 2026-06-26, score: 0.45; Verdict block states captain-decision-over-FO, +3=variance+fixture, airbnb001 inert (outcome b), HIGH-VARIANCE draw caveat.
+- DONE: PROMOTE ARTIFACTS — baseline.yaml + gap-ranking re-derive + flake-ledger 7th draw
+  baseline.yaml -> spd0013 27/60 with honesty caveat; task-gap-ranking.md re-derived from champion summary (27 PASS / 33 FAIL, 60-board); docs/flake-candidate-ledger.md regenerated with the 7th draw (19/21/20/16/24/24/27), airbnb001 added 0/7, sap001 deterministic post-fixture, bouncers confirmed.
+- DONE: Finalize the spd0013 entry in _artifacts/WORKFLOW-REFINE.md
+  Appended a full spd0013 entry: status rejected-as-written (outcome b — contract forcing-function load-bearing), sharp learning + bears-on lines.
+- DONE: Append a one-line entry to _artifacts/self-learning.md
+  Appended the spd0013 conclusion line (outcome b, +3 not lever-attributable, calibration lesson).
+- DONE: Commit all edits. Do NOT archive (FO does it). Do NOT launch any rk run.
+  Committed; no archive; no rk run launched (only rk score/audit read-only invoked).
+- SKIPPED: Do NOT re-promote (registry promote already done by FO)
+  Confirmed @baseline already resolves to runs/spd0013-lean-lag-period-over-period/7f3278d0d61d2577; no re-promote.
+
+### Summary
+
+Wrote the HONEST conclude record for spd0013: full 27/60=0.45 (clean strict audit), promoted as @baseline by CAPTAIN DECISION on the headline number OVER the FO recommendation. The science: the lean-rule isolation RESOLVED the spd0011/spd0012 fork = OUTCOME (b) — airbnb001 flipped 2/2 WITH the spd0012 contract scaffold but only 1/2 WITHOUT it (smoke 1.0 -> full 0.0; the worker reverted to re-materializing a prior SOURCE window per the committed transcript), so the contract checkpoint forcing-function was load-bearing for reliable compliance and a lean inline method-constraint is steerable-but-unreliable. The +3 is variance (4 flake cells) + the sap001 fixture, NOT lever-attributable; recorded prominently that 27/60 is a HIGH-VARIANCE draw a re-run may not reproduce so the next FO does not mistake it for a stable lever-driven champion. Regenerated baseline.yaml, task-gap-ranking.md, and the flake-candidate-ledger (7th draw); finalized WORKFLOW-REFINE + self-learning.
