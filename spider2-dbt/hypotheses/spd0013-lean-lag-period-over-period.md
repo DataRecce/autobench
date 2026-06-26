@@ -1,7 +1,7 @@
 ---
 id: spd0013
 title: Lean inline LAG-over-own-output period-over-period rule (NO contract scaffold) — isolate the airbnb001 flip from the heavy contract checkpoint
-status: propose
+status: smoke
 kind: hypothesis
 source: "forks the CURRENT champion @baseline = spd0008-over-emit-collapse (spd0012 NOT promoted); adds ONLY a lean inline derivation-METHOD clause to spd0008's existing G3 COLUMN-VALUE CONTRACT guidance — the LAG/LEAD-over-own-output period-over-period rule — and DROPS the entire spd0011/spd0012 contract checkpoint scaffold (no Classify-output block, no Exploration-for-contract block, no Implementation Contract stage, no contract-aware Validation signature). Isolation test of spd0012's durable airbnb001 flip."
 started:
