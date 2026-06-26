@@ -155,11 +155,16 @@ fails every column — grain exactness is binary. Each rule below fires ONLY on 
 signal (a model config, a sibling file, a role-dimension, a report-grain name); they are disjoint,
 so they compose without bleeding. None fires on a plain authored aggregate.
 
-- **Respect the incremental window.** If the target maps to a model with
-  `config(materialized='incremental')` AND an `is_incremental()` period-restriction WHERE clause,
-  emit ONLY the latest window that branch defines (do NOT full-refresh it into full history). The
-  sibling incremental models show the window length. *[airbnb001 `mom_agg_reviews`: one rolling
-  30-day window, not every month.]*
+- **Respect the incremental window — INCLUDING when you author the target fresh.** If the target
+  (or its nearest sibling model) uses `config(materialized='incremental')` with an
+  `is_incremental()` period-restriction WHERE clause, the gold table is ONLY the latest window that
+  branch defines — emit just that single most-recent window, NOT the metric computed for every
+  period. This applies EVEN when the target model does not exist and you author it from scratch:
+  do not "helpfully" full-refresh it into full history. Read the sibling incremental model
+  (e.g. a `wow_*`/`mom_*` peer) for the exact window length and the latest-window anchor (the
+  window ends at the MAX source date), and reproduce only that one window. *[airbnb001
+  `mom_agg_reviews`: ONE rolling 30-day window ending at the max review date = 3 rows (one per
+  sentiment), NOT one row per calendar date (~11k).]*
 - **Resolve role attributes through the role dimension.** If the target fact carries
   role-prefixed columns (`seller_*`/`buyer_*`, `sender_*`/`receiver_*`) AND an
   `int_<role>_extracted_from_users` (or similar role-specific) dimension ships, INNER JOIN through
@@ -181,6 +186,13 @@ so they compose without bleeding. None fires on a plain authored aggregate.
   is the inverse of R6: R6's verbatim union is for SAME-grain domain partitions only; report-grain
   targets need this anchor instead. *[apple_store001 `source_type_report`/`territory_report`:
   anchor on `int_*__app_store_*`, LEFT-join downloads/usage.]*
+  **PRESERVE THE RAW GROUPING KEY — do not canonicalize it.** When the report's grouping key is a
+  raw label (a territory/region/category string), GROUP BY and emit the RAW key value in the
+  `*_long`/name column. A lookup/country-code seed may FILL secondary attributes
+  (`*_short`/`region`/`sub_region`) via a LEFT join, but NEVER re-group on the canonicalized lookup
+  value: spelling variants that map to one canonical name (e.g. `Türkiye`/`Turkey`,
+  `Côte d'Ivoire`/`Cote d'Ivoire`) are SEPARATE gold rows, and collapsing them drops rows. *[apple_store001
+  `territory_report`: keep the raw `territory` as `territory_long` → 17 rows, not 16.]*
 
 ### Axis-2 G3 — COLUMN-VALUE CONTRACT (per-column, gated by column name / source dtype)
 

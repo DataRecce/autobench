@@ -1,5 +1,5 @@
-# ABOUTME: spd0008 SMOKE — targets airbnb001(incremental)/tickit002(role-dim)/apple_store001(report grain-anchor);
-# ABOUTME: canaries f1003(sibling-mirror perturbable)/retail001(value-def passer)/activity001/mrr001. vs CHAMPION spd0007b.
+# ABOUTME: spd0008 v2 RE-SMOKE (sharpened airbnb authored-fresh-window + apple_store preserve-raw-territory-key).
+# ABOUTME: targets airbnb001+apple_store001 should flip; tickit002 dropped (dim_events residual = spd0009). canaries f1003/retail001/activity001/mrr001.
 version: 1
 experiment: spider2-dbt-spd0008-smoke
 agent:
@@ -23,7 +23,6 @@ benchmark:
   tasks_root: /home/kent/autobench/spider2-dbt/_views
   tasks:
     - spider2-dbt-airbnb001
-    - spider2-dbt-tickit002
     - spider2-dbt-apple_store001
     - spider2-dbt-f1003
     - spider2-dbt-retail001

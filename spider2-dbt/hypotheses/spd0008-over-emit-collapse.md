@@ -118,6 +118,15 @@ NOT inert and NOT canary-bleed.
 or CONCLUDE and fold these one-line fixes into spd0009/a later composition. @baseline unchanged
 (spd0007b 24/61).
 
+
+## Revision v2 (captain-approved REVISE, 2026-06-26)
+
+Sharpened two near-miss G2 rules (still one knob — the G2 block; diff vs champion = G2 only, additive, leak-clean):
+1. **Incremental-window — now applies when authoring fresh.** mom_agg_reviews is authored from scratch (no incremental config to "respect"), so the original trigger missed. New text: if the target OR its sibling uses is_incremental(), emit ONLY the single latest window (ending at MAX source date) even when authoring the model fresh — mirror the sibling window length. *[airbnb001 → 3 rows not ~11k.]*
+2. **Report-grain — preserve the RAW grouping key.** Added: GROUP BY / emit the raw label in the *_long column; a lookup seed may FILL secondary attrs but NEVER re-group on the canonicalized value (spelling variants like Türkiye/Turkey are separate gold rows). *[apple_store001 territory_report → 17 not 16.]*
+
+Re-smoke panel (6 cells): targets airbnb001 + apple_store001 (should now flip); canaries f1003 (sibling-mirror) / retail001 (value-def) / activity001 / mrr001. tickit002 DROPPED — its residual (dim_events 300-short) is a sibling-dimension grain gap = spd0009 territory, not G2. GO = both targets flip by artifact + canaries hold.
+
 ## Run result
 
 ## Behavioral analysis
