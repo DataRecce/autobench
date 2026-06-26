@@ -1,12 +1,12 @@
 ---
 id: spd0009
 title: Axis-2 G1 — SPINE_COMPLETENESS (drive daily/rollup/balance-sheet/enhanced targets from the spine/dimension, left-join facts, carry balances forward, keep NULL)
-status: smoke
+status: conclude
 kind: hypothesis
 source: "resolution-survey ranked-backlog #4; forks CHAMPION spd0008 (24/60); Axis-2 G1 spine is the one knob; 2-step smoke (small gate-isolation -> large at-scale)" #4 — the BINDING-CONSTRAINT experiment; stacks on the spd0008 champion
 started: 2026-06-25
-completed:
-verdict:
+completed: 2026-06-26T07:41:27Z
+verdict: validated-not-promoted
 score: 0.7
 worktree:
 ---
@@ -219,7 +219,7 @@ residuals. Each fix surfaces the next oracle-blind specific the README cannot pi
 
 ## Verdict
 
-**RECOMMEND CONCLUDE — validated-not-promoted (captain decision).** spd0009 banks real validated
+**validated-not-promoted (captain-approved 2026-06-26).** spd0009 banks real validated
 KNOWLEDGE: (1) the G1 spine-completeness gate is tight + non-destabilizing (the binding-constraint
 risk is disproven — the highest-risk lever of the program is SAFE); (2) the spine-drive + max-fact
 clamp are correct mechanisms; (3) the durable finding — the "spine family" the survey grouped (12
