@@ -165,6 +165,17 @@ so they compose without bleeding. None fires on a plain authored aggregate.
   window ends at the MAX source date), and reproduce only that one window. *[airbnb001
   `mom_agg_reviews`: ONE rolling 30-day window ending at the max review date = 3 rows (one per
   sentiment), NOT one row per calendar date (~11k).]*
+  **CRITICAL — the window filter must hold under `--full-refresh`.** The build runs
+  `dbt run --full-refresh`, under which `is_incremental()` evaluates to FALSE. So if a model's
+  latest-window restriction (the `WHERE date BETWEEN max-N AND max` and its MAX-date anchor) lives
+  INSIDE an `{% if is_incremental() %}` block, that filter is SKIPPED at build time and the model
+  emits FULL HISTORY — the exact over-emit. When the existing model gates its window behind
+  `is_incremental()`, MOVE the window WHERE-clause and the MAX-date anchor OUT of that block so they
+  apply UNCONDITIONALLY (or compute the latest-window directly). Verify the built table has only the
+  single latest window (a handful of rows), not one row per period — a clean `dbt build` is NOT
+  proof here, because full-refresh silently bypasses the guard. *[airbnb001: the correct 30-day
+  window logic already exists but is gated behind `is_incremental()`; full-refresh skips it → 11,135
+  rows instead of 3 unless the filter is made unconditional.]*
 - **Resolve role attributes through the role dimension.** If the target fact carries
   role-prefixed columns (`seller_*`/`buyer_*`, `sender_*`/`receiver_*`) AND an
   `int_<role>_extracted_from_users` (or similar role-specific) dimension ships, INNER JOIN through

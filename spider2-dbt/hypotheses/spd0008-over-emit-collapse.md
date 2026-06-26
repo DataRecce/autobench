@@ -1,7 +1,7 @@
 ---
 id: spd0008
 title: Axis-2 G2 — OVER_EMIT_COLLAPSE (respect incremental window / role-dimension inner-join / sibling-mirror grain / passthrough no-prune)
-status: smoke
+status: full
 kind: hypothesis
 source: "resolution-survey-2026-06-25 ranked-backlog #3; forks CHAMPION spd0007b (24/61); Axis-2 G2 over-emit-collapse is the one knob" #3; stacks on the spd0007 champion
 started: 2026-06-25
@@ -151,6 +151,17 @@ lever-caused regressions. Options: (a) one more micro-revise adding the airbnb i
 now on the apple_store001 win; (c) conclude validated-not-promoted and bank the report-grain rule.
 Recommend (a) then full — the airbnb fix is well-understood and would make the full run carry 2
 attributable G2 flips. @baseline unchanged (spd0007b 24/61).
+
+
+## Revision v2b — airbnb is_incremental/full-refresh mechanism (captain: revise then full, 2026-06-26)
+
+Added the missing MECHANISM to the incremental-window rule: the build runs `dbt run --full-refresh`,
+under which `is_incremental()` is FALSE — so a latest-window filter left inside an
+`{% if is_incremental() %}` block is SKIPPED → full history. The rule now says: MOVE the window
+WHERE/MAX-anchor OUT of the is_incremental() guard (apply unconditionally), and verify the built
+table has only the single latest window (a clean dbt build is not proof — full-refresh bypasses the
+guard). Still one knob (G2 block); diff vs champion = G2 only, leak-clean. Per captain: advance to
+FULL directly (apple_store001 already an attributable smoke flip; airbnb fix is targeted).
 
 ## Run result
 
