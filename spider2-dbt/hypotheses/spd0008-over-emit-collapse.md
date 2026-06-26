@@ -1,9 +1,9 @@
 ---
 id: spd0008
 title: Axis-2 G2 — OVER_EMIT_COLLAPSE (respect incremental window / role-dimension inner-join / sibling-mirror grain / passthrough no-prune)
-status: hypothesis
+status: propose
 kind: hypothesis
-source: resolution-survey-2026-06-25 ranked-backlog #3; stacks on the spd0007 champion
+source: "resolution-survey-2026-06-25 ranked-backlog #3; forks CHAMPION spd0007b (24/61); Axis-2 G2 over-emit-collapse is the one knob" #3; stacks on the spd0007 champion
 started: 2026-06-25
 completed:
 verdict:
