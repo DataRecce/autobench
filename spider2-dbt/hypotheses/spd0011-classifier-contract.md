@@ -274,3 +274,160 @@ Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). 
 ### Summary
 
 Forked champion spd0008-over-emit-collapse into spd0011-classifier-contract and made the single one-knob README change: added per-target Classify output fields, an Exploration-for-contract evidence-resolution list, a new pre-SQL Implementation Contract checkpoint (9 named fields + a 2-template inventory: G2_LATEST_WINDOW_FULL_REFRESH and G2_REPORT_RAW_GROUPING_HOLD), and a contract-signature Validation check. The diff is purely additive; existing implementation tips and the no-fetch leak-guard are untouched, no gold baked in. Full spec diffs only experiment + solver_workflow; smoke is a 12-task positive allowlist (--explain confirms Tasks: 12). Gatekeeper recommends APPROVE with one G7 WARN (judge the smoke by AC-2/AC-4 committed-artifact evidence, not transcript mentions). Stopped at the propose gate; no rk run launched beyond $0 --explain.
+
+## Smoke result
+
+Run dir: `runs/spd0011-classifier-contract-smoke/1e6a6226d63abfbb` (strict audit CLEAN, rc=0,
+`0 coverage_missing`, `0 tainted`). 10/12 cells pass.
+
+**Verdict: NO-GO.** The primary flip target `airbnb001` did NOT flip (0.0, same as `@baseline`), and a
+telemetry cell `recharge002` regressed 1.0→0.0 by a lever-attributable construction divergence. Per AC-5,
+do not full-run; conclude `validated-not-promoted` or revise narrowly. The hard-gate panel held cleanly.
+
+| Cell | Role | @baseline (spd0008) | spd0011 | Flip? | Distance / why |
+|------|------|--------------------|---------|-------|----------------|
+| airbnb001 | FLIP target | 0.0 | 0.0 | NO | Closer-but-still-fail. Window logic now CORRECT (totals match gold exactly); residual blocker = `MOM` column: gold=NULL, worker computed real MoM %. See Behavioral analysis. |
+| apple_store001 | HOLD target | 1.0 | 1.0 | held | `G2_REPORT_RAW_GROUPING_HOLD` preserved the spd0008 raw-key win. |
+| activity001 | hard-gate canary | 1.0 | 1.0 | held | |
+| app_reporting001 | hard-gate canary | 1.0 | 1.0 | held | |
+| google_play001 | hard-gate canary | 1.0 | 1.0 | held | |
+| google_play002 | hard-gate canary | 1.0 | 1.0 | held | |
+| quickbooks003 | hard-gate canary | 1.0 | 1.0 | held | |
+| mrr001 | telemetry | 1.0 | 1.0 | held | |
+| mrr002 | telemetry | 1.0 | 1.0 | held | |
+| retail001 | telemetry | 1.0 | 1.0 | held | |
+| f1003 | telemetry | 1.0 | 1.0 | held | |
+| recharge002 | telemetry | 1.0 | 0.0 | REGRESSED | Lever-attributable: `G2_REPORT_RAW_GROUPING_HOLD` + spine/coalesce skeleton steered the worker into a fuller calendar spine (124 rows vs champion's passing 122). See Behavioral analysis. |
+
+**Clean-audit attestation:** strict audit clean, rc=0, no dataset errored, no infra taint. Backend N/A
+(harbor-local DuckDB, file-graded). The two failures are real artifact mismatches, not infra abstains.
+
+**AC scorecard:**
+- AC-1 (README-only): satisfied at propose (gatekeeper PASS).
+- AC-2 (contract written before SQL edits): **SATISFIED** — airbnb001 contract written 08:33:05Z,
+  first `apply_patch` 08:33:47Z; recharge002 contract written 08:57:22Z before its edits. Full 9-field
+  contracts present for every target. The contract stage is NOT inert.
+- AC-3 (airbnb001 flips + canaries hold): **FAILED on the flip** — airbnb001 did not flip. Canaries held.
+- AC-4 (validation ran a template-derived signature beyond `dbt build`): **SATISFIED** — both workers ran
+  direct DuckDB structural checks (base-table type, grain uniqueness, single-AGGREGATION_DATE,
+  representative rows) beyond the clean build. But the signature is oracle-blind on the residual blocker
+  (see Failure Review).
+- AC-5 (no premature full): honored — NO-GO, no full launched.
+
+## Behavioral analysis
+
+### airbnb001 — closer-but-still-failing (committed-artifact read)
+
+Graded tables + columns (from `tests/spider2_eval.jsonl`):
+- `dim_listings_hosts` cols [2,3,4,5,6,7,8] (LISTING_ID…HOST_NAME), order-insensitive — worker built
+  17,499 rows = gold 17,499; not the blocker.
+- `mom_agg_reviews` cols [0,1,3] = REVIEW_TOTALS, REVIEW_SENTIMENT, MOM, order-insensitive.
+
+The contract (written pre-edit) selected `G2_LATEST_WINDOW_FULL_REFRESH` for `mom_agg_reviews` and
+correctly predicted "3 rows for 2021-10-22", "exactly one AGGREGATION_DATE", and forbade "window filter
+solely inside `is_incremental()`". The committed `models/agg/mom_agg_reviews.sql` applies the latest-window
+filter **UNCONDITIONALLY** (a `dates_cte` anchored to `MAX(REVIEW_DATE)` + `WHERE … BETWEEN
+AGGREGATION_DATE-29 AND AGGREGATION_DATE`), with **no `is_incremental()` gate anywhere**. So the
+`is_incremental`/full-refresh blocker that the hypothesis (via spd0008's diagnosis) targeted was already a
+non-issue at this draw — the contract template solved its targeted problem.
+
+The worker's built `mom_agg_reviews` matched gold on the two columns the template reasons about:
+REVIEW_TOTALS = {neg 834, neu 2745, pos 4370}, REVIEW_SENTIMENT exact, exactly 3 rows, single date
+2021-10-22 (verified: gold totals reproduce the inclusive 30-day window through `fct_reviews`, which dedups
+the 6-row raw discrepancy and drops the NULL-sentiment group). The **sole residual graded mismatch is the
+`MOM` column (col 3): gold = NULL for all 3 rows; the worker computed real MoM percentages (−17.99 / −20.25
+/ −9.92)**. Because the verifier ANDs all condition_tabs, this one column fails the whole cell.
+
+The template's vocabulary (latest-window grain, full-refresh survival, single-date anchor) does not contain
+the MoM semantics. Gold defines MOM as NULL here (no comparable prior-period value in the gold definition);
+the worker's `previous_window` 30–59-day-prior CTE manufactured a non-null comparison gold does not want.
+This is a **second blocker outside the contract template** — a value/semantics definition, not a compliance
+or grain failure. The contract made airbnb001 strictly closer (window correct, totals/sentiment/grain all
+gold-exact) but cannot reach the answer because its template has no MoM-definition lever.
+
+### recharge002 — lever-attributable regression (committed-artifact read)
+
+Graded table `recharge__customer_daily_rollup`, cols [0, 37], order-insensitive. Champion spd0008 (PASS,
+1.0) built it in ONE model at **122 rows**. The spd0011 worker selected `G2_REPORT_RAW_GROUPING_HOLD` and,
+following the contract's `implementation_skeleton` ("left join daily metrics onto the customer-date spine,
+coalesce absent daily counts/amounts to 0"), added a NEW `models/intermediate/int_recharge__calendar_spine.sql`
+that "included the max charge day in the spine" → **124 rows**. The 2-row spine expansion changes the graded
+row set, breaking the match. The divergence traces directly to the contract's spine/coalesce skeleton +
+template selection, NOT to pre-existing variance — this is the generative contract stage perturbing a
+previously-passing construction. recharge002 is telemetry-only (not a hard gate), so it does not by itself
+decide the go/no-go, but it is recorded as lever-caused regression evidence, not flake.
+
+## Failure Review
+
+**Primary failure type: correct-artifact-still-fail** (airbnb001), with a secondary
+**lever-attributable canary-style regression** on a telemetry cell (recharge002).
+
+1. **Original fork (what the hypothesis bet on):** airbnb001 fails because the latest-window filter is left
+   behind `is_incremental()`, so `--full-refresh` emits full history (the spd0008 diagnosis). The contract's
+   `G2_LATEST_WINDOW_FULL_REFRESH` template would force the filter to survive full-refresh and flip the cell.
+
+2. **Fork the artifact revealed:** that blocker was already gone at this draw — the worker applied the window
+   UNCONDITIONALLY (no `is_incremental` gate) and produced gold-exact REVIEW_TOTALS/REVIEW_SENTIMENT, 3 rows,
+   single date. The TRUE residual blocker is the **`MOM` column value definition**: gold MOM = NULL, worker
+   computed a real prior-window MoM %. This is a value/semantics fork the 2-template inventory does not cover.
+
+3. **Did the rule fire, and what does the artifact show?** YES — fired and was obeyed (refutes the G7
+   "detected-but-not-obeyed" worry for THIS draw). AC-2 met: a full 9-field contract was written before SQL
+   edits (08:33:05Z contract vs 08:33:47Z first patch); the committed SQL implements exactly the contract
+   skeleton; AC-4 met: validation ran direct DuckDB structural checks beyond `dbt build`. The contract was
+   the OPPOSITE of inert — it changed behavior, made airbnb001 strictly closer, and (on recharge002) changed
+   behavior enough to regress a passer. The wall is not compliance; it is that the template's structural
+   signature is oracle-blind to the MoM-definition gap (the worker's own validation_signature "current totals
+   equal latest 30-day fact counts" passed truthfully while the graded MOM column was wrong).
+
+4. **New fork to test next:** airbnb001's real lever is a **MoM-definition / value-semantics** contract field
+   (when is MOM NULL? what prior period?), NOT a window-compliance template. This is a value-def fork
+   (kin to spd0007's value-definition family), not a G2 latest-window fork. Separately, the
+   `G2_REPORT_RAW_GROUPING_HOLD` spine/coalesce skeleton needs a forbidden-pattern guard against
+   **expanding the calendar spine beyond the champion's grain** (recharge002: 124 vs 122) — a spine that
+   zero-fills must be bounded to the same date set the passing construction used.
+
+5. **Next step: file (do not promote, do not probe-rerun).** Conclude `validated-not-promoted`. The contract
+   mechanism is VALIDATED as fire-and-obey (banks the AC-2/AC-4 evidence that the contract stage is not inert
+   at gpt-5.5/codex), but it does not flip airbnb001 and it regresses recharge002, so it is net-negative as a
+   standalone promotion. Bank the contract idea + the two refinements (a value-def/MoM template; a spine-grain
+   forbidden-pattern) for the later stabilization loop. No re-run needed — the artifact read is decisive.
+
+## Stage Report: smoke
+
+- DONE: Read the airbnb001 cell sub-agent session jsonl and extract the FINAL committed dbt model SQL and the Implementation Contract the worker wrote
+  Reconstructed final `models/agg/mom_agg_reviews.sql`, `daily_agg_reviews.sql`, `dim_listings_hosts.sql` from codex `apply_patch` events; full 9-field contract quoted in Behavioral analysis.
+- DONE: Determine AC-2: was an Implementation Contract written BEFORE the SQL edits
+  YES. Contract msg 08:33:05Z; first apply_patch 08:33:47Z. selected_rule=G2_LATEST_WINDOW_FULL_REFRESH; forbidden_patterns include "no window filter solely inside is_incremental()"; expected_row_shape="3 rows for 2021-10-22"; validation_signature="exactly one AGGREGATION_DATE, unique DATE_SENTIMENT_ID, current totals equal latest 30-day fact counts".
+- DONE: Determine AC-4: did Validation run a rule-specific signature check beyond dbt build?
+  YES. Worker ran direct DuckDB checks (base-table type, grain uniqueness, single AGGREGATION_DATE, representative rows) beyond the 39/39 clean build.
+- DONE: Determine the airbnb001 failure mechanism
+  Window filter is UNCONDITIONAL (survives --full-refresh, no is_incremental gate). REVIEW_TOTALS/REVIEW_SENTIMENT gold-exact (834/2745/4370, 3 rows). SECOND blocker = MOM column (graded col 3): gold=NULL, worker computed real MoM %. Verified by reproducing gold totals from fct_reviews + gold mom_agg_reviews dump.
+- DONE: Classify the airbnb001 result
+  closer-but-still-failing (window solved; residual = MOM value-definition mismatch, a fork outside the template inventory).
+- DONE: Check recharge002 drop, classify lever vs flake
+  Lever-attributable regression. Worker chose G2_REPORT_RAW_GROUPING_HOLD + added int_recharge__calendar_spine → 124 rows vs champion's passing 122. Spine/coalesce skeleton from the contract drove the divergence, not variance.
+- DONE: Confirm apple_store001 HOLD and the 5 hard-gate canaries held
+  apple_store001=1.0; activity001/app_reporting001/google_play001/google_play002/quickbooks003 all 1.0. Noted in Smoke result table.
+- DONE: Write the ## Smoke result block
+  Per-target flip/distance/why table + clean-audit attestation + AC scorecard appended.
+- DONE: Write the ## Behavioral analysis block
+  Committed-artifact read for airbnb001 (MOM blocker) and recharge002 (spine row-set divergence) appended.
+- DONE: Write the ## Failure Review block
+  Primary type correct-artifact-still-fail; 5 required questions answered; next step = file (validated-not-promoted).
+- DONE: Workflow-refinement evaluation (MANDATORY — new contract STAGE)
+  Appended spd0011 entry to _artifacts/WORKFLOW-REFINE.md (the contract stage fired + was obeyed on all 12 cells, not inert; changed artifacts; helped airbnb001 closer, harmed recharge002).
+- DONE: Do NOT change verdict/frontmatter or promote; commit entity + WORKFLOW-REFINE edits
+  No frontmatter/verdict touched, no rk run. Commit below.
+
+### Summary
+
+NO-GO confirmed by committed-artifact read. The Implementation Contract stage is NOT inert (AC-2/AC-4 both
+satisfied: contract written pre-edit, obeyed in the committed SQL, validation ran a structural signature) —
+refuting the G7 detected-but-not-obeyed worry for this draw. But airbnb001 does not flip: the contract's
+G2_LATEST_WINDOW_FULL_REFRESH template solved the window/full-refresh blocker (totals + sentiment + grain
+now gold-exact), revealing the TRUE residual blocker is the MOM column value-definition (gold NULL vs
+worker-computed MoM %), which is outside the template inventory. recharge002 regressed 1.0→0.0 by a
+lever-attributable spine expansion (124 vs the champion's passing 122 rows). Net standalone = negative.
+Recommend conclude validated-not-promoted; bank the contract idea + two refinements (a value-def/MoM
+template; a spine-grain forbidden-pattern) for the stabilization loop.
