@@ -78,30 +78,40 @@ Entry format:
   a process checkpoint would be acknowledged-and-skipped). AC-2 met (contract written 08:33:05Z before the
   first apply_patch 08:33:47Z on airbnb001) and AC-4 met (Validation ran direct DuckDB structural checks —
   base-table type, grain uniqueness, single-date, representative rows — beyond the clean `dbt build`).
-  Behavior CHANGED: on airbnb001 the contract drove a correct unconditional latest-window (no
-  `is_incremental` gate), making the cell strictly closer (REVIEW_TOTALS/REVIEW_SENTIMENT/grain all
-  gold-exact); on recharge002 the contract's spine/coalesce skeleton drove a fuller calendar spine
-  (124 rows) that REGRESSED a passing champion construction (122 rows, 1.0→0.0). Net standalone: airbnb001
-  still 0.0 (MOM value-definition blocker outside the template), one telemetry regression → NO-GO.
-- learning: a structured pre-edit contract IS enforceable at gpt-5.5/codex (fire-and-obey, not
-  detected-but-not-obeyed) — so the contract STAGE is validated infrastructure. But two sharp limits:
-  (1) a contract template can only make the worker COMPLY with the dimension it names; it is oracle-blind
-  to a residual blocker outside its vocabulary — airbnb001's window template solved the window and exposed
-  a MOM value-definition gap (gold MOM=NULL) the template cannot reach. A latest-window template needs a
-  companion value-def field for derived metrics (when is the metric NULL / what prior period). (2) a
-  generative skeleton field ("left-join onto the spine, coalesce to 0") can EXPAND the graded row set past
-  the passing grain (recharge002 124 vs 122) — `G2_REPORT_RAW_GROUPING_HOLD` needs an explicit
-  forbidden-pattern: a zero-filled spine must be bounded to the same date/grain set the passing
-  construction used, never a fuller calendar. The contract's own `validation_signature` passed truthfully
-  ("totals equal latest 30-day fact counts") while the graded column was wrong — reconfirms that a
-  worker-derived structural signature is necessary-not-sufficient; it cannot self-anchor onto the gold
-  value semantics.
-- bears-on: spd0007 (the airbnb001 MOM gap is a value-definition fork — that family owns the metric-NULL
-  semantics; a value-def contract field belongs there); a future relocation hypothesis (the spine-grain
-  forbidden-pattern for report/rollup targets).
-- evidence: `runs/spd0011-classifier-contract-smoke/1e6a6226d63abfbb` (strict-clean, rc=0); committed-artifact
-  deep-dive in spd0011 `## Behavioral analysis`; champion comparison `runs/spider2-dbt-spd0008-full/4ba55fba0138a84d`.
-- status: rejected-as-written (concluded validated-not-promoted 2026-06-26). The contract STAGE is validated
-  fire-and-obey infrastructure and bankable, but standalone it is net-negative (0 flips + 1 telemetry
-  regression). Carry the IDEA forward with the two refinements (value-def/MoM template field; spine-grain
-  forbidden-pattern) into the stabilization loop; do NOT promote to `@baseline` standalone.
+  TWO SMOKE CYCLES. Cycle-1 (`1e6a6226…`, 10/12): contract drove a correct unconditional latest-window on
+  airbnb001 (totals/sentiment/grain gold-exact) but `G2_REPORT_RAW_GROUPING_HOLD`'s spine/coalesce skeleton
+  drove a fuller calendar spine on recharge002 (124 vs the champion's passing 122 rows, telemetry 1.0→0.0).
+  Cycle-2 (`071b7ef9…`, 8/12 — WORSE) added FIX A (derived-metric NULL-condition on the window template)
+  and FIX B (source-bounded spine on the raw-grouping template). Both fixes failed: FIX A fired but the
+  worker STILL emitted a real MoM (it re-materialized a prior window rather than NULL-ing); FIX B did not
+  stop `G2_REPORT_RAW_GROUPING_HOLD` from re-graining a passer — the worker selected it as primary on
+  **quickbooks003** (committed-artifact proof: 4 transcript hits `selected_rule G2_REPORT_RAW_GROUPING_HOLD;
+  primary`) and re-grained the general-ledger rollup, REGRESSING a HARD-GATE canary 1.0→0.0. retail001
+  dropped with `selected_rule:none` = flake, not lever. Net both cycles: 0 flips; the raw-grouping template
+  destabilized a passer EACH cycle (telemetry → then hard gate) → NO-GO, worsening.
+- learning: a structured pre-edit contract CHECKPOINT stage IS obeyed at gpt-5.5/codex (fire-and-obey, not
+  detected-but-not-obeyed) — the contract STAGE is validated, bankable infrastructure and the program's
+  most transferable win. BUT a generative report-grain skeleton template (`G2_REPORT_RAW_GROUPING_HOLD`)
+  REGRESSES passers: it has no oracle for correct SCOPE, selects itself as primary on report/rollup
+  targets, and re-grains stable constructions (recharge002 telemetry cyc1; quickbooks003 hard gate cyc2) —
+  net-negative across both cycles, even with a source-bounded-spine guard. DROP it. Two more sharp limits:
+  (1) a soft NULL-condition ("NULL where the baseline is not present") is too weak — the worker found a
+  computable prior window in the 12-year source and refused to NULL; the airbnb MOM fix is a derivation-
+  METHOD constraint (compute period-over-period as a window `LAG` over the model's OWN single-window output,
+  which mechanically NULLs MoM with one window row — proven offline == gold; mirrors the scaffold's
+  `wow_agg_reviews` sibling), NOT a value-def NULL flag. (2) a worker-derived `validation_signature` passed
+  truthfully ("totals equal latest 30-day fact counts") while the graded MOM column was wrong — a structural
+  signature is necessary-not-sufficient and cannot self-anchor onto gold value semantics.
+- bears-on: spd0012 (forks spd0008; keeps the validated contract checkpoint + `G2_LATEST_WINDOW_FULL_REFRESH`
+  with the LAG-over-own-output method constraint, DROPS `G2_REPORT_RAW_GROUPING_HOLD`); future
+  contract/template hypotheses (a template must name a derivation METHOD, not just a NULL flag; never ship a
+  generative report-grain skeleton without a re-grouping/re-grain forbidden-pattern); spd0007 value-def
+  family.
+- evidence: cycle-1 `runs/spd0011-classifier-contract-smoke/1e6a6226d63abfbb`; cycle-2
+  `runs/spd0011-classifier-contract-smoke/071b7ef95ce1a1d1` (both strict-clean, rc=0); committed-artifact
+  deep-dives in spd0011 `## Behavioral analysis` + `## Behavioral analysis (cycle 2)` (incl. the offline
+  gold reconstruction); champion comparison `runs/spider2-dbt-spd0008-full/4ba55fba0138a84d`.
+- status: rejected-as-written (concluded REJECTED / validated-not-promoted 2026-06-26). The contract STAGE
+  is validated fire-and-obey infrastructure and bankable; the `G2_REPORT_RAW_GROUPING_HOLD` template is a
+  proven net-negative destabilizer (DROP). Carry the contract checkpoint + the latest-window template (with
+  the LAG-method MoM constraint) forward in spd0012; do NOT promote spd0011 to `@baseline`.
