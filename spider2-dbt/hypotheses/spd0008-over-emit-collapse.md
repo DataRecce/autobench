@@ -127,6 +127,31 @@ Sharpened two near-miss G2 rules (still one knob — the G2 block; diff vs champ
 
 Re-smoke panel (6 cells): targets airbnb001 + apple_store001 (should now flip); canaries f1003 (sibling-mirror) / retail001 (value-def) / activity001 / mrr001. tickit002 DROPPED — its residual (dim_events 300-short) is a sibling-dimension grain gap = spd0009 territory, not G2. GO = both targets flip by artifact + canaries hold.
 
+
+## Re-smoke (v2) result — bounded stop
+
+Run `runs/spider2-dbt-spd0008-smoke/096c4173dd8fb0f5` (rc=0, audit strict CLEAN). Substantively
+positive: **+1 attributable flip, 0 lever-caused regressions.**
+- **apple_store001 FLIP (ATTRIBUTABLE).** Both sharpened G2 clauses reached the artifact:
+  anchor-not-union → source_type_report=9=gold; preserve-raw-territory → territory_report=17=gold
+  (raw `territory` kept as `territory_long`, lookup only for secondary attrs). spd0008's first flip.
+- **retail001 dropped 1→0 = VARIANCE, NOT a G2 regression.** G2 is provably INERT on retail001 (no
+  G2 rule applicable); the solver flipped COUNT(*)→COUNT(DISTINCT) this draw — the flaky G3 coin-flip
+  (a flake-ledger hardening item), independent of spd0008.
+- **airbnb001 still 0.0 — deeper root cause found.** `mom_agg_reviews.sql` already has the correct
+  latest-window logic but GATED behind `{% if is_incremental() %}`; the verifier builds with
+  `--full-refresh` → guard skipped → full history 11,135 vs gold 3. The v2 wording didn't name this;
+  real fix = "the window restriction must hold under --full-refresh — move the WHERE/anchor OUTSIDE
+  the is_incremental() block (or build incrementally)." dim_listings_hosts held (17,499=gold).
+- canaries f1003 / activity001 / mrr001 held.
+
+**Verdict (captain decision):** G2 is validated with one attributable flip (apple_store001) + 0
+lever-caused regressions. Options: (a) one more micro-revise adding the airbnb is_incremental/
+--full-refresh mechanism rule (cheap, likely banks airbnb001 too), THEN full; (b) advance to full
+now on the apple_store001 win; (c) conclude validated-not-promoted and bank the report-grain rule.
+Recommend (a) then full — the airbnb fix is well-understood and would make the full run carry 2
+attributable G2 flips. @baseline unchanged (spd0007b 24/61).
+
 ## Run result
 
 ## Behavioral analysis
