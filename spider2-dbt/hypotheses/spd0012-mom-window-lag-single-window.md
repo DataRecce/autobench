@@ -1,7 +1,7 @@
 ---
 id: spd0012
 title: MoM = window LAG over the model's own single-window output (drop the raw-grouping template)
-status: propose
+status: smoke
 kind: hypothesis
 source: "forks current champion @baseline = spd0008-over-emit-collapse; carries the spd0011-validated Implementation Contract checkpoint + G2_LATEST_WINDOW_FULL_REFRESH template, drops the spd0011 G2_REPORT_RAW_GROUPING_HOLD template (proven net-negative destabilizer over two cycles), and replaces spd0011 FIX A's soft NULL-condition with a hard LAG-over-own-output derivation-method constraint"
 started: 2026-06-26
