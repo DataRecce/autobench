@@ -1,12 +1,12 @@
 ---
 id: spd0007b
 title: Value-def MINUS the oracle-blind id-cast clause (COUNT-by-name keeper + preserve-source-dtype)
-status: full
+status: conclude
 kind: hypothesis
 source: spd0007 conclude follow-up — id-cast clause rejected as oracle-blind (broke tpch002/maturity001); isolate the durable value-def signal
 started: 2026-06-25
-completed:
-verdict:
+completed: 2026-06-26T00:26:50Z
+verdict: PASSED
 score: 0.85
 worktree:
 ---
@@ -131,6 +131,11 @@ variance). f1002/f1003/quickbooks003 are variable bonus. This is the value-def f
 the oracle-blind id-cast destabilizer is removed — a clean inversion of spd0007's −3.
 
 ## Verdict
+
+**PASSED — PROMOTED to @baseline (captain decision 2026-06-26).** spd0007b full 24/61 = 0.3934 is the new champion (was 19/61 = 0.3115, +5). Registered in the spider2-dbt-local `razorback-registry.yaml` (`@baseline` → `runs/spider2-dbt-spd0007b-full/b0ebdde3817a52ab`); the global ade-bench `@baseline` is untouched. The new CHAMPION SOLVER = `solver_workflows/spd0007b-value-def-no-idcast` (router R1-R5 + R6-narrowed + R1-precedence guard + value-def: COUNT-by-name, percentage, NULL-vs-0, money-round-derived, sign, key-grain, preserve-id-dtype). Future hypotheses (spd0008 grain) fork from THIS solver. Durable attributable gains banked: retail001 (COUNT), recharge001 (percentage), asset001 (key-grain). Promoted on a single +5 draw above the noise band (captain accepted promote-now over the hold-rate); the variable-bonus cells (f1002/f1003/quickbooks003) may regress on future draws — tracked in the flake ledger.
+
+---
+ORIGINAL VERDICT (pre-promotion):
 
 **Strong promote candidate — pending the ≥3-draw hold-rate (this is draw 1).** Net +5 sits above
 the ±3 noise band and the core gains are attributable to three distinct deterministic clauses, so
