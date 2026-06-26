@@ -182,3 +182,18 @@ G1 doesn't address. The survey's "12 reachable spine flips" was over-optimistic.
 - **OR CONCLUDE validated-not-promoted:** bank G1 (mechanism + gate validated, non-destabilizing)
   and the heterogeneous-spine-family finding; the realistic spine yield (~2-4) may not justify more
   cycles. `@baseline` stays spd0008 24/60.
+
+## Revision v2 — spine clamp (captain: revise with the spine clamp, 2026-06-26)
+
+Added to G1's "when fired" guidance (still one knob — the G1 block; diff vs champion = G1 only, leak-clean):
+1. **SPINE UPPER-BOUND CLAMP** — clamp the spine to the MAX observed fact/source date, never
+   `current_date` (package spines floor to today → over-emit future-empty periods at the 2026 build
+   clock; gold ends at observed activity). Deterministic + oracle-free. Targets the frozen-clock-
+   clampable subset (salesforce001 752→~91; xero001 90mo→~60mo).
+2. **Boundary-hardening** — do NOT re-derive the spine's exclusive/inclusive end-day convention
+   (the recharge002 +1-period over-correction); clamp the RANGE, leave boundary semantics as-is.
+
+Clamp re-smoke (7 cells): targets salesforce001 + xero001 + xero_new001 (frozen-clock-clampable
+balance-sheet/daily spines); canaries marketo001 + recharge002 (spine passers must-hold) + mrr001
+(perturbable) + activity001 (stable). GO = ≥1 clampable target flips by artifact + 0 canary regression.
+(jira value-def + provider/hive different-grain are NOT in scope — separate follow-ups.)

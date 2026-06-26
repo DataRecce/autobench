@@ -175,6 +175,23 @@ any package-standard synthetic rows (e.g. Retained Earnings = −cumulative P&L)
 NULL on no-activity rows — do NOT `coalesce`-to-0 unless the instruction explicitly says zero-fill
 (gold keeps NULL for genuinely-absent metrics). `ROUND(money, 2)` per the value contract.
 
+**SPINE UPPER-BOUND CLAMP — clamp to MAX FACT DATE, never `current_date`.** Package date-spine
+models frequently compute their end as `greatest(max(activity_date), current_date)` — flooring the
+spine to TODAY. The verifier builds at a wall-clock LONG after the gold was generated, so a
+spine driven that way OVER-emits hundreds of future empty periods (e.g. a daily spine running to
+2026 when gold ends 2024 at the last activity day; a monthly balance-sheet running 90 months vs
+gold's 60). When you DRIVE FROM a spine, CLAMP its upper bound to the **MAX observed fact/source
+date** of the activity tables feeding the target — NOT `current_date`. Concretely: add
+`where <spine_date> <= (select max(<activity_date>) from <the driving fact/source>)`, or rebuild
+the spine end as `max(<activity_date>)` with NO `current_date` floor; clamp the lower bound to the
+first activity period likewise. Gold's spine ends at observed activity, not at a build clock — so
+this clamp is deterministic and oracle-free. (Truly-frozen tasks whose gold spine sits at the build
+clock BEYOND max activity are a separate benchmark-unfairness, not clampable — do not chase those.)
+**Do NOT otherwise re-derive the spine's boundary convention** — match the shipped `date_spine`'s
+exclusive/inclusive end behavior as-is; adding/removing the end day is an over-correction that
+over-emits (it broke a passing rollup by +1 period). Clamp the RANGE to activity; leave the
+package's boundary semantics alone.
+
 **DO NOT FIRE G1 (keep the default fact-driven, active-only grain) when:** the target is a per-key
 metric AGGREGATE / rollup keyed by an entity that should be scoped to rows WITH activity (an NPS /
 review / spend / lifetime-value rollup), a ranking/superlative/`most_*`/`top_*`, or any target with
