@@ -1,7 +1,7 @@
 ---
 id: spd0011
 title: Classifier contract checkpoint — make router advice enforceable without a broad stage rewrite
-status: propose
+status: smoke
 kind: hypothesis
 source: "post-hypothesis stabilization plan; forks current registry baseline spd0008; follows spd0006/spd0008/spd0009 evidence that rules are often detected but not obeyed"
 started: 2026-06-26
