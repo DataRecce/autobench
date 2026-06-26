@@ -1,6 +1,6 @@
 # ABOUTME: spider2-dbt FULL run — all 61 duckdb-runnable tasks via spider2-dbt-baseline solver.
 # ABOUTME: 68 declared - 4 goldless (airbnb002/biketheft001/gitcoin001/google_ads001)
-# ABOUTME: - 3 postgres-backed (inzight001/shopify001/shopify002) = 61. concurrency.trials: 4.
+# ABOUTME: - 3 postgres-backed (inzight001/shopify001/shopify002) - 1 upstream-goldless (chinook001: gold ships no answer tables + no reference mart SQL anywhere in Spider2, spd0010) = 60. concurrency.trials: 4.
 version: 1
 experiment: spider2-dbt-full-baseline
 agent:
@@ -33,7 +33,6 @@ benchmark:
     - spider2-dbt-asana001
     - spider2-dbt-asset001
     - spider2-dbt-atp_tour001
-    - spider2-dbt-chinook001
     - spider2-dbt-divvy001
     - spider2-dbt-f1001
     - spider2-dbt-f1002

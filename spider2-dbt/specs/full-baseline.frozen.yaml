@@ -38,7 +38,6 @@ benchmark:
   - spider2-dbt-asana001
   - spider2-dbt-asset001
   - spider2-dbt-atp_tour001
-  - spider2-dbt-chinook001
   - spider2-dbt-divvy001
   - spider2-dbt-f1001
   - spider2-dbt-f1002
@@ -106,7 +105,7 @@ provenance:
   model_resolved_at: null
   image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
-  harness_git_sha: 01898b447eb41d8efc925a283ce187c931d865c7
+  harness_git_sha: 6ab3de3563aeb150c3d5f958a06c3456facd5982
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
