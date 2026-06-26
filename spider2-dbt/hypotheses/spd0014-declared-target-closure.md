@@ -1,7 +1,7 @@
 ---
 id: spd0014
 title: Declared-target closure — build every declared target/support model as a base table with exact convention naming
-status: propose
+status: smoke
 kind: hypothesis
 source: "day-queue-2026-06-26 Queue 1; forks champion @baseline spd0013-lean-lag-period-over-period; discovery smoke-only (no full)"
 started: 2026-06-26
