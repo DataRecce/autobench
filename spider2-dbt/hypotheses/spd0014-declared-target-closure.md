@@ -1,7 +1,7 @@
 ---
 id: spd0014
 title: Declared-target closure — build every declared target/support model as a base table with exact convention naming
-status: hypothesis
+status: propose
 kind: hypothesis
 source: "day-queue-2026-06-26 Queue 1; forks champion @baseline spd0013-lean-lag-period-over-period; discovery smoke-only (no full)"
 started: 2026-06-26
@@ -73,6 +73,25 @@ Two-step (small then large), smoke-only, no full:
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — a single gated, oracle-free declared-target-closure clause (R7) added to the router; full spec differs only in the two allowed fields; both smokes narrow only `benchmark.tasks` with a non-target hard-canary panel; all three frozen artifacts carry `kind: spacedock_solver` + `runtime: codex`. No FAILs.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-24). Reviewed 2026-06-26.
+Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke).
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea | PASS | README diff adds exactly ONE idea: the `R7 — DECLARED-TARGET CLOSURE` rule in the Classify router (after R5/R6), plus the one router-sequence sentence updated to list R7's gate. No leak-guard/output-contract prose touched. |
+| G2 leak-guard (hidden gold) | PASS | Grep over ADDED lines for `gold/expected_/answer_key/ground_truth/curl/wget/git clone/git ls-remote` → none. No-fetch paragraph byte-identical to parent. R7 reads only the project's OWN `schema.yml`/manifest/`dbt ls`, names a METHOD, bakes no values/counts/dtypes/gold-table-names. |
+| G3 spec two fields | PASS | `diff full-baseline.yaml spd0014…yaml` shows only ABOUTME + `experiment:` + `agent.solver_workflow:`. `model: gpt-5.5`, `reasoning_effort: xhigh`, `trials: 1`, `concurrency.trials: 4`, `kind`/`runtime` all preserved. |
+| G4 smoke narrows tasks only | PASS | Both smoke diffs change only ABOUTME + `benchmark.tasks:` (no `exclude_tasks`). LARGE (16, --explain confirmed) = all 8 named targets + 8 canaries (full target set). SMALL (8, --explain confirmed) = primary 4-subset + 4 canaries (deliberate primary-subset+canary step, not a missing-target FAIL). |
+| G5 both frozen | PASS | All three frozen files exist (full + smoke-small + smoke-large); each carries `kind: spacedock_solver` + `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted R7 matches the `## Hypothesis` claim: enumerate every declared model (schema.yml + manifest/`dbt ls`, incl. support/intermediate), build each as a BASE TABLE under the exact convention, don't stop at final-report+green-build, don't broadly rewrite passing models. Generative-but-gated and independent; not self-anchored "verify". |
+| G7 actionability/inert-risk | PASS | Mechanical: names BASE TABLE materialization, a concrete naming pattern to match from siblings, and a concrete closure step (enumerate declared set; "all the tables exist" ≠ closed). Named existence/enumeration procedure → low inert-risk. |
+| G8 regression-canary coverage | PASS | R7 is GATED (fires only when schema.yml/manifest declares MULTIPLE targets/support models) and ADD/correct-missing only. Both smokes carry a non-target passing canary panel (small: apple_store001, google_play001, mrr001, quickbooks002; large adds activity001, app_reporting001/002, google_play002) — ≥2 perturbable passers for the most-at-risk multi-model family. |
+| G9 selector independence | N/A | No multi-candidate / selector protocol — single build. |
+| G10 self-correcting false-positive | PASS | Structure/existence-class (declared set materialized as base tables under convention), gated to multi-target projects, ADD/correct-missing only, explicitly forbids rewriting passing models — cannot turn a right value wrong (spd0002 class). |
+
+**For the captain:** Auto-approved to smoke. R7 is a gated, generative-but-scoped, structure-only closure rule reading the project's own declarations — leak-guard byte-identical, two-field spec diff, three frozen files clean. Discovery smoke-only (no full, no promote per AC-3): SMALL (8) = primary-4 + 4 canaries, LARGE (16) = all 8 named targets + 8-canary panel; the LARGE smoke carries the full named target set, SMALL is the intended primary-subset+canary step.
+
 ## Smoke result
 
 ## Run result
@@ -84,3 +103,34 @@ Two-step (small then large), smoke-only, no full:
 ## Follow-up Routing
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Fork the champion: cp -r solver_workflows/spd0013-lean-lag-period-over-period solver_workflows/spd0014-declared-target-closure
+  Forked; only README.md present in the new dir.
+- DONE: Edit ONLY README.md to add the ONE declared-target-closure clause in the router / Implementation guidance
+  Added `R7 — DECLARED-TARGET CLOSURE` to the Classify router (after R5/R6); diff = pure addition + one router-sequence sentence listing R7's gate.
+- DONE: Keep the no-external-reference / leak-guard prose byte-intact; embed NO gold values/dtypes/counts/task-table-names
+  Gatekeeper G2 PASS: no-fetch paragraph byte-identical; grep of added lines for gold/expected_/curl/git clone → none; R7 names a METHOD.
+- DONE: Do NOT relocate or delete any existing spd0013 guidance — only ADD the one closure clause
+  README diff (145a146,160) is a single insertion; no deletions; router/value-def/G2/LAG clauses untouched.
+- DONE: Create full spec set experiment + solver_workflow; drop stale baseline content-hash so freeze recomputes
+  specs/spd0014-declared-target-closure.yaml written from full-baseline.yaml source form; frozen recomputed solver_workflow_content_hash db64037….
+- DONE: Create SMALL smoke spec (8 tasks)
+  specs/spd0014-declared-target-closure.smoke-small.yaml: asana001, netflix001, social_media001, zuora001, apple_store001, google_play001, mrr001, quickbooks002.
+- DONE: Create LARGE smoke spec (16 tasks)
+  specs/spd0014-declared-target-closure.smoke-large.yaml: 8 primary targets + 8 hard canaries.
+- DONE: Freeze ALL THREE with rk freeze --allow-missing
+  All three wrote .frozen.yaml (full + smoke-small + smoke-large).
+- DONE: Verify both smoke selections via --explain
+  smoke-small.frozen → Tasks: 8; smoke-large.frozen → Tasks: 16.
+- DONE: Confirm full-spec frozen diff shows ONLY experiment + solver_workflow (+ auto hashes); kind/runtime preserved; README diff = only the added clause
+  Frozen full diff = experiment + solver_workflow(+content_hash) + sealed_hash + solver_workflow_hash + harness_git_sha (all auto); kind: spacedock_solver / runtime: codex preserved.
+- DONE: Run the gatekeeper review subagent; write the ## Gatekeeper review block
+  Subagent applied G1–G10; APPROVE, no FAILs; block appended.
+- DONE: Do NOT launch any rk run beyond --explain. Commit. Stop.
+  Only --explain + freeze run; committing now.
+
+### Summary
+
+Forked spd0013 (= @baseline, 27/60) to spd0014 and added exactly ONE gated, oracle-free `R7 — DECLARED-TARGET CLOSURE` router clause: enumerate every model the project declares (schema.yml + manifest/dbt ls, incl. support/intermediate) and build each declared target the task asks to materialize as a base table under the project's exact naming convention, refusing to treat a green `dbt build` + final-report table as proof the declared set is closed; ADD/correct-missing only, no broad rewrite of passing models. Built + froze the full spec plus SMALL (8) and LARGE (16) smokes; --explain confirms 8/16; full-spec frozen diff is the two allowed fields plus auto hashes only. Gatekeeper recommends APPROVE (no FAILs). Smoke-only discovery — no full-run, no promote.
