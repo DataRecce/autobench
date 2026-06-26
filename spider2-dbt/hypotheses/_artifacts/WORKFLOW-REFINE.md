@@ -122,19 +122,30 @@ Entry format:
 
 - layer: solver-workflow structure (carries the spd0011 contract-checkpoint STAGE forward; one-template inventory)
 - refinement type: stage retained + template pruned + sub-rule hardened (soft NULL-flag → derivation-METHOD constraint)
-- finding (SMOKE, GO, `runs/spd0012-mom-window-lag-single-window-smoke/14fe861107f3b0ff`, strict-clean rc=0, 9/12):
-  the contract checkpoint with ONLY `G2_LATEST_WINDOW_FULL_REFRESH` flipped airbnb001 0→1 ARTIFACT-REAL (MoM via
-  `LAG` over the model's own single-window output ⇒ NULL by construction = gold), held apple_store001 WITHOUT the
-  dropped template, and RECOVERED recharge002 (the cell `G2_REPORT_RAW_GROUPING_HOLD` regressed in spd0011). Non-
-  matching targets took `selected_rule: none` and fell through cleanly (no over-fire). quickbooks003 did NOT recover
-  (still 0.0) but `selected_rule: none` fired ⇒ flake, not a template regression (f1003/retail001 likewise flake).
-- learning: the spd0011 destabilizer was the report-grain TEMPLATE, not the contract CHECKPOINT — pruning the
-  template preserved the mechanism's value (the flip) and eliminated the passer-regression. A value-definition
-  residual IS README-addressable when framed as a derivation METHOD (how to compute), where spd0007's dtype/formula
-  value-defs were oracle-blind. Confirms: ship a template only with its forbidden-pattern, and prefer method-
-  constraints over value/NULL flags.
-- bears-on: the full run (promotion test + independent re-draw on airbnb001 flip-hold + quickbooks003 flake-or-real);
-  future contract/template hypotheses; spd0007 value-def family (method-vs-definition distinction).
-- evidence: smoke run above; committed-artifact read in spd0012 `## Behavioral analysis`; champion comparison
+- finding (FULL, `runs/spd0012-mom-window-lag-single-window/73c08047c34ee18a`, strict-clean 60/0/0 rc=0,
+  **24/60 = 0.40 = `@baseline` net +0**): the contract checkpoint with ONLY `G2_LATEST_WINDOW_FULL_REFRESH`
+  flipped airbnb001 0→1 ARTIFACT-REAL and the flip HELD smoke+full (durable; committed `LAG`-over-own-output
+  ⇒ MOM NULL = gold, `selected_rule` set). EVERY other moved cell selected `selected_rule: none` (NO template):
+  gains airport001/f1001/recharge001 + regressions marketo001/recharge002/retail001/f1003 = variance/flake;
+  sap001 0→1 = the spd0010 FIXTURE repair (deterministic, free to any solver on the repaired board ⇒ a
+  fixture-corrected spd0008 also banks it ≈25/60). quickbooks003 1→0 = 0/3 across all three contract-stage draws
+  (spd0011-c2/smoke/full) with `selected_rule: none` every time ⇒ suspected DIFFUSE cost of the heavy contract
+  PROSE on a borderline passer (UNRESOLVED — would need a multi-draw spd0008-vs-contract probe; captain chose to
+  isolate instead). recharge002 flip-flopped smoke(1.0)↔full(0.0) = the smoke "recovery" was variance.
+- learning: the contract CHECKPOINT stage flips a value-def cell via a derivation-METHOD constraint AND is obeyed
+  (airbnb001 durable two-draw, artifact-attributable — the first value-def flip made README-addressable through a
+  METHOD, vs spd0007's oracle-blind dtype/formula value-defs); the MECHANISM works. BUT as a whole-solver it is
+  net+0 (the one durable flip is swamped by the sap001 fixture confound + `selected_rule:none` variance both
+  directions and does not clear a fixture-corrected champion), and the heavy prose may DIFFUSELY cost a borderline
+  passer (quickbooks003 0/3 under the stage, no template). A lighter INLINE rule may capture the same flip without
+  the contract vehicle's cost — the isolation test. Confirms: a method-constraint beats a value/NULL flag, and a
+  durable artifact-attributable cell can still be NON-promotable when the headline is variance-swamped + confounded.
+- bears-on: spd0013 (lean-LAG isolation — does the lean inline rule flip airbnb001 without the contract scaffold,
+  and does quickbooks003 recover without the contract prose?); future contract/template hypotheses (prefer the
+  lightest vehicle that lands the flip); spd0007 value-def family (method-vs-definition distinction).
+- evidence: full run above; smoke `runs/spd0012-mom-window-lag-single-window-smoke/14fe861107f3b0ff`;
+  committed-artifact read + full attribution in spd0012 `## Behavioral analysis (full run)`; champion comparison
   `runs/spider2-dbt-spd0008-full/4ba55fba0138a84d`.
-- status: open — smoke GO, full run launched; verdict pending the full + variance discipline.
+- status: rejected-as-written (concluded REJECTED / validated-not-promoted 2026-06-26). The contract checkpoint +
+  LAG-method MECHANISM is validated and bankable, but the whole-solver is net+0 and the heavy prose may diffusely
+  cost a borderline passer; `@baseline` UNCHANGED = spd0008 24/60. Isolation follow-up filed as spd0013.

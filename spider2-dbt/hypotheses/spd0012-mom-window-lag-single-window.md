@@ -1,13 +1,13 @@
 ---
 id: spd0012
 title: MoM = window LAG over the model's own single-window output (drop the raw-grouping template)
-status: full
+status: conclude
 kind: hypothesis
 source: "forks current champion @baseline = spd0008-over-emit-collapse; carries the spd0011-validated Implementation Contract checkpoint + G2_LATEST_WINDOW_FULL_REFRESH template, drops the spd0011 G2_REPORT_RAW_GROUPING_HOLD template (proven net-negative destabilizer over two cycles), and replaces spd0011 FIX A's soft NULL-condition with a hard LAG-over-own-output derivation-method constraint"
 started: 2026-06-26
-completed:
-verdict:
-score:
+completed: 2026-06-26
+verdict: REJECTED
+score: 24/60
 worktree:
 ---
 
@@ -184,13 +184,147 @@ removing it preserved the mechanism's value (the airbnb flip) while eliminating 
 
 ## Run result
 
-## Behavioral analysis
+**Full run:** `runs/spd0012-mom-window-lag-single-window/73c08047c34ee18a`, **24/60 = 0.40**
+(strict audit CLEAN — 60 clean / 0 coverage_missing / 0 tainted, rc=0). Same headline as
+`@baseline` = `spd0008` (`runs/spider2-dbt-spd0008-full/4ba55fba0138a84d`, 24/60). **Net +0.**
+
+Paired per-query ledger vs `@baseline` spd0008 (5 gains, 5 regressions):
+
+| Direction | Cells |
+|-----------|-------|
+| **GAINS** (0→1) | `airbnb001`, `sap001`, `airport001`, `f1001`, `recharge001` |
+| **REGRESSIONS** (1→0) | `quickbooks003`, `recharge002`, `marketo001`, `retail001`, `f1003` |
+
+10 cells moved, net 0. Only ONE of the ten is lever-attributable (see Behavioral analysis): the
+contract template fired in the committed artifact on `airbnb001` only. Every other moved cell
+(both directions) selected `selected_rule: none` — no template fired — and is model/run variance,
+EXCEPT `sap001`, which is the deterministic spd0010 FIXTURE repair (available to ANY solver on the
+repaired 60-board).
+
+## Behavioral analysis (full run)
+
+**Attribution verified by grepping each moved cell's `agent`/`sessions` transcript for
+`selected_rule`:**
+
+- **`airbnb001` — the ONLY lever-attributable flip.** The contract template
+  `G2_LATEST_WINDOW_FULL_REFRESH` fired (`selected_rule` set), the committed SQL computes
+  `LAG(REVIEW_TOTALS, …) OVER (PARTITION BY REVIEW_SENTIMENT ORDER BY AGGREGATION_DATE)` over the
+  model's OWN single-window output ⇒ `MOM` NULL by construction = gold, reward 1.0. The flip HELD
+  across BOTH the smoke and the full draws → **durable, artifact-attributable**. This is the
+  program's **first value-definition flip made README-addressable via a derivation METHOD** (how to
+  compute), where spd0007's dtype/formula value-defs were oracle-blind. The contract+method
+  MECHANISM works.
+
+- **`sap001` (0→1) — fixture confound, NOT this lever.** This is the deterministic spd0010 FIXTURE
+  repair, available to any solver running on the repaired 60-board. A fixture-corrected `spd0008`
+  re-run would bank `sap001` too (≈25/60), so spd0012 at 24/60 is **not clearly above a
+  fixture-corrected champion**.
+
+- **`airport001` / `f1001` / `recharge001` (gains) and `marketo001` / `recharge002` / `retail001` /
+  `f1003` (regressions) — variance/flake.** EVERY one selected `selected_rule: none` — NO contract
+  template touched them. These are model/run-variance moves, not lever effects; they happen to net
+  to zero around the airbnb+fixture signal.
+
+- **`quickbooks003` (1→0) — UNRESOLVED diffuse-cost suspicion.** Was 1.0 at `spd0008` (which has no
+  contract stage) but is **0/3 across the three contract-stage draws** (spd0011 cycle-2,
+  spd0012-smoke, spd0012-full), and selected `selected_rule: none` EVERY time (no template fired).
+  Because no template touched it yet it dropped only under the contract-stage solver, the suspicion
+  is a **diffuse cost of the heavyweight contract PROSE on a borderline passer** — the worker reads
+  the long Classify→Contract→contract-aware-Validation machinery and spends attention/structure that
+  destabilizes a marginal cell. UNRESOLVED here: separating "diffuse prose cost" from "flake" would
+  need a multi-draw spd0008-vs-contract-stage probe on quickbooks003. The captain chose to ISOLATE
+  the lever (spd0013) rather than run that probe.
+
+### Analyze required questions
+
+1. **Net + full bidirectional ledger.** Net **+0** (24/60 = `@baseline`). GAINS:
+   airbnb001, sap001, airport001, f1001, recharge001. REGRESSIONS: quickbooks003, recharge002,
+   marketo001, retail001, f1003. The headline does not move.
+
+2. **Smoke-vs-full.** `airbnb001` flipped in BOTH (artifact-real, durable). `quickbooks003` was
+   down in BOTH smoke and full (`selected_rule: none` both) — consistent non-recovery, not a
+   one-draw blip. `recharge002` RECOVERED at smoke (1.0) but REGRESSED at full (1.0→0.0) — a
+   flip-flop with `selected_rule: none` = pure variance. The smoke's 9/12 over-stated the board
+   (full netted to +0).
+
+3. **Already-correct-and-broken.** All five regressions (quickbooks003, recharge002, marketo001,
+   retail001, f1003) were baseline passers. None was template-caused — every one selected
+   `selected_rule: none`. They are flake/variable cells (retail001 and f1003 are documented flake
+   candidates; recharge002 flip-flopped smoke↔full). quickbooks003 is the one with a residual
+   non-flake suspicion (diffuse contract-prose cost), still unresolved.
+
+4. **Was the change executed?** YES on `airbnb001` — executed AND helped: the committed
+   `mom_agg_reviews.MOM` is NULL across all 3 rows via the LAG-over-own-output artifact, reward 1.0.
+   Everywhere else the lever was INERT (no template fired); the other ten cell-moves are model
+   variance, not lever execution.
+
+5. **Prevention + next move.** The airbnb flip is real but rides on a heavyweight contract
+   checkpoint that (a) contributes a possible diffuse cost on a borderline passer (quickbooks003)
+   and (b) leaves the headline at +0 because the durable signal is a single cell swamped by the
+   fixture confound + variance. Next move: **ISOLATE** — does the LAG rule flip airbnb001 WITHOUT
+   the contract scaffold? Filed as **spd0013** (lean inline rule on the spd0008 champion, no
+   contract machinery). If the lean rule suffices and quickbooks003 holds → promote the lean rule;
+   if it does not flip airbnb001 → the contract checkpoint was load-bearing for compliance (a real
+   tradeoff for the captain).
+
+6. **Smoke-vs-full fork drift.** The airbnb flip is artifact-real in BOTH draws (no drift — the most
+   reliable cell). The smoke could NOT settle quickbooks003: at smoke its drop read as plausible
+   flake, but the full re-draw shows 0/3 under the contract stage — the smoke had no power to
+   separate flake from a diffuse contract-prose cost. recharge002's smoke "recovery" did not
+   replicate at full (flip-flop = variance the smoke mis-read as a safety win).
 
 ## Failure Review
 
+Not a failure of the lever's mechanism — `airbnb001` flipped exactly as designed and HELD across two
+draws (smoke + full), artifact-attributable to the LAG-over-own-output derivation-method constraint.
+The hypothesis falls short on the PROMOTION bar, not the mechanism bar:
+
+- **Headline net +0.** The one durable, artifact-attributable flip (airbnb001) is offset by the
+  fixture confound (sap001 is free to any solver on the repaired board) and a wash of
+  `selected_rule:none` variance moves in both directions.
+- **Does not clear a fixture-corrected champion.** A fixture-corrected spd0008 would also bank
+  sap001 (≈25/60), so spd0012 at 24 is not clearly above the right comparison point.
+- **Possible diffuse cost.** quickbooks003 is 0/3 under the contract stage with no template ever
+  firing — a heavyweight-prose cost on a borderline passer is the leading (unresolved) explanation.
+
+Classification: the lever WORKS but its vehicle (the heavy contract checkpoint) is costly and the
+durable signal is a single cell. Route = **file** the isolation experiment (spd0013) that strips the
+contract scaffold and keeps only the lean LAG rule.
+
 ## Follow-up Routing
 
+**file** — filed `spd0013-lean-lag-period-over-period.md` (status `hypothesis`), forking the CURRENT
+champion `spd0008-over-emit-collapse` (spd0012 is NOT promoted). spd0013 adds ONLY a lean inline
+value-def rule — the LAG-over-own-output period-over-period derivation method — to spd0008's existing
+G3 COLUMN-VALUE CONTRACT guidance, with NO Classify-output block, NO Exploration-for-contract block,
+NO Implementation Contract stage, and NO contract-aware Validation signature. The fork it tests:
+does the lean rule flip `airbnb001` without the contract scaffold (→ scaffold was unnecessary
+overhead, promote lean) OR does it fail to flip (→ the contract checkpoint was load-bearing for
+compliance, a real tradeoff)? `quickbooks003` is the key canary — it must HOLD without the contract
+prose. The spd0012 Pre-smoke Decision-Fork Probe (offline gold reconstruction: LAG over the 3-row
+single-window output == gold MOM=NULL byte-for-byte) is reused as spd0013's reachability proof.
+
 ## Verdict
+
+**REJECTED — validated-not-promoted.** `@baseline` UNCHANGED = `spd0008` 24/60.
+
+Banked findings:
+
+- **`airbnb001` is a DURABLE, artifact-attributable LEVER flip** via the LAG-over-own-output
+  derivation-METHOD constraint — held across two independent draws (smoke + full), committed-artifact
+  proof (`MOM` NULL via `LAG` over the model's own single-window output = gold). This is the
+  program's **FIRST value-definition flip made README-addressable through a METHOD** (how to derive),
+  distinct from spd0007's oracle-blind dtype/formula value-defs. The **contract + method MECHANISM
+  works** and is bankable knowledge.
+- **BUT net +0 headline does not clear a fixture-corrected champion** — sap001 is a deterministic
+  fixture confound (free to any solver on the repaired board, ≈25/60), and the durable airbnb signal
+  is a single cell swamped by `selected_rule:none` variance in both directions.
+- **The heavyweight contract checkpoint may carry a diffuse `quickbooks003` cost** — 0/3 across three
+  contract-stage draws, never a template firing (no template touched it) — unresolved here; the
+  captain chose to isolate (spd0013) rather than run a dedicated probe.
+
+Decision: do NOT promote. File the lean-LAG isolation follow-up (spd0013) that separates the durable
+method-constraint flip from the costly contract vehicle.
 
 ## Stage Report: propose
 
@@ -229,3 +363,35 @@ LAG/LEAD-over-own-output derivation-METHOD constraint, with a leak-safe pointer 
 sibling `models/agg/wow_agg_reviews.sql`. Both specs freeze cleanly; smoke selects the 12-task panel;
 the full frozen diff vs baseline is exactly experiment + solver_workflow + auto hashes. Gatekeeper
 APPROVE (10/10 PASS/N/A, no FAIL/WARN) — auto-advance to smoke with clean FO reject-checks.
+
+## Stage Report: conclude
+
+- DONE: Write the ## Run result block (full 24/60=0.40, run dir 73c08047c34ee18a, strict audit CLEAN 60/0/0 rc=0, paired ledger vs @baseline spd0008, net +0)
+  Run result block written with the gains/regressions table and the one-lever-attributable note.
+- DONE: Write/extend the ## Behavioral analysis with the full-run attribution (only airbnb001 fired a template = durable; all others selected_rule:none = variance; sap001 = fixture fix; quickbooks003 0/3 under contract stage = unresolved diffuse-prose suspicion)
+  Added `## Behavioral analysis (full run)` with per-cell selected_rule attribution.
+- DONE: Answer the analyze required questions (1) net+ledger (2) smoke-vs-full (3) already-correct-and-broken (4) was-executed (5) prevention+next (6) smoke-vs-full fork drift
+  All six answered under `### Analyze required questions`.
+- DONE: Set frontmatter verdict: REJECTED and completed: 2026-06-26; write ## Verdict = validated-not-promoted with banked findings; @baseline UNCHANGED = spd0008 24/60
+  Frontmatter verdict REJECTED, completed 2026-06-26, score 24/60; Verdict block written.
+- DONE: Finalize the spd0012 entry in _artifacts/WORKFLOW-REFINE.md (status rejected-as-written; sharpen learning; bears-on spd0013)
+  spd0012 entry updated to FULL finding + rejected-as-written status + sharpened learning + bears-on spd0013.
+- DONE: Append a one-line entry to _artifacts/self-learning.md
+  Appended the spd0012 REJECTED/validated-not-promoted entry.
+- DONE: File spd0013-<slug>.md (status hypothesis, id spd0013) forking spd0008-over-emit-collapse; ONLY a lean inline value-def LAG rule; NO contract scaffold; target airbnb001, canary quickbooks003; reuse spd0012 offline probe; state the new fork
+  Filed hypotheses/spd0013-lean-lag-period-over-period.md + forked solver_workflows/spd0013-lean-lag-period-over-period (diff vs spd0008 = exactly one G3 clause, 0 contract-scaffold lines, leak-guard byte-identical, no gold values).
+- DONE: Commit all edits. Do NOT archive spd0012 (FO archives). Do NOT launch any rk run.
+  Committed below; no archive, no rk run.
+
+### Summary
+
+Concluded spd0012 REJECTED / validated-not-promoted. The full run (24/60 = @baseline, net +0, strict
+audit clean) confirmed airbnb001 as a DURABLE artifact-attributable lever flip via the
+LAG-over-own-output derivation-METHOD constraint (template fired, MOM NULL by construction = gold, held
+smoke+full) — the program's first value-def flip made README-addressable through a METHOD. But the
+headline does not clear a fixture-corrected champion (sap001 is the spd0010 fixture confound) and the
+heavy contract checkpoint may carry a diffuse quickbooks003 cost (0/3 under the stage, selected_rule:none
+every draw). @baseline UNCHANGED = spd0008 24/60. Filed spd0013 (lean-LAG isolation): the same
+method-constraint as a single inline G3 clause on the spd0008 champion with the entire contract scaffold
+removed — does the lean rule still flip airbnb001 (scaffold = overhead → promote lean) or not (scaffold =
+load-bearing for compliance → a real tradeoff), and does quickbooks003 recover without the contract prose?
