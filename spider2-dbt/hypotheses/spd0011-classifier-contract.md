@@ -1,7 +1,7 @@
 ---
 id: spd0011
 title: Classifier contract checkpoint — make router advice enforceable without a broad stage rewrite
-status: smoke
+status: propose
 kind: hypothesis
 source: "post-hypothesis stabilization plan; forks current registry baseline spd0008; follows spd0006/spd0008/spd0009 evidence that rules are often detected but not obeyed"
 started: 2026-06-26
@@ -230,23 +230,24 @@ Full run should remain a promotion test, not discovery.
 
 ## Gatekeeper review
 
-**Recommendation: APPROVE** — purely-additive contract checkpoint forked from champion spd0008; specs in scope, leak-guard byte-identical, the validation_signature is an independent structural check (not self-anchored), and the gated 2-template inventory carries the full 5-canary hard-gate panel.
-Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-26T00:00:00Z.
+**Recommendation: APPROVE** — the two refinements (FIX A period-over-period NULL rule on G2_LATEST_WINDOW_FULL_REFRESH; FIX B spine-bound rule on G2_REPORT_RAW_GROUPING_HOLD) are oracle-free derivation rules with explicit "never bake a literal value / count" guards, added in-place to the two existing templates with no relocation, no new template, leak-guard byte-identical, and specs in scope.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-24). Reviewed 2026-06-26T00:00:00Z.
+Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke).
 
 | Rule | Verdict | Evidence |
 |------|---------|----------|
-| G1 single idea/stage | PASS | Diff vs champion spd0008 is 3 pure-add hunks (`90a91-103`, `269a283-349`, `383a464-477`): a Classify-output block, a new "Implementation Contract" stage + Exploration-resolve block, and a Validation contract-signature block. All serve the ONE idea — make router advice enforceable via a contract checkpoint. No deletions/changes (no `d`/`c` hunks); leak-guard untouched. |
-| G2 leak-guard intact | PASS | Lines 1-30 (the no-fetch guard) byte-identical to parent (`diff` EXIT 0). Grep of added lines: every "gold" hit is PROTECTIVE ("never from gold", "DERIVED from the named template + local Exploration facts… never a baked gold count", "never on gold values, expected counts, or external lookup"); no `curl`/`wget`/`git clone`/`git ls-remote`/`http`, no `ground_truth`/`answer_key` read, no `db_description_withhint` paste. `expected_row_shape`/`validation_signature` are explicitly worker-derived from a named template + local evidence, not baked. |
-| G3 spec two fields | PASS | `diff full-baseline.yaml spd0011-classifier-contract.yaml` shows only `experiment:` and `solver_workflow:` changed. Frozen diff adds only auto-derived freeze provenance (solver_workflow_content_hash, sealed_hash, harness_git_sha, solver_workflow_hash) — not authored edits. `kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved (frozen line 91). |
-| G4 smoke tasks+exclude | PASS | `harbor-local` smoke uses a positive `benchmark.tasks:` allowlist (no `exclude_tasks` — correct, that field errors `extra_forbidden` here). Exactly 12 dataset names, matching `--explain`'s `Tasks: 12`: targets airbnb001 (flip) + apple_store001 (hold), hard-gate canaries activity001/app_reporting001/google_play001/google_play002/quickbooks003, telemetry mrr001/mrr002/retail001/recharge002/f1003. All hypothesis-named targets present. No other field differs. |
-| G5 both frozen | PASS | Both `spd0011-classifier-contract.frozen.yaml` and `…smoke.frozen.yaml` exist (3176B / 1865B). Both carry `kind: spacedock_solver` + `runtime: codex` (lines 4-5). |
-| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim: Classify-output fields, Exploration-for-contract, a pre-SQL "Implementation Contract" checkpoint with the 9 named fields + 2-template inventory (G2_LATEST_WINDOW_FULL_REFRESH, G2_REPORT_RAW_GROUPING_HOLD), and a Validation signature check. Generative/independent in spirit — it tells the worker how to DERIVE and structurally verify an artifact, not "re-run your own query / confirm your answer matches." No scope creep; existing tips explicitly NOT relocated (relocation flagged as future work, and the diff confirms tips at L365-438 are intact). |
-| G7 actionability/inert-risk | WARN | The contract is a structured worked-form (9 named fields + 2 concrete forbidden-pattern templates with literal anti-patterns — e.g. "window filter only inside an `is_incremental()` branch"), which lands better than abstract prose. BUT the core lever is a process instruction ("write a contract before editing SQL, then follow it") — a discipline gate the solver can acknowledge-and-skip. Inert-risk: prior spider2-dbt evidence (spd0006/spd0009) is that rules are "detected but not obeyed"; a checkpoint that is itself prose has the same exposure. The smoke's AC-2 (transcript must SHOW the contract written before edits) is the right inert-detector — flag for the captain to judge by artifact, not log presence. |
-| G8 regression-canary coverage | PASS | Lever is PRECONDITION-GATED, not fires-everywhere: the 2 templates fire only on targets whose model/sibling has the named structure; non-matching targets get `selected_rule: none` and use existing guidance unchanged (README L300-302). The new contract/validation STAGES are generative (every target writes a contract), so the regression risk is real but bounded — and the smoke carries the 5 hard-gate non-target canaries (activity001/app_reporting001/google_play001/google_play002/quickbooks003), all current-@baseline passers, plus apple_store001 as a perturbable raw-grouping hold. ≥2 perturbable canaries on the targets' construct (apple_store001 + the G2_REPORT_RAW_GROUPING_HOLD-shaped passers) present. |
-| G9 selector independence | N/A | No multi-candidate / N-of-K selector protocol. The contract is a single per-target plan, not a field of competing candidates scored against each other. |
-| G10 self-correcting false-positive | PASS | The Validation signature is a CHECK-and-fix-or-block lever, so G10 applies. (a) Scope: gated — checks the rule-specific signature only for targets that adopted a template; `none` targets fall through to existing validation. (b) Independence: the signature is an INDEPENDENT STRUCTURAL check of the BUILT ARTIFACT (table exists as base table, name convention, single-window row shape, raw-key preservation, grain uniqueness, forbidden-pattern absence) authored from the template BEFORE the SQL exists — it is not re-running the solver's own derivation/query, so it is not self-anchored. (c) Check-don't-replace: on failure it says "fix it or mark `contract_blocked` with local evidence" — investigate/block, not "swap to a structurally different query." No re-derived-double-entry false-green. |
+| G1 single idea | PASS | Re-review diff vs champion spd0008 still shows pure-add hunks (`90a91-103`, `269a283-361`, `383a476-493`); no `d`/`c` hunks. This revision added exactly the two named refinements: a "Period-over-period derived columns inside a single-window build" sub-bullet under G2_LATEST_WINDOW_FULL_REFRESH (FIX A) and a "Forbidden: a spine WIDER than the source's observed range" sub-bullet under G2_REPORT_RAW_GROUPING_HOLD (FIX B), plus matching validation_signature lines. Both serve the one idea (enforceable contract); leak-guard untouched. |
+| G2 leak-guard (hidden gold) | PASS | Parent README lines 1-30 (no-fetch guard) byte-identical to child. Grep of added lines: every `gold` hit is PROTECTIVE ("never bake a gold count", "never on gold values, expected counts, or external lookup", "rows the gold does not have", "SEPARATE gold rows"). FIX A ends "Derive whether the column is NULL from the window definition + the instruction text; never bake a literal value." FIX B ends "Derive the bound from the source's actual min/max via a local query; never bake a count." No `curl`/`wget`/`git clone`/`ls-remote`/`http`, no `answer_key`/`ground_truth` read. Task-name/value-leak grep (`airbnb`/`recharge`/`122`/`124`) on added lines = zero hits — no "MOM must be NULL for airbnb001", no baked 122/124. |
+| G3 spec two fields | PASS | `diff full-baseline.yaml spd0011-classifier-contract.yaml` shows only `experiment:` (→ spd0011-classifier-contract) and `agent.solver_workflow:` (→ ./solver_workflows/spd0011-classifier-contract) changed. `kind: spacedock_solver`, `runtime: codex`, `model: gpt-5.5`, `reasoning_effort: xhigh`, `trials: 1` all preserved. |
+| G4 smoke narrows tasks only | PASS | `diff` of full vs smoke changes only ABOUTME comments + `experiment:` suffix `-smoke` + `benchmark.tasks:` narrowed to exactly 12: targets airbnb001 (flip) + apple_store001 (hold); hard-gate canaries activity001/app_reporting001/google_play001/google_play002/quickbooks003; telemetry mrr001/mrr002/retail001/recharge002/f1003. No `exclude_tasks` (harbor-local rejects it — positive allowlist is correct). Both hypothesis-named targets present; `trials: 1` preserved. |
+| G5 both frozen | PASS | Both `spd0011-classifier-contract.frozen.yaml` (3176B) and `…smoke.frozen.yaml` (1865B) exist (Jun 26 re-freeze). Both carry `agent.kind: spacedock_solver` + `runtime: codex` (lines 4-5). |
+| G6 resolver fidelity | PASS | Both refinements match the hypothesis claim and stay generative/independent. FIX A: a derived-NULL rule keyed to "the window definition + the instruction text… UNLESS the task instruction explicitly defines an external comparison baseline" — derivation from local+instruction signal, NOT a self-anchored "confirm your answer matches." FIX B: "BOUNDED to the date/key set the source actually contains (its observed min..max from local evidence)… via a local query" — an independent source-derived bound. The matching validation_signature lines check the BUILT artifact's row set against these derived bounds, authored before the SQL exists. No scope creep, no baked oracle. |
+| G7 actionability/inert-risk | WARN | Both refinements are concrete (FIX A names a literal forbidden behavior — "do NOT compute it against out-of-window source rows"; FIX B names a literal local query — "the source's actual min/max"), which lands better than abstract prose. But the host lever remains a process/discipline checkpoint, and spider2-dbt's recurring mode is "rule detected but not obeyed." The prior smoke proved the contract stage is NOT inert (AC-2/AC-4 satisfied; FIX A's exact gap — worker computed real MoM where gold=NULL — is the value-def hole this revision now targets). Judge the smoke by committed-artifact, not transcript mention. WARN-only; does not move the recommendation. |
+| G8 regression-canary coverage | PASS | The two templates are precondition-gated (fire only on targets whose model/sibling carries the named structure; non-matching → `selected_rule: none`, existing guidance unchanged). The contract/validation stages are generative, so the smoke carries the 5 hard-gate non-target @baseline passers (activity001/app_reporting001/google_play001/google_play002/quickbooks003) plus apple_store001 as a perturbable raw-grouping hold and recharge002 (telemetry) as the previously-regressed spine cell FIX B directly addresses — ≥2 perturbable canaries on the at-risk raw-grouping/spine family present. |
+| G9 selector independence | N/A | No multi-candidate / N-of-K selector protocol; the contract is a single per-target plan, not competing candidates scored against each other. |
+| G10 self-correcting false-positive | PASS | The validation_signature is a check-and-fix-or-block lever, so G10 applies. (a) Scope: gated to targets that adopted a template; `none` targets fall through. (b) Independence: FIX A/FIX B signature checks are STRUCTURAL invariants of the built artifact ("any period-over-period derived column is NULL where no in-window prior period exists (matches the window definition)"; "the zero-filled spine's row set equals the bounded source date/key set… not an unbounded calendar"), derived from the template + local evidence before the SQL exists — not a re-run of the solver's own derivation, so no correlated false-green. (c) Check-don't-replace: on failure says "fix it or mark `contract_blocked` with local evidence" — investigate/block, not mandated value-rewrite. |
 
-**For the captain:** No FAILs → APPROVE; advance to `smoke`. One WARN to weigh (G7): the lever is fundamentally a process/discipline checkpoint, and spider2-dbt's recurring failure mode is "rule detected but not obeyed" — so judge the smoke strictly by AC-2/AC-4 committed-artifact evidence (was a contract actually written pre-edit AND did Validation run a template-derived signature beyond `dbt build`), not by whether the transcript merely mentions the contract. The airbnb001 flip is the single win condition; treat apple_store001 + the 5 hard-gate canaries as the must-hold panel.
+**For the captain:** No FAILs → APPROVE; auto-advance to smoke. The leak-guard ask is satisfied: FIX A is a derive-from-window+instruction NULL rule (explicit "never bake a literal value", no "MOM must be NULL for airbnb001"), FIX B is a derive-from-source-min/max bound (explicit "never bake a count", no 122/124), and grep finds zero task-name/count leaks in the added lines. The one WARN (G7) is the standing process-checkpoint inert-risk — but the prior smoke already proved the stage fires-and-is-obeyed, so the real test is whether FIX A actually closes the airbnb001 MoM-NULL gap and FIX B holds recharge002 at the source-bounded grain; judge both by committed artifact (AC-2/AC-4), not log mentions.
 
 ## Stage Report: propose
 
@@ -431,3 +432,52 @@ worker-computed MoM %), which is outside the template inventory. recharge002 reg
 lever-attributable spine expansion (124 vs the champion's passing 122 rows). Net standalone = negative.
 Recommend conclude validated-not-promoted; bank the contract idea + two refinements (a value-def/MoM
 template; a spine-grain forbidden-pattern) for the stabilization loop.
+
+## Revise Note (propose cycle 2, 2026-06-26)
+
+Refined the two EXISTING contract templates with the two banked smoke fixes (no new template, no
+relocation, leak-guard untouched):
+- **FIX A (G2_LATEST_WINDOW_FULL_REFRESH):** added a period-over-period derived-metric NULL-condition
+  requirement — a MoM/YoY/delta/growth-% column must be NULL where its comparison baseline is not
+  present in the single built window (derive NULL-ness from the window definition + instruction text,
+  never bake a value), plus a matching `validation_signature` check. Targets the airbnb001 residual
+  (gold MOM=NULL vs worker-computed real MoM %, the second blocker the window template was oracle-blind to).
+- **FIX B (G2_REPORT_RAW_GROUPING_HOLD):** added a forbidden-pattern + `validation_signature` check that
+  a zero-filled spine must be BOUNDED to the source's observed min..max (via a local query), never a
+  fuller/standalone calendar. Targets the recharge002 regression (unbounded calendar spine → 124 rows vs
+  the champion's passing source-bounded grain).
+Re-froze BOTH specs (solver_workflow_hash `80f047…` → `d1ac7c…` in both .frozen.yaml). Gatekeeper
+re-review = APPROVE (one standing G7 WARN). FO owns the re-smoke launch.
+
+## Stage Report: propose (cycle 2)
+
+- DONE: Edit solver_workflows/spd0011-classifier-contract/README.md ONLY: refine the two existing contract templates with the two banked fixes
+  3 in-place additive sub-edits; no new template, no relocation, leak-guard byte-identical (diff lines 1-30 exit 0).
+- DONE: Fix A on G2_LATEST_WINDOW_FULL_REFRESH: derived-metric NULL-condition requirement + matching validation_signature check (general, oracle-free, no baked value)
+  Added "Period-over-period derived columns inside a single-window build" sub-bullet + a NULL-where-no-in-window-prior-period validation_signature line; ends "never bake a literal value".
+- DONE: Fix B on G2_REPORT_RAW_GROUPING_HOLD: spine-grain forbidden-pattern + matching validation_signature check (general, oracle-free)
+  Added "Forbidden: a spine WIDER than the source's observed range" sub-bullet + a spine-row-set-equals-source-bounded-min..max validation_signature line; ends "never bake a count".
+- DONE: Re-freeze BOTH specs
+  rk freeze --allow-missing on both full + smoke; both wrote .frozen.yaml.
+- DONE: Verify the solver_workflow_hash changed in both .frozen.yaml files
+  Both 80f047515712… → d1ac7cf69e3e… (content_hash == solver_workflow_hash, identical across full + smoke as expected).
+- DONE: Re-verify smoke selection via --explain
+  rk run …smoke.frozen.yaml --explain → Tasks: 12, content_hash resolves to d1ac7c….
+- DONE: Confirm leak-guard byte-intact and full-spec frozen diff still only experiment: + solver_workflow: (+ auto hashes)
+  Leak-guard lines 1-30 diff exit 0; full frozen diff = experiment + solver_workflow + 4 auto hashes (content_hash, sealed_hash, harness_git_sha, solver_workflow_hash) only.
+- DONE: Re-run the gatekeeper review subagent; replace the ## Gatekeeper review block with the new verdict
+  Replaced; APPROVE, G2 PASS (zero task-name/count leak on added lines), one standing G7 WARN.
+- DONE: Append a one-line revise note recording what changed and why
+  Added ## Revise Note (propose cycle 2) above.
+- SKIPPED: Launch any rk run beyond $0 --explain
+  Per assignment — FO owns the re-smoke launch.
+
+### Summary
+
+Refined the two existing contract templates with the two banked smoke fixes: FIX A adds an oracle-free
+period-over-period derived-metric NULL-condition (targets the airbnb001 MOM=NULL residual) and FIX B adds
+an oracle-free source-bounded-spine forbidden-pattern (targets the recharge002 unbounded-spine regression),
+each with a matching validation_signature check. No new template, no relocation, leak-guard byte-intact.
+Re-froze both specs (solver_workflow_hash changed 80f047…→d1ac7c… in both); smoke --explain confirms
+Tasks: 12. Gatekeeper re-review = APPROVE (one standing G7 WARN). No rk run beyond --explain; FO owns the
+re-smoke.

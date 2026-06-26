@@ -332,12 +332,24 @@ Implementation guidance unchanged.
   contract requires the window filter and anchor to apply UNCONDITIONALLY, and the
   `validation_signature` to confirm the built table holds only the single latest window (not one
   row per period).
+  **Period-over-period derived columns inside a single-window build.** When the built table
+  holds only a single latest window, a period-over-period derived column (MoM / YoY / delta /
+  growth-%) has NO prior period inside the built window. Such a column must be NULL for rows
+  whose comparison baseline is not present in the built window — do NOT compute it against
+  out-of-window source rows — UNLESS the task instruction explicitly defines an external
+  comparison baseline. Derive whether the column is NULL from the window definition + the
+  instruction text; never bake a literal value.
 - `G2_REPORT_RAW_GROUPING_HOLD` — for a report-grain target already passing under the current
   champion. The contract must name: the raw grouping column, the primary anchor relation, the
   lookup relation if any, and the forbidden pattern — *re-grouping on a canonicalized lookup
   value instead of preserving the raw grouping key* (spelling variants that map to one canonical
   name are SEPARATE gold rows). The `validation_signature` confirms the raw key is the GROUP BY /
   emitted key and a lookup only FILLS secondary attributes via LEFT join.
+  **Forbidden: a spine WIDER than the source's observed range.** Introducing a calendar/date
+  (or key) spine wider than the source's observed range is forbidden. A zero-filled spine must
+  be BOUNDED to the date/key set the source actually contains (its observed min..max from local
+  evidence), never a fuller/standalone calendar — over-padding emits rows the gold does not
+  have. Derive the bound from the source's actual min/max via a local query; never bake a count.
 
 ### Contract compliance constraint
 
@@ -468,8 +480,12 @@ For EACH contract target, confirm its `validation_signature`:
 - its name matches the project naming convention;
 - its row shape matches the named rule template plus the local Exploration evidence captured in
   the contract (e.g. for `G2_LATEST_WINDOW_FULL_REFRESH`, the table holds ONLY the single latest
-  window — a handful of rows, not one row per period; for `G2_REPORT_RAW_GROUPING_HOLD`, the raw
-  grouping key is preserved, canonical-name collapses did not drop rows);
+  window — a handful of rows, not one row per period, AND any period-over-period derived column
+  is NULL where no in-window prior period exists (matches the window definition), not computed
+  from out-of-window rows; for `G2_REPORT_RAW_GROUPING_HOLD`, the raw grouping key is preserved,
+  canonical-name collapses did not drop rows, AND the zero-filled spine's row set equals the
+  bounded source date/key set (source observed min..max), not an unbounded calendar — the built
+  row count must not exceed the source-bounded grain);
 - the grain keys are unique where the contract says they should be;
 - the `forbidden_patterns` named in the contract are absent from the built artifact;
 - EVERY contract target is checked, not just the last one.
