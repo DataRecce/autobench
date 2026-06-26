@@ -1,7 +1,7 @@
 ---
 id: spd0013
 title: Lean inline LAG-over-own-output period-over-period rule (NO contract scaffold) — isolate the airbnb001 flip from the heavy contract checkpoint
-status: smoke
+status: full
 kind: hypothesis
 source: "forks the CURRENT champion @baseline = spd0008-over-emit-collapse (spd0012 NOT promoted); adds ONLY a lean inline derivation-METHOD clause to spd0008's existing G3 COLUMN-VALUE CONTRACT guidance — the LAG/LEAD-over-own-output period-over-period rule — and DROPS the entire spd0011/spd0012 contract checkpoint scaffold (no Classify-output block, no Exploration-for-contract block, no Implementation Contract stage, no contract-aware Validation signature). Isolation test of spd0012's durable airbnb001 flip."
 started:
@@ -165,6 +165,22 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 **For the captain:** Auto-approved to smoke — no FAILs, no WARNs. This is the clean isolation test of spd0012's lone durable flip: it strips the entire contract-checkpoint scaffold and keeps ONLY the lean inline LAG-over-own-output G3 clause on the spd0008 champion. Two informative outcomes (lean rule flips airbnb001 + quickbooks003 recovers ⇒ scaffold was overhead; or airbnb001 holds at 0 ⇒ contract forcing-function was load-bearing). The single "gold" word in the added clause is the generic "single-window gold" phrase carried from parent wording, not a leak. Verdict hinges on the committed `mom_agg_reviews.MOM` artifact (NULL × 3 rows = reached) per AC-3.
 
 ## Smoke result
+
+**Smoke run:** `runs/spd0013-lean-lag-period-over-period/9a6749cd13212912` (12 cells, strict audit CLEAN —
+12 clean / 0 coverage_missing / 0 tainted, rc=0). Verdict: **GO — outcome (a)**. 11/12 pass.
+
+| Task | Baseline (spd0008) | spd0013 | Read |
+|------|------|------|------|
+| **airbnb001** (target) | ❌ 0.0 | ✅ **1.0** | **FLIPPED LEAN — artifact-real.** Committed `LAG(REVIEW_TOTALS,…) OVER (…)` over the model's OWN single-window output ⇒ MOM NULL by construction = gold. Zero contract scaffold present (no `selected_rule`/`Implementation Contract` in the transcript). **The contract forcing-function was NOT load-bearing — the lean inline rule alone reaches the artifact.** |
+| **quickbooks003** (hard-gate) | ✅ 1.0 (0/3 under contract stage) | ✅ **1.0** | **RECOVERED.** With the contract prose gone, the cell that was 0/3 across all three contract-stage draws is back to PASS — positive evidence the **contract prose carried a diffuse cost** on this borderline passer, not a template. |
+| apple_store001 (hold) | ✅ 1.0 | ✅ 1.0 | held. |
+| activity001 / app_reporting001 / google_play001 / google_play002 | ✅ 1.0 | ✅ 1.0 | hard-gate canaries held. |
+| mrr001 / mrr002 / retail001 / f1003 | ✅ 1.0 | ✅ 1.0 | telemetry held (retail001/f1003 recovered from spd0012's flake drops). |
+| recharge002 (telemetry) | ✅ 1.0 | ❌ 0.0 | telemetry-only; a documented bouncer, not a hard gate. |
+
+**Outcome (a):** the lean one-line rule captures spd0012's durable airbnb001 flip WITHOUT the heavyweight
+contract checkpoint, AND removing the contract prose un-cost quickbooks003. The scaffold was overhead.
+Advanced to full per the captain GO→full delegation.
 
 ## Run result
 
