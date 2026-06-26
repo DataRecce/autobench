@@ -163,7 +163,35 @@ table has only the single latest window (a clean dbt build is not proof — full
 guard). Still one knob (G2 block); diff vs champion = G2 only, leak-clean. Per captain: advance to
 FULL directly (apple_store001 already an attributable smoke flip; airbnb fix is targeted).
 
-## Run result
+
+## Run result — full (decision-ready)
+
+Run `runs/spider2-dbt-spd0008-full/4ba55fba0138a84d` (rc=0, audit strict CLEAN — 61 clean, 0
+tainted, 0 errored). **24/61 = 0.3934 — net +0 vs the spd0007b champion (also 24/61).** The board
+churned 3 cells each way, ALL variance:
+- GAINS vs champion: **apple_store001** (the attributable G2 flip — now held smoke + full = 2 draws),
+  marketo001 + recharge002 (flaky).
+- REGRESSIONS vs champion: asset001, recharge001, f1002 — **all confirmed VARIANCE** (G2 provably
+  inert: none has a G2 structural gate; recharge001/f1002 produced BYTE-IDENTICAL outputs to the
+  champion = verifier/env flicker; asset001 is a G3 key-grain coin-flip on the shared rule). **G2
+  caused ZERO regressions.**
+- airbnb001 + tickit002 did NOT flip (airbnb's `mom_agg_reviews` still full-history despite the
+  is_incremental/full-refresh rule — the authored-fresh model didn't carry the unconditional
+  window; tickit's dim_events residual = spd0009 grain).
+
+**Verdict read:** G2 is VALIDATED + NON-DESTABILIZING — it adds one genuine durable cell
+(apple_store001, 2-draw, attributable to anchor-not-union + preserve-raw-key) and causes zero
+regressions; the solver is a strict additive superset of the champion. The net +0 headline is the
+±3 variance wall (flaky value-def cells churning identically under both solvers). airbnb's
+incremental fix did not land at full (the rule named the mechanism but the fresh-authored model
+didn't apply it) — a residual, not a regression.
+
+## Verdict
+
+Pending captain promote/conclude decision. spd0008 = champion + G2 (additive, 0 lever regressions,
++1 durable cell apple_store001) but net +0 headline (variance-swamped). `@baseline` stays spd0007b
+24/61 until decided.
+
 
 ## Behavioral analysis
 
