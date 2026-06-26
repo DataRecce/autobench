@@ -76,14 +76,52 @@ Fork parent resolved: `@baseline` = `runs/spider2-dbt-spd0007b-full/b0ebdde3817a
 
 **For the captain:** AUTO-APPROVED to smoke. Two WARNs to note: (1) **G4** — the smoke flips only 3 of the 7 survey-listed targets (airbnb001/tickit002/apple_store001); synthea001/shopify_holistic_reporting001/reddit001 are NOT smoked, so a smoke GO confirms the 3 cleanest gates only — full-run attribution is where the other targets get tested. (2) **G7** — the passthrough-no-prune rule is the one abstract clause (gated but no skeleton), mildly inert-risk at xhigh. On the G8 perturbation worry AC-3 raises (report-grain/passthrough could perturb a passer whose final model legitimately filters its intermediates): f1003 + retail001 cover the sibling-mirror and value-def families, and the R1-precedence guard blocks edits to pre-existing models — but no smoked passer is itself a `*_report`/`*_rollup` whose final model legitimately filters intermediates, so the report-grain-anchor rule's over-fire potential is NOT directly canaried (only the full run's broader passer set covers it).
 
+
 ## Smoke result
+
+Run `runs/spider2-dbt-spd0008-smoke/5059a202ea6abc5a` (rc=0, audit strict CLEAN). **NO-GO: 0/3
+targets flipped; 4/4 canaries HELD** (f1003 sibling-mirror, retail001 value-def, activity001,
+mrr001 — no regression). But the G2 mechanisms largely WORKED; each target died on a second,
+identified residual (revisable, not inert):
+
+| target | G2 result | residual that blocked the flip |
+|---|---|---|
+| apple_store001 | anchor-not-union WORKED (source_type_report 9=gold; territory anchored, 17 avail) | solver CANONICALIZED the territory key (merged Türkiye/Turkey, Côte d'Ivoire) → territory_report 16 vs gold 17. G2 fixes grain SOURCE, is silent on grain KEY |
+| tickit002 | role-dimension join WORKED (fct_listings 177,417 = gold EXACTLY) | the SIBLING target dim_events built 300 short (8,359 vs 8,659) — a table G2 doesn't constrain |
+| airbnb001 | incremental-window rule INAPPLICABLE | mom_agg_reviews is authored FRESH (no incremental config to "respect") → solver built full-history 11,135 vs gold 3. Rule must apply latest-window even when authoring fresh |
+
+## Failure Review
+
+Primary type: **incomplete-artifact** (G2 mechanism reaches gold grain but a second residual blocks),
+NOT inert and NOT canary-bleed.
+1. Original fork: collapse over-emitting targets to the canonical row slice via 5 gated G2 rules.
+2. Artifacts revealed: 2 rules demonstrably hit gold grain (apple_store source_type_report 9=gold via
+   anchor-not-union; tickit fct_listings 177,417=gold via role-dimension). The incremental-window rule
+   was INAPPLICABLE because its trigger ("target has incremental config") fails when the target is
+   authored fresh.
+3. Did rules fire + evidence: apple_store anchor + tickit role-join YES (gold-exact on the targeted
+   table); airbnb incremental NO (trigger mismatch). Canaries held.
+4. Next forks (each a one-line sharpen): (a) airbnb — "emit only the latest window EVEN when authoring
+   the model fresh: mirror the sibling is_incremental() window length"; (b) apple_store territory —
+   "preserve the raw territory string as territory_long; use the country-code seed only to fill
+   territory_short/region/sub_region; do NOT re-group on the canonicalized name"; (c) tickit — needs a
+   dim_events grain rule (the role-dim rule fixed fct_listings but not the sibling dim) = arguably
+   spd0009 grain territory, not G2.
+5. Next step: **escalate** — revise-vs-conclude is the captain's call (per policy). G2 is revisable
+   (2 one-line fixes would plausibly flip apple_store + airbnb), but tickit's residual is a different
+   family.
+
+## Follow-up Routing
+
+`escalate` — bounded stop (smoke completed) reached. Recommend the captain choose: REVISE spd0008
+(sharpen the airbnb authored-fresh-window + apple_store preserve-raw-territory-key rules; re-smoke),
+or CONCLUDE and fold these one-line fixes into spd0009/a later composition. @baseline unchanged
+(spd0007b 24/61).
 
 ## Run result
 
 ## Behavioral analysis
 
-## Failure Review
 
-## Follow-up Routing
 
 ## Verdict
