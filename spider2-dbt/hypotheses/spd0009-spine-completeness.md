@@ -1,9 +1,9 @@
 ---
 id: spd0009
 title: Axis-2 G1 — SPINE_COMPLETENESS (drive daily/rollup/balance-sheet/enhanced targets from the spine/dimension, left-join facts, carry balances forward, keep NULL)
-status: hypothesis
+status: propose
 kind: hypothesis
-source: resolution-survey-2026-06-25 ranked-backlog #4 — the BINDING-CONSTRAINT experiment; stacks on the spd0008 champion
+source: "resolution-survey ranked-backlog #4; forks CHAMPION spd0008 (24/60); Axis-2 G1 spine is the one knob; 2-step smoke (small gate-isolation -> large at-scale)" #4 — the BINDING-CONSTRAINT experiment; stacks on the spd0008 champion
 started: 2026-06-25
 completed:
 verdict:
