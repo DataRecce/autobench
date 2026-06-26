@@ -115,3 +115,26 @@ Entry format:
   is validated fire-and-obey infrastructure and bankable; the `G2_REPORT_RAW_GROUPING_HOLD` template is a
   proven net-negative destabilizer (DROP). Carry the contract checkpoint + the latest-window template (with
   the LAG-method MoM constraint) forward in spd0012; do NOT promote spd0011 to `@baseline`.
+
+---
+
+## spd0012 — single-template contract checkpoint (LAG-over-own-output MoM; raw-grouping template dropped)
+
+- layer: solver-workflow structure (carries the spd0011 contract-checkpoint STAGE forward; one-template inventory)
+- refinement type: stage retained + template pruned + sub-rule hardened (soft NULL-flag → derivation-METHOD constraint)
+- finding (SMOKE, GO, `runs/spd0012-mom-window-lag-single-window-smoke/14fe861107f3b0ff`, strict-clean rc=0, 9/12):
+  the contract checkpoint with ONLY `G2_LATEST_WINDOW_FULL_REFRESH` flipped airbnb001 0→1 ARTIFACT-REAL (MoM via
+  `LAG` over the model's own single-window output ⇒ NULL by construction = gold), held apple_store001 WITHOUT the
+  dropped template, and RECOVERED recharge002 (the cell `G2_REPORT_RAW_GROUPING_HOLD` regressed in spd0011). Non-
+  matching targets took `selected_rule: none` and fell through cleanly (no over-fire). quickbooks003 did NOT recover
+  (still 0.0) but `selected_rule: none` fired ⇒ flake, not a template regression (f1003/retail001 likewise flake).
+- learning: the spd0011 destabilizer was the report-grain TEMPLATE, not the contract CHECKPOINT — pruning the
+  template preserved the mechanism's value (the flip) and eliminated the passer-regression. A value-definition
+  residual IS README-addressable when framed as a derivation METHOD (how to compute), where spd0007's dtype/formula
+  value-defs were oracle-blind. Confirms: ship a template only with its forbidden-pattern, and prefer method-
+  constraints over value/NULL flags.
+- bears-on: the full run (promotion test + independent re-draw on airbnb001 flip-hold + quickbooks003 flake-or-real);
+  future contract/template hypotheses; spd0007 value-def family (method-vs-definition distinction).
+- evidence: smoke run above; committed-artifact read in spd0012 `## Behavioral analysis`; champion comparison
+  `runs/spider2-dbt-spd0008-full/4ba55fba0138a84d`.
+- status: open — smoke GO, full run launched; verdict pending the full + variance discipline.

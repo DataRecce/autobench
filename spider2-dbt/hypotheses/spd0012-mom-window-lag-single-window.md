@@ -1,7 +1,7 @@
 ---
 id: spd0012
 title: MoM = window LAG over the model's own single-window output (drop the raw-grouping template)
-status: smoke
+status: full
 kind: hypothesis
 source: "forks current champion @baseline = spd0008-over-emit-collapse; carries the spd0011-validated Implementation Contract checkpoint + G2_LATEST_WINDOW_FULL_REFRESH template, drops the spd0011 G2_REPORT_RAW_GROUPING_HOLD template (proven net-negative destabilizer over two cycles), and replaces spd0011 FIX A's soft NULL-condition with a hard LAG-over-own-output derivation-method constraint"
 started: 2026-06-26
@@ -143,6 +143,44 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 **For the captain:** Auto-approved to smoke with no FAILs and no WARNs. This is the spd0011 follow-up that drops the proven net-negative `G2_REPORT_RAW_GROUPING_HOLD` template and hardens the MoM rule into a LAG-over-own-output method constraint; the 12-task smoke pairs the airbnb001 flip target with apple_store001 (proves the dropped template was not load-bearing for that hold) and keeps quickbooks003 + recharge002 to confirm they un-regress now that the raw-grouping template is gone. Worth a glance at the smoke result for whether the method-constraint actually steers the worker off its prior-window reflex (the open behavioral risk the hypothesis itself flags).
 
 ## Smoke result
+
+**Smoke run:** `runs/spd0012-mom-window-lag-single-window-smoke/14fe861107f3b0ff` (12 cells, strict audit
+CLEAN — 12 clean / 0 coverage_missing / 0 tainted, rc=0). Verdict: **GO** (captain-approved to full
+2026-06-26). 9/12 pass.
+
+| Task | Baseline (spd0008) | spd0012 | Flip/distance/why |
+|------|------|------|------|
+| **airbnb001** (target) | ❌ 0.0 | ✅ **1.0** | **FLIPPED — artifact-real.** Committed SQL computes MoM via `LAG(REVIEW_TOTALS, …) OVER (PARTITION BY REVIEW_SENTIMENT ORDER BY AGGREGATION_DATE)` over the model's OWN single-window output; one window row per group ⇒ LAG has no prior row ⇒ `MOM` NULL by construction = gold. reward=1.0 ⇒ verifier matched gold on cols [0,1,3] incl. MOM. The method-constraint steered the worker off the prior-window re-materialization reflex spd0011 could not stop. |
+| apple_store001 (hold) | ✅ 1.0 | ✅ 1.0 | HELD **without** `G2_REPORT_RAW_GROUPING_HOLD` — proves that template was never load-bearing for the hold, only destabilizing. |
+| recharge002 (telemetry) | ✅ 1.0 (spd0011: ❌) | ✅ 1.0 | **RECOVERED** — dropping the raw-grouping template un-regressed the cell it destabilized in spd0011. Safety win confirmed. |
+| activity001 / app_reporting001 / google_play001 / google_play002 | ✅ 1.0 | ✅ 1.0 | hard-gate canaries held. |
+| **quickbooks003** (hard-gate) | ✅ 1.0 | ❌ 0.0 | Did NOT recover. **`selected_rule: none` — NO template fired** ⇒ not a template-lever regression. quickbooks003 is a documented flake candidate; the contract stage alone passed it under spd0011 cycle-1. Read = **flake variance** (to be re-confirmed at full). |
+| f1003 / retail001 (telemetry) | ✅ 1.0 | ❌ 0.0 | flake drops — both `selected_rule: none`, both documented flake candidates. |
+
+## Behavioral analysis
+
+**airbnb001 — flipped because the README method-constraint reached the committed artifact.** Both spd0011
+cycles the worker re-materialized a prior 30-day window from the 12-year `fct_reviews` source (`previous_window`
+CTE) and divided → real MoM% `{−17.99,−20.25,−9.92}` ≠ gold NULL. spd0012's hard derivation-method rule
+("compute period-over-period via `LAG`/`LEAD` over your OWN output, never a re-queried prior window") + the
+local sibling pointer (`wow_agg_reviews.sql`) made the worker use `LAG` over the single-window output, where a
+positive offset returns NULL (no prior row) — mechanically reproducing gold MOM=NULL with no oracle read. This is
+the **first artifact-attributable flip of a previously-stuck cell since the spd0007b/spd0008 promotions**, and the
+first time a *value-definition residual* (not grain/materialization) was made README-addressable — via a
+**method** constraint (how to derive), where spd0007's *dtype/formula* value-defs were oracle-blind.
+
+**quickbooks003 / f1003 / retail001 — flake, not lever.** All three selected `selected_rule: none`; no contract
+template touched them. quickbooks003's non-recovery refutes the spd0012 prediction that dropping the destabilizer
+would restore it — but the mechanism evidence (no template fired; contract stage alone passed it in spd0011 c1)
+points to flake variance, consistent with its documented flake-candidate status. The full run is the independent
+re-draw that settles it.
+
+**Contract-checkpoint mechanism (workflow-structural) — still obeyed, now single-template.** The Classify →
+Implementation Contract → contract-aware Validation stage fired across the smoke; with only
+`G2_LATEST_WINDOW_FULL_REFRESH` in the inventory, non-matching targets correctly took `selected_rule: none` and
+fell through to existing guidance (no over-fire). The destabilizer was the *template*, not the *checkpoint* —
+removing it preserved the mechanism's value (the airbnb flip) while eliminating the passer-regression
+(recharge002/quickbooks003-via-template). See `_artifacts/WORKFLOW-REFINE.md`.
 
 ## Run result
 
