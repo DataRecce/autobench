@@ -197,3 +197,37 @@ Clamp re-smoke (7 cells): targets salesforce001 + xero001 + xero_new001 (frozen-
 balance-sheet/daily spines); canaries marketo001 + recharge002 (spine passers must-hold) + mrr001
 (perturbable) + activity001 (stable). GO = ≥1 clampable target flips by artifact + 0 canary regression.
 (jira value-def + provider/hive different-grain are NOT in scope — separate follow-ups.)
+
+## Clamp re-smoke result + recommendation (bounded stop)
+
+Run `runs/spider2-dbt-spd0009-smoke-clamp/b871c71aebab73ee` (rc=0, audit strict CLEAN). **NO-GO:
+0/3 clampable targets flipped; 4/4 canaries held** (recharge002 held → its large-smoke drop was
+variance; gate safe across all 3 steps). Both targets = **CLAMP_WRONG_RANGE**:
+- salesforce001: clamp LANDED (current_date floor gone, 752→61 rows) but UNDERSHOT — gold 91
+  (..2024-09-03), got 61 (..2024-08-04); the solver's max() was filtered on `is_closed`, missing the
+  latest activity source. Oracle-blind on WHICH date source defines gold's bound.
+- xero001: clamp LANDED (floor gone, lower bound fixed to 2019-10) but anchored the upper bound to
+  the wrong fact (`journal_date` max 2021-03) → 345 rows (18mo) vs gold 1170 (60mo); PLUS a
+  persistent 21-vs-20 account-count residual.
+
+**Three smoke steps (small / large / clamp), 0/12 spine flips.** The mechanisms are all VALIDATED —
+G1's gate is SAFE (never bled onto an active-grain passer across 12+ canary-checks), G1 drives from
+the spine correctly, and the clamp removes the current_date floor as designed — but the spine
+targets are blocked by a CASCADE of oracle-blind residuals: frozen-clock over-run → fixed by the
+clamp → revealed the wrong-max-date-source choice → and behind it account-bucket + value-column
+residuals. Each fix surfaces the next oracle-blind specific the README cannot pin.
+
+## Verdict
+
+**RECOMMEND CONCLUDE — validated-not-promoted (captain decision).** spd0009 banks real validated
+KNOWLEDGE: (1) the G1 spine-completeness gate is tight + non-destabilizing (the binding-constraint
+risk is disproven — the highest-risk lever of the program is SAFE); (2) the spine-drive + max-fact
+clamp are correct mechanisms; (3) the durable finding — the "spine family" the survey grouped (12
+tasks) is HETEROGENEOUS and oracle-blind on specifics, NOT a 12-flip opportunity: frozen-clock
+spine over-run (clampable-but-the-bound-source-is-ambiguous), value-def second gaps (jira), and
+non-date-spine grain problems (provider/hive). The under-emit GRAIN that G1 fixes is rarely the SOLE
+blocker — reconfirms the program-wide "construct-touch ≠ pass / oracle wall under column-containment"
+finding (spd0004, spd0005, the survey). 0/12 flips across 3 smoke steps = not worth more revise
+cycles (salesforce is ~1 tweak from its row RANGE but a value residual likely remains, and it is a
+single flaky cell). **Do NOT bank G1 into @baseline** (it adds prose for 0 flips; keep @baseline
+lean at spd0008 24/60). Banked knowledge + gate-safety finding is the deliverable.
