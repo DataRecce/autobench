@@ -107,6 +107,42 @@ are flaky per the ledger). Auto-advanced to full per captain authorization.
 
 ## Run result
 
+## Run result — full (STRONG, decision-ready)
+
+Run `runs/spider2-dbt-spd0007b-full/b0ebdde3817a52ab` (rc=0, audit strict CLEAN — 61 clean, 0
+tainted, 0 errored). **24/61 = 0.3934 vs @baseline 19/61 = 0.3115 — net +5**, the best draw of the
+program and ABOVE the prior noise band (4 earlier full draws were 19/21/20/16). One regression
+(f1001 = known variance coin-flip). The previously-destabilized cells (tpch002, maturity001,
+greenhouse001) ALL HELD — removing the oracle-blind id-cast worked.
+
+| cell | Δ | attribution |
+|---|---|---|
+| retail001 | +PASS | **ATTRIBUTABLE — COUNT-by-name** (durable: 3 draws) |
+| recharge001 | +PASS | **ATTRIBUTABLE — percentage-convert** (`case value_type='percentage' → base*value/100`; durable: smoke+full) |
+| asset001 | +PASS | **ATTRIBUTABLE — key-embedded-grain** (grain ticker+date→tt_key minute-level, 77→3430/3185=gold; single draw) |
+| f1002 | +PASS | variance (flip = `count(distinct)→count(*)`, a count-grain coin-flip the NULL-vs-0 clause doesn't govern) |
+| f1003 | +PASS | router (sibling-mirror; flaky 2/5 full) |
+| quickbooks003 | +PASS | variance (variable cell) |
+| f1001 | −FAIL | variance (known coin-flip) |
+
+**DURABLE attributable value-def signal ≈ +3** (retail001 + recharge001 + asset001 — three distinct
+deterministic clauses, each artifact-confirmed) with **0 attributable regressions** (f1001 is
+variance). f1002/f1003/quickbooks003 are variable bonus. This is the value-def family WORKING once
+the oracle-blind id-cast destabilizer is removed — a clean inversion of spd0007's −3.
+
+## Verdict
+
+**Strong promote candidate — pending the ≥3-draw hold-rate (this is draw 1).** Net +5 sits above
+the ±3 noise band and the core gains are attributable to three distinct deterministic clauses, so
+this is real signal, not a lucky draw. But per AC-3 (single full draws here swing ±3) the durable
+number should be confirmed: f1002/f1003/quickbooks003 are variable and could regress on another
+draw, while retail001/recharge001/asset001 should hold. **RECOMMENDATION (captain decision):** run
+2 more full draws (draws 2–3); if the median holds ≥22–23 with retail001/recharge001/asset001
+consistent and only variance-class regressions, PROMOTE spd0007b to @baseline. (24 is strong enough
+that promote-now is defensible, but the hold-rate is the disciplined path given the variance wall.)
+`@baseline` stays 19/61 until the hold-rate.
+
+
 ## Behavioral analysis
 
 ## Failure Review
