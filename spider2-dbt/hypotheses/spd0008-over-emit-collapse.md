@@ -1,12 +1,12 @@
 ---
 id: spd0008
 title: Axis-2 G2 — OVER_EMIT_COLLAPSE (respect incremental window / role-dimension inner-join / sibling-mirror grain / passthrough no-prune)
-status: full
+status: conclude
 kind: hypothesis
 source: "resolution-survey-2026-06-25 ranked-backlog #3; forks CHAMPION spd0007b (24/61); Axis-2 G2 over-emit-collapse is the one knob" #3; stacks on the spd0007 champion
 started: 2026-06-25
-completed:
-verdict:
+completed: 2026-06-26T04:54:35Z
+verdict: PASSED
 score: 0.75
 worktree:
 ---
@@ -188,6 +188,9 @@ didn't apply it) — a residual, not a regression.
 
 ## Verdict
 
+**PASSED — PROMOTED to @baseline (captain 2026-06-26).** spd0008 24/61 = 0.3934 is the new champion (same headline as spd0007b but construct-dominant: adds apple_store001 [durable 2-draw, anchor-not-union + preserve-raw-key] + the G2 rules, with 0 lever-caused regressions — the net +0 was confirmed-variance churn of flaky value-def cells). @baseline → `runs/spider2-dbt-spd0008-full/4ba55fba0138a84d` (scoped registry; global ade-bench untouched). CHAMPION SOLVER = `solver_workflows/spd0008-over-emit-collapse` (router + value-def-no-idcast + G2 over-emit-collapse). spd0009 (spine) forks from THIS. RESIDUALS carried: airbnb001 (authored-fresh model didn't apply the unconditional window — the is_incremental/full-refresh rule is present but not landing), tickit002 dim_events grain (→ spd0009). Original pending note below.
+
+---
 Pending captain promote/conclude decision. spd0008 = champion + G2 (additive, 0 lever regressions,
 +1 durable cell apple_store001) but net +0 headline (variance-swamped). `@baseline` stays spd0007b
 24/61 until decided.

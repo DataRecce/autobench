@@ -606,7 +606,7 @@ Interpret the full run against `@baseline` — quantitatively and behaviorally.
 
 The reigning champion is the `@baseline` run-dir in the DAB-local `razorback-registry.yaml`
 (resolve it after `export RAZORBACK_REGISTRY=/home/kent/autobench/spider2-dbt/razorback-registry.yaml`).
-**CHAMPION as of 2026-06-26: spd0007b @ 24/61 = 0.3934** (`solver_workflows/spd0007b-value-def-no-idcast`; resolve `@baseline`). New hypotheses
+**CHAMPION as of 2026-06-26: spd0008 @ 24/61 = 0.3934** (`solver_workflows/spd0008-over-emit-collapse`; resolve `@baseline`). New hypotheses
 fork from the CURRENT champion's solver README (now `spd0007b-value-def-no-idcast`, was `spider2-dbt-baseline`);
 `analyze` diffs against its run-dir.
 
