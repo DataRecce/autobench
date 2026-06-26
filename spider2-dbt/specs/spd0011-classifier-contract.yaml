@@ -1,0 +1,92 @@
+# ABOUTME: spider2-dbt FULL run — all 61 duckdb-runnable tasks via spider2-dbt-baseline solver.
+# ABOUTME: 68 declared - 4 goldless (airbnb002/biketheft001/gitcoin001/google_ads001)
+# ABOUTME: - 3 postgres-backed (inzight001/shopify001/shopify002) - 1 upstream-goldless (chinook001: gold ships no answer tables + no reference mart SQL anywhere in Spider2, spd0010) = 60. concurrency.trials: 4.
+version: 1
+experiment: spd0011-classifier-contract
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/spd0011-classifier-contract
+  spacedock_skill_version: "1.0.0"
+  max_turns: 200
+  override_timeout_sec: 2400
+  max_timeout_sec: 2400
+  reasoning_effort: xhigh
+  tools_allowed: []
+  tools_denied: []
+benchmark:
+  kind: harbor-local
+  tasks_root: /home/kent/autobench/spider2-dbt/_views
+  tasks:
+    - spider2-dbt-activity001
+    - spider2-dbt-airbnb001
+    - spider2-dbt-airport001
+    - spider2-dbt-analytics_engineering001
+    - spider2-dbt-apple_store001
+    - spider2-dbt-app_reporting001
+    - spider2-dbt-app_reporting002
+    - spider2-dbt-asana001
+    - spider2-dbt-asset001
+    - spider2-dbt-atp_tour001
+    - spider2-dbt-divvy001
+    - spider2-dbt-f1001
+    - spider2-dbt-f1002
+    - spider2-dbt-f1003
+    - spider2-dbt-flicks001
+    - spider2-dbt-google_play001
+    - spider2-dbt-google_play002
+    - spider2-dbt-greenhouse001
+    - spider2-dbt-hive001
+    - spider2-dbt-hubspot001
+    - spider2-dbt-intercom001
+    - spider2-dbt-jira001
+    - spider2-dbt-lever001
+    - spider2-dbt-marketo001
+    - spider2-dbt-maturity001
+    - spider2-dbt-movie_recomm001
+    - spider2-dbt-mrr001
+    - spider2-dbt-mrr002
+    - spider2-dbt-nba001
+    - spider2-dbt-netflix001
+    - spider2-dbt-pendo001
+    - spider2-dbt-playbook001
+    - spider2-dbt-playbook002
+    - spider2-dbt-provider001
+    - spider2-dbt-qualtrics001
+    - spider2-dbt-quickbooks001
+    - spider2-dbt-quickbooks002
+    - spider2-dbt-quickbooks003
+    - spider2-dbt-recharge001
+    - spider2-dbt-recharge002
+    - spider2-dbt-reddit001
+    - spider2-dbt-retail001
+    - spider2-dbt-salesforce001
+    - spider2-dbt-sap001
+    - spider2-dbt-scd001
+    - spider2-dbt-shopify_holistic_reporting001
+    - spider2-dbt-social_media001
+    - spider2-dbt-superstore001
+    - spider2-dbt-synthea001
+    - spider2-dbt-tickit001
+    - spider2-dbt-tickit002
+    - spider2-dbt-tpch001
+    - spider2-dbt-tpch002
+    - spider2-dbt-twilio001
+    - spider2-dbt-workday001
+    - spider2-dbt-workday002
+    - spider2-dbt-xero001
+    - spider2-dbt-xero_new001
+    - spider2-dbt-xero_new002
+    - spider2-dbt-zuora001
+trials: 1
+concurrency:
+  trials: 4
+observers:
+  - kind: jsonl
+    path: events.jsonl
+  - kind: stdout

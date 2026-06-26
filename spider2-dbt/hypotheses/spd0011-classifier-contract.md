@@ -1,7 +1,7 @@
 ---
 id: spd0011
 title: Classifier contract checkpoint — make router advice enforceable without a broad stage rewrite
-status: hypothesis
+status: propose
 kind: hypothesis
 source: "post-hypothesis stabilization plan; forks current registry baseline spd0008; follows spd0006/spd0008/spd0009 evidence that rules are often detected but not obeyed"
 started: 2026-06-26
@@ -227,3 +227,50 @@ If the smoke is positive, create a narrowed `spd0011b` or promote to expanded sm
 - the same regression canaries
 
 Full run should remain a promotion test, not discovery.
+
+## Gatekeeper review
+
+**Recommendation: APPROVE** — purely-additive contract checkpoint forked from champion spd0008; specs in scope, leak-guard byte-identical, the validation_signature is an independent structural check (not self-anchored), and the gated 2-template inventory carries the full 5-canary hard-gate panel.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-15). Reviewed 2026-06-26T00:00:00Z.
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea/stage | PASS | Diff vs champion spd0008 is 3 pure-add hunks (`90a91-103`, `269a283-349`, `383a464-477`): a Classify-output block, a new "Implementation Contract" stage + Exploration-resolve block, and a Validation contract-signature block. All serve the ONE idea — make router advice enforceable via a contract checkpoint. No deletions/changes (no `d`/`c` hunks); leak-guard untouched. |
+| G2 leak-guard intact | PASS | Lines 1-30 (the no-fetch guard) byte-identical to parent (`diff` EXIT 0). Grep of added lines: every "gold" hit is PROTECTIVE ("never from gold", "DERIVED from the named template + local Exploration facts… never a baked gold count", "never on gold values, expected counts, or external lookup"); no `curl`/`wget`/`git clone`/`git ls-remote`/`http`, no `ground_truth`/`answer_key` read, no `db_description_withhint` paste. `expected_row_shape`/`validation_signature` are explicitly worker-derived from a named template + local evidence, not baked. |
+| G3 spec two fields | PASS | `diff full-baseline.yaml spd0011-classifier-contract.yaml` shows only `experiment:` and `solver_workflow:` changed. Frozen diff adds only auto-derived freeze provenance (solver_workflow_content_hash, sealed_hash, harness_git_sha, solver_workflow_hash) — not authored edits. `kind: spacedock_solver`, `runtime: codex`, `trials: 1` preserved (frozen line 91). |
+| G4 smoke tasks+exclude | PASS | `harbor-local` smoke uses a positive `benchmark.tasks:` allowlist (no `exclude_tasks` — correct, that field errors `extra_forbidden` here). Exactly 12 dataset names, matching `--explain`'s `Tasks: 12`: targets airbnb001 (flip) + apple_store001 (hold), hard-gate canaries activity001/app_reporting001/google_play001/google_play002/quickbooks003, telemetry mrr001/mrr002/retail001/recharge002/f1003. All hypothesis-named targets present. No other field differs. |
+| G5 both frozen | PASS | Both `spd0011-classifier-contract.frozen.yaml` and `…smoke.frozen.yaml` exist (3176B / 1865B). Both carry `kind: spacedock_solver` + `runtime: codex` (lines 4-5). |
+| G6 resolver fidelity | PASS | Inserted text matches the Falsifiable claim: Classify-output fields, Exploration-for-contract, a pre-SQL "Implementation Contract" checkpoint with the 9 named fields + 2-template inventory (G2_LATEST_WINDOW_FULL_REFRESH, G2_REPORT_RAW_GROUPING_HOLD), and a Validation signature check. Generative/independent in spirit — it tells the worker how to DERIVE and structurally verify an artifact, not "re-run your own query / confirm your answer matches." No scope creep; existing tips explicitly NOT relocated (relocation flagged as future work, and the diff confirms tips at L365-438 are intact). |
+| G7 actionability/inert-risk | WARN | The contract is a structured worked-form (9 named fields + 2 concrete forbidden-pattern templates with literal anti-patterns — e.g. "window filter only inside an `is_incremental()` branch"), which lands better than abstract prose. BUT the core lever is a process instruction ("write a contract before editing SQL, then follow it") — a discipline gate the solver can acknowledge-and-skip. Inert-risk: prior spider2-dbt evidence (spd0006/spd0009) is that rules are "detected but not obeyed"; a checkpoint that is itself prose has the same exposure. The smoke's AC-2 (transcript must SHOW the contract written before edits) is the right inert-detector — flag for the captain to judge by artifact, not log presence. |
+| G8 regression-canary coverage | PASS | Lever is PRECONDITION-GATED, not fires-everywhere: the 2 templates fire only on targets whose model/sibling has the named structure; non-matching targets get `selected_rule: none` and use existing guidance unchanged (README L300-302). The new contract/validation STAGES are generative (every target writes a contract), so the regression risk is real but bounded — and the smoke carries the 5 hard-gate non-target canaries (activity001/app_reporting001/google_play001/google_play002/quickbooks003), all current-@baseline passers, plus apple_store001 as a perturbable raw-grouping hold. ≥2 perturbable canaries on the targets' construct (apple_store001 + the G2_REPORT_RAW_GROUPING_HOLD-shaped passers) present. |
+| G9 selector independence | N/A | No multi-candidate / N-of-K selector protocol. The contract is a single per-target plan, not a field of competing candidates scored against each other. |
+| G10 self-correcting false-positive | PASS | The Validation signature is a CHECK-and-fix-or-block lever, so G10 applies. (a) Scope: gated — checks the rule-specific signature only for targets that adopted a template; `none` targets fall through to existing validation. (b) Independence: the signature is an INDEPENDENT STRUCTURAL check of the BUILT ARTIFACT (table exists as base table, name convention, single-window row shape, raw-key preservation, grain uniqueness, forbidden-pattern absence) authored from the template BEFORE the SQL exists — it is not re-running the solver's own derivation/query, so it is not self-anchored. (c) Check-don't-replace: on failure it says "fix it or mark `contract_blocked` with local evidence" — investigate/block, not "swap to a structurally different query." No re-derived-double-entry false-green. |
+
+**For the captain:** No FAILs → APPROVE; advance to `smoke`. One WARN to weigh (G7): the lever is fundamentally a process/discipline checkpoint, and spider2-dbt's recurring failure mode is "rule detected but not obeyed" — so judge the smoke strictly by AC-2/AC-4 committed-artifact evidence (was a contract actually written pre-edit AND did Validation run a template-derived signature beyond `dbt build`), not by whether the transcript merely mentions the contract. The airbnb001 flip is the single win condition; treat apple_store001 + the 5 hard-gate canaries as the must-hold panel.
+
+## Stage Report: propose
+
+- DONE: Fork the champion solver: cp -r solver_workflows/spd0008-over-emit-collapse solver_workflows/spd0011-classifier-contract
+  Forked; pre-edit diff -r was identical.
+- DONE: Edit ONLY solver_workflows/spd0011-classifier-contract/README.md to add the narrow Implementation Contract checkpoint + contract-aware validation per the hypothesis Proposed README Mechanics (one knob)
+  3 purely-additive hunks (90a91-103 Classify output, 269a283-349 Exploration-resolve + new Implementation Contract stage, 383a464-477 Validation signature); no deletions.
+- DONE: Keep the no-external-reference / leak-guard prose byte-intact; embed no gold values, dtypes, counts, or row numbers
+  Lines 1-30 byte-identical to parent; all added "gold" mentions are protective; expected_row_shape/validation_signature explicitly worker-derived from template + local evidence.
+- DONE: Do NOT relocate or delete any existing implementation-stage tips (relocation is explicit future work, out of scope for this smoke)
+  All 6 tips intact in the Implementation stage; diff shows zero d/c hunks.
+- DONE: Create full spec: cp specs/full-baseline.frozen.yaml ... then set experiment + solver_workflow (no other field changes)
+  Built from full-baseline.yaml (editable source); experiment: spd0011-classifier-contract, solver_workflow: ./solver_workflows/spd0011-classifier-contract.
+- DONE: Create smoke spec ... so ONLY these survive: airbnb001, apple_store001, activity001, app_reporting001, google_play001, google_play002, quickbooks003 (+ telemetry mrr001, mrr002, retail001, recharge002, f1003)
+  Positive benchmark.tasks allowlist of exactly 12 dataset names (harbor-local rejects exclude_tasks as extra_forbidden, so positive allowlist is the proven pattern).
+- DONE: Freeze both
+  Wrote spd0011-classifier-contract.frozen.yaml and .smoke.frozen.yaml.
+- DONE: Verify smoke selection via --explain
+  rk run ... --explain reports Tasks: 12, solver_workflow resolves to solver_workflows/spd0011-classifier-contract.
+- DONE: Confirm full-spec diff vs full-baseline.frozen.yaml shows ONLY experiment: + solver_workflow: changed
+  Only authored changes are experiment + solver_workflow; remaining diffs (solver_workflow_content_hash, solver_workflow_hash, sealed_hash, harness_git_sha) are auto-derived freeze provenance.
+- DONE: Run the gatekeeper review subagent and write a ## Gatekeeper review block
+  Appended; overall APPROVE (no FAILs; one G7 WARN = process-checkpoint inert-risk).
+
+### Summary
+
+Forked champion spd0008-over-emit-collapse into spd0011-classifier-contract and made the single one-knob README change: added per-target Classify output fields, an Exploration-for-contract evidence-resolution list, a new pre-SQL Implementation Contract checkpoint (9 named fields + a 2-template inventory: G2_LATEST_WINDOW_FULL_REFRESH and G2_REPORT_RAW_GROUPING_HOLD), and a contract-signature Validation check. The diff is purely additive; existing implementation tips and the no-fetch leak-guard are untouched, no gold baked in. Full spec diffs only experiment + solver_workflow; smoke is a 12-task positive allowlist (--explain confirms Tasks: 12). Gatekeeper recommends APPROVE with one G7 WARN (judge the smoke by AC-2/AC-4 committed-artifact evidence, not transcript mentions). Stopped at the propose gate; no rk run launched beyond $0 --explain.
