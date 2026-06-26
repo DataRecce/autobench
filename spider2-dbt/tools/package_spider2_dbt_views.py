@@ -234,6 +234,61 @@ def _vendor_dbt_utils(project_dir: Path) -> None:
         pkg_yml.write_text(pkg_yml.read_text().rstrip() + "\n" + decl)
 
 
+# Faithful fixture repair: some upstream example SOURCE duckdbs omit raw source
+# tables that the gold-build had (so the project's models — and the eval targets —
+# cannot build). The eval-suite GOLD duckdb ships those same raw tables alongside
+# the built answers. Restoring the RAW source tables (never the answer tables) from
+# gold into the solver's source db is a faithful packaging repair. Curated per task
+# (explicit, audited as raw-source — NOT a heuristic that could leak answer tables).
+# sap001: the 4 GL raw sources (bkpf/faglflexa/faglflext/lfa1) were omitted, so
+# sap__0fi_gl_10/14 were unbuildable; restoring them recovers the task (verified
+# +1 via spd0010 targeted smoke).
+_MISSING_SOURCE_RESTORE: dict[str, list[str]] = {
+    "sap001": [
+        "sap_bkpf_data",
+        "sap_faglflexa_data",
+        "sap_faglflext_data",
+        "sap_lfa1_data",
+    ],
+}
+
+
+def _restore_missing_sources(source_db: Path, gold_db: Path, task_id: str) -> None:
+    """Copy curated raw-source tables from the gold duckdb into the source duckdb
+    when the upstream example omitted them. No-op unless the task is in the curated
+    map AND the table is absent locally AND present in gold. Faithful + idempotent."""
+    tables = _MISSING_SOURCE_RESTORE.get(task_id)
+    if not tables or not source_db.exists() or not gold_db.exists():
+        return
+    import duckdb
+
+    con = duckdb.connect(str(source_db))
+    try:
+        local = con.execute("select current_database()").fetchone()[0]
+        present = {
+            r[0]
+            for r in con.execute(
+                "select table_name from information_schema.tables "
+                "where table_catalog = ?",
+                [local],
+            ).fetchall()
+        }
+        con.execute(f"ATTACH '{gold_db}' AS _gold (READ_ONLY)")
+        gold_tabs = {
+            r[0]
+            for r in con.execute(
+                "select table_name from information_schema.tables "
+                "where table_catalog = '_gold'"
+            ).fetchall()
+        }
+        for t in tables:
+            if t not in present and t in gold_tabs:
+                con.execute(f'CREATE TABLE "{t}" AS SELECT * FROM _gold."{t}"')
+        con.execute("DETACH _gold")
+    finally:
+        con.close()
+
+
 def _stage_task(
     *,
     task_id: str,
@@ -277,6 +332,9 @@ def _stage_task(
     # references it but lacks it. Version-stable macros only (dbt_utils); a no-op
     # when dbt_packages/dbt_utils is already present.
     _vendor_dbt_utils(src / "dbt_project")
+
+    # Restore any curated raw-source tables the upstream example omitted (from gold).
+    _restore_missing_sources(src / "dbt_project" / gold_basename, gold_db, task_id)
 
     # environment/Dockerfile (materializer appends COPY dbt_project + preflight)
     (src / "environment" / "Dockerfile").write_text(

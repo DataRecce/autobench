@@ -1,12 +1,12 @@
 ---
 id: spd0010
 title: Fixture / verifier repair — build chinook gold from source, ship sap GL source tables, add a pre-flight gold-integrity gate
-status: hypothesis
+status: conclude
 kind: hypothesis
 source: resolution-survey-2026-06-25 ranked-backlog #5 — harness-side, runs in parallel with the solver hypotheses
 started: 2026-06-25
-completed:
-verdict:
+completed: 2026-06-26T05:22:00Z
+verdict: PASSED
 score: 0.6
 worktree:
 ---
@@ -62,14 +62,48 @@ all 61 views.
 
 ## Gatekeeper review
 
-## Smoke result
 
-## Run result
 
 ## Behavioral analysis
 
 ## Failure Review
 
-## Follow-up Routing
+## Smoke result
+
+Targeted smoke `runs/spider2-dbt-spd0010-smoke/cd01f071ca825c30` (rc=0, audit strict CLEAN; solver
+UNCHANGED = champion spd0008). **sap001 FLIPPED FAIL→PASS**, chinook001 stayed FAIL (expected),
+activity001 canary held. No full run (per captain).
 
 ## Verdict
+
+**PASSED (infra fixture repair) — split outcome:**
+- **sap001 = FIXED + VERIFIED (+1 recoverable).** The upstream `examples/sap001` source duckdb
+  omitted 4 GL RAW source tables (`sap_bkpf_data`/`faglflexa`/`faglflext`/`lfa1`) that the
+  eval-suite gold db ships, so `sap__0fi_gl_10/14` were unbuildable (the original survey
+  "fixture defect"). Restored them (raw sources, NOT answers — faithful) into the solver source db;
+  the champion solver then built the GL targets to gold → reward 1.0. Made DURABLE in the packager
+  (`_restore_missing_sources`, curated `_MISSING_SOURCE_RESTORE['sap001']`) so re-packaging
+  reproduces it; verified idempotent + no-op for other tasks.
+- **chinook001 = NOT faithfully fixable (upstream goldless-equivalent defect).** The gold db ships
+  NO answer tables (dim_customer/fct_invoice/obt_invoice), the example ships NO mart models for them
+  (`models/obt/` has only `obt_invoice.yml`, no SQL), and grep finds NO reference definition
+  anywhere in Spider2. "Building gold from source" would mean fabricating gold from a solver's
+  output — off-limits (would corrupt grading). The survey's "comparator passes once gold built"
+  was tautological. → recommend EXCLUDING chinook001 from the gradeable denominator (like the 4
+  goldless tasks: 61→60), NOT fabricating gold.
+
+**Board impact:** the current @baseline run (spd0008 24/61) predates the fix, so its recorded score
+is unchanged (no full re-run per captain). The sap001 repair is BANKED into the benchmark (packager
++ views) — every future full run forking the champion now has sap001 buildable+passable, so the
+effective ceiling rises by +1. With chinook001 excluded, the gradeable board is 60 (sap001 now a
+live passer).
+
+## Follow-up Routing
+
+`stop` (sap fixed + durable) + 2 captain decisions surfaced: (1) EXCLUDE chinook001 from the
+gradeable denominator (61→60) — it is upstream-goldless; (2) optional: add a packaging-time
+GOLD-INTEGRITY GATE (assert each `condition_tab` exists in the gold db + each declared source-id
+exists in the source db) to catch this class (chinook-type missing-gold, sap-type missing-source)
+as a packaging error instead of a silent FAIL — recommended but deferred (larger preflight change).
+The `lowercase_columns` synthea macro gap (noted in spd0007 analyze) is a similar fixture item, also
+deferred here.
