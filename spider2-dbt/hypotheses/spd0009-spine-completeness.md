@@ -143,8 +143,42 @@ blocker), NOT canary-bleed (mrr001 = variance, gate held).
 4. Step: **escalate** — revise-vs-conclude is the captain's call; the large smoke is deferred until
    the spine-clamp revise (running it now = predictable non-flips on frozen-clock-blocked targets).
 
+## Smoke result (step 2 — LARGE, spine family at scale)
+
+Run `runs/spider2-dbt-spd0009-smoke-lg/cb95763176d0bb66` (rc=0, audit strict CLEAN). **0/9 spine
+targets flipped.** Across BOTH steps: **0/12 spine targets flipped.** GATE CONFIRMED SAFE at scale:
+mrr001 HELD here (small-smoke drop = variance), marketo001/app_reporting001/google_play001/mrr002/
+quickbooks003/activity001 all held; recharge002 dropped = VARIANCE (G1 inert on it — a spine
+end-boundary exclusive/inclusive coin-flip, NOT G1-caused over-emit).
+
+**Spine-family characterization (5 of 12 deep-dived) — the family is HETEROGENEOUS:**
+- **FROZEN-CLOCK, CLAMPABLE (salesforce001, xero001):** G1 drove from the spine correctly but the
+  package spine over-ran to `current_date` (2026) — salesforce 752 vs gold 91; xero 1890/90mo vs
+  gold 1170/60mo. Gold ends at MAX ACTIVITY (deterministic), so a max-fact-date spine clamp would
+  fix these. (Distinct from the truly-frozen pendo001/atp_tour001 whose gold IS at the build-clock.)
+- **VALUE-DEF SECOND GAP (jira001):** G1 fixed the under-emit (3 rows = gold); residual is the
+  hand-rolled epics/components string-agg vs canonical Fivetran output.
+- **DIFFERENT GRAIN PROBLEM (provider001, hive001):** not date-spine tasks — provider001 needs a
+  full-dimension LEFT-join completeness (G1 didn't fire/comply; under-emit 454/82339 vs gold
+  874/85196), hive001 needs preserve-the-fan-out (over-collapsed 486 vs gold 558). Spine-clamp
+  doesn't touch these.
+
 ## Verdict
 
-Pending captain. G1 lever VALIDATED + gate-safe, but the spine target family is contaminated by
-frozen-clock spine non-determinism (a reframe: some "spine" targets are current_date-blocked, not
-spine-addressable) + residual value-def. `@baseline` unchanged (spd0008 24/60).
+**NO-GO as written (0/12 spine flips); G1 mechanism + gate VALIDATED but the spine target family is
+contaminated.** Key results: (1) G1's gate is SAFE — it does not bleed onto active-grain passers
+(the binding-constraint fear is fully allayed across 12 canary-checks); (2) G1's spine-drive
+mechanism is correct where it fires (salesforce/xero/jira all drove from the spine); (3) but 0/12
+flip because the under-emit grain G1 fixes is rarely the SOLE blocker — the family is dominated by
+FROZEN-CLOCK spine over-run (clampable), value-def second gaps, and non-date-spine grain problems
+G1 doesn't address. The survey's "12 reachable spine flips" was over-optimistic.
+
+**RECOMMENDATION (captain decision — bounded stop, 2 smokes done):**
+- **REVISE (targeted):** add a **max-fact-date SPINE CLAMP** to G1 ("clamp the spine upper bound to
+  the max observed fact/source date; do NOT let a package spine's `current_date` floor extend it")
+  + add `do-not-re-derive-an-existing-spine's-min/max-boundary` (recharge002 hardening). Re-smoke
+  the 2 clampable targets (salesforce001 + xero001) — realistic yield ~+2, then a hold-rate. jira
+  needs a separate epics value-def clause; provider/hive are different families (not this lever).
+- **OR CONCLUDE validated-not-promoted:** bank G1 (mechanism + gate validated, non-destabilizing)
+  and the heterogeneous-spine-family finding; the realistic spine yield (~2-4) may not justify more
+  cycles. `@baseline` stays spd0008 24/60.
