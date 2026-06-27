@@ -1,7 +1,7 @@
 ---
 id: spd0015
 title: Report value-semantics contract — grain-aware COUNT, raw-grain preservation, independent value-recheck (not order/top-N)
-status: propose
+status: smoke
 kind: hypothesis
 source: "day-queue-2026-06-26 Queue 2; forks champion @baseline spd0013-lean-lag-period-over-period; discovery smoke-only (no full)"
 started: 2026-06-27
