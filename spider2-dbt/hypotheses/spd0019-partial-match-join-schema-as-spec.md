@@ -1,7 +1,7 @@
 ---
 id: spd0019
 title: Partial-match join via prefix LIKE + schema.yml-as-spec — preserve fan-out, no dedup
-status: propose
+status: smoke
 kind: hypothesis
 source: "never-pass-residual-catalog-2026-06-27 (movie_recomm001 diagnosis); forks champion @baseline spd0013; discovery smoke-only"
 started: 2026-06-27
