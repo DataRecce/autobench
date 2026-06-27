@@ -1,5 +1,5 @@
-# ABOUTME: spd0021 SANITY smoke (trials=1, 14 tasks): 5 catalog leads + 8 hard canaries + tickit001 sibling.
-# ABOUTME: Confirms the gated Implementation Contract FIRES on each lead, builds clean, no gross canary breakage before the trials=3 full run.
+# ABOUTME: spd0021 SANITY smoke (trials=1, 22 tasks): 13 catalog-A+B leads + 8 hard canaries + tickit001 sibling.
+# ABOUTME: Confirms the gated Implementation Contract (C1-C7) FIRES on each lead, builds clean, no gross canary breakage before the trials=3 full run.
 version: 1
 experiment: spd0021-gated-contract-catalog-leads
 agent:
@@ -29,10 +29,18 @@ benchmark:
   tasks_root: /home/kent/autobench/spider2-dbt/_views
   tasks:
   - spider2-dbt-provider001
+  - spider2-dbt-asana001
+  - spider2-dbt-intercom001
+  - spider2-dbt-netflix001
+  - spider2-dbt-hive001
   - spider2-dbt-xero001
+  - spider2-dbt-xero_new001
+  - spider2-dbt-xero_new002
   - spider2-dbt-movie_recomm001
   - spider2-dbt-tickit002
   - spider2-dbt-nba001
+  - spider2-dbt-social_media001
+  - spider2-dbt-synthea001
   - spider2-dbt-apple_store001
   - spider2-dbt-google_play001
   - spider2-dbt-google_play002
@@ -59,6 +67,7 @@ provenance:
   model_resolved_at: null
   image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
   agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
+  harness_git_sha: 6ab3de3563aeb150c3d5f958a06c3456facd5982
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []

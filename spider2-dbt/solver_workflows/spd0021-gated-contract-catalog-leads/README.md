@@ -277,17 +277,23 @@ Each gate below is an oracle-free workspace/shape signal; each fix is a METHOD. 
 counts, or dtypes are baked. The gates are disjoint task shapes, so they compose without bleeding;
 a task matching none of them never enters the contract path.
 
-- **C1 — REFERENCE/CROSSWALK FULL-SET PRESERVATION.** *Gate:* a reference/dimension/crosswalk
-  target built from a full entity set (all codes / all entities / a complete reference list).
-  *Fix:* LEFT-join the enrichment/crosswalk relations onto the full base set; keep EVERY base-set
-  row (NULL where unmatched); never INNER-join-away unmatched rows and never filter on a
-  NULL/"unknown" key/type/category. *Signature:* built row count = the base-set's own row count; no
-  join shrinks it. *(provider001.)*
-- **C2 — CUMULATIVE-SPINE ENDPOINT.** *Gate:* a monthly/period spine driving a cumulative balance /
-  running-total report. *Fix:* the spine ENDS at the last period that has source activity — never
-  `current_date` / `greatest(max, current_date)` (which over-emits future-empty periods); round
-  money columns to 2dp. *Signature:* the max emitted period = the last period with source data; no
-  trailing empty periods. *(xero001.)*
+- **C1 — ENTITY/REFERENCE-COMPLETENESS.** *Gate:* a per-entity / reference / dimension / crosswalk
+  target whose grade expects the FULL base-set (all entities / all codes / a complete reference
+  list) OR a preserved join fan-out. *Fix:* drive FROM the entity/reference/base relation and
+  LEFT-JOIN metrics/enrichment/crosswalk onto it; keep EVERY base-set row (coalesce counts to 0,
+  leave attributes NULL when unmatched); NEVER inner-join FROM an aggregate/active-subset (a join
+  that collapses to ~0 rows is a key bug, not a filter); preserve join fan-out where the grade is at
+  the joined grain; never filter rows on a NULL/"unknown" key/type. *Signature:* built row count =
+  the full base-set (or the fanned-out join), not the active subset.
+  *(provider001. asana001. intercom001. netflix001. reddit001-comments. hive001.)*
+- **C2 — CUMULATIVE BALANCE-SHEET SPINE.** *Gate:* a monthly/period balance-sheet or running-total
+  report. *Fix:* the spine ENDS at the last period with source activity (never
+  `current_date` / `greatest(max, current_date)`); carry each account's cumulative balance FORWARD
+  across the full spine including gaps; the Retained-Earnings / equity roll-up row = cumulative sum
+  of all REVENUE+EXPENSE net_amount to month-end (drop any prior-FY-end pin or Current-Year-Earnings
+  split); round money to 2dp. *Signature:* max emitted period = last activity period (no trailing
+  empty periods); a single Retained-Earnings row per month = cumulative P&L.
+  *(xero001. xero_new001. xero_new002.)*
 - **C3 — FUZZY/PARTIAL NAME-MATCH JOIN.** *Gate:* a join the model's schema.yml/description calls a
   partial / fuzzy / starts-with name match (esp. when the task instruction is underspecified or
   describes a different deliverable). *Fix:* treat the model's schema.yml as the authoritative
@@ -308,6 +314,18 @@ a task matching none of them never enters the contract path.
   catalog and join it to the deterministic columns — do NOT re-run the unseeded simulation (it is
   not reproducible). *Signature:* the stochastic columns are sourced from the committed snapshot,
   not a fresh simulation. *(nba001.)*
+- **C6 — CAST-BEFORE-STRING-OP.** *Gate:* a string function (`split_part`/`substring`/`regexp`/`LIKE`)
+  applied to a NUMERIC or non-text column. *Fix:* cast the column to varchar BEFORE the string op;
+  reference the actual column identifier (NEVER quote a column name or the delimiter into a string
+  literal); re-derive downstream keys/URLs and confirm each row's derived key is populated and
+  non-constant. *Signature:* the derived key column is populated and non-constant (not a repeated
+  literal). *(social_media001.)*
+- **C7 — AUTHOR THE MISSING GRADED MODEL.** *Gate:* a graded target whose model file does NOT exist
+  (dbt "Did not find matching node") or errored unbuilt; especially a target that is a UNION of
+  sibling intermediate (`int_`/`int__`) models. *Fix:* author the model file; if it is a union of
+  sibling int_ models, build it as `UNION ALL` of those models (a surrogate id via `row_number` is
+  fine — under containment its value need not match positionally). *Signature:* the graded target
+  exists as a base table with the expected column set. *(synthea001. xero_new001.)*
 
 ## Stage: Exploration
 
