@@ -1,14 +1,15 @@
 ---
 id: spd0016
 title: Model-inventory per-target grain/PK contract — validate every dimensional target separately, not just the final report
-status: smoke
+status: conclude
 kind: hypothesis
 source: "day-queue-2026-06-26 Queue 4; forks champion @baseline spd0013-lean-lag-period-over-period; discovery smoke-only (no full)"
 started: 2026-06-27
-completed:
-verdict:
+completed: 2026-06-27
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-27T03:37:57Z
 ---
 
 ## Hypothesis
@@ -108,15 +109,43 @@ gated, structurally-anchored, and faithful to the claim, with no FAIL on any rul
 
 ## Smoke result
 
+**NO-GO (0 durable flips; 1 variance near-miss). Smoke-only, no full (autonomous discovery, day-queue Queue-4).**
+
+- Small smoke `runs/spd0016-model-inventory-per-target/a60b01654bb86db5` (8 cells, strict audit CLEAN): **tickit002 = 1.0 (FLIP)**; superstore001/tpch001/provider001 = 0.0; canaries held.
+- Large smoke `runs/spd0016-model-inventory-per-target/36577512f9e2d5c3` (14 cells, strict audit CLEAN 14/0/0): **tickit002 = 0.0 (reverted)**; all 6 primary targets = 0.0; all 8 hard canaries = 1.0 (0 regressions).
+
 ## Run result
+
+(no full run — smoke-only discovery)
 
 ## Behavioral analysis
 
+**tickit002 is a VARIANCE near-miss (1/2), banked.** The per-target model-inventory rule FIRED on the
+passing run (INVENTORY×10, VALIDATE EACH×10, source grain×15, declared grain×10) and got tickit002 to gold
+— its known issue is sibling-grain, exactly what a per-target grain/PK inventory targets, so the pass is
+plausibly lever-attributable. But it reverted to 0.0 in the large smoke = a coin-flip, not a reliable flip
+(the ±variance wall). The other 5 targets never flipped; scd001/atp_tour001 are survey-confirmed
+NOT-reachable (row_number tiebreak / frozen-clock). 0 canary regressions — the inventory rule is
+non-destabilizing.
+
 ## Failure Review
+
+- **Primary type:** variance-unclear (tickit002 1/2) + correct-artifact-still-fail (others fired, inert).
+- **What the artifact revealed:** the grain-inventory rule CAN reach tickit002's gold (passed once) but not reliably; the remaining targets need specific per-task residual fixes the broad rule can't supply.
+- **Did the rule fire + evidence:** YES (inventory/validate-each heavy on tickit002 pass run).
+- **Next step:** stop the broad hypothesis; BANK tickit002 as a reachable near-miss → recommend a focused per-task offline diagnosis of tickit002 (the airbnb001 method) to find the exact grain fix and a reliable narrow rule.
 
 ## Follow-up Routing
 
+`file` (deferred to post-sweep) — tickit002 per-task offline diagnosis → narrow grain rule. Not filed as a
+new entity mid-sweep; recorded in the day-queue results log as the top banked near-miss. NOT promoted, NOT full-run.
+
 ## Verdict
+
+**REJECTED (discovery NO-GO, 1 variance near-miss banked).** 0 durable never-pass flips; tickit002 flipped
+1/2 (variance) under the per-target grain/PK inventory (lever-attributable on the pass run); 0 hard-canary
+regressions. Banked: tickit002 is REACHABLE via grain-inventory but not reliably steerable by the broad
+rule — a prime candidate for per-task diagnosis. @baseline unchanged = spd0013 27/60.
 
 ## Stage Report: propose
 

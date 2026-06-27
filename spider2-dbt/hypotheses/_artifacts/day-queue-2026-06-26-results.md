@@ -23,6 +23,15 @@ own error, so it cannot catch a value it doesn't know is wrong. **Implication: t
 never-pass pool is per-task offline gold reconstruction → narrow per-task rule, not broad README rules.**
 Continuing Q4/Q3 for coverage (different mechanisms), but tempering yield expectations.
 
+| spd0016 | Q4 | per-target model-inventory (grain/PK/support-refs, validate each separately) | small `a60b0165`, large `36577512f9e2d5c3` | clean (8/0/0, 14/0/0) | **tickit002 1/2 (VARIANCE near-miss)**; 0 durable | none | YES (inventory/validate-each heavy) | **REJECTED** — tickit002 reached gold once (lever-attributable) but coin-flip; BANK for per-task diagnosis |
+
+### ⭐ BANKED NEAR-MISS: tickit002 (top discovery signal of the sweep)
+tickit002 PASSED the spd0016 small smoke (1.0) under the per-target grain/PK inventory rule (rule fired:
+INVENTORY×10, VALIDATE EACH×10, grain×25) then reverted (0.0) in the large smoke = a 1/2 coin-flip. Its
+known issue is sibling-grain — exactly what the inventory targets — so the pass is plausibly
+lever-attributable. **RECOMMENDED FOLLOW-UP: per-task offline gold reconstruction of tickit002 (the
+airbnb001 method) → a narrow, reliable grain rule.** This is the highest-value next bet from the sweep.
+
 ---
 
 ## Detail log
