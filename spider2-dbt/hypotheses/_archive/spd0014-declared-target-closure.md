@@ -1,14 +1,15 @@
 ---
 id: spd0014
 title: Declared-target closure — build every declared target/support model as a base table with exact convention naming
-status: smoke
+status: conclude
 kind: hypothesis
 source: "day-queue-2026-06-26 Queue 1; forks champion @baseline spd0013-lean-lag-period-over-period; discovery smoke-only (no full)"
 started: 2026-06-26
-completed:
-verdict:
+completed: 2026-06-27
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-27T00:30:12Z
 ---
 
 ## Hypothesis
@@ -94,15 +95,43 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 
 ## Smoke result
 
+**NO-GO (0 flips). Smoke-only, no full (autonomous discovery, day-queue Queue-1).**
+
+- Small smoke `runs/spd0014-declared-target-closure/82d27c97f8cfb33a` (8 cells, strict audit CLEAN): targets asana001/netflix001/social_media001/zuora001 = 0.0 (0/4); canaries apple_store001/google_play001/mrr001/quickbooks002 = 1.0 (held).
+- Large smoke `runs/spd0014-declared-target-closure/49007abef31bd042` (16 cells, strict audit CLEAN 16/0/0): all 8 primary targets = 0.0 (0/8 flips); all 8 hard canaries = 1.0 (0 regressions).
+
 ## Run result
+
+(no full run — smoke-only discovery)
 
 ## Behavioral analysis
 
+**R7 FIRED but is inert-on-outcome (correct-artifact-still-fail).** Transcript greps on the small-smoke
+targets show R7 fired heavily (≈28 `R7` mentions, ≈16 `declared model` each on asana001/netflix001/
+social_media001/zuora001) — the worker enumerated and built the declared model set. Yet 0/8 flipped.
+**The binding blocker for the Q1 pool is NOT declared-set closure / table existence — it is value/grain**
+(distinctness, sign, rolling/period, row-set scope), exactly the day-queue's flagged risk. Declared-target
+closure is a necessary-not-sufficient scaffold (mirrors spd0006's router finding): it makes the right
+tables exist but cannot fix wrong values. 0 canary regressions confirms R7 is non-destabilizing.
+
 ## Failure Review
+
+- **Primary type:** correct-artifact-still-fail (R7 fired, built declared targets, comparison still failed on value/grain).
+- **What the artifact revealed:** the worker already closes the declared set under R7; the graded mismatch is value/grain, not a missing/mis-named declared target.
+- **Did the rule fire + evidence:** YES (R7 ≈28×/target, declared-model enumeration in transcripts); inert on the graded outcome.
+- **Next step:** stop (conclude REJECTED); the Q1 pool folds into Queue-2's value-semantics sweep.
 
 ## Follow-up Routing
 
+`stop` — declared-target closure is a non-destabilizing but inert-on-outcome scaffold; the binding
+blocker is value/grain (Queue-2 covers it on an overlapping pool). NOT promoted, NOT full-run.
+
 ## Verdict
+
+**REJECTED (discovery NO-GO).** 0/8 never-pass flips across small+large smoke, both strict-audit-clean,
+0 hard-canary regressions. R7 declared-target-closure FIRED (artifact-proven) but is inert on the graded
+outcome — the Q1 pool's binding blocker is value/grain. Banked: declared-target closure is a clean
+non-destabilizing scaffold (necessary not sufficient). @baseline unchanged = spd0013 27/60.
 
 ## Stage Report: propose
 
