@@ -1,14 +1,15 @@
 ---
 id: spd0020
 title: Preserve-all-rows LEFT join for reference/dimension tables — never INNER-join-away or filter NULL keys
-status: smoke
+status: conclude
 kind: hypothesis
 source: "never-pass-residual-catalog-2026-06-27 (provider001 diagnosis); forks champion @baseline spd0013; discovery smoke-only; FINAL sprint hypothesis"
 started: 2026-06-27
-completed:
-verdict:
+completed: 2026-06-27
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-27T07:52:07Z
 ---
 
 ## Hypothesis
@@ -116,15 +117,38 @@ preserve-all directive actually landed, not acknowledged-then-skipped against th
 
 ## Smoke result
 
-## Run result
+**NO-GO. provider001 0/2; 0 canary regressions. Smoke-only, no full.**
+
+- Small smoke `runs/spd0020-preserve-all-rows-left-join/505ade11e71c8d38` (7 cells, strict audit CLEAN): provider001 = 0.0; all 6 canaries held.
+- Large smoke `runs/spd0020-preserve-all-rows-left-join/9e0bca7102369194` (11 cells, strict audit CLEAN 11/0/0): provider001 = 0.0; superstore001 = 0.0 (oracle-blind, expected); all 9 canaries (incl. mrr002 perturbable) held — 0 regressions.
 
 ## Behavioral analysis
 
+**provider001 = 0/2; the preserve-all-rows clause FIRED (LEFT JOIN heavy, "preserve EVERY row", "full base
+set") and the worker even discussed the GOLD counts (874, 85196) alongside the wrong ones (460, 82339) —
+yet still committed a failing artifact across its TWO graded tables** (specialty_mapping + provider must
+BOTH match). The worker KNEW the target shape but didn't reliably produce it on both tables — "talks but
+doesn't reliably do," the same draw-variance non-compliance as tickit002/movie_recomm001. **POSITIVE: 0
+canary regressions** — a positive coverage directive ("LEFT-join, keep all rows") is non-destabilizing,
+unlike the spd0018 prohibition that over-fired (google_play001). superstore001 stayed 0 (oracle-blind
+ROW_NUMBER surrogate keys, per the catalog — not pursuable).
+
 ## Failure Review
+
+- **Primary type:** correct-artifact-still-fail / variance (clause adopted+discussed, two-table artifact still failed both draws).
+- **Next step:** stop. provider001's two-table fix is oracle-free and complete on paper but the worker doesn't reliably commit both; diminishing returns. The positive-directive form is at least SAFE (0 regressions).
 
 ## Follow-up Routing
 
+`stop` — preserve-all-rows is a SAFE non-destabilizing directive but did not reliably flip provider001
+(0/2). NOT promoted, NOT full-run.
+
 ## Verdict
+
+**REJECTED (discovery NO-GO).** provider001 0/2 — the preserve-all-rows LEFT-join clause was adopted
+(artifact-proven, worker discussed the gold counts) but did not reliably produce both graded tables; 0
+canary regressions (the positive directive is non-destabilizing, a contrast to the spd0018 prohibition's
+over-fire). Final sprint hypothesis; reconfirms the capstone wall. @baseline unchanged = spd0013 27/60.
 
 ## Stage Report: propose
 

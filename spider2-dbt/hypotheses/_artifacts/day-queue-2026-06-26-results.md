@@ -58,6 +58,23 @@ This reconfirms the program-wide wall (spd0013): **README levers are steerable-b
 
 | spd0019 | catalog (movie_recomm001) | partial-match join (prefix-LIKE + schema-as-spec + no-dedup) | small `300860b7`, large `660df86057bb6353` | clean (7/0/0, 11/0/0) | movie_recomm001 **0/2** | mrr001 (flake, gate doesn't match) | YES (heavy) | **REJECTED** — rule adopted but finer title-normalization residual remains |
 
+| spd0020 | catalog (provider001) | preserve-all-rows LEFT-join for reference/dim/crosswalk targets | small `505ade11`, large `9e0bca7102369194` | clean (7/0/0, 11/0/0) | provider001 **0/2** | **none** (positive directive is safe) | YES (discussed gold counts) | **REJECTED** — adopted but two-table artifact unreliable; 0 regressions |
+
+## FINAL SPRINT SUMMARY (7 hypotheses spd0014–spd0020 + residual catalog)
+
+**Net durable new ever-pass = 0. @baseline UNCHANGED = spd0013 27/60. Nothing promoted, no full runs, no champion edits — exactly as instructed.** All 14 smoke runs strict-audit-clean (0 coverage_missing, 0 tainted).
+
+**What was tested:**
+- **Broad rules (Q1 closure / Q2 value-semantics / Q4 inventory):** fire reliably, flip **0** never-pass tasks. Each cell has a per-task residual a broad rule can't reach.
+- **Q3 package-repair:** moot — 0 compile-failures remain among gradeable tasks (packaging layer already fixed them). Concluded without a smoke.
+- **3 precise, oracle-free, per-task fixes** from offline diagnosis (tickit002, movie_recomm001, provider001): each was ADOPTED in the artifact (rules fired heavily) but **none flipped reliably** — tickit002 2/4, movie_recomm001 0/2, provider001 0/2.
+
+**THE DEFINITIVE FINDING:** README levers — broad OR surgically-precise-and-oracle-free — do **not** reliably flip the never-pass pool. Two compounding walls: (1) **finer-than-captured residuals** — a precise rule fixes its named residual but a finer one survives (movie_recomm001 title-normalization, provider001 two-table); (2) **draw-to-draw worker SQL-shape variance** — the worker doesn't reliably adopt even a once-adopted rule (tickit002 flipped 2/4 across draws). This reconfirms spd0013 at depth: **lean README rules are steerable-but-UNRELIABLE; reliable compliance needed the heavy contract forcing-function (spd0011/spd0013), which carries a passer/prose cost.** The 70% target is not reachable via README rules at the current variance.
+
+**Secondary finding:** POSITIVE directives ("do X this way", spd0020) are non-destabilizing (0 regressions), while PROHIBITIONS ("don't do Y", spd0018) over-fire onto passers (google_play001). Prefer positive directives.
+
+**Banked reachable leads (for a future approach that can beat the variance wall — e.g. the heavy contract checkpoint, or a verifier-side change):** tickit002 (grain + no-invented-filter), movie_recomm001 (prefix-LIKE + finer title-norm), provider001 (two-table LEFT-join), xero001 (spine-endpoint), nba001 (read-snapshot-parquet), flicks001 `movie_actor_by_year`, playbook002 `cpa_and_roas` join-grain. **Confirmed oracle-blind / not pursuable:** superstore001 (ROW_NUMBER surrogate keys), twilio001 (package sign), playbook002 model-choice (spec-vs-gold contradiction), flicks001 `actor_rating` (float cusp). Full map in `_artifacts/never-pass-residual-catalog-2026-06-27.md`.
+
 ---
 
 ## Detail log
