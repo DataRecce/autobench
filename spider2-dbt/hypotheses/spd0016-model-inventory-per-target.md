@@ -1,7 +1,7 @@
 ---
 id: spd0016
 title: Model-inventory per-target grain/PK contract — validate every dimensional target separately, not just the final report
-status: propose
+status: smoke
 kind: hypothesis
 source: "day-queue-2026-06-26 Queue 4; forks champion @baseline spd0013-lean-lag-period-over-period; discovery smoke-only (no full)"
 started: 2026-06-27
