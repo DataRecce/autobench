@@ -1,14 +1,15 @@
 ---
 id: spd0018
 title: No invented attribute filter — restrict dim/fact row sets by inventoried join keys only, never by payload columns
-status: smoke
+status: conclude
 kind: hypothesis
 source: "day-queue-2026-06-26 follow-up; per-task offline diagnosis of the spd0016 tickit002 variance near-miss; forks champion @baseline spd0013; discovery smoke-only"
 started: 2026-06-27
-completed:
-verdict:
+completed: 2026-06-27
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-27T05:05:49Z
 ---
 
 ## Hypothesis
@@ -93,15 +94,51 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 
 ## Smoke result
 
+**NO-GO. tickit002 not reliable (2/4) + a hard-canary regression. Smoke-only, no full.**
+
+- Small smoke `runs/spd0018-no-invented-attribute-filter/b2c23e69fa1b279f` (8 cells, strict audit CLEAN): tickit002 = 0.0; provider001/superstore001 = 0.0; all 5 canaries held.
+- Large smoke `runs/spd0018-no-invented-attribute-filter/abd24136c9d9d407` (13 cells, strict audit CLEAN 13/0/0): tickit002 = **1.0**; provider001/superstore001/tpch001 = 0.0; **google_play001 hard canary REGRESSED 1.0→0.0**; other 7 canaries + tickit001 held.
+
 ## Run result
+
+(no full run — smoke-only discovery)
 
 ## Behavioral analysis
 
+**tickit002 = 2/4 across all draws (spd0016 small 1 / large 0 ; spd0018 small 0 / large 1) — REACHABLE but
+NOT reliably steerable.** The clause fired (venue_seats×28, invent/non-key/payload heavy) but did not pin
+the passing shape: the worker's draw-to-draw SQL-shape variance (which staging model to join, whether to
+add a defensive filter) dominates a single prohibition clause. Reconfirms spd0013's core finding — a lean
+inline rule is steerable-but-UNRELIABLE; only the heavy contract forcing-function bought reliable
+compliance (at its own cost).
+
+**The prohibition clause has a real DOWNSIDE (the G7 WARN realized): google_play001 (hard canary)
+regressed with the clause FIRING on it** ("Do not add filter"×3, "do NOT invent a looser filter"×2,
+invent×13) — the worker plausibly dropped a LEGITIMATE filter google_play001 needs (over-emit). A broadly
+phrased "don't invent a filter" prohibition can suppress a needed filter and break a passer. (It held in
+the small smoke, so partly variance, but the artifact shows the clause actively steering its filter
+decisions → real over-fire risk.)
+
 ## Failure Review
+
+- **Primary type:** variance-unclear (tickit002 2/4) + canary-bleed (google_play001, clause fired + regressed).
+- **What the artifact revealed:** the per-task diagnosis correctly located tickit002's residual, but the FIX (a prohibition clause) is both unreliable on the target (variance wall) and risky on passers (over-fire).
+- **Did the rule fire + evidence:** YES (heavy on both tickit002 and google_play001).
+- **Next step:** stop. tickit002 stays a reachable-but-variance-bound cell; do NOT pursue the prohibition clause (net-negative: unreliable + passer-regression risk).
 
 ## Follow-up Routing
 
+`stop` — tickit002 is reachable but the variance wall + prohibition over-fire make this lever net-negative.
+NOT promoted, NOT full-run. The honest lesson: even a precisely-diagnosed, oracle-free narrow rule does not
+beat the draw-to-draw shape variance for these cells.
+
 ## Verdict
+
+**REJECTED (discovery NO-GO).** tickit002 reached gold 2/4 (not reliable); the no-invented-attribute-filter
+prohibition fired but (a) did not pin tickit002's passing shape and (b) regressed a hard canary
+(google_play001) by suppressing a legitimate filter. Banked: per-task diagnosis correctly locates residuals,
+but README prohibitions are unreliable-on-target AND risky-on-passers — the variance wall holds.
+@baseline unchanged = spd0013 27/60.
 
 ## Stage Report: propose
 

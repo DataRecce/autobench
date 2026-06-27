@@ -43,6 +43,19 @@ airbnb001 method) → a narrow, reliable grain rule.** This is the highest-value
 
 **Headline: broad README rules over multi-target pools FIRE reliably but flip ~0 never-pass tasks; 0 hard-canary regressions throughout (all rules non-destabilizing).** The never-pass pool's binding blockers are SPECIFIC per-task residuals (value/grain), not addressable by a single broad rule — reconfirming that the one durable flip of this program (airbnb001) came from per-task offline diagnosis, not a broad rule. **Pivoting remaining sprint time to per-task offline diagnosis of the banked reachable near-miss (tickit002) → narrow reliable rule.** @baseline unchanged = spd0013 27/60 (no promote, no full, as instructed).
 
+| spd0018 | follow-up | no-invented-attribute-filter (filter rows by join keys only, not payload cols) | small `b2c23e69`, large `abd24136c9d9d407` | clean (8/0/0, 13/0/0) | tickit002 **2/4 across all draws** (not reliable) | **google_play001** (clause fired + regressed = over-fire) | YES | **REJECTED** — precise rule unreliable-on-target + passer-regression risk; variance wall holds |
+
+## CAPSTONE FINDING (after 5 hypotheses)
+
+The day-queue's premise — narrow README rules can each flip ≥2 never-pass tasks — did **not** bear out:
+- **Broad rules (Q1 closure, Q2 value-semantics, Q4 inventory): fire reliably, flip ~0.** Each never-pass cell has a SPECIFIC per-task residual a broad rule can't reach.
+- **Q3 package-repair: moot** — the packaging layer already eliminated all build-failures among gradeable tasks.
+- **Per-task diagnosis (tickit002): correctly locates the residual, but the FIX hits the variance wall.** tickit002 is REACHABLE (reproduces gold offline) yet only 2/4 across draws even with a precisely-diagnosed oracle-free rule — the worker's draw-to-draw SQL-shape variance dominates a single README clause. And a prohibition clause carries passer-regression risk (google_play001 over-fire).
+
+This reconfirms the program-wide wall (spd0013): **README levers are steerable-but-UNRELIABLE; only the heavy contract forcing-function bought reliable compliance, at a passer/prose cost.** The 70% target is not reachable at the current draw-to-draw variance via README rules alone. Net new ever-pass from this sprint: **0 durable** (tickit002 banked reachable-but-variance-bound). 0 regressions to the champion (all smoke-only, nothing promoted). @baseline unchanged = spd0013 27/60.
+
+**Remaining sprint time → a per-task RESIDUAL CATALOG** (offline, read-only) so the captain has a precise map of which never-pass cells are reachable and what each needs — see `_artifacts/never-pass-residual-catalog-2026-06-27.md`.
+
 ---
 
 ## Detail log
