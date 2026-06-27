@@ -1,7 +1,7 @@
 ---
 id: spd0020
 title: Preserve-all-rows LEFT join for reference/dimension tables — never INNER-join-away or filter NULL keys
-status: propose
+status: smoke
 kind: hypothesis
 source: "never-pass-residual-catalog-2026-06-27 (provider001 diagnosis); forks champion @baseline spd0013; discovery smoke-only; FINAL sprint hypothesis"
 started: 2026-06-27
