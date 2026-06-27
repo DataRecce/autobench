@@ -1,7 +1,7 @@
 ---
 id: spd0021
 title: Gated contract forcing-function over the 5 catalog leads — reliable compliance via write-then-obey, multi-draw
-status: propose
+status: smoke
 kind: hypothesis
 source: "synthesis of the 2026-06-27 autonomous sprint: the contract forcing-function (spd0011) is the ONLY mechanism that made a README rule reliably obeyed (airbnb 2/2 with scaffold vs 1/2 lean); the residual catalog gives 5 exact oracle-free per-task fixes. This composes them GATED (zero passer cost) and judges by a trials=3 hold-rate (beats the variance wall). forks champion @baseline spd0013."
 started: 2026-06-27
