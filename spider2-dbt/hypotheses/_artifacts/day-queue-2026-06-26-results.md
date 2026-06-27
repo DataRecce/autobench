@@ -32,6 +32,17 @@ known issue is sibling-grain — exactly what the inventory targets — so the p
 lever-attributable. **RECOMMENDED FOLLOW-UP: per-task offline gold reconstruction of tickit002 (the
 airbnb001 method) → a narrow, reliable grain rule.** This is the highest-value next bet from the sweep.
 
+| spd0017 | Q3 | minimal package/dependency repair (compile-boundary only) | (no smoke — premise falsified) | n/a | n/a | n/a (rule never fires) | **REJECTED** — zero compile-failures left among gradeable tasks; package-repair family already fixed by the packaging layer; inert by construction |
+
+## SWEEP SUMMARY (all 4 day-queue queues covered)
+
+- **Q1 spd0014** declared-target-closure → REJECTED (fired, 0/8, blocker is value not closure).
+- **Q2 spd0015** report value-semantics → REJECTED (fired, 0/8, self-recheck correlated=false-green).
+- **Q4 spd0016** per-target model-inventory → REJECTED (0 durable; **tickit002 1/2 variance near-miss BANKED**).
+- **Q3 spd0017** minimal package-repair → REJECTED without smoke (premise falsified: 0 compile-failures left among gradeable tasks; packaging layer already fixed the build-failure family).
+
+**Headline: broad README rules over multi-target pools FIRE reliably but flip ~0 never-pass tasks; 0 hard-canary regressions throughout (all rules non-destabilizing).** The never-pass pool's binding blockers are SPECIFIC per-task residuals (value/grain), not addressable by a single broad rule — reconfirming that the one durable flip of this program (airbnb001) came from per-task offline diagnosis, not a broad rule. **Pivoting remaining sprint time to per-task offline diagnosis of the banked reachable near-miss (tickit002) → narrow reliable rule.** @baseline unchanged = spd0013 27/60 (no promote, no full, as instructed).
+
 ---
 
 ## Detail log
