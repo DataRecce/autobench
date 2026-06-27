@@ -1,14 +1,15 @@
 ---
 id: spd0019
 title: Partial-match join via prefix LIKE + schema.yml-as-spec — preserve fan-out, no dedup
-status: smoke
+status: conclude
 kind: hypothesis
 source: "never-pass-residual-catalog-2026-06-27 (movie_recomm001 diagnosis); forks champion @baseline spd0013; discovery smoke-only"
 started: 2026-06-27
-completed:
-verdict:
+completed: 2026-06-27
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-27T06:39:36Z
 ---
 
 ## Hypothesis
@@ -87,15 +88,38 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 
 ## Smoke result
 
-## Run result
+**NO-GO. movie_recomm001 0/2. Smoke-only, no full.**
+
+- Small smoke `runs/spd0019-partial-match-join-schema-as-spec/300860b7a43711bc` (7 cells, strict audit CLEAN): movie_recomm001 = 0.0; all 6 canaries held.
+- Large smoke `runs/spd0019-partial-match-join-schema-as-spec/660df86057bb6353` (11 cells, strict audit CLEAN 11/0/0): movie_recomm001 = 0.0; netflix001/flicks001 = 0.0; mrr001 (flake) regressed 1.0→0.0; other 7 canaries held.
 
 ## Behavioral analysis
 
+**movie_recomm001 = 0/2; the prefix-LIKE rule FIRED heavily (LIKE×41, prefix×66, schema.yml×138, fan-out×14)
+but a FINER residual remains.** The worker adopted the prefix-LIKE / schema-as-spec / no-dedup join method
+yet still missed gold — a finer normalization detail (the catalog flagged gold's year-strip leaves the
+preceding space, and the OMDB_movie_id multiset) survives below the rule's resolution. Same pattern as
+tickit002/spd0018: a precise oracle-free directive is adopted but a finer-than-captured residual (or draw
+variance) keeps the cell failing. mrr001's regression = flake (documented flake candidate; held in the
+small smoke; the fuzzy-join gate does not match a non-fuzzy MRR task — the "prefix" transcript hits are the
+worker reading the clause, not applying it).
+
 ## Failure Review
+
+- **Primary type:** correct-artifact-still-fail (rule adopted, finer residual remains) + variance (mrr001 flake).
+- **Next step:** stop. movie_recomm001 needs a still-finer normalization fix below this rule's resolution; diminishing returns.
 
 ## Follow-up Routing
 
+`stop` — prefix-LIKE join method is correct but insufficient alone; a finer title-normalization residual
+remains. NOT promoted, NOT full-run.
+
 ## Verdict
+
+**REJECTED (discovery NO-GO).** movie_recomm001 0/2 — the prefix-LIKE/schema-as-spec/no-dedup rule was
+adopted (artifact-proven) but a finer title-normalization/multiset residual keeps it failing; mrr001
+regression = flake. Reconfirms the capstone wall: precise oracle-free rules are adopted but a finer residual
+or draw variance defeats reliable flips. @baseline unchanged = spd0013 27/60.
 
 ## Stage Report: propose
 

@@ -56,6 +56,8 @@ This reconfirms the program-wide wall (spd0013): **README levers are steerable-b
 
 **Remaining sprint time → a per-task RESIDUAL CATALOG** (offline, read-only) so the captain has a precise map of which never-pass cells are reachable and what each needs — see `_artifacts/never-pass-residual-catalog-2026-06-27.md`.
 
+| spd0019 | catalog (movie_recomm001) | partial-match join (prefix-LIKE + schema-as-spec + no-dedup) | small `300860b7`, large `660df86057bb6353` | clean (7/0/0, 11/0/0) | movie_recomm001 **0/2** | mrr001 (flake, gate doesn't match) | YES (heavy) | **REJECTED** — rule adopted but finer title-normalization residual remains |
+
 ---
 
 ## Detail log
