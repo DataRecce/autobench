@@ -1,7 +1,7 @@
 ---
 id: spd0018
 title: No invented attribute filter — restrict dim/fact row sets by inventoried join keys only, never by payload columns
-status: propose
+status: smoke
 kind: hypothesis
 source: "day-queue-2026-06-26 follow-up; per-task offline diagnosis of the spd0016 tickit002 variance near-miss; forks champion @baseline spd0013; discovery smoke-only"
 started: 2026-06-27
