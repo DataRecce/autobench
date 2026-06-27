@@ -1,14 +1,15 @@
 ---
 id: spd0015
 title: Report value-semantics contract — grain-aware COUNT, raw-grain preservation, independent value-recheck (not order/top-N)
-status: smoke
+status: conclude
 kind: hypothesis
 source: "day-queue-2026-06-26 Queue 2; forks champion @baseline spd0013-lean-lag-period-over-period; discovery smoke-only (no full)"
 started: 2026-06-27
-completed:
-verdict:
+completed: 2026-06-27
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-27T02:02:58Z
 ---
 
 ## Hypothesis
@@ -92,15 +93,45 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 
 ## Smoke result
 
+**NO-GO (0 flips). Smoke-only, no full (autonomous discovery, day-queue Queue-2).**
+
+- Small smoke `runs/spd0015-report-value-semantics/90f430c9aa960533` (8 cells, strict audit CLEAN): targets flicks001/nba001/twilio001/xero001 = 0.0 (0/4); canaries held 1.0.
+- Large smoke `runs/spd0015-report-value-semantics/582854b932b0c604` (16 cells, strict audit CLEAN 16/0/0): all 8 primary targets = 0.0 (0/8 flips); all 8 hard canaries = 1.0 (0 regressions).
+
 ## Run result
+
+(no full run — smoke-only discovery)
 
 ## Behavioral analysis
 
+**Rule FIRED but inert-on-outcome (correct-artifact-still-fail).** Transcripts on flicks001/nba001/xero001
+show the clause fired heavily (`independent`×19, `recompute`×13, `COUNT(DISTINCT`×14 per target). Yet 0/8
+flipped. **Root cause = the "independent value-recheck" is CORRELATED, not independent**: the worker
+recomputes the metric with the SAME wrong assumption it used to build it, so the recheck self-confirms the
+wrong value (the self-anchored-false-green / verification-without-oracle wall — see memory
+`verification-without-oracle-real-world`). A solver cannot bootstrap a truly independent oracle from its
+own (mis)understanding of the spec. 0 canary regressions: the clause is non-destabilizing.
+
 ## Failure Review
+
+- **Primary type:** correct-artifact-still-fail (clause fired, values still wrong, self-recheck passed falsely).
+- **What the artifact revealed:** the report value-semantics contract is obeyed but cannot fix a value the worker doesn't know is wrong; its self-recheck is correlated with its own error.
+- **Did the rule fire + evidence:** YES (independent/recompute/COUNT-DISTINCT heavy in transcripts); inert on outcome.
+- **Next step:** stop (conclude REJECTED). META-PATTERN with spd0014: broad generative value/closure rules over an 8-target pool FIRE but flip 0 — each never-pass cell carries a SPECIFIC per-task residual a broad rule can't reach (mirrors airbnb001, which needed the exact LAG insight found only by per-task offline diagnosis).
 
 ## Follow-up Routing
 
+`stop` — broad value-semantics rule is non-destabilizing but inert. The productive path for these
+never-pass cells is per-task offline diagnosis → narrow per-task lever (the airbnb001/spd0012-13 method),
+not another broad rule. NOT promoted, NOT full-run.
+
 ## Verdict
+
+**REJECTED (discovery NO-GO).** 0/8 never-pass flips across small+large smoke, both strict-audit-clean,
+0 hard-canary regressions. Report value-semantics contract FIRED (artifact-proven) but inert — the
+independent-recheck is correlated-not-independent (self-anchored false-green). Banked: a self-recheck a
+solver computes from its own spec-understanding cannot catch its own value error. @baseline unchanged =
+spd0013 27/60.
 
 ## Stage Report: propose
 

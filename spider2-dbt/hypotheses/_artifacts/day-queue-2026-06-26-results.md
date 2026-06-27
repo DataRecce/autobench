@@ -10,6 +10,19 @@ Hard canaries (champion passers, must hold): activity001, app_reporting001, app_
 |---|---|---|---|---|---|---|---|---|
 | spd0014 | Q1 | R7 declared-target-closure (build every declared model as base table, exact convention) | small `82d27c97`, large `49007abef31bd042` | clean (8/0/0, 16/0/0) | **0/8** (asana/intercom/netflix/pendo/reddit/social_media/zuora/xero_new all 0) | none | YES (~28×/target) | **REJECTED** — rule fired but inert-on-outcome; blocker is value/grain not closure |
 
+| spd0015 | Q2 | report value-semantics (grain-aware COUNT + raw-grain + independent value-recheck) | small `90f430c9`, large `582854b932b0c604` | clean (8/0/0, 16/0/0) | **0/8** (flicks/movie_recomm/nba/playbook002/twilio/xero001/xero_new002/quickbooks001 all 0) | none | YES (~19×/target) | **REJECTED** — fired but inert; the "independent recheck" is correlated→self-confirms wrong value |
+
+## META-PATTERN (after Q1+Q2, both 0-flip)
+
+Two broad generative rules over 8-target pools both FIRED heavily but flipped **0** never-pass tasks, with
+**0 canary regressions** (clean + non-destabilizing, but inert-on-outcome). The never-pass cells each carry
+a SPECIFIC per-task residual a broad rule cannot reach — mirroring airbnb001, the one cell that flipped this
+arc, which needed the EXACT `LAG`-over-own-output insight found only by **per-task offline diagnosis**.
+spd0015 also reconfirmed the verification-without-oracle wall: a solver's self-recheck is correlated with its
+own error, so it cannot catch a value it doesn't know is wrong. **Implication: the productive lever for the
+never-pass pool is per-task offline gold reconstruction → narrow per-task rule, not broad README rules.**
+Continuing Q4/Q3 for coverage (different mechanisms), but tempering yield expectations.
+
 ---
 
 ## Detail log
