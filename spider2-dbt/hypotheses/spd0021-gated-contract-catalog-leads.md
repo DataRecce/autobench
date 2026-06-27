@@ -1,7 +1,7 @@
 ---
 id: spd0021
 title: Gated contract forcing-function over the 5 catalog leads — reliable compliance via write-then-obey, multi-draw
-status: hypothesis
+status: propose
 kind: hypothesis
 source: "synthesis of the 2026-06-27 autonomous sprint: the contract forcing-function (spd0011) is the ONLY mechanism that made a README rule reliably obeyed (airbnb 2/2 with scaffold vs 1/2 lean); the residual catalog gives 5 exact oracle-free per-task fixes. This composes them GATED (zero passer cost) and judges by a trials=3 hold-rate (beats the variance wall). forks champion @baseline spd0013."
 started: 2026-06-27
@@ -104,6 +104,25 @@ draw (the variance-wall discipline). NO promote without captain sign-off.
 
 ## Gatekeeper review
 
+**Recommendation: APPROVE** — a captain-approved flagship composition: ONE mechanism (the spd0011 contract forcing-function) applied GATED to 5 disjoint catalog-lead shapes, judged by a deliberate trials=3 hold-rate; leak guard byte-intact, no baked gold, all 5 leads present in smoke against 9 passing sentinels, no integrity-rule FAIL.
+Guideline: `_gatekeeper/propose-review-guideline.md` (last-updated 2026-06-24). Reviewed 2026-06-27.
+Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke).
+
+| Rule | Verdict | Evidence |
+|------|---------|----------|
+| G1 single idea | PASS | README diff adds ONLY one block at L266a267,311 — `## Stage: Implementation Contract (GATED)` + C1–C5. No other prose touched; this is the ONE gated contract-forcing-function idea (its 5 templates are the gated payload, not 5 ideas). |
+| G2 leak-guard (hidden gold) | PASS | No-fetch para (L11–15) byte-identical to parent. Grep of added lines finds NO forbidden gold literals (874/85196/1170/56596/8659/177417), no gold table/column names; the only `gold`/`expected_` hits are the prohibition prose ("never from gold values", "No gold values") and the template field name `expected_row_shape`. `*(provider001.)` etc. are task tags in the champion's established style, not gold. No curl/wget/clone added. |
+| G3 spec two fields | PASS | `experiment:` + `agent.solver_workflow:` changed; `trials: 1 → 3` is the DELIBERATE multi-draw hold-rate design of this hypothesis (per AC-3, captain-approved), noted as intended not a fault. `kind: spacedock_solver`, `runtime: codex`, `model: gpt-5.5`, `reasoning_effort: xhigh` all preserved (verified directly). Remaining diff lines are frozen-serialization metadata (provenance/sealed_hash), not experiment field changes. |
+| G4 smoke narrows tasks only | PASS | Smoke diff changes only `benchmark.tasks` (+ ABOUTME comment); no `exclude_tasks`. All 5 named targets present (provider001, xero001, movie_recomm001, tickit002, nba001) plus 8 hard canaries + tickit001. Surviving sentinels are all @baseline-PASSING (apple_store001/google_play001/google_play002/mrr001/quickbooks002/activity001/app_reporting001/app_reporting002/tickit001 = 1.0 each). |
+| G5 both frozen | PASS | `…frozen.yaml` and `…smoke-sanity.frozen.yaml` both exist; both carry `kind: spacedock_solver` and `runtime: codex`. |
+| G6 resolver fidelity | PASS | Inserted text matches the claim: gated contract written from template+local evidence, implement-to-obey, then VALIDATE an oracle-free structural signature. Signatures are INDEPENDENT local signals (row count = base-set count; max period = last source period; prefix LIKE present; no invented filter; snapshot-sourced) — not a self-anchored "0 mismatches against my own build" check. No scope creep beyond the 5 templates. |
+| G7 actionability/inert-risk | PASS | Concrete mechanical: each template names a specific edit (LEFT-join full base set; spine ends at last source period; `LIKE (<other> \|\| '%')`; no `WHERE attr IS NOT NULL`; read committed snapshot) with a checkable validation signature — worked-skeleton class, not abstract prose. |
+| G8 regression-canary coverage | N/A (PASS) | GATED/scoped: the contract stage fires only when a task matches one of 5 disjoint shape gates; non-matching tasks proceed unchanged (zero contract path). N/A per the gated branch. Nonetheless the smoke panel carries 9 currently-passing non-target sentinels. |
+| G9 selector independence | N/A (PASS) | Not a multi-candidate / run-N-candidates selector protocol; single obey-the-contract path per matched shape. |
+| G10 self-correcting false-positive | PASS | Self-correcting (VALIDATE the signature before done) but (a) GATED to 5 preconditioned shapes so it never fires on arbitrary passers, (b) checks STRUCTURAL/independent signatures (row-count vs base set, max-period vs source, join shape) not a re-derivation of the graded answer, (c) drives implement-to-OBEY-the-contract, not blind replacement of a correct model. Structure/signature-class check → safe. |
+
+**For the captain:** Auto-approved to smoke. Two things to eyeball after the fact: (1) `trials: 3` is the intended key change (multi-draw hold-rate per AC-3), not a G3 integrity drift — every other experiment field is preserved. (2) Sanity smoke is trials=1 over 14 cells (5 leads + 8 passing canaries + tickit001 sibling); it confirms the gate FIRES and canaries hold before the ~8–9 h trials=3 full board. All 5 leads are confirmed baseline-FAIL (0.0) and all 9 sentinels confirmed baseline-PASS (1.0) in @baseline run `spd0013/7f3278d0d61d2577`.
+
 ## Smoke result
 
 ## Run result
@@ -115,3 +134,34 @@ draw (the variance-wall discipline). NO promote without captain sign-off.
 ## Follow-up Routing
 
 ## Verdict
+
+## Stage Report: propose
+
+- DONE: Fork the champion: cp -r solver_workflows/spd0013-lean-lag-period-over-period solver_workflows/spd0021-gated-contract-catalog-leads
+  Forked; README begins identical to spd0013 (404 lines pre-edit).
+- DONE: Edit ONLY README to add the gated Implementation Contract stage + 5 templates exactly as specified
+  Added `## Stage: Implementation Contract (GATED)` between G3 close and Exploration; diff vs spd0013 = pure addition `266a267,311`.
+- DONE: The 5 templates are C1-C5 — copied each gate + fix + signature from the hypothesis file
+  C1 full-set preservation, C2 cumulative-spine endpoint, C3 fuzzy prefix-LIKE, C4 no-invented-filter, C5 stochastic snapshot — verbatim from ## Hypothesis.
+- DONE: Keep the no-external-reference / leak-guard prose byte-intact; NO gold values/counts/dtypes baked
+  No-fetch para byte-identical (pure-addition diff); grep for 874/85196/1170/56596/8659/177417 = no match (exit 1); only the 5 established `*(taskNNN.)*` task tags present.
+- DONE: Do NOT relocate or delete any existing spd0013 guidance — only ADD the gated contract stage
+  Diff confirms ZERO deletions/modifications; single insertion hunk.
+- DONE: Create full spec; set experiment + solver_workflow + trials: 3; drop stale baseline content-hash; freeze from repo root
+  specs/spd0021-gated-contract-catalog-leads.yaml: experiment + solver_workflow set, trials:3, stale hash fields stripped; froze from /home/kent/autobench/spider2-dbt.
+- DONE: Create SANITY smoke spec: trials: 1, positive allowlist of exactly 14 tasks
+  specs/spd0021-gated-contract-catalog-leads.smoke-sanity.yaml: 5 leads + 8 hard canaries + tickit001, trials:1.
+- DONE: Freeze BOTH from repo root; verify content_hash non-null + differs from baseline 9660d413; full trials:3, sanity trials:1
+  Both frozen; content_hash sha256:46a11f38… (non-null, differs from 9660d413); full=trials:3, sanity=trials:1.
+- DONE: Verify sanity smoke selection: .smoke-sanity.frozen.yaml --explain shows Tasks: 14
+  `--explain` → `- Tasks: 14`; gated contract prose present in materialized prompt.
+- DONE: Confirm full-spec frozen diff vs baseline = ONLY experiment + solver_workflow + trials (1->3) + auto hashes; kind/runtime preserved; README diff = only the added stage
+  Frozen diff: experiment, solver_workflow(+content_hash), sealed_hash, trials 1->3, harness_git_sha, solver_workflow_hash — only experiment+solver_workflow+trials are manual; kind: spacedock_solver / runtime: codex / model gpt-5.5 / reasoning_effort xhigh preserved.
+- DONE: Run the gatekeeper review subagent; write the ## Gatekeeper review block
+  Gatekeeper recommendation APPROVE, no FAILs (G8/G9 N/A); block appended above.
+- DONE: Do NOT launch any rk run beyond --explain. Commit. Stop; the FO owns the smoke launch
+  Only `--explain` run (free, foreground); committing now.
+
+### Summary
+
+Forked champion spd0013 and added ONE gated stage — `## Stage: Implementation Contract (GATED)` with the 5 catalog-lead templates C1–C5 — each on a disjoint oracle-free shape gate, each fix a METHOD (no gold baked). The README change is a pure addition (no deletions, leak-guard byte-intact). Full spec sets trials:3 (the multi-draw hold-rate, the deliberate key change vs prior single-draw hypotheses); sanity smoke is trials:1 over 14 cells (5 leads + 8 passing canaries + tickit001). Both specs froze clean (content_hash 46a11f38, differs from baseline 9660d413); the full-spec frozen diff vs baseline is only experiment + solver_workflow + trials plus auto-regenerated hashes. Gatekeeper APPROVE, no FAILs. No rk run beyond --explain.
