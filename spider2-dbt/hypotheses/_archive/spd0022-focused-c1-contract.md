@@ -1,14 +1,15 @@
 ---
 id: spd0022
 title: Focused C1-only contract — does narrowing the contract to one template recover reliability across the C1 family?
-status: full
+status: conclude
 kind: hypothesis
 source: "spd0021 trials=3 found the BROAD 7-template gated contract does not compose (1/13 leads reliable: asana001 2/3); spd0011 showed a FOCUSED single-template contract works (airbnb 2/2). This isolates: a contract with ONLY the C1 entity-completeness template, on the C1 family, trials=3. Forks champion spd0013."
 started: 2026-06-28
-completed:
-verdict:
+completed: 2026-06-28
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-28T12:00:25Z
 ---
 
 ## Hypothesis
@@ -98,3 +99,17 @@ bullet byte-identical, C2-C7 dropped). Built and froze the trials=3 / 12-task pa
 (content_hash 48e5e43c, distinct from baseline and spd0021; --explain Tasks: 12). Gatekeeper auto-approved
 (no FAILs; lone WARN is the by-design single trials=3 panel as the declared hold-rate variable). No rk run
 launched beyond $0 --explain — the FO owns the run launch.
+
+
+## Run result + Verdict (full-board trials=3)
+
+**asana001 promotion FAILS — validated-not-promoted. @baseline stays spd0013 27/60.** Full-board trials=3
+`runs/spd0022-focused-c1-contract-full-t3/6686fe7f84c0be75`. asana001's 3 draws ran CLEAN (no error) =
+genuine **[0.0, 0.0, 0.0]** — the panel 2/3 did NOT reproduce at full-board scale, so the one durable lead
+does not hold board-wide. Nothing to promote.
+
+**Run also partially CONTAMINATED by a codex account usage-limit** (out of credits, resets Jul 2nd):
+audit = 160 clean / 20 coverage_missing / 0 tainted; 24 q-z tasks had ≥1 usage-limit errored draw (logged
+as 0). The board SCORE is therefore invalid, but asana001's own verdict is valid (its draws were clean).
+Net: the focused-C1 lever produced no promotable gain; combined with spd0011/13/21, the contract mechanism
+banks ZERO durable board-wide flips. @baseline unchanged.
