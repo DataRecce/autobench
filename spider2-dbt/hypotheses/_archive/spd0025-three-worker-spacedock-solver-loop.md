@@ -1,14 +1,15 @@
 ---
 id: spd0025
 title: Spacedock-native three-worker solver loop — Plan / Implement / Validate with FO-routed repair
-status: smoke
+status: conclude
 kind: hypothesis
 source: "captain architecture follow-up after spd0024: the right harness should be Spacedock-native, not an external Razorback harness. Current benchmark solver uses Spacedock, but appears to dispatch one ensign that runs Classify/Exploration/Implementation/Validation internally. Test whether a real FO-controlled three-worker loop can run inside one benchmark task."
 started: 2026-06-28
-completed:
-verdict:
+completed: 2026-06-28
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-28T05:42:32Z
 ---
 
 ## Hypothesis
@@ -211,3 +212,25 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 ### Summary
 
 Restructured the spd0013 champion into a Spacedock-native three-worker FO loop (Plan -> Implement -> Validate with FO-routed bounded repair, ≤2 cycles), folding all spd0013 domain knowledge into the Plan worker's plan/checks/forbidden-patterns rather than losing it. provider001 gets two source-derived oracle-safe row-count checks (count(*) over source('nppes',...)). Leak-guard prose is byte-intact; no gold counts or gold/tests/expected reads. Feasibility smoke spec frozen (trials:1, 5 tasks, content_hash 9d7f9fc0 differs from baseline 9660d413, --explain shows Tasks: 5). Gatekeeper APPROVE. FO owns the smoke launch.
+
+
+## Smoke result + Verdict
+
+**INFEASIBLE via README — RUNTIME-FEASIBILITY BLOCKER (AC-5), not a solver failure.** Feasibility smoke
+`runs/spd0025-three-worker-spacedock-solver-loop/09dace6e4c75b2e1` (trials=1, 5 cells, strict audit CLEAN
+5/0/0). provider001 = 0.0; canaries 4/4 hold.
+
+**The three-worker loop did NOT materialize.** provider001's cell has only **2 worker session transcripts**
+(one labeled "IMPLEMENT worker" + one FO) — IDENTICAL to a normal single-ensign cell (apple_store001 also
+2 sessions). The 26 `spawn_agent` / 73 `spacedock_plan.json` / 54 `implement_report` / 52
+`validation_report` string hits are README echo + the FO writing the plan/validation artifacts in its OWN
+context. So the runtime collapsed the FO-routed Plan→Implement→Validate loop into the usual **FO + 1
+worker**: Plan and Validate ran inside the FO context → the player/referee coupling was NOT removed (AC-2
+fails); 3 separate fresh workers were NOT demonstrated (AC-1 fails).
+
+**Verdict (per AC-5):** the `spacedock_solver` codex path cannot, from the README alone, dispatch
+independent Plan/Implement/Validate workers inside one Harbor task. The correct follow-up is NOT another
+README rule — it is a **runtime/scaffold change** to make multi-worker solver execution real (a
+captain/engineering decision). Combined with spd0024 (even target+check+retry can't get the worker to
+reliably EXECUTE a multi-table fix), the picture is: README levers are exhausted; the remaining gap needs
+runtime engineering AND still faces the execution-variance wall on multi-table cells. @baseline unchanged.
