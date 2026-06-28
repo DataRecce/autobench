@@ -29,11 +29,11 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
   `specs/spd0028-cast-before-string-op.smoke.frozen.yaml` (content_hash 4b327448). Target: social_media001.
   Canaries: f1001, mrr001, quickbooks002, hubspot001. Same launch+audit+HOLD protocol. Mark STEP 2 DONE.
 
-- [~] **STEP 3 (RUNNING) — SMOKE spd0029 (C2 financial-statement-spine).** spec
+- [x] **STEP 3 DONE (NO-GO; xero001/xero_new001/xero_new002 all FAIL, mrr001+quickbooks002 held, f1001 infra-EXC) — SMOKE spd0029 (C2 financial-statement-spine).** spec
   `specs/spd0029-financial-statement-spine.smoke.frozen.yaml` (content_hash 3aea076e). Targets: xero001,
   xero_new001, xero_new002. Canaries: f1001, mrr001, quickbooks002. Same protocol. Mark STEP 3 DONE.
 
-- [ ] **STEP 4 — DONE.** Write a single overnight summary (re-baseline score + 3 smoke verdicts: which
+- [x] **STEP 4 DONE — morning summary written (_artifacts/overnight-summary-2026-06-28.md); loop STOPPED.** Write a single overnight summary (re-baseline score + 3 smoke verdicts: which
   targets flipped, which canaries held/bled, any infra issues) for the captain's morning review. Stop the
   loop (no more wake-ups).
 
@@ -50,3 +50,4 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
 - 2026-06-28 ~18:46 — STEP 1 launched: spd0027 C7 smoke (synthea001,xero_new001 + 3 canaries), pid 2302649.
 - 2026-06-28 ~19:15 — STEP 1 DONE: spd0027 C7 NO-GO (both targets FAIL, canaries clean; execution wall). Launching STEP 2.
 - 2026-06-28 ~19:43 — STEP 2 DONE: spd0028 C6 NO-GO (social_media001 FAIL, lever didn't engage; canaries clean). Launching STEP 3.
+- 2026-06-28 ~20:09 — STEP 3 DONE: spd0029 C2 NO-GO (3/3 targets FAIL; canaries held bar f1001 infra-EXC). STEP 4 summary written; loop STOPPED. 0 tasks flipped overnight; all held for captain.

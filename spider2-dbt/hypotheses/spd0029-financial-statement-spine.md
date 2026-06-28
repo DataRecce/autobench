@@ -26,4 +26,12 @@ spec `specs/spd0029-financial-statement-spine.smoke.frozen.yaml`, trials=1.
 - canaries (must hold): f1001, mrr001, quickbooks002
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**SMOKE = NO-GO (held for captain; no full, no promote).** 2026-06-28, run
+`runs/spd0029-financial-statement-spine/801283a7f21a42c1`.
+- Targets: xero001 **FAIL**, xero_new001 **FAIL**, xero_new002 **FAIL** — none flipped.
+- Canaries: mrr001 **PASS**, quickbooks002 **PASS** (held); f1001 **EXC** (NonZeroAgentExitCodeError) —
+  infra error on a rock-solid cell, inconclusive, NOT a real canary regression.
+- Mechanism: the cumulative-balance-sheet-spine rule did not flip any xero target. The xero financial
+  statements are multi-model (xero_new001 needs 3 authored models — overlaps the spd0027 C7 wall) and the
+  full balance-sheet derivation (spine + Retained-Earnings cumulation + equity roll-ups) is more than a
+  single gated directive lands at trials=1. No real regression. Captain decides conclude/REJECTED.
