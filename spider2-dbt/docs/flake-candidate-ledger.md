@@ -12,6 +12,40 @@ board (post spd0010 fixture; chinook001 packaging-defect excluded).
 - **CAVEAT:** the spd0013 +3 over spd0008 is **variance + the sap001 FIXTURE**, NOT lever-attributable. The four gains asset001/divvy001/f1001/recharge001 are flake cells bouncing UP this draw; sap001 is the deterministic spd0010 fixture repair. The lever target **airbnb001 did NOT flip at full** (smoke 1.0 → full 0.0; outcome b). A re-run may land well below 27.
 - spd0013's 27 passers: ['activity001', 'app_reporting001', 'app_reporting002', 'apple_store001', 'asset001', 'divvy001', 'f1001', 'f1003', 'google_play001', 'google_play002', 'greenhouse001', 'hubspot001', 'lever001', 'marketo001', 'maturity001', 'mrr001', 'mrr002', 'playbook001', 'qualtrics001', 'quickbooks002', 'recharge001', 'retail001', 'sap001', 'tickit001', 'tpch002', 'workday001', 'workday002']
 
+## ⭐ WITHIN-RUN VARIANCE MAP — first clean trials=3 full board (spd0022 focused-C1, 2026-06-28)
+
+The 7-draw history above infers variance ACROSS different lever-runs over time. This is the FIRST clean
+**within-run trials=3** full board (`runs/spd0022-focused-c1-contract-full-t3/6686fe7f84c0be75`, 179 clean
+cells after the usage-limit topup merge), so per-task hold-rate is measured DIRECTLY — the authoritative
+reliability structure. (Solver = focused-C1 contract, but it is board-NEUTRAL / no attributable move, so
+these hold-rates ≈ the champion's true per-cell reliability.)
+
+**Distribution (60 tasks × 3 draws): 20 rock-solid + 11 flaky + 28 never (+1 at 0/2).**
+
+| Band | n | tasks |
+|---|---|---|
+| **3/3 ROCK-SOLID** | 20 | activity001, app_reporting001, app_reporting002, f1001, f1003, google_play001, google_play002, hubspot001, marketo001, maturity001, mrr001, mrr002, playbook001, qualtrics001, quickbooks002, recharge001, retail001, tickit001, tpch002, workday002 |
+| **2/3 flaky** | 7 | apple_store001, divvy001, greenhouse001, lever001, quickbooks003, sap001, workday001 |
+| **1/3 flaky** | 4 | airbnb001, airport001, asset001, f1002 |
+| **0/3 never** | 28 | analytics_engineering001, asana001, atp_tour001, flicks001, hive001, intercom001, jira001, movie_recomm001, nba001, netflix001, pendo001, playbook002, provider001, quickbooks001, recharge002, reddit001, salesforce001, scd001, shopify_holistic_reporting001, social_media001, superstore001, tickit002, tpch001, twilio001, xero001, xero_new001, xero_new002, zuora001 |
+| 0/2 | 1 | synthea001 (2 clean draws after merge) |
+
+**KEY FINDING: the "27/60 champion" is really ~20 rock-solid + a rotating ~6 of the 11-cell flaky band.**
+Variance math: 20 floor + E[flaky hits] (7×⅔ + 4×⅓ ≈ 6.0) = **expected ~26/60**; the documented 16–27 draw
+spread is exactly *20 floor + 0–11 flaky hits*. **The TRUE reliable baseline is ~20/60, not 27** — every
+single-draw score was buoyed by coin-flips.
+
+**Earlier-banked "flips" that are actually FLAKY (not the rock-solid we treated them as):**
+- **airbnb001 = 1/3** — the cell that drove the 19→24 promotion (spd0007b/spd0008) is a coin-flip.
+- **apple_store001 = 2/3** — spd0008's promoted construct-dominance flip.
+- asset001 = 1/3, f1002 = 1/3.
+- (Genuinely held 3/3: retail001, recharge001, marketo001, maturity001, tpch002.)
+
+**Implication:** promotion-on-single-draw was systematically optimistic — this explains the whole arc
+(panel 2/3 → full 0/3; "durable" flips that don't reproduce). A real gain must move a cell into the 3/3
+set, which the execution-variance wall (spd0023/spd0024) blocks for multi-step cells. Honest scoreboard =
+**~20 reliable + 11 flaky + 28 unreachable**, NOT a single "27."
+
 ## 🎯 Flake candidates (passed a full board but NOT 7/7) — hardening backlog
 
 | task | full-board (passes/draws) | in @baseline(spd0013)? | class |
