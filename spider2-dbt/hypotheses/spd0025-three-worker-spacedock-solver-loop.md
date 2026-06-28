@@ -1,7 +1,7 @@
 ---
 id: spd0025
 title: Spacedock-native three-worker solver loop — Plan / Implement / Validate with FO-routed repair
-status: propose
+status: smoke
 kind: hypothesis
 source: "captain architecture follow-up after spd0024: the right harness should be Spacedock-native, not an external Razorback harness. Current benchmark solver uses Spacedock, but appears to dispatch one ensign that runs Classify/Exploration/Implementation/Validation internally. Test whether a real FO-controlled three-worker loop can run inside one benchmark task."
 started: 2026-06-28
