@@ -1,0 +1,63 @@
+# ABOUTME: spd0023 SANITY smoke (trials=1, 11 tasks): 5 row-set/grain leads + asana001 known-2/3 positive control + 5 hard canaries.
+# ABOUTME: Confirms the build->structural-self-check->REBUILD loop FIRES (self-check + rebuild visible) and flips >=2 row-set leads vs the one-shot contract's 0/3, with canaries holding, before any trials=3 panel.
+version: 1
+experiment: spd0023-structural-selfcheck-retry-loop
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.5
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/spd0023-structural-selfcheck-retry-loop
+  max_turns: 200
+  max_budget_usd: null
+  override_timeout_sec: 2400.0
+  override_setup_timeout_sec: null
+  max_timeout_sec: 2400.0
+  tools_allowed: []
+  tools_denied: []
+  append_system_prompt: null
+  reasoning_effort: xhigh
+  reasoning_summary: null
+  resume_from_freeze: null
+  spacedock_skill_version: 1.0.0
+  prompt_content_hashes: {}
+benchmark:
+  kind: harbor-local
+  tasks_root: /home/kent/autobench/spider2-dbt/_views
+  tasks:
+  - spider2-dbt-provider001
+  - spider2-dbt-intercom001
+  - spider2-dbt-hive001
+  - spider2-dbt-netflix001
+  - spider2-dbt-xero001
+  - spider2-dbt-asana001
+  - spider2-dbt-apple_store001
+  - spider2-dbt-google_play001
+  - spider2-dbt-mrr001
+  - spider2-dbt-quickbooks002
+  - spider2-dbt-activity001
+trials: 1
+concurrency:
+  trials: 4
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
+provenance:
+  pin_model_version: true
+  pin_image_digest: true
+  pin_agent_cli_hash: true
+  pin_git_sha: true
+  model_resolved_version: null
+  model_resolved_at: null
+  image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
+  agent_cli_hash: sha256:d3be844c45c4fd89392536e56e1010963f94785592596b50cd0c45bb8a341406
+  harness_git_sha: 6ab3de3563aeb150c3d5f958a06c3456facd5982
+  harbor_version: 0.6.6
+  prompt_file_hashes: {}
+  plugins: []
+experiment_meta: null
