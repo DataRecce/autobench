@@ -12,13 +12,13 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
 
 ## State machine (each wake-up: read this file, find the first non-DONE step, act, update status here)
 
-- [ ] **STEP 0 — re-baseline finishes.** When `runs/.rk-handles/spd0013-rebaseline-v022-20260628-153335/done`
-  exists: audit the board (coverage_missing / errored / usage-limit), compute v0.22 score vs old v0.12
-  baseline (spd0013 27/60, true ~20 rock-solid), write the result, and tee up the @baseline promotion
-  decision for the captain (do NOT promote). Then recompute the v0.22 never-solved set and for each smoke
-  below, DROP any target the v0.22 board now PASSES (note it). Mark STEP 0 DONE.
+- [x] **STEP 0 — re-baseline finishes. DONE 2026-06-28 ~18:44.** v0.22 board = 25 PASS / 34 FAIL / 1 EXC
+  (recharge001 = infra timeout, not a regression → effective ~26/60). Board-NEUTRAL vs v0.12 27/60 (inside
+  flaky-band variance; 19/20 rock-solid held + 6 flaky-band flips). All 5 smoke targets confirmed STILL
+  never-solved under v0.22 → DROP NONE. @baseline promotion teed up for captain (recommend re-point to
+  runs/spd0013-rebaseline-v022/d826c153beb3134b; NOT auto-promoted). Detail: docs/v022-rebaseline-2026-06-28.md.
 
-- [ ] **STEP 1 — SMOKE spd0027 (C7 author-missing-graded-model).** spec
+- [~] **STEP 1 (RUNNING, launched 18:46, handle spd0027-smoke-20260628-184640) — SMOKE spd0027 (C7 author-missing-graded-model).** spec
   `specs/spd0027-author-missing-graded-model.smoke.frozen.yaml` (content_hash 845ba003). Targets:
   synthea001, xero_new001. Canaries: f1001, mrr001, quickbooks002. Prune docker networks, launch detached
   via `drivers/rk-run-detached.sh spd0027-smoke <frozen-spec> run`, set a background waiter on its sentinel.
@@ -45,3 +45,6 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
 ## Log (append per wake-up)
 - 2026-06-28 ~15:5x — queue created; 3 forks authored + frozen (distinct content hashes); re-baseline still
   running (~43/60 at last check). STEP 0 pending re-baseline sentinel.
+
+- 2026-06-28 ~18:44 — STEP 0 DONE: v0.22 board ~26/60 board-neutral; no targets dropped. @baseline promotion teed up.
+- 2026-06-28 ~18:46 — STEP 1 launched: spd0027 C7 smoke (synthea001,xero_new001 + 3 canaries), pid 2302649.
