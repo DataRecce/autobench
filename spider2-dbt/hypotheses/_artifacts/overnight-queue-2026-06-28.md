@@ -18,14 +18,14 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
   never-solved under v0.22 → DROP NONE. @baseline promotion teed up for captain (recommend re-point to
   runs/spd0013-rebaseline-v022/d826c153beb3134b; NOT auto-promoted). Detail: docs/v022-rebaseline-2026-06-28.md.
 
-- [~] **STEP 1 (RUNNING, launched 18:46, handle spd0027-smoke-20260628-184640) — SMOKE spd0027 (C7 author-missing-graded-model).** spec
+- [x] **STEP 1 DONE (NO-GO; synthea001 FAIL + xero_new001 FAIL, 3/3 canaries held) — SMOKE spd0027 (C7 author-missing-graded-model).** spec
   `specs/spd0027-author-missing-graded-model.smoke.frozen.yaml` (content_hash 845ba003). Targets:
   synthea001, xero_new001. Canaries: f1001, mrr001, quickbooks002. Prune docker networks, launch detached
   via `drivers/rk-run-detached.sh spd0027-smoke <frozen-spec> run`, set a background waiter on its sentinel.
   On done: audit (targets flipped? canaries held? coverage_missing/errored?), record result in the spd0027
   entity + here, HOLD (no full). Mark STEP 1 DONE.
 
-- [ ] **STEP 2 — SMOKE spd0028 (C6 cast-before-string-op).** spec
+- [~] **STEP 2 (RUNNING) — SMOKE spd0028 (C6 cast-before-string-op).** spec
   `specs/spd0028-cast-before-string-op.smoke.frozen.yaml` (content_hash 4b327448). Target: social_media001.
   Canaries: f1001, mrr001, quickbooks002, hubspot001. Same launch+audit+HOLD protocol. Mark STEP 2 DONE.
 
@@ -48,3 +48,4 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
 
 - 2026-06-28 ~18:44 — STEP 0 DONE: v0.22 board ~26/60 board-neutral; no targets dropped. @baseline promotion teed up.
 - 2026-06-28 ~18:46 — STEP 1 launched: spd0027 C7 smoke (synthea001,xero_new001 + 3 canaries), pid 2302649.
+- 2026-06-28 ~19:15 — STEP 1 DONE: spd0027 C7 NO-GO (both targets FAIL, canaries clean; execution wall). Launching STEP 2.

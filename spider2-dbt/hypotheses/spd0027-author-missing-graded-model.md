@@ -28,4 +28,11 @@ spec `specs/spd0027-author-missing-graded-model.smoke.frozen.yaml`, trials=1.
 - canaries (must hold): f1001, mrr001, quickbooks002
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**SMOKE = NO-GO (held for captain; no full, no promote).** 2026-06-28, run
+`runs/spd0027-author-missing-graded-model/c58c5d339fcf7372`.
+- Targets: synthea001 **FAIL**, xero_new001 **FAIL** — neither flipped.
+- Canaries: f1001, mrr001, quickbooks002 — all **PASS** (clean, no bleed → lever is gated/safe).
+- Mechanism: the build-the-gap directive WAS read (3–5 mentions in the agent logs) but the targets
+  still failed → the execution wall, not non-reading. Consistent with the prior C7 prediction (R5/R6
+  already in the champion; sharpening them is read-but-the-multi-source build still doesn't land).
+  No regression. Captain decides conclude/REJECTED.
