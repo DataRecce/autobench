@@ -26,4 +26,11 @@ spec `specs/spd0028-cast-before-string-op.smoke.frozen.yaml`, trials=1.
 - canaries (must hold): f1001, mrr001, quickbooks002, hubspot001
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**SMOKE = NO-GO (held for captain; no full, no promote).** 2026-06-28, run
+`runs/spd0028-cast-before-string-op/e2d1b690be0442cb`.
+- Target: social_media001 **FAIL** — did not flip.
+- Canaries: f1001, hubspot001, mrr001, quickbooks002 — all **PASS** (clean, no bleed).
+- Mechanism: 0 split_part/cast/::varchar mentions in the agent log → the lever **did not engage** on
+  social_media001's path (lever didn't-fire, not applied-but-wrong). Suggests the task's real failure
+  mode isn't the cast-before-split_part the catalog diagnosed, OR the solver routed elsewhere. No
+  regression. Captain decides conclude/REJECTED; if pursued, re-diagnose social_media001's actual residual.

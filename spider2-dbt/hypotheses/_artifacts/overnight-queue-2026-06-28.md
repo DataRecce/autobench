@@ -25,11 +25,11 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
   On done: audit (targets flipped? canaries held? coverage_missing/errored?), record result in the spd0027
   entity + here, HOLD (no full). Mark STEP 1 DONE.
 
-- [~] **STEP 2 (RUNNING) — SMOKE spd0028 (C6 cast-before-string-op).** spec
+- [x] **STEP 2 DONE (NO-GO; social_media001 FAIL, lever didn't engage, 4/4 canaries held) — SMOKE spd0028 (C6 cast-before-string-op).** spec
   `specs/spd0028-cast-before-string-op.smoke.frozen.yaml` (content_hash 4b327448). Target: social_media001.
   Canaries: f1001, mrr001, quickbooks002, hubspot001. Same launch+audit+HOLD protocol. Mark STEP 2 DONE.
 
-- [ ] **STEP 3 — SMOKE spd0029 (C2 financial-statement-spine).** spec
+- [~] **STEP 3 (RUNNING) — SMOKE spd0029 (C2 financial-statement-spine).** spec
   `specs/spd0029-financial-statement-spine.smoke.frozen.yaml` (content_hash 3aea076e). Targets: xero001,
   xero_new001, xero_new002. Canaries: f1001, mrr001, quickbooks002. Same protocol. Mark STEP 3 DONE.
 
@@ -49,3 +49,4 @@ SERIALLY — each smoke's `done` sentinel must exist before the next launches.
 - 2026-06-28 ~18:44 — STEP 0 DONE: v0.22 board ~26/60 board-neutral; no targets dropped. @baseline promotion teed up.
 - 2026-06-28 ~18:46 — STEP 1 launched: spd0027 C7 smoke (synthea001,xero_new001 + 3 canaries), pid 2302649.
 - 2026-06-28 ~19:15 — STEP 1 DONE: spd0027 C7 NO-GO (both targets FAIL, canaries clean; execution wall). Launching STEP 2.
+- 2026-06-28 ~19:43 — STEP 2 DONE: spd0028 C6 NO-GO (social_media001 FAIL, lever didn't engage; canaries clean). Launching STEP 3.
