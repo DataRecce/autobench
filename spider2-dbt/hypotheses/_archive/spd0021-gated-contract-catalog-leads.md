@@ -1,14 +1,15 @@
 ---
 id: spd0021
 title: Gated contract forcing-function over the 5 catalog leads — reliable compliance via write-then-obey, multi-draw
-status: smoke
+status: conclude
 kind: hypothesis
 source: "synthesis of the 2026-06-27 autonomous sprint: the contract forcing-function (spd0011) is the ONLY mechanism that made a README rule reliably obeyed (airbnb 2/2 with scaffold vs 1/2 lean); the residual catalog gives 5 exact oracle-free per-task fixes. This composes them GATED (zero passer cost) and judges by a trials=3 hold-rate (beats the variance wall). forks champion @baseline spd0013."
 started: 2026-06-27
-completed:
-verdict:
+completed: 2026-06-28
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-28T02:38:44Z
 ---
 
 ## Hypothesis
@@ -230,3 +231,20 @@ Forked champion spd0013 and added ONE gated stage — `## Stage: Implementation 
 ### Summary
 
 Broadened the gated contract templates C1 (→6 cells: provider/asana/intercom/netflix/reddit-comments/hive) and C2 (→3 cells: xero/xero_new001/xero_new002), and added C6 (CAST-BEFORE-STRING-OP, social_media001) + C7 (AUTHOR THE MISSING GRADED MODEL, synthea001/xero_new001), so the trials=3 run tests the full ~13-cell reachable-deterministic lead set instead of 5. C3/C4/C5 and all spd0013 guidance untouched; README change is a pure addition, leak-guard byte-intact, no gold counts baked. Re-froze both specs from the repo root (content_hash 46a11f38 → 6a000219); full spec stays trials:3, sanity smoke rebuilt to exactly 22 tasks (13 leads + 8 hard canaries + tickit001). Gatekeeper re-reviewed: APPROVE, no FAILs.
+
+
+## Smoke result (trials=3 panel)
+
+**NO-GO — the broad 7-template gated contract does NOT compose.** trials=1 sanity `8eeb570b` = 0/13 leads;
+trials=3 panel `a6a86c6957cc77ee` (22 cells, audit clean bar 1 transient coverage_missing) hold-rates:
+**asana001 2/3** (the lone reliable-ish lead), tickit002 1/3, ALL OTHER 11 leads 0/3. Canaries held
+(google_play002 2/3 = variance). The contract ENGAGES (synthea built the union model; provider reasoned the
+LEFT-join) but the fixes do not LAND — 1/13 reliable. The cognitive load of 7 gated templates degrades
+execution vs spd0011's focused single-template success (airbnb 2/2). Falsified at multi-draw; do NOT
+full-run. asana001 (C1) carried forward to the focused spd0022.
+
+## Verdict
+
+**REJECTED.** The broad gated contract over many templates is net-inert (1/13 leads reliable). The contract
+forcing-function works FOCUSED (spd0011) but does not COMPOSE across templates. @baseline unchanged. The one
+reliable lead, asana001 (C1 entity-completeness, 2/3), is isolated + tested in spd0022.

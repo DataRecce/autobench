@@ -1,7 +1,7 @@
 ---
 id: spd0022
 title: Focused C1-only contract — does narrowing the contract to one template recover reliability across the C1 family?
-status: smoke
+status: full
 kind: hypothesis
 source: "spd0021 trials=3 found the BROAD 7-template gated contract does not compose (1/13 leads reliable: asana001 2/3); spd0011 showed a FOCUSED single-template contract works (airbnb 2/2). This isolates: a contract with ONLY the C1 entity-completeness template, on the C1 family, trials=3. Forks champion spd0013."
 started: 2026-06-28
