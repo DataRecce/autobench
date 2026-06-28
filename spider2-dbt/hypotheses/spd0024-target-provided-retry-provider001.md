@@ -1,7 +1,7 @@
 ---
 id: spd0024
 title: Harness prototype — target-provided structural retry on provider001 (does handing the worker the source-derived target make it converge?)
-status: propose
+status: smoke
 kind: hypothesis
 source: "spd0023 follow-up: the retry loop FIRED but couldn't converge because the worker can't reliably DERIVE the correct target structure. This prototype HANDS the worker the source-derived target (a deterministic count-check over the full reference SOURCE) + loop-until-pass, on provider001 only. In-scope README approximation of the agent-scaffold harness (razorback is read-only). Forks champion spd0013."
 started: 2026-06-28
