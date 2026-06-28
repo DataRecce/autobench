@@ -113,3 +113,17 @@ audit = 160 clean / 20 coverage_missing / 0 tainted; 24 q-z tasks had ≥1 usage
 as 0). The board SCORE is therefore invalid, but asana001's own verdict is valid (its draws were clean).
 Net: the focused-C1 lever produced no promotable gain; combined with spd0011/13/21, the contract mechanism
 banks ZERO durable board-wide flips. @baseline unchanged.
+
+## Clean merged board (post usage-limit recovery, 2026-06-28)
+
+After the codex usage-limit contaminated 24 q-z tasks, the run was completed via a credit-conscious top-up
+(`spd0022-focused-c1-topup2`, trials=1, 24/24 clean after a `docker network prune` fixed an address-pool
+exhaustion). Merging the original run's surviving clean draws + the top-up draw per task (59 tasks at 3
+clean draws, synthea001 at 2):
+- **stratified pass@1 = 0.4333 ≈ 26/60**; **majority-pass (>½ draws) = 27/60**; ever-pass = 31/60.
+- = the champion spd0013 (27/60) within variance → focused-C1 is BOARD-NEUTRAL, zero durable gain.
+- asana001 NOT in the majority-pass set (clean 0/3) — promotion target did not land. @baseline stays spd0013 27/60.
+INFRA LESSON: two "running out" failure modes hit this session — (1) codex account usage-limit (out of
+credits, resets Jul 2; contaminated 24 tasks across spd0022+spd0025-full), (2) docker address-pool
+exhaustion from accumulated orphaned networks (fixed by `docker network prune`). Always prune networks
+between runs; never run parallel full boards (accelerates the credit burn + contaminates both).
