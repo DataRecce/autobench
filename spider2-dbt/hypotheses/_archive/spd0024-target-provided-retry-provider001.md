@@ -1,14 +1,15 @@
 ---
 id: spd0024
 title: Harness prototype — target-provided structural retry on provider001 (does handing the worker the source-derived target make it converge?)
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0023 follow-up: the retry loop FIRED but couldn't converge because the worker can't reliably DERIVE the correct target structure. This prototype HANDS the worker the source-derived target (a deterministic count-check over the full reference SOURCE) + loop-until-pass, on provider001 only. In-scope README approximation of the agent-scaffold harness (razorback is read-only). Forks champion spd0013."
 started: 2026-06-28
-completed:
-verdict:
+completed: 2026-06-28
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-28T05:26:02Z
 ---
 
 ## Hypothesis
@@ -108,3 +109,25 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 ### Summary
 
 Forked the spd0013 champion solver into spd0024 and added exactly one gated stage: a provider001-shape source-derived structural retry loop that computes EXPECTED row counts at runtime via `count(*)` over the SOURCE tables `nppes.nucc_taxonomy` (full taxonomy reference) and `nppes.npi` (all NPIs), then LEFT-join-rebuilds any model that dropped rows (≤3 cycles). Oracle-safety verified by grep and by the gatekeeper: no hardcoded counts, no gold/tests/expected reads, leak-guard byte-intact. Smoke spec (trials=3, 5 tasks) frozen with a content-hash distinct from baseline 9660d413; `--explain` confirms Tasks: 5. Gatekeeper recommendation APPROVE.
+
+
+## Smoke result + Verdict
+
+**REJECTED — target-provision does NOT converge provider001 (0/3); the wall is EXECUTING the fix, not deriving/checking it.**
+trials=3 `runs/spd0024-target-provided-retry-provider001/ceb6d07620748157` (5 cells, strict audit CLEAN 15/0/0).
+provider001 0/3; canaries hold (quickbooks002 2/3 = variance).
+
+**Artifact-proven:** the worker RAN the provided source-count checks (count over nppes.nucc_taxonomy 18×,
+nppes.npi 8×), SAW the gaps (logged nucc 874 / crosswalk 558 / its built ~460 / npi 85196 vs 82339), and
+REBUILT 3×. Still 0/3. So target-provision + forced check + retry all occurred and it still didn't converge.
+
+**The wall, located precisely:** NOT target-derivation (spd0023), NOT check-discipline (checks ran) — it is
+reliably EXECUTING the multi-table fix. provider001's residual is row-set-reproducible (catalog: LEFT-join →
+gold exactly), so this isn't a value-oracle problem; the worker simply can't reliably write the correct
+LEFT-join (join key / no dedup / keep-all) across rebuilds — the SQL execution is the varying part.
+
+**Implication for the harness path:** an external harness forces the check + hands the target, but still
+relies on the LLM worker to write the correct rebuild SQL — exactly the varying part. So multi-table
+provider001-class cells will NOT converge via any LLM-worker harness. Only asana001-class cells (where the
+worker's natural single-table build IS the fix) land reliably. Bears on spd0025 (the three-worker loop's
+Validate worker is also oracle-blind / the Implement worker has the same execution variance).
