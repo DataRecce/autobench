@@ -1,7 +1,7 @@
 ---
 id: spd0023
 title: Structural self-check + rebuild loop — attack execution variance with an oracle-free row-set/grain signature retry
-status: propose
+status: smoke
 kind: hypothesis
 source: "the 2026-06-27/28 finding: the contract makes the worker WRITE+CHECK the right fix once but it doesn't reliably LAND (per-cell execution variance is the wall; spd0021/22 = 1/13 reliable). This adds a BUILD->self-check-structural-signature->REBUILD loop (retry on failure), distinct from spd0015's correlated value-recheck. Forks champion spd0013."
 started: 2026-06-28
