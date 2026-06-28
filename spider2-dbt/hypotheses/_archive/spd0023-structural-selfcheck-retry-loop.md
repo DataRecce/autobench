@@ -1,14 +1,15 @@
 ---
 id: spd0023
 title: Structural self-check + rebuild loop — attack execution variance with an oracle-free row-set/grain signature retry
-status: smoke
+status: conclude
 kind: hypothesis
 source: "the 2026-06-27/28 finding: the contract makes the worker WRITE+CHECK the right fix once but it doesn't reliably LAND (per-cell execution variance is the wall; spd0021/22 = 1/13 reliable). This adds a BUILD->self-check-structural-signature->REBUILD loop (retry on failure), distinct from spd0015's correlated value-recheck. Forks champion spd0013."
 started: 2026-06-28
-completed:
-verdict:
+completed: 2026-06-28
+verdict: REJECTED
 score:
 worktree:
+archived: 2026-06-28T03:38:16Z
 ---
 
 ## Hypothesis
@@ -115,3 +116,23 @@ Gate mode: AUTO-APPROVE (APPROVE + clean reject-checks ⇒ auto-advance to smoke
 ### Summary
 
 Forked champion spd0013 into solver_workflows/spd0023-structural-selfcheck-retry-loop and added exactly one new stage — a gated build→structural-self-check→rebuild loop (retry up to 3× on an oracle-free row-set/count/grain/period signature, never gold) — as a pure append (diff 397a398,419, zero deletions, leak-guard byte-intact). Authored + froze the trials=1 / 11-task smoke spec (5 row-set/grain leads + asana001 positive control + 5 baseline-passing canaries), dropping the stale baseline hash so freeze recomputed content_hash d6d313fd (≠ baseline 9660d413); `--explain` confirms Tasks: 11. Gatekeeper returned APPROVE with no FAILs (G10 self-correcting family passes all three sub-checks — gated, structural-not-value independence, diagnose-then-rebuild). No rk run launched beyond $0 --explain; the FO owns the smoke launch.
+
+
+## Smoke result + Verdict
+
+**REJECTED (mode-2: loop fires but cannot converge multi-source targets).** trials=1 smoke
+`runs/spd0023-structural-selfcheck-retry-loop/7756f6b416d01b43` (11 cells, strict audit CLEAN). Flip targets
+provider001/intercom001/hive001/netflix001/xero001 + asana001-control = **0/6**; canaries 5/5 hold.
+
+**The loop FIRED** (artifact-proven): provider001 ran genuine structural self-checks
+(`count(*) ... rows_unmatched_to_nucc`, `count(*) filter (where provider_taxonomy_code is null)`,
+distinct-NPI counts) and REBUILT the models 7-9× — exactly the build→check→rebuild loop. It still didn't
+converge. **Root cause = the retry checks the built table against the worker's OWN derivation of the correct
+structure, and for multi-source cells that derivation is itself the variance.** The worker can't reliably
+determine what the full base-set should be (which sources compose 874 nucc codes / 85196 NPIs) without gold,
+so retrying against a self-derived (sometimes-wrong) target never reaches gold. The "oracle-free structural
+signature" is only oracle-free if you can reliably derive the target structure — and that derivation IS the
+wall. (asana001 lands 2/3 elsewhere because its target is trivially one source table; here it ran low =
+single-draw variance.) The mode-2 decision-table follow-up is futile: the problem is target-DERIVATION, not
+fix-mapping. @baseline unchanged. Concludes the README-lever program (see
+`_artifacts/readme-lever-program-endpoint-2026-06-28.md`).
