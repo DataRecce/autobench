@@ -19,4 +19,4 @@ spec `specs/spd0033-divvy-staging-test-warn-not-filter.smoke.frozen.yaml`. TARGE
 GO = divvy001 3/3 AND f1001 holds. NO-GO = divvy001 <3/3 or canary regression → revise directive, re-smoke until exhausted.
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**REV0 SMOKE = NO-GO.** run runs/spd0033-divvy-staging-test-warn-not-filter (rev0): TARGET divvy001 0/3; canary f1001 1/3 (f1001 itself ~60%-flaky, weak canary). Diagnosis: directive NOT engaged — all 3 draws built `PASS=14 WARN=0` and row count 426886 (short by 1) → solver STILL filtered the bad row (kept all tests green) instead of severity:warn. "Talks but doesn't do." REV1: forceful HARD ANTI-PATTERN ("clean build is a TRAP; never add WHERE to silence a test; only severity:warn; verify WARN not PASS + rowcount==source"). Re-smoking.
