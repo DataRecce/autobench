@@ -1,0 +1,22 @@
+---
+id: spd0033
+title: Stabilize divvy001 (NEW rule) — divvy-staging-test-warn-not-filter
+status: smoke
+kind: hypothesis
+source: "spd0030 fan-out. Bifurcation analysis (_artifacts/flaky-bifurcation-analysis-2026-06-29.md) found divvy001's pass-vs-fail bifurcation. NEW gated directive. forks champion @baseline spd0013. Smoke = divvy001 trials=3 (consistency) + canary f1001."
+started: 2026-06-29
+completed:
+verdict:
+score:
+worktree:
+archived:
+---
+
+When a no-filter staging model's column test fails on raw rows, make the test non-blocking (severity: warn) — never add a WHERE that drops rows.
+
+## Smoke
+spec `specs/spd0033-divvy-staging-test-warn-not-filter.smoke.frozen.yaml`. TARGET **divvy001** at trials=3 (consistency hold-rate) + canary **f1001**.
+GO = divvy001 3/3 AND f1001 holds. NO-GO = divvy001 <3/3 or canary regression → revise directive, re-smoke until exhausted.
+
+## Result
+_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
