@@ -26,7 +26,7 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 | 4 | spd0034 | asset001 | app_reporting001 | spd0034-asset-round-final-product-only | NEW | **GO 3/3 @rev1 (HELD)** | 1 |
 | 5 | spd0035 | greenhouse001 | hubspot001 | spd0035-greenhouse-no-string-cast-id | SHARPEN | **GO 3/3 (HELD)** | 0 |
 | 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | RUNNING-rev2(h=spd0036-smoke-rev2-20260629-050354) | 2 |
-| 7 | spd0037 | apple_store001 | google_play001 | spd0037-applestore-raw-grouping-key | SHARPEN | RUNNING-rev1(h=spd0037-smoke-rev1-20260629-044537) | 1 |
+| 7 | spd0037 | apple_store001 | google_play001 | spd0037-applestore-raw-grouping-key | SHARPEN | **GO 3/3 @rev1 (HELD)** | 1 |
 
 ## Loop procedure (each wake-up)
 1. Read this table. Count RUNNING smokes (handles without `done`). If <2 and a QUEUED hyp exists, launch the
@@ -52,3 +52,4 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 - 2026-06-29 ~04:30 — spd0037 applestore rev0 NO-GO (target 3/3 but google_play001 canary bleed 1/3, gate too broad); revised→rev1 (count-distinct gate), re-queued. spd0037 freed slot → launching spd0036 airbnb-rev1.
 - 2026-06-29 ~04:45 — spd0033 divvy rev2 NO-GO (0/3 ×3 revs) → NO-GO-EXHAUSTED (prose can't override filter reflex). slot freed → launching applestore-rev1 (count-distinct gate).
 - 2026-06-29 ~05:00 — spd0036 airbnb rev1 NO-GO (2/3, over-emit recurs); revised→rev2 (eliminate incremental path, plain table). slot freed → launching airbnb-rev2.
+- 2026-06-29 ~05:15 — spd0037 applestore GO 3/3 @rev1 (count-distinct gate fixed bleed; google_play canary recovered 3/3)! Only airbnb-rev2 left running.
