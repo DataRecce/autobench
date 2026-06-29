@@ -22,11 +22,11 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 |---|-----|--------|--------|---------------|------|--------|------|
 | 1 | spd0031 | quickbooks003 | quickbooks002 | spd0031-qb003-reuse-shipped-upstream | NEW | **GO 3/3 @rev1 (HELD)** | 1 |
 | 2 | spd0032 | sap001 | marketo001 | spd0032-sap-reaggregate-long-to-grain | NEW | **GO 3/3 (HELD)** | 0 |
-| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | RUNNING-rev2(h=spd0033-smoke-rev2-20260629-041639) | 2 |
+| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | **NO-GO-EXHAUSTED (0/3 ×3 revs, talks-but-doesnt-do)** | 3 |
 | 4 | spd0034 | asset001 | app_reporting001 | spd0034-asset-round-final-product-only | NEW | **GO 3/3 @rev1 (HELD)** | 1 |
 | 5 | spd0035 | greenhouse001 | hubspot001 | spd0035-greenhouse-no-string-cast-id | SHARPEN | **GO 3/3 (HELD)** | 0 |
 | 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | RUNNING-rev1(h=spd0036-smoke-rev1-20260629-043027) | 1 |
-| 7 | spd0037 | apple_store001 | google_play001 | spd0037-applestore-raw-grouping-key | SHARPEN | rev0 NO-GO(tgt 3/3 but canary bleed)→QUEUED-rev1 | 1 |
+| 7 | spd0037 | apple_store001 | google_play001 | spd0037-applestore-raw-grouping-key | SHARPEN | RUNNING-rev1(h=spd0037-smoke-rev1-20260629-044537) | 1 |
 
 ## Loop procedure (each wake-up)
 1. Read this table. Count RUNNING smokes (handles without `done`). If <2 and a QUEUED hyp exists, launch the
@@ -50,3 +50,4 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 - 2026-06-29 ~04:00 — spd0035 greenhouse001 GO 3/3 (first SHARPEN GO)! slot freed → launching spd0037 applestore (untried). spd0036 airbnb still running.
 - 2026-06-29 ~04:15 — spd0036 airbnb001 rev0 NO-GO (2/3, full-refresh over-emit in 1 draw); revised→rev1 (mandatory validation gate), re-queued. slot freed → launching divvy-rev2 (final attempt).
 - 2026-06-29 ~04:30 — spd0037 applestore rev0 NO-GO (target 3/3 but google_play001 canary bleed 1/3, gate too broad); revised→rev1 (count-distinct gate), re-queued. spd0037 freed slot → launching spd0036 airbnb-rev1.
+- 2026-06-29 ~04:45 — spd0033 divvy rev2 NO-GO (0/3 ×3 revs) → NO-GO-EXHAUSTED (prose can't override filter reflex). slot freed → launching applestore-rev1 (count-distinct gate).
