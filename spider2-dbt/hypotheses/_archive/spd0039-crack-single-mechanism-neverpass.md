@@ -6,8 +6,8 @@ id: spd0039
 source: "captain-directed (2026-06-29). Leaderboard top-1 = 65%/68 proves group-3 (never-pass) IS solvable. The residual catalog splits the ~13 reachable never-pass cells into MULTI-STEP (xero/synthea/provider/social_media — already README-NO-GO, execution-walled, need a stronger solver = Phase 2) vs SINGLE-MECHANISM (movie_recomm001/nba001/netflix001/intercom001/hive001 — one clean pinnable bifurcation, NEVER focus-tried). This concept applies the proven flaky-stabilization method (pin one bifurcation) to the single-mechanism never-pass cells. forks NEW champion spd0038."
 started: 2026-06-29
 completed:
-verdict:
-archived:
+verdict: NEEDS-PHASE2-readme-exhausted
+archived: 2026-06-29T15:42:06Z
 ---
 
 Phase 1 of the group-3 dig-in (captain decision: both Phase 1 README + Phase 2 model-swap-scope). These are
