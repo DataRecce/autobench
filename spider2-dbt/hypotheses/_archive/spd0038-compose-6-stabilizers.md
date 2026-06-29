@@ -1,15 +1,15 @@
 ---
 id: spd0038
 title: Compose the 6 GO flaky-stabilizer directives into one champion fork — confirm they merge without cross-bleed
-status: analyze
+status: conclude
 kind: hypothesis
 source: "spd0030 follow-up (captain-directed). The 6 GO stabilizers (spd0031 qb003 reuse-shipped-upstream, spd0032 sap001 re-aggregate-long-to-grain, spd0034 asset001 round-final-product, spd0035 greenhouse001 no-string-cast-id, spd0036 airbnb001 plain-table, spd0037 apple_store001 raw-key-gated) were each validated in ISOLATION. This merges all 6 (winning revs) into one champion fork and smokes them together to confirm they compose without interference/bleed before any full-board promote."
 started: 2026-06-29
 completed:
-verdict:
+verdict: PASSED-PROMOTED
 score:
 worktree:
-archived:
+archived: 2026-06-29T13:08:52Z
 ---
 
 The 6 GO directives sit at disjoint locations in the champion README (Implementation gated-rules ×2, G3 ×2,
@@ -39,3 +39,8 @@ run `runs/spd0038-compose-6-stabilizers-full/fb10902ab7d9ffa7` (60 cells, trials
 - **A single-draw full board CANNOT demonstrate a variance-reduction intervention** — the stabilizers' value (proven at trials=3 per cell: each flaky cell reliably 3/3) shows up only as a higher per-cell HOLD-RATE across draws, not a one-draw count; single-draw ±churn swamps it (reconfirms the variance-wall lesson).
 - **The merge is bleed-free + the 6 stabilizers are individually trials=3-proven → composing into champion is essentially DOWNSIDE-FREE** (raises expected/average board reliability without hurting any cell), even though this one draw reads flat.
 - **CAPTAIN DECISION:** (a) PROMOTE — compose into champion on the per-cell trials=3 + bleed-free-full-board evidence (low-risk, raises expected score); or (b) PROVE FIRST — run a multi-draw (trials=3) full board comparing per-cell hold-rates spd0038 vs @baseline before promoting; or (c) HOLD. Recommend (b) if you want hard proof of the lift, (a) if low-risk reliability gain is enough. NOT promoted autonomously.
+
+## PROMOTED (2026-06-29, captain decision A)
+- `@baseline` re-pointed → `runs/spd0038-compose-6-stabilizers-full/fb10902ab7d9ffa7` (26/60, clean, bleed-free). Prior anchor preserved as `@baseline-v022-spd0013` (runs/spd0013-rebaseline-v022/d826c153beb3134b); `@baseline-v012` also kept.
+- **NEW CHAMPION SOLVER = `solver_workflows/spd0038-compose-6-stabilizers`** (champion spd0013 + the 6 composed flaky-stabilizer directives). Future hypotheses fork from THIS, not spd0013.
+- Rationale: per-cell trials=3 proof + bleed-free full board = sufficient; downside-free reliability gain (banks sap001 flip + locks 4 already-passing flaky targets to reliable + asset001/qb003 ~80%). Headline ~26/60 unchanged (single-draw can't show variance reduction); EXPECTED board score + floor are higher. Did NOT spend codex on a multi-draw proof (Jul 2 window). Stabilization ceiling ~31/60 — 70% needs a non-README lever.
