@@ -19,4 +19,4 @@ spec `specs/spd0036-airbnb-window-anchor-rowcount-check.smoke.frozen.yaml`. TARG
 GO = airbnb001 3/3 AND mrr001 holds. NO-GO = airbnb001 <3/3 or canary regression → revise directive, re-smoke until exhausted.
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**REV0 SMOKE = NO-GO.** run runs/spd0036-airbnb-window-anchor-rowcount-check/069c5604964b92b2: airbnb001 2/3 (F,P,P — same as its ~2/3 baseline, no consistency gain); canary mrr001 3/3. The 1 failing draw over-emitted (~10851/17499 rows = full history) — the window filter was skipped under --full-refresh (left inside is_incremental()); the advisory row-count check was not heeded. REV1: MANDATORY validation gate (count vs distinct-group; if row count scales with dates → move filter out of is_incremental() + rebuild). Re-smoking.

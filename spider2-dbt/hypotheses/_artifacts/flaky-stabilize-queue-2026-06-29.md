@@ -22,10 +22,10 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 |---|-----|--------|--------|---------------|------|--------|------|
 | 1 | spd0031 | quickbooks003 | quickbooks002 | spd0031-qb003-reuse-shipped-upstream | NEW | **GO 3/3 @rev1 (HELD)** | 1 |
 | 2 | spd0032 | sap001 | marketo001 | spd0032-sap-reaggregate-long-to-grain | NEW | **GO 3/3 (HELD)** | 0 |
-| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | rev1 NO-GO→QUEUED-rev2 | 2 |
+| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | RUNNING-rev2(h=spd0033-smoke-rev2-20260629-041639) | 2 |
 | 4 | spd0034 | asset001 | app_reporting001 | spd0034-asset-round-final-product-only | NEW | **GO 3/3 @rev1 (HELD)** | 1 |
 | 5 | spd0035 | greenhouse001 | hubspot001 | spd0035-greenhouse-no-string-cast-id | SHARPEN | **GO 3/3 (HELD)** | 0 |
-| 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | RUNNING(h=spd0036-smoke-20260629-034239) | 0 |
+| 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | rev0 NO-GO(2/3)→QUEUED-rev1 | 1 |
 | 7 | spd0037 | apple_store001 | google_play001 | spd0037-applestore-raw-grouping-key | SHARPEN | RUNNING(h=spd0037-smoke-20260629-040138) | 0 |
 
 ## Loop procedure (each wake-up)
@@ -48,3 +48,4 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 - 2026-06-29 ~03:15 — spd0031 qb003 GO 3/3 @rev1 (recovered)! spd0033 divvy rev1 NO-GO again→rev2 (validation-gate) queued. 2 slots free → launching spd0034-rev1 + spd0035.
 - 2026-06-29 ~03:40 — spd0034 asset001 GO 3/3 @rev1 (recovered)! slot freed → launching spd0036 airbnb (untried). spd0035 still running.
 - 2026-06-29 ~04:00 — spd0035 greenhouse001 GO 3/3 (first SHARPEN GO)! slot freed → launching spd0037 applestore (untried). spd0036 airbnb still running.
+- 2026-06-29 ~04:15 — spd0036 airbnb001 rev0 NO-GO (2/3, full-refresh over-emit in 1 draw); revised→rev1 (mandatory validation gate), re-queued. slot freed → launching divvy-rev2 (final attempt).
