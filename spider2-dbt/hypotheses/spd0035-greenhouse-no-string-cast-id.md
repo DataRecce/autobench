@@ -19,4 +19,4 @@ spec `specs/spd0035-greenhouse-no-string-cast-id.smoke.frozen.yaml`. TARGET **gr
 GO = greenhouse001 3/3 AND hubspot001 holds. NO-GO = greenhouse001 <3/3 or canary regression → revise directive, re-smoke until exhausted.
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**SMOKE = GO (held).** run runs/spd0035-greenhouse-no-string-cast-id/35dc52adf441b365: greenhouse001 **3/3**, canary hubspot001 3/3. The sharpened "never string-cast an upstream id" directive stabilized it first try (rev0). First SHARPEN-class GO. HELD for captain.
