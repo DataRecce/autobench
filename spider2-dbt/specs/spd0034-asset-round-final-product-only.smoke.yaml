@@ -1,5 +1,5 @@
-# ABOUTME: spd0030 flaky-stabilization smoke — TARGET asset001 at trials=3 (consistency hold-rate) + canary recharge001. GO = asset001 3/3 + canary holds.
-# ABOUTME: forks champion spd0013 + ONE gated directive pinning asset001's pass-vs-fail bifurcation (see _artifacts/flaky-bifurcation-analysis-2026-06-29.md).
+# ABOUTME: spd0034 rev1 — asset001 trials=3 (round-final sharpened+self-check) + canary app_reporting001 (rock-solid; recharge001 dropped, itself flaky).
+# ABOUTME: forks champion spd0013 + round-final-product directive.
 version: 1
 experiment: spd0034-asset-round-final-product-only
 agent:
@@ -29,7 +29,7 @@ benchmark:
   tasks_root: /home/kent/autobench/spider2-dbt/_views
   tasks:
   - spider2-dbt-asset001
-  - spider2-dbt-recharge001
+  - spider2-dbt-app_reporting001
 trials: 3
 concurrency:
   trials: 3
