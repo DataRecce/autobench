@@ -1,15 +1,15 @@
 ---
 id: spd0031
 title: Stabilize quickbooks003 (NEW rule) — qb003-reuse-shipped-upstream
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0030 fan-out. Bifurcation analysis (_artifacts/flaky-bifurcation-analysis-2026-06-29.md) found quickbooks003's pass-vs-fail bifurcation. NEW gated directive. forks champion @baseline spd0013. Smoke = quickbooks003 trials=3 (consistency) + canary quickbooks002."
 started: 2026-06-29
 completed:
-verdict:
+verdict: PASSED-PROMOTED-into-spd0038
 score:
 worktree:
-archived:
+archived: 2026-06-29T17:39:53Z
 ---
 
 Reuse shipped int_/stg_ upstream — build ONLY the missing leaf via narrow --select (no +); never rebuild/edit a pre-existing upstream model or its casts.

@@ -1,15 +1,15 @@
 ---
 id: spd0037
 title: Stabilize apple_store001 (SHARPEN rule) — applestore-raw-grouping-key
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0030 fan-out. Bifurcation analysis (_artifacts/flaky-bifurcation-analysis-2026-06-29.md) found apple_store001's pass-vs-fail bifurcation. SHARPEN gated directive. forks champion @baseline spd0013. Smoke = apple_store001 trials=3 (consistency) + canary google_play001."
 started: 2026-06-29
 completed:
-verdict:
+verdict: PASSED-PROMOTED-into-spd0038
 score:
 worktree:
-archived:
+archived: 2026-06-29T17:39:54Z
 ---
 
 Sharpen the preserve-raw-grouping-key sub-note: build the reporting grain from the DISTINCT RAW key, no terminal GROUP BY/DISTINCT on the canonicalized lookup name.

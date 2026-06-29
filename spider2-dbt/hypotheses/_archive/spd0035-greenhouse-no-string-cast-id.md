@@ -1,15 +1,15 @@
 ---
 id: spd0035
 title: Stabilize greenhouse001 (SHARPEN rule) — greenhouse-no-string-cast-id
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0030 fan-out. Bifurcation analysis (_artifacts/flaky-bifurcation-analysis-2026-06-29.md) found greenhouse001's pass-vs-fail bifurcation. SHARPEN gated directive. forks champion @baseline spd0013. Smoke = greenhouse001 trials=3 (consistency) + canary hubspot001."
 started: 2026-06-29
 completed:
-verdict:
+verdict: PASSED-PROMOTED-into-spd0038
 score:
 worktree:
-archived:
+archived: 2026-06-29T17:39:54Z
 ---
 
 Sharpen the existing 'never re-type an id' rule: never wrap an upstream id in type_string()/cast-as-varchar — the grader compares by type-sensitive equality.

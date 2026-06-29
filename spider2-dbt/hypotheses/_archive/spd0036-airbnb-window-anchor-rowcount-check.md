@@ -1,15 +1,15 @@
 ---
 id: spd0036
 title: Stabilize airbnb001 (SHARPEN rule) — airbnb-window-anchor-rowcount-check
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0030 fan-out. Bifurcation analysis (_artifacts/flaky-bifurcation-analysis-2026-06-29.md) found airbnb001's pass-vs-fail bifurcation. SHARPEN gated directive. forks champion @baseline spd0013. Smoke = airbnb001 trials=3 (consistency) + canary mrr001."
 started: 2026-06-29
 completed:
-verdict:
+verdict: PASSED-PROMOTED-into-spd0038
 score:
 worktree:
-archived:
+archived: 2026-06-29T17:39:54Z
 ---
 
 Sharpen the rolling-window rule: anchor to single MAX source date, emit exactly one window, and self-check row count == distinct group values (not source dates).
