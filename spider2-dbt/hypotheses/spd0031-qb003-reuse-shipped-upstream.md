@@ -19,4 +19,4 @@ spec `specs/spd0031-qb003-reuse-shipped-upstream.smoke.frozen.yaml`. TARGET **qu
 GO = quickbooks003 3/3 AND quickbooks002 holds. NO-GO = quickbooks003 <3/3 or canary regression → revise directive, re-smoke until exhausted.
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**REV0 SMOKE = NO-GO (backfired).** run runs/spd0031-qb003-reuse-shipped-upstream (rev0): TARGET quickbooks003 0/3 (worse than ~65% baseline); canary quickbooks002 3/3. Diagnosis: directive ENGAGED (ran narrow --select) but it FAILED on a broken upstream package-staging model → solver rebuilt the chain → widened period set (the exact fail mode). The bifurcation premise (intermediates pre-materialized) doesn't hold in a clean run. REV1: handle broken-package case via R3 stub + forbid widening the date-spine (emit only periods with fact rows). Re-smoking.
