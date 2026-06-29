@@ -25,7 +25,7 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 | 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | **NO-GO-EXHAUSTED (0/3 ×3 revs, talks-but-doesnt-do)** | 3 |
 | 4 | spd0034 | asset001 | app_reporting001 | spd0034-asset-round-final-product-only | NEW | **GO 3/3 @rev1 (HELD)** | 1 |
 | 5 | spd0035 | greenhouse001 | hubspot001 | spd0035-greenhouse-no-string-cast-id | SHARPEN | **GO 3/3 (HELD)** | 0 |
-| 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | RUNNING-rev2(h=spd0036-smoke-rev2-20260629-050354) | 2 |
+| 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | **GO 3/3 @rev2 (HELD)** | 2 |
 | 7 | spd0037 | apple_store001 | google_play001 | spd0037-applestore-raw-grouping-key | SHARPEN | **GO 3/3 @rev1 (HELD)** | 1 |
 
 ## Loop procedure (each wake-up)
@@ -53,3 +53,4 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 - 2026-06-29 ~04:45 — spd0033 divvy rev2 NO-GO (0/3 ×3 revs) → NO-GO-EXHAUSTED (prose can't override filter reflex). slot freed → launching applestore-rev1 (count-distinct gate).
 - 2026-06-29 ~05:00 — spd0036 airbnb rev1 NO-GO (2/3, over-emit recurs); revised→rev2 (eliminate incremental path, plain table). slot freed → launching airbnb-rev2.
 - 2026-06-29 ~05:15 — spd0037 applestore GO 3/3 @rev1 (count-distinct gate fixed bleed; google_play canary recovered 3/3)! Only airbnb-rev2 left running.
+- 2026-06-29 ~05:25 — spd0036 airbnb GO 3/3 @rev2 (plain-table, no is_incremental)! ALL 7 TERMINAL: 6 GO + 1 NO-GO-EXHAUSTED. Writing summary; loop STOPPED.

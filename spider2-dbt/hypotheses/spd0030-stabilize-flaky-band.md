@@ -6,7 +6,7 @@ id: spd0030
 source: "captain-directed (2026-06-29). New target: NOT the never-pass set (execution-wall-bound, exhausted) but the FLAKY band — cells that ALREADY pass in some champion draws but not consistently, so they aren't banked in the v0.22 baseline. A passing draw is an oracle-free CORRECT-ANSWER reference, so the variance source is recoverable by diffing passing-vs-failing transcripts. Fine-tune the champion README to PIN each cell's bifurcation → consistency. forks champion @baseline spd0030(=spd0013 lineage)."
 started: 2026-06-29
 completed:
-verdict:
+verdict: 6-of-7-stabilized (HELD for captain compose)
 archived:
 ---
 
