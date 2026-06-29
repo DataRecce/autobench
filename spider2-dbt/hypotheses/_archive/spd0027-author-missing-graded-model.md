@@ -1,15 +1,15 @@
 ---
 id: spd0027
 title: Build-the-gap forcing check — author every declared-but-absent graded model (C7)
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0026 fan-out, family C7. synthea001 (champion errored building cost = UNION of int__cost_*) + xero_new001 (champion authored none of 3 declared models). Sharpens existing R5/R6 into a Validation-stage declared-vs-built diff forcing check. forks champion @baseline spd0013."
 started: 2026-06-28
 completed:
-verdict:
+verdict: REJECTED
 score:
 worktree:
-archived:
+archived: 2026-06-29T01:05:22Z
 ---
 
 A graded target that is never built is an automatic zero. The champion README already says to enumerate

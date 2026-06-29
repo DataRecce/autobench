@@ -1,15 +1,15 @@
 ---
 id: spd0029
 title: Cumulative financial-statement spine — Retained Earnings = cumulative P&L to month-end (C2)
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0026 fan-out, family C2 (NEW). xero001/xero_new001/xero_new002 balance-sheet targets: spine to last activity, Retained Earnings = cumulative P&L (no FY-end pin / no current-year-earnings split), stock accounts forward-carried. forks champion @baseline spd0013."
 started: 2026-06-28
 completed:
-verdict:
+verdict: REJECTED
 score:
 worktree:
-archived:
+archived: 2026-06-29T01:05:22Z
 ---
 
 A genuinely new structural rule for financial-statement targets (balance sheet / income statement / equity

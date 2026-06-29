@@ -6,8 +6,8 @@ id: spd0026
 source: "captain-directed (2026-06-28, post v0.22 spacedock solver upgrade). The README-lever program concluded exhausted on the MOST-tried never-pass families (C1 entity-completeness via spd0021/22, no-invented-filter spd0018, fuzzy-join spd0019 — all REJECTED). The residual catalog (never-pass-residual-catalog-2026-06-27.md) leaves three FRESHER, more-deterministic families that never got a focused, mechanism-distinct attempt. Fan to one hypothesis per family; forks champion @baseline spd0013."
 started: 2026-06-28
 completed: 2026-06-28
-verdict:
-archived:
+verdict: exhausted
+archived: 2026-06-29T01:05:22Z
 ---
 
 After the v0.22 solver upgrade and the running re-baseline, attack the reachable-deterministic

@@ -1,15 +1,15 @@
 ---
 id: spd0028
 title: Cast-to-text for a string-operation INPUT, distinct from re-typing the emitted id (C6)
-status: smoke
+status: conclude
 kind: hypothesis
 source: "spd0026 fan-out, family C6 (NEW). social_media001 needs a numeric id cast to varchar BEFORE split_part. Threads a narrow exception against the README's existing 'never cast an id' identifier-dtype guard. forks champion @baseline spd0013."
 started: 2026-06-28
 completed:
-verdict:
+verdict: REJECTED
 score:
 worktree:
-archived:
+archived: 2026-06-29T01:05:22Z
 ---
 
 The champion README forbids casting an identifier column's dtype (correct, for the EMITTED column). But a
