@@ -1,7 +1,7 @@
 ---
 id: spd0038
 title: Compose the 6 GO flaky-stabilizer directives into one champion fork — confirm they merge without cross-bleed
-status: smoke
+status: full
 kind: hypothesis
 source: "spd0030 follow-up (captain-directed). The 6 GO stabilizers (spd0031 qb003 reuse-shipped-upstream, spd0032 sap001 re-aggregate-long-to-grain, spd0034 asset001 round-final-product, spd0035 greenhouse001 no-string-cast-id, spd0036 airbnb001 plain-table, spd0037 apple_store001 raw-key-gated) were each validated in ISOLATION. This merges all 6 (winning revs) into one champion fork and smokes them together to confirm they compose without interference/bleed before any full-board promote."
 started: 2026-06-29
