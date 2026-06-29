@@ -1,7 +1,7 @@
 ---
 id: spd0038
 title: Compose the 6 GO flaky-stabilizer directives into one champion fork — confirm they merge without cross-bleed
-status: full
+status: analyze
 kind: hypothesis
 source: "spd0030 follow-up (captain-directed). The 6 GO stabilizers (spd0031 qb003 reuse-shipped-upstream, spd0032 sap001 re-aggregate-long-to-grain, spd0034 asset001 round-final-product, spd0035 greenhouse001 no-string-cast-id, spd0036 airbnb001 plain-table, spd0037 apple_store001 raw-key-gated) were each validated in ISOLATION. This merges all 6 (winning revs) into one champion fork and smokes them together to confirm they compose without interference/bleed before any full-board promote."
 started: 2026-06-29
@@ -30,3 +30,12 @@ spec `specs/spd0038-compose-6-stabilizers.smoke.frozen.yaml`, trials=3 (30 cells
 - CANARIES: app_reporting001 3/3, quickbooks002 2/2, google_play001 2/3, mrr001 2/3 — all HOLD (the single google_play001/mrr001 misses are their own near-rock-solid variance, NOT bleed; google_play stayed off 0-1/3 so the applestore count-distinct gate holds — no cross-bleed).
 - **quickbooks003 diagnosis: NOT a composition conflict.** Its failing draw shows its OWN bifurcation failure mode — `dbt run --select +` (rebuilt upstream) → 990 rows (widened period set), the exact reuse-shipped-upstream failure. No other composed directive interfered. quickbooks003's stabilizer is REAL but ~2-3/3-reliable (its broken-package/rebuild path is environment-fragile, not a fully-deterministic pin). Not auto-revised (no clean single-directive fix; rev1 already spent).
 - **VERDICT: the merge is SAFE and effective** — composing all 6 has zero cross-bleed, reliably banks 5 cells (3/3) + improves quickbooks003 (~2-3/3). Captain decision: compose into champion + full-board multi-draw validate + promote.
+
+
+## Full-board result (2026-06-29) — CLEAN but single-draw NEUTRAL; HELD for captain
+run `runs/spd0038-compose-6-stabilizers-full/fb10902ab7d9ffa7` (60 cells, trials=1, single run). **26 PASS / 34 FAIL / 0 EXC**, board audit-clean (no EXC / usage-limit / coverage_missing). vs @baseline (v0.22 run, 25 PASS + 1 EXC-timeout ≈ 26 effective). **NET +1 — within single-draw flaky-band noise.**
+- FLIPS: f1002, recharge001, sap001(target). REGRESSIONS: f1001, retail001 — BOTH own-variance (0 composed-directive engagement in their logs → **NO cross-bleed**; the merge is board-safe).
+- 4 of 6 targets (airbnb001/apple_store001/greenhouse001/quickbooks003) were ALREADY passing in the baseline draw (flaky cells); sap001 flipped F→P; asset001 F→F (own residual this draw, was 3/3 in 2 prior smokes).
+- **A single-draw full board CANNOT demonstrate a variance-reduction intervention** — the stabilizers' value (proven at trials=3 per cell: each flaky cell reliably 3/3) shows up only as a higher per-cell HOLD-RATE across draws, not a one-draw count; single-draw ±churn swamps it (reconfirms the variance-wall lesson).
+- **The merge is bleed-free + the 6 stabilizers are individually trials=3-proven → composing into champion is essentially DOWNSIDE-FREE** (raises expected/average board reliability without hurting any cell), even though this one draw reads flat.
+- **CAPTAIN DECISION:** (a) PROMOTE — compose into champion on the per-cell trials=3 + bleed-free-full-board evidence (low-risk, raises expected score); or (b) PROVE FIRST — run a multi-draw (trials=3) full board comparing per-cell hold-rates spd0038 vs @baseline before promoting; or (c) HOLD. Recommend (b) if you want hard proof of the lift, (a) if low-risk reliability gain is enough. NOT promoted autonomously.
