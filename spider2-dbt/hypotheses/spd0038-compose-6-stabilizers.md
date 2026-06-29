@@ -25,4 +25,8 @@ spec `specs/spd0038-compose-6-stabilizers.smoke.frozen.yaml`, trials=3 (30 cells
   conflict to diagnose (which directive interferes with which).
 
 ## Result
-_(recorded after smoke; HELD — no full board, no promote)_
+**SMOKE = MERGEABLE (5/6 clean) — HELD for captain. No cross-bleed; the 6 directives compose.** run runs/spd0038-compose-6-stabilizers/35d8eead20c1f2ce (trials=3).
+- TARGETS: sap001 **3/3**, asset001 **3/3**, greenhouse001 **3/3**, apple_store001 **3/3**, airbnb001 **3/3** — all FIVE hold 3/3 when composed. quickbooks003 **2/3** (P,P,F).
+- CANARIES: app_reporting001 3/3, quickbooks002 2/2, google_play001 2/3, mrr001 2/3 — all HOLD (the single google_play001/mrr001 misses are their own near-rock-solid variance, NOT bleed; google_play stayed off 0-1/3 so the applestore count-distinct gate holds — no cross-bleed).
+- **quickbooks003 diagnosis: NOT a composition conflict.** Its failing draw shows its OWN bifurcation failure mode — `dbt run --select +` (rebuilt upstream) → 990 rows (widened period set), the exact reuse-shipped-upstream failure. No other composed directive interfered. quickbooks003's stabilizer is REAL but ~2-3/3-reliable (its broken-package/rebuild path is environment-fragile, not a fully-deterministic pin). Not auto-revised (no clean single-directive fix; rev1 already spent).
+- **VERDICT: the merge is SAFE and effective** — composing all 6 has zero cross-bleed, reliably banks 5 cells (3/3) + improves quickbooks003 (~2-3/3). Captain decision: compose into champion + full-board multi-draw validate + promote.
