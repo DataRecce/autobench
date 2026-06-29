@@ -20,11 +20,11 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 ## Hypothesis queue (priority order: NEW-rule cells first = highest GO odds)
 | # | hyp | target | canary | spec (frozen) | kind | status | revs |
 |---|-----|--------|--------|---------------|------|--------|------|
-| 1 | spd0031 | quickbooks003 | quickbooks002 | spd0031-qb003-reuse-shipped-upstream | NEW | RUNNING-rev1(h=spd0031-smoke-rev1-20260629-024422) | 1 |
+| 1 | spd0031 | quickbooks003 | quickbooks002 | spd0031-qb003-reuse-shipped-upstream | NEW | **GO 3/3 @rev1 (HELD)** | 1 |
 | 2 | spd0032 | sap001 | marketo001 | spd0032-sap-reaggregate-long-to-grain | NEW | **GO 3/3 (HELD)** | 0 |
-| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | RUNNING-rev1(h=spd0033-smoke-rev1-20260629-025321) | 1 |
-| 4 | spd0034 | asset001 | app_reporting001 | spd0034-asset-round-final-product-only | NEW | rev0 NO-GO(1/3)→QUEUED-rev1 | 1 |
-| 5 | spd0035 | greenhouse001 | hubspot001 | spd0035-greenhouse-no-string-cast-id | SHARPEN | QUEUED | 0 |
+| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | rev1 NO-GO→QUEUED-rev2 | 2 |
+| 4 | spd0034 | asset001 | app_reporting001 | spd0034-asset-round-final-product-only | NEW | RUNNING-rev1(h=spd0034-smoke-rev1-20260629-031931) | 1 |
+| 5 | spd0035 | greenhouse001 | hubspot001 | spd0035-greenhouse-no-string-cast-id | SHARPEN | RUNNING(h=spd0035-smoke-20260629-031931) | 0 |
 | 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | QUEUED | 0 |
 | 7 | spd0037 | apple_store001 | google_play001 | spd0037-applestore-raw-grouping-key | SHARPEN | QUEUED | 0 |
 
@@ -45,3 +45,4 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 - 2026-06-29 ~02:30 — spd0031 rev0 NO-GO (qb003 0/3 backfired, canary held); revised→rev1 (R3 stub + no-widen-spine), re-queued. spd0031 done freed slot → launching spd0034 asset001.
 - 2026-06-29 ~02:44 — spd0033 divvy001 rev0 NO-GO (0/3, directive not-engaged/still-filtered); revised→rev1 (hard anti-pattern), re-queued. spd0033 freed slot → launched spd0031-rev1 pid2547066. Running: spd0034 + spd0031-rev1.
 - 2026-06-29 ~03:00 — spd0034 asset001 rev0 NO-GO (1/3; recharge001 weak canary→swap app_reporting001); revised→rev1 (concrete round form+self-check), re-queued. spd0034 freed slot → launching spd0033-rev1 divvy.
+- 2026-06-29 ~03:15 — spd0031 qb003 GO 3/3 @rev1 (recovered)! spd0033 divvy rev1 NO-GO again→rev2 (validation-gate) queued. 2 slots free → launching spd0034-rev1 + spd0035.
