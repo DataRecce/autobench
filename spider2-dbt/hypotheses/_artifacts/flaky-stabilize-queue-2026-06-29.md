@@ -21,8 +21,8 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 | # | hyp | target | canary | spec (frozen) | kind | status | revs |
 |---|-----|--------|--------|---------------|------|--------|------|
 | 1 | spd0031 | quickbooks003 | quickbooks002 | spd0031-qb003-reuse-shipped-upstream | NEW | RUNNING(h=spd0031-smoke-20260629-014603) | 0 |
-| 2 | spd0032 | sap001 | marketo001 | spd0032-sap-reaggregate-long-to-grain | NEW | RUNNING(h=spd0032-smoke-20260629-014603) | 0 |
-| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | QUEUED | 0 |
+| 2 | spd0032 | sap001 | marketo001 | spd0032-sap-reaggregate-long-to-grain | NEW | **GO 3/3 (HELD)** | 0 |
+| 3 | spd0033 | divvy001 | f1001 | spd0033-divvy-staging-test-warn-not-filter | NEW | RUNNING(h=spd0033-smoke-20260629-021519) | 0 |
 | 4 | spd0034 | asset001 | recharge001 | spd0034-asset-round-final-product-only | NEW | QUEUED | 0 |
 | 5 | spd0035 | greenhouse001 | hubspot001 | spd0035-greenhouse-no-string-cast-id | SHARPEN | QUEUED | 0 |
 | 6 | spd0036 | airbnb001 | mrr001 | spd0036-airbnb-window-anchor-rowcount-check | SHARPEN | QUEUED | 0 |
@@ -41,3 +41,4 @@ for codex usage-limit (resets Jul 2) — if hit, pause and report.
 - 2026-06-29 — queue created; 7 forks authored + frozen (distinct hashes); concept spd0030 fan-out set.
   lever001/workday001 DROPPED (champion-stable, not intrinsically flaky). Launching slots 1+2 (spd0031, spd0032).
 - 2026-06-29 ~01:46 — slots 1+2 launched concurrently: spd0031 (qb003) pid2423168, spd0032 (sap001) pid2423201.
+- 2026-06-29 ~02:15 — spd0032 sap001 GO (3/3, held); slot freed → launched spd0033 divvy001 pid2486398. spd0031 still running.

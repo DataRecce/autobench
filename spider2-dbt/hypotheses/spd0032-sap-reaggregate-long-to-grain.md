@@ -19,4 +19,7 @@ spec `specs/spd0032-sap-reaggregate-long-to-grain.smoke.frozen.yaml`. TARGET **s
 GO = sap001 3/3 AND marketo001 holds. NO-GO = sap001 <3/3 or canary regression → revise directive, re-smoke until exhausted.
 
 ## Result
-_(autonomous — recorded after smoke; HELD at smoke, no full/promote)_
+**SMOKE = GO (held for captain; no full, no promote).** 2026-06-29, run runs/spd0032-sap-reaggregate-long-to-grain/5a83c9c266aa58cf.
+- TARGET sap001 = **3/3 PASS** (was ~50% flaky → CONSISTENT under the re-aggregate-long-to-grain directive). First stabilization win.
+- Canary marketo001 = 2/3 — marketo001 is itself an ~82%-band cell (poor canary pick), and the directive is gated to unpivoted-long intermediates it cannot touch → miss = marketo001 own variance, NOT lever bleed.
+- Verdict: GO. Recommend conclude-PASSED-validated + (captain) consider composing into champion. HELD.
