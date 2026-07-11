@@ -69,7 +69,11 @@ def tokens_direct(cfg_path):
     tin = tout = 0
     for f in glob.glob(os.path.join(cfg_path, "run-*", "result.json")):
         s = json.load(open(f)).get("stats", {})
-        tin += s.get("n_input_tokens", 0); tout += s.get("n_output_tokens", 0)
+        ti, to = s.get("n_input_tokens"), s.get("n_output_tokens")
+        if ti is None or to is None:
+            # subscription/spacedock_solver rk runs don't meter tokens → show "—"
+            return {"tokTotal": None, "tokOut": None}
+        tin += ti; tout += to
     return {"tokTotal": tin + tout, "tokOut": tout} if tin else {"tokTotal": None, "tokOut": None}
 
 def tokens_spacedock_old(cfg_path):
