@@ -5,6 +5,7 @@ agent:
   runtime: codex
   model: gpt-5.5
   reasoning_effort: xhigh
+  override_timeout_sec: 3600
   sampling:
     temperature: 0.0
     top_p: null

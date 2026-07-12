@@ -182,9 +182,9 @@
         <span class="badge">▲ best on record</span>
       </div>
       <div class="tile">
-        <p class="k">Effort flips ranking</p>
-        <div class="v">2 of 3</div>
-        <div class="sub">harnesses where xhigh &gt; high…<br>but spacedock inverts</div>
+        <p class="k">xhigh on bare harnesses</p>
+        <div class="v">+0.04</div>
+        <div class="sub">minimal &amp; structured both<br>climb from high → xhigh</div>
       </div>
       <div class="tile">
         <p class="k">Most token-efficient</p>
@@ -221,13 +221,13 @@
   <!-- ============ INTERACTION CALLOUT ============ -->
   <section>
     <div class="sec-head">
-      <h2>The finding: effort and README are substitute levers</h2>
+      <h2>The finding: reasoning effort helps the bare harnesses</h2>
     </div>
     <div class="card callout">
       <div class="txt">
         <p>On the two <strong>bare harnesses</strong>, cranking reasoning effort to <strong>xhigh</strong> clearly helps — direct-minimal climbs 0.710 → 0.753 and direct-structured 0.717 → 0.763.</p>
-        <p>On <strong>spacedock + dab0022</strong> the direction <strong>inverts</strong>: the same xhigh jump <em>hurts</em>, 0.743 → 0.690. A prescriptive README already constrains the solver; extra reasoning unleashes second-guessing that fights those constraints — and it runs slow, ~2× the wall-clock of a bare harness. (Both spacedock cells carry the dab0022 lever, so this is a clean effort comparison.)</p>
-        <p>Takeaway: <strong>don't stack a rich harness with maximum effort.</strong> A lean harness at xhigh (direct-structured) beats a rich harness at xhigh — and edges the rich harness at high.</p>
+        <p>On <strong>spacedock + dab0022</strong> the read is <strong>muddier — and version-confounded</strong>. The <code>high</code> cell (0.743) ran on an older plugin; the refreshed <code>xhigh</code> cell (0.748, on the current <b>v0.24</b> stack) essentially <em>ties</em> it. On the older plugin, dab0022 xhigh fell to ~0.70 — a real drop — but on v0.24 that drop is gone. Because the two cells are different plugin versions, treat this pair as version-confounded, not a clean effort test. Either way, it runs slow (~2× a bare harness).</p>
+        <p>Takeaway: <strong>a lean harness at xhigh is the top config.</strong> direct-structured·xhigh (0.763) beats the rich dab0022 README at either effort — so the hand-written scaffolding buys nothing here, and the extra reasoning is better spent on a light frame than a prescriptive one.</p>
       </div>
       <div class="viz">
         <div class="slope-row">
@@ -255,7 +255,7 @@
         <svg id="scatterChart" viewBox="0 0 860 420" role="img" aria-label="Scatter of stratified pass@1 versus total token usage"></svg>
       </div>
       <p class="foot-note" style="color:var(--ink-3); margin-top:12px">
-        direct-structured·high sits highest-and-leftmost among the strong configs — near-top score for the fewest tokens. The two spacedock+dab0022 points sit far right: extra reasoning at xhigh nearly doubles its token spend (58M→100M) while the score drops — the rich README fights the added effort.
+        direct-structured·high sits highest-and-leftmost among the strong configs — near-top score for the fewest tokens. The two spacedock+dab0022 points sit far right: xhigh roughly doubles the token spend (58M→101M) for a flat score. (Note the two spacedock points are different plugin versions — high is v0.22-era, xhigh is v0.24 — so the horizontal jump mixes version with effort.)
       </p>
     </div>
   </section>
@@ -352,7 +352,7 @@
     <p><strong style="color:var(--ink-2)">Benchmark.</strong> DAB scores an LLM solver on 54 analytics queries spanning 12 real datasets (Postgres / MongoDB / DuckDB). <code>stratified pass@1</code> weights each dataset equally regardless of query count. Every configuration is a CAIS-style merge of 5 independent runs — 270 query-trials each, solved in 60 per-dataset codex sessions (12 datasets × 5 runs). Solver = codex runtime, model gpt-5.5.</p>
     <p><strong style="color:var(--ink-2)">Token accounting.</strong> Totals are summed over all 5 runs; <code>total = input + output</code> (cached input is a subset of input). Direct-* token figures come from each run's <code>result.json</code>; both spacedock rows are recovered from the codex session rollout logs (first-officer + ensign threads summed).</p>
     <p><strong style="color:var(--ink-2)">Execution time.</strong> Mean wall-clock over the 60 dataset-sessions per config. Scopes differ slightly: direct-* is per-trial wall-clock (env-setup + agent + verifier); spacedock is codex agent task duration. Runs are uncapped, so means are true figures.</p>
-    <p class="foot-note"><strong style="color:var(--ink-2)">Notes.</strong> (1) Both spacedock rows carry the <b>dab0022</b> semi-structured-rules README (v0.22-era), so their high→xhigh delta is a clean effort comparison. (2) spacedock·high includes one disclosed fresh-draw substitution on PATENTS run-005. (3) direct-structured·xhigh run-003 had 1 errored trial (scored on 49 queries). (4) The gpt-5.5 spacedock·xhigh cell was refreshed to a clean, uncapped dab0022 run (the earlier figure came from a 35%-timeout-censored baseline run and has been replaced). Reference lines: codex batch anchor 0.697, Opus-4.8 incumbent 0.654.</p>
+    <p class="foot-note"><strong style="color:var(--ink-2)">Notes.</strong> (1) Both spacedock rows carry the <b>dab0022</b> README, but on <b>different plugin versions</b> — high is v0.22-era, xhigh is a fresh v0.24 run — so their high→xhigh delta is <b>version-confounded</b>, not a clean effort test. (2) spacedock·high includes one disclosed fresh-draw substitution on PATENTS run-005; spacedock·xhigh likewise substitutes one draw whose stockindex answers hit a validator crash (list-shaped output) with a clean draw. (3) direct-structured·xhigh run-003 had 1 errored trial (scored on 49 queries). (4) The gpt-5.5 spacedock·xhigh cell was refreshed to a clean, uncapped v0.24 dab0022 run (0.748), replacing an earlier 35%-timeout-censored baseline figure; on the older plugin the same config scored ~0.70. Reference lines: codex batch anchor 0.697, Opus-4.8 incumbent 0.654.</p>
   </footer>
 </div>
 
@@ -362,15 +362,15 @@
 // ---------------------------------------------------------------- DATA
 // tokTotal / tokOut are 5-run sums; cost in USD (null = not captured)
 const CONFIGS = [
-  { id:'sd-h', fam:'spacedock v0.22',   short:'spacedock',  effort:'high',  strat:0.7433, sd:0.0488, min:0.6675, max:0.7985, tokTotal:58274094, tokOut:1365799, cost:null,  meanSec:637,  note:'+dab0022 lever' },
-  { id:'sd-x', fam:'spacedock v0.22',   short:'spacedock',  effort:'xhigh', strat:0.6899, sd:0.0298, min:0.6341, max:0.7238, tokTotal:100365265, tokOut:2252077, cost:null, meanSec:985,  note:'+dab0022 lever' },
+  { id:'sd-h', fam:'spacedock (dab0022)',   short:'spacedock',  effort:'high',  strat:0.7433, sd:0.0488, min:0.6675, max:0.7985, tokTotal:58274094, tokOut:1365799, cost:null,  meanSec:637,  note:'+dab0022 lever' },
+  { id:'sd-x', fam:'spacedock (dab0022)',   short:'spacedock',  effort:'xhigh', strat:0.7483, sd:0.0310, min:0.7133, max:0.8002, tokTotal:100683079, tokOut:2260750, cost:null, meanSec:1030, note:'dab0022 · v0.24' },
   { id:'dm-h', fam:'direct-minimal',    short:'direct-min', effort:'high',  strat:0.7096, sd:0.0575, min:0.6261, max:0.7730, tokTotal:45226233, tokOut:815012,  cost:66.64, meanSec:541 },
   { id:'dm-x', fam:'direct-minimal',    short:'direct-min', effort:'xhigh', strat:0.7529, sd:0.0243, min:0.7174, max:0.7858, tokTotal:67080050, tokOut:1205630, cost:92.83, meanSec:640 },
   { id:'ds-h', fam:'direct-structured', short:'direct-str', effort:'high',  strat:0.7174, sd:0.0257, min:0.6886, max:0.7627, tokTotal:37133295, tokOut:774172,  cost:60.26, meanSec:460 },
   { id:'ds-x', fam:'direct-structured', short:'direct-str', effort:'xhigh', strat:0.7630, sd:0.0263, min:0.7127, max:0.7858, tokTotal:59058574, tokOut:1182440, cost:86.24, meanSec:631 },
 ];
 const GROUPS = [
-  { fam:'spacedock v0.22',   high:'sd-h', xhigh:'sd-x' },
+  { fam:'spacedock (dab0022)',   high:'sd-h', xhigh:'sd-x' },
   { fam:'direct-minimal',    high:'dm-h', xhigh:'dm-x' },
   { fam:'direct-structured', high:'ds-h', xhigh:'ds-x' },
 ];
@@ -379,7 +379,7 @@ const REF = { anchor:0.6966, opus:0.6536 };
 // raw per-session wall-clock seconds (60 sessions per config)
 const DURATIONS = {
   'sd-h':[301,325,339,344,376,376,378,379,380,387,397,399,404,404,412,420,424,426,430,451,452,456,461,470,495,496,503,507,510,541,551,557,579,598,601,603,606,627,680,693,693,734,742,744,747,756,769,782,810,886,939,986,1052,1077,1108,1178,1275,1309,1385,1497],
-  'sd-x':[524, 546, 547, 607, 612, 624, 641, 645, 651, 666, 680, 686, 687, 735, 736, 741, 747, 761, 789, 796, 813, 819, 823, 842, 843, 852, 863, 867, 917, 964, 970, 984, 996, 997, 1007, 1020, 1026, 1026, 1050, 1090, 1094, 1100, 1140, 1153, 1158, 1171, 1172, 1174, 1178, 1226, 1229, 1234, 1293, 1316, 1388, 1582, 1714, 1728, 1875, 1993],
+  'sd-x':[432, 544, 577, 610, 615, 634, 650, 652, 657, 670, 690, 701, 719, 736, 738, 744, 745, 749, 753, 761, 850, 852, 853, 872, 902, 907, 924, 936, 944, 965, 968, 975, 990, 1016, 1017, 1018, 1056, 1081, 1091, 1093, 1103, 1107, 1135, 1160, 1162, 1211, 1239, 1255, 1263, 1281, 1283, 1320, 1411, 1452, 1671, 1851, 1893, 2038, 2041, 2240],
   'dm-h':[198,223,223,225,232,233,235,237,244,245,249,275,280,281,287,290,300,311,312,330,338,366,378,384,391,395,409,411,416,424,425,431,433,437,495,499,514,525,529,534,539,572,572,576,583,616,617,703,770,790,847,872,884,920,921,926,1321,1370,1449,2643],
   'dm-x':[266,277,286,287,298,306,308,311,314,316,325,327,331,342,346,348,363,365,368,380,382,387,395,400,405,422,432,435,445,455,485,533,553,574,591,597,603,616,621,628,642,679,703,703,730,750,765,773,779,796,802,805,886,1113,1192,1527,1801,1937,2146,2474],
   'ds-h':[210,216,230,230,235,240,247,253,257,258,261,262,264,268,278,282,284,285,288,305,310,315,323,323,328,347,358,361,369,375,376,378,388,406,410,423,436,449,460,462,472,482,495,508,561,564,573,573,584,616,647,719,725,769,823,942,1006,1161,1236,1410],
@@ -507,7 +507,7 @@ function drawSlope(){
     const t = el('text', { x: i === 0 ? xH : xX, y: m.t + ph + 18, 'text-anchor': i === 0 ? 'start' : 'end', 'font-size': 11, fill: cssv('--ink-2') });
     t.textContent = lab; svg.appendChild(t);
   });
-  const cols = { 'spacedock v0.22': cssv('--xhigh'), 'direct-minimal': cssv('--high'), 'direct-structured': cssv('--good') };
+  const cols = { 'spacedock (dab0022)': cssv('--xhigh'), 'direct-minimal': cssv('--high'), 'direct-structured': cssv('--good') };
   GROUPS.forEach(g => {
     const h = cfg(g.high).strat, x = cfg(g.xhigh).strat, col = cols[g.fam], yH = y(h), yX = y(x);
     const g2 = el('g', {});

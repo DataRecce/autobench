@@ -12,7 +12,7 @@ agent:
   solver_workflow_content_hash: sha256:b2cae85c2d33fb08e51e06dc25101462f16646d67066322d6f6d16d2164379f5
   max_turns: 200
   max_budget_usd: null
-  override_timeout_sec: null
+  override_timeout_sec: 3600.0
   override_setup_timeout_sec: null
   max_timeout_sec: null
   tools_allowed: []
@@ -65,7 +65,7 @@ provenance:
   model_resolved_at: null
   image_digest: sha256:224133f07cabc85c7dd8672e57d1ab9a46e5098960c5d1668918ba33df5e4742
   agent_cli_hash: sha256:134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477
-  harness_git_sha: 8362f359899a691143bd63545d659b54ea300169
+  harness_git_sha: b132f79de87dbfe3dddcedfc7f468752d8ce0e4e
   harbor_version: 0.6.6
   prompt_file_hashes: {}
   plugins: []
