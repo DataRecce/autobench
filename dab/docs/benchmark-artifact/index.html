@@ -88,7 +88,7 @@
   <header>
     <p class="eyebrow"><span class="dot"></span> DAB · Database-Analytics Benchmark · Solver: codex</p>
     <h1>DAB benchmark — result pages</h1>
-    <p class="lede">Four interactive scorecards from the DAB sweep: an LLM solver on <b>54 analytics queries</b> across <b>12 real datasets</b> (Postgres / MongoDB / DuckDB), scored by <code>stratified pass@1</code>. Each config is a 5-run merge. The through-line: how prompt <b>harness</b> and reasoning <b>effort</b> trade off — and how that changes as the model gets stronger.</p>
+    <p class="lede">Three interactive scorecards from the DAB sweep: an LLM solver on <b>54 analytics queries</b> across <b>12 real datasets</b> (Postgres / MongoDB / DuckDB), scored by <code>stratified pass@1</code>. Each config is a 5-run merge. The through-line: how prompt <b>harness</b> and reasoning <b>effort</b> trade off — and how that changes as the model gets stronger.</p>
     <div class="meta-row">
       <span class="chip">models <b>gpt-5.5 · gpt-5.6-sol</b></span>
       <span class="chip">harnesses <b>minimal · structured · dab0022</b></span>
@@ -122,7 +122,7 @@
       </div>
     </a>
 
-    <a class="card" href="https://claude.ai/code/artifact/3b755e05-7be8-4575-9e4b-e260974dad4d">
+    <a class="card" style="grid-column:1/-1" href="https://claude.ai/code/artifact/3b755e05-7be8-4575-9e4b-e260974dad4d">
       <div class="rail" style="background:linear-gradient(90deg,var(--high),var(--xhigh))"></div>
       <div class="body">
         <div class="kicker"><span class="tag">cross-model</span><span class="tag">high effort</span></div>
@@ -133,21 +133,10 @@
       </div>
     </a>
 
-    <a class="card" href="https://claude.ai/code/artifact/3a1c9df7-509b-4638-ae8c-4eaa1eefb6ac">
-      <div class="rail" style="background:var(--xhigh)"></div>
-      <div class="body">
-        <div class="kicker"><span class="tag">gpt-5.6-sol</span><span class="tag">high only</span><span class="tag" style="border-color:color-mix(in srgb,var(--xhigh) 45%,transparent);color:var(--xhigh)">superseded by 6-config</span></div>
-        <h2>gpt-5.6-sol — high only</h2>
-        <p>The original three-harness snapshot at high effort, kept for the clean high-tier comparison: structured leads (0.779), the dab0022 README ties bare minimal (~0.72).</p>
-        <div class="stat"><span class="v">2.8×</span><span class="l">spacedock token cost vs bare</span></div>
-        <span class="go">Open scorecard <span class="arw">→</span></span>
-      </div>
-    </a>
-
   </div>
 
   <div class="findings">
-    <h3>What the four pages add up to</h3>
+    <h3>What the three pages add up to</h3>
     <ul>
       <li><span class="mk" style="background:var(--good)"></span><span><b>xhigh levels the field (gpt-5.6-sol).</b> At high effort the harness matters (structured 0.779 ≫ dab0022 0.722 ≈ minimal 0.719); at xhigh all three converge to ~0.77. Max reasoning erases the scaffolding advantage.</span></li>
       <li><span class="mk" style="background:var(--high)"></span><span><b>Effort × README is model- and version-sensitive.</b> xhigh cleanly helps the bare harnesses on both models. For the rich dab0022 README it's murkier: a drop on gpt-5.5's older plugin, flat on gpt-5.5 v0.24, and a gain on gpt-5.6-sol — so spacedock effort effects must be read with the plugin version in mind.</span></li>
