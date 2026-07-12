@@ -1,0 +1,162 @@
+<title>DAB Benchmark — Result Pages</title>
+<style>
+  :root {
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --bg: #eceef2; --surface: #ffffff; --surface-2: #f5f6f9;
+    --border: #dde1e8; --border-strong: #c8cdd7;
+    --ink: #14171d; --ink-2: #4b515c; --ink-3: #838a96;
+    --high: #2a78d6; --xhigh: #eb6834; --good: #0b8a5a;
+    --grid: rgba(20,23,29,.10);
+    --shadow: 0 1px 2px rgba(20,23,29,.05), 0 8px 24px rgba(20,23,29,.06);
+    --shadow-lift: 0 2px 6px rgba(20,23,29,.08), 0 18px 44px rgba(20,23,29,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101215; --surface: #191c21; --surface-2: #1f232a; --border: #2b3038;
+      --border-strong: #3a414b; --ink: #f2f3f5; --ink-2: #c0c5cd; --ink-3: #858c98;
+      --high: #3987e5; --xhigh: #d95926; --good: #2bb47e;
+      --grid: rgba(255,255,255,.09);
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      --shadow-lift: 0 2px 8px rgba(0,0,0,.5), 0 22px 50px rgba(0,0,0,.45);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans);
+    line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: clamp(20px, 4vw, 56px) clamp(16px, 4vw, 40px) 72px; }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--high); }
+  h1 { font-size: clamp(28px, 4.6vw, 46px); line-height: 1.05; margin: 0 0 16px; letter-spacing: -.02em;
+    text-wrap: balance; font-weight: 680; }
+  .lede { font-size: clamp(15px, 1.5vw, 17.5px); color: var(--ink-2); max-width: 64ch; margin: 0; }
+  .lede code { font-family: var(--font-mono); font-size: .9em; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 5px; }
+
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .chip { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; display: inline-flex; gap: 7px; align-items: center; }
+  .chip b { color: var(--ink); font-weight: 600; }
+
+  .section-label { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); margin: 44px 0 16px; display: flex; align-items: center; gap: 12px; }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+
+  a.card { text-decoration: none; color: inherit; display: flex; flex-direction: column; position: relative;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    box-shadow: var(--shadow); transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
+  a.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: var(--border-strong); }
+  a.card:focus-visible { outline: 2px solid var(--high); outline-offset: 2px; }
+  a.card .rail { height: 4px; width: 100%; }
+  a.card .body { padding: clamp(18px, 2.4vw, 24px); display: flex; flex-direction: column; height: 100%; }
+  .card .kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-3); display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .card .tag { border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; color: var(--ink-2); }
+  .card h2 { font-size: clamp(18px, 2.1vw, 21px); margin: 0 0 8px; letter-spacing: -.01em; font-weight: 640; line-height: 1.2; }
+  .card p { margin: 0; font-size: 13.8px; color: var(--ink-2); }
+  .card .stat { display: flex; align-items: baseline; gap: 10px; margin-top: 16px; padding-top: 14px;
+    border-top: 1px solid var(--border); }
+  .card .stat .v { font-size: 24px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .card .stat .l { font-size: 12px; color: var(--ink-3); }
+  .card .go { margin-top: auto; padding-top: 16px; font-family: var(--font-mono); font-size: 12.5px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px; }
+  .card .go .arw { transition: transform .14s ease; }
+  a.card:hover .go .arw { transform: translateX(4px); }
+  .badge { display: inline-block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--good); border: 1px solid color-mix(in srgb, var(--good) 45%, transparent);
+    background: color-mix(in srgb, var(--good) 12%, transparent); border-radius: 6px; padding: 2px 7px; }
+
+  .findings { margin-top: 44px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: clamp(18px, 2.6vw, 28px); box-shadow: var(--shadow); }
+  .findings h3 { margin: 0 0 16px; font-size: 15px; font-weight: 640; }
+  .findings ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  .findings li { display: flex; gap: 12px; font-size: 14px; color: var(--ink-2); align-items: flex-start; }
+  .findings li b { color: var(--ink); font-weight: 620; }
+  .findings li .mk { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
+
+  footer { margin-top: 44px; border-top: 1px solid var(--border); padding-top: 20px;
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); line-height: 1.6; }
+  footer code { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow"><span class="dot"></span> DAB · Database-Analytics Benchmark · Solver: codex</p>
+    <h1>DAB benchmark — result pages</h1>
+    <p class="lede">Four interactive scorecards from the DAB sweep: an LLM solver on <b>54 analytics queries</b> across <b>12 real datasets</b> (Postgres / MongoDB / DuckDB), scored by <code>stratified pass@1</code>. Each config is a 5-run merge. The through-line: how prompt <b>harness</b> and reasoning <b>effort</b> trade off — and how that changes as the model gets stronger.</p>
+    <div class="meta-row">
+      <span class="chip">models <b>gpt-5.5 · gpt-5.6-sol</b></span>
+      <span class="chip">harnesses <b>minimal · structured · dab0022</b></span>
+      <span class="chip">effort <b>high · xhigh</b></span>
+      <span class="chip">metric <b>stratified pass@1</b></span>
+    </div>
+  </header>
+
+  <div class="section-label">The pages</div>
+  <div class="grid">
+
+    <a class="card" href="https://claude.ai/code/artifact/3aa458e8-9e36-44f6-9247-1b19d50ca379">
+      <div class="rail" style="background:var(--good)"></div>
+      <div class="body">
+        <div class="kicker"><span class="tag">gpt-5.6-sol</span><span class="tag">6 configs</span><span class="badge">★ canonical</span></div>
+        <h2>gpt-5.6-sol — harness × effort</h2>
+        <p>The full sweep: three harnesses at high and xhigh. The headline finding — <b>xhigh is a leveler</b>: the harness gap that decides the high tier collapses to a ~0.77 three-way tie at xhigh.</p>
+        <div class="stat"><span class="v">0.779</span><span class="l">top config — structured · high</span></div>
+        <span class="go">Open scorecard <span class="arw">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="https://claude.ai/code/artifact/15111ba9-4ff2-4857-8705-53ad5727b6bd">
+      <div class="rail" style="background:var(--high)"></div>
+      <div class="body">
+        <div class="kicker"><span class="tag">gpt-5.5</span><span class="tag">6 configs</span></div>
+        <h2>gpt-5.5 — harness × effort</h2>
+        <p>The same 3×2 grid on the prior model. <b>Effort and README are substitute levers</b>: xhigh helps the bare harnesses but hurts the prescriptive dab0022 README — the ranking inverts by tier.</p>
+        <div class="stat"><span class="v">0.763</span><span class="l">top config — structured · xhigh</span></div>
+        <span class="go">Open scorecard <span class="arw">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="https://claude.ai/code/artifact/3b755e05-7be8-4575-9e4b-e260974dad4d">
+      <div class="rail" style="background:linear-gradient(90deg,var(--high),var(--xhigh))"></div>
+      <div class="body">
+        <div class="kicker"><span class="tag">cross-model</span><span class="tag">high effort</span></div>
+        <h2>gpt-5.5 vs gpt-5.6-sol</h2>
+        <p>The model jump, harness by harness. The ranking <b>flips</b> — structure wins on gpt-5.6-sol while the hand-written README ties bare minimal. Scaffolding is obsolete on the stronger model.</p>
+        <div class="stat"><span class="v">+0.06</span><span class="l">structured gain, 5.5 → 5.6-sol</span></div>
+        <span class="go">Open scorecard <span class="arw">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="https://claude.ai/code/artifact/3a1c9df7-509b-4638-ae8c-4eaa1eefb6ac">
+      <div class="rail" style="background:var(--xhigh)"></div>
+      <div class="body">
+        <div class="kicker"><span class="tag">gpt-5.6-sol</span><span class="tag">high only</span><span class="tag" style="border-color:color-mix(in srgb,var(--xhigh) 45%,transparent);color:var(--xhigh)">superseded by 6-config</span></div>
+        <h2>gpt-5.6-sol — high only</h2>
+        <p>The original three-harness snapshot at high effort, kept for the clean high-tier comparison: structured leads (0.779), the dab0022 README ties bare minimal (~0.72).</p>
+        <div class="stat"><span class="v">2.8×</span><span class="l">spacedock token cost vs bare</span></div>
+        <span class="go">Open scorecard <span class="arw">→</span></span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="findings">
+    <h3>What the four pages add up to</h3>
+    <ul>
+      <li><span class="mk" style="background:var(--good)"></span><span><b>xhigh levels the field (gpt-5.6-sol).</b> At high effort the harness matters (structured 0.779 ≫ dab0022 0.722 ≈ minimal 0.719); at xhigh all three converge to ~0.77. Max reasoning erases the scaffolding advantage.</span></li>
+      <li><span class="mk" style="background:var(--high)"></span><span><b>Effort × README interaction inverts across models.</b> xhigh <em>hurts</em> the rich dab0022 README on gpt-5.5 but <em>helps</em> it on gpt-5.6-sol — the substitute-levers behavior reverses as the model strengthens.</span></li>
+      <li><span class="mk" style="background:var(--xhigh)"></span><span><b>Hand-written scaffolding is obsolete on the stronger model.</b> The crafted dab0022 README ties a bare minimal prompt on gpt-5.6-sol; a light structured frame is all that still earns its keep.</span></li>
+      <li><span class="mk" style="background:var(--ink-3)"></span><span><b>Peak DAB ≈ 0.78, reached cheaply.</b> Structured @ high hits the ceiling for the fewest tokens; xhigh only rescues a weak harness, it doesn't raise the top.</span></li>
+    </ul>
+  </div>
+
+  <footer>
+    Every configuration is a 5-run merge (270 query-trials each), solved in 60 per-dataset codex sessions. Solver = codex runtime; runs on razorback / harbor, uncapped. Source pages in <code>dab/docs/benchmark-artifact/</code>. Reference lines throughout: codex batch anchor 0.697, Opus-4.8 incumbent 0.654.
+  </footer>
+</div>
