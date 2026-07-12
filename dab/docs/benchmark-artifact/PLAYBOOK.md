@@ -43,9 +43,21 @@ Each config is a **CAIS-style 5-run merge** living at `dab/runs/<config-name>/` 
 
 - `summary.json` at the config root — the merged scores + per-dataset (used for ALL configs).
 - Per-run data whose layout depends on the **harness flavor** (auto-detected):
-  - `direct` (bare harness): `run-*/result.json` (token stats) + `run-*/<dataset>__*/result.json` (timing).
+  - `direct` (bare harness): `run-*/result.json` (token stats, non-null) + `run-*/<dataset>__*/result.json` (timing).
   - `spacedock_old`: `run-*/datasets/*/codex-output.jsonl` with `token_count` events.
   - `spacedock_new`: `run-*/datasets/*/attempts/attempt-*/codex-output.jsonl` + `codex-meta.json` + `codex-stderr.log`.
+  - `harbor` (gpt-5.6-sol era, e.g. `runs/g56sol-merged/<config>/`): harbor trial dirs
+    `run-*/<dataset>__*/steps/main/agent/` with `codex.txt` (exec stdout, **FO-thread-only**)
+    plus `sessions/**/rollout-*.jsonl` — one rollout **per thread** (FO w/o `parent_thread_id`
+    + ensign w/ `parent_thread_id`), each carrying cumulative `token_count` events.
+    `result.json` `stats` is **null** in this layout, so the main extractor's `tokens_direct`
+    can't help. Recover tokens with **[`rollout_tokens.py`](./rollout_tokens.py)** — it sums the
+    last `total_token_usage` across every rollout (FO+ensign, no double-count), following symlinks
+    so it works on both the per-draw dirs and the CAIS merge dir. Verified: reproduces the
+    hand-checked direct-minimal number (44,276,047) to the token. Paste its `tokTotal:`/`tokOut:`
+    output straight into CONFIGS. (Earlier codex builds logged only the FO thread → tokens showed
+    `—`; the newer build logs both, so the real FO+ensign cost is now recoverable — spacedock
+    dab0022 gpt-5.6-sol/high = 124.0M over the 5-run sweep, 2.80× the bare harnesses.)
 
 Expected shape (per config): **5 runs × 12 datasets = 60 sessions**, **54 queries/run**,
 **270 query-trials**. Confirm the new runs match before trusting anything.
@@ -64,6 +76,15 @@ python3 extract_benchmark_data.py ../../runs \
   codex-dab-spacedock-high  codex-dab-spacedock-xhigh \
   codex-dab-direct-minimal-high  codex-dab-direct-minimal-xhigh \
   codex-dab-direct-structured-high  codex-dab-direct-structured-xhigh \
+  --js > /tmp/new-data.js
+```
+
+For merged run sets living under a sub-directory (e.g. the gpt-5.6-sol CAIS merge),
+point at that directory instead:
+
+```bash
+python3 extract_benchmark_data.py ../../runs/g56sol-merged \
+  codex-dab-spacedock-high codex-dab-direct-minimal-high codex-dab-direct-structured-high \
   --js > /tmp/new-data.js
 ```
 
@@ -132,12 +153,13 @@ comparable side-by-side), while tweaks to an existing model's page update in pla
 
 ## 5. Data-source reference (where each number comes from)
 
-| Field | direct | spacedock_old | spacedock_new |
-|---|---|---|---|
-| `strat`,`sd`,`min`,`max`, per-dataset | config `summary.json` | same | same |
-| `tokTotal`,`tokOut` | sum `run-*/result.json` `stats.n_*_tokens` | last `token_count.total_token_usage` per session, summed | **null** (see caveat) |
-| `meanSec` / `DURATIONS` | per-trial `result.json` `started_at→finished_at` | `task_complete.duration_ms` (max/session) | `codex-meta.json` `duration_s` |
-| `timeouts`,`censored` | n/a | n/a | count `codex-stderr.log` "timed out" |
+| Field | direct | spacedock_old | spacedock_new | harbor |
+|---|---|---|---|---|
+| `strat`,`sd`,`min`,`max`, per-dataset | config `summary.json` | same | same | same |
+| `tokTotal`,`tokOut` | sum `run-*/result.json` `stats.n_*_tokens` | last `token_count.total_token_usage` per session, summed | **null** (see caveat) | last `token_count.total_token_usage` of **every** `sessions/**/*.jsonl` rollout (FO + ensign), summed |
+| `meanSec` / `DURATIONS` | per-trial `result.json` `started_at→finished_at` | `task_complete.duration_ms` (max/session) | `codex-meta.json` `duration_s` | per-trial `result.json` `started_at→finished_at` |
+| `timeouts`,`censored` | n/a | n/a | count `codex-stderr.log` "timed out" | `codex.txt` missing `turn.completed` + "timed out" |
+| `failedSessions` | n/a | n/a | n/a | `codex.txt` missing `turn.completed`, other error (e.g. model-at-capacity `turn.failed`) |
 
 `tokTotal = input + output` (cached input is a subset of input, already in input).
 
@@ -149,13 +171,23 @@ comparable side-by-side), while tweaks to an existing model's page update in pla
 - **Session vs query-trial.** spacedock (and direct) solve **batch-per-dataset**:
   one codex session = one dataset. So `sessions = runs × datasets = 60`, while the
   scoring unit is `query-trials = runs × 54 = 270`. Timeouts are counted per session.
-- **spacedock_new token usage is not recoverable.** The newer codex log emits usage
-  only on `turn.completed`, and the FO+ensign multi-agent setup logs **only the
-  first-officer thread** (the ensign that does the solving is never logged).
-  Timed-out sessions emit no usage at all. Any FO-only sum is a severe undercount →
-  the extractor returns `null` and the page shows `—`. Do NOT fabricate a number.
-  *If gpt-5.6-sol spacedock uses a codex build that logs the ensign or logs usage on
-  every turn, revisit `tokens_spacedock_new()` — real numbers may become available.*
+- **`codex exec --json` stdout is FO-thread-only — never read tokens from `codex.txt`.**
+  The FO spawns the ensign via codex-native `spawn_agent`; the subagent thread's events
+  (including its `turn.completed.usage`) are **never emitted to stdout**. The ensign is
+  ~80% of real spend, so any stdout-based sum is a ~5× undercount. This is codex CLI
+  behavior, not a razorback/harbor bug.
+- **spacedock_new (gpt-5.5 xhigh) token usage is not recoverable** — that layout kept
+  only the stdout stream, and 21/60 sessions timed out with no usage at all. The
+  extractor returns `null` and the page shows `—`. Do NOT fabricate a number.
+- **harbor spacedock token usage IS recoverable** — harbor mirrors `$CODEX_HOME/sessions/`
+  into each trial, one rollout jsonl **per thread** (FO `thread_source: "user"` + ensign
+  `thread_source: "subagent"`). `tokens_harbor()` sums the last cumulative `token_count`
+  of every rollout. Validated: on direct configs this reproduces the harness-metered
+  `stats.n_*_tokens` **exactly**. `tokIncompleteTrials` counts sessions that never
+  reached `turn.completed` (their sum is a floor — footnote it if > 0).
+- **`failedSessions` ≠ `timeouts`.** Harbor sessions can die fast on provider errors
+  (`turn.failed` "model is at capacity") — they score 0 but are NOT right-censored;
+  don't hatch the timing bar for them. Only "timed out" sessions are censored.
 - **Right-censored timing.** spacedock_new sessions cap at the **1800s timeout wall**.
   If any hit it, the mean is a **floor**, not the true mean — mark it (`censored`,
   "⚠ floor") and say so. In the gpt-5.5 run, 21/60 spacedock·xhigh sessions capped.

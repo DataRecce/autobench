@@ -31,13 +31,17 @@ def _quantile(a, p):
     return s[lo] + (s[hi] - s[lo]) * (i - lo)
 
 # ------------------------------------------------------------------ detection
+_HARBOR_TRIAL_GLOB = os.path.join("*", "*__*", "steps", "main", "agent")
+
 def detect_flavor(cfg_path):
-    """Return one of: 'direct', 'spacedock_old', 'spacedock_new'."""
+    """Return one of: 'direct', 'spacedock_old', 'spacedock_new', 'harbor'."""
     if glob.glob(os.path.join(cfg_path, "run-*", "result.json")):
-        # direct harness: per-run result.json carries stats.n_*_tokens
+        # direct harness: per-run result.json carries stats.n_*_tokens.
+        # Require a non-null value — harbor spacedock jobs have the key with null
+        # (subscription runs don't meter) and must fall through to 'harbor'.
         for f in glob.glob(os.path.join(cfg_path, "run-*", "result.json")):
             d = json.load(open(f))
-            if "n_input_tokens" in d.get("stats", {}):
+            if d.get("stats", {}).get("n_input_tokens") is not None:
                 return "direct"
     # spacedock: per-dataset codex sessions
     if glob.glob(os.path.join(cfg_path, "run-*", "datasets", "*", "codex-output.jsonl")):
@@ -49,6 +53,11 @@ def detect_flavor(cfg_path):
         return "spacedock_new"
     if glob.glob(os.path.join(cfg_path, "run-*", "datasets", "*", "codex-output.jsonl")):
         return "spacedock_old"
+    # harbor trial layout (gpt-5.6-sol era): <run>/<dataset>__<id>/steps/main/agent/
+    # with codex.txt (exec stdout, FO-thread-only) + sessions/ (ALL thread rollouts).
+    # Same layout for direct and spacedock configs; tokens come from sessions/.
+    if glob.glob(os.path.join(cfg_path, _HARBOR_TRIAL_GLOB, "codex.txt")):
+        return "harbor"
     raise SystemExit(f"cannot detect flavor for {cfg_path}")
 
 # ------------------------------------------------------------------ scores
@@ -101,6 +110,48 @@ def tokens_spacedock_new(cfg_path):
     total here is a severe FO-only undercount. Return null and let the template show n/a."""
     return {"tokTotal": None, "tokOut": None}
 
+def _rollout_last_usage(path):
+    """Last cumulative total_token_usage in a codex rollout jsonl (= thread total)."""
+    last = None
+    with open(path, errors="ignore") as fh:
+        for line in fh:
+            if '"token_count"' not in line:
+                continue
+            try:
+                d = json.loads(line)
+            except Exception:
+                continue
+            p = d.get("payload", {})
+            if isinstance(p, dict) and p.get("type") == "token_count" and p.get("info"):
+                last = p["info"].get("total_token_usage") or last
+    return last
+
+def tokens_harbor(cfg_path):
+    """Harbor layout: codex.txt (stdout) is FO-thread-only, but sessions/ holds one
+    rollout PER THREAD (FO + ensign for spacedock; single thread for direct), each
+    with cumulative token_count events. Sum the last usage of every rollout.
+    Trials whose sessions are incomplete (turn.failed / crash) are counted in
+    tokMissingTrials — the total is a slight undercount when that is > 0."""
+    tin = tout = 0
+    n_rollouts = 0
+    incomplete = 0
+    for agent_dir in glob.glob(os.path.join(cfg_path, _HARBOR_TRIAL_GLOB)):
+        for f in glob.glob(os.path.join(agent_dir, "sessions", "**", "*.jsonl"), recursive=True):
+            u = _rollout_last_usage(f)
+            if u:
+                tin += u["input_tokens"]; tout += u["output_tokens"]; n_rollouts += 1
+        # a session that never reached turn.completed (turn.failed / timeout / crash)
+        # may be missing whole subagent rollouts → the sum is a floor, flag it
+        stdout_log = os.path.join(agent_dir, "codex.txt")
+        if os.path.isfile(stdout_log) and '"turn.completed"' not in open(stdout_log, errors="ignore").read():
+            incomplete += 1
+    if not n_rollouts:
+        return {"tokTotal": None, "tokOut": None}
+    out = {"tokTotal": tin + tout, "tokOut": tout}
+    if incomplete:
+        out["tokIncompleteTrials"] = incomplete
+    return out
+
 # ------------------------------------------------------------------ durations
 def durations_direct(cfg_path):
     out = []
@@ -126,24 +177,64 @@ def durations_spacedock_new(cfg_path):
             out.append(v)
     return sorted(out)
 
+def durations_harbor(cfg_path):
+    """Trial wall-clock from the harbor trial result.json (started_at → finished_at).
+    Scope = env setup + agent + verify, same as the 'direct' flavor."""
+    out = []
+    for agent_dir in glob.glob(os.path.join(cfg_path, _HARBOR_TRIAL_GLOB)):
+        trial_dir = os.path.dirname(os.path.dirname(os.path.dirname(agent_dir)))
+        rj = os.path.join(trial_dir, "result.json")
+        if not os.path.isfile(rj):
+            continue
+        d = json.load(open(rj)); s, e = d.get("started_at"), d.get("finished_at")
+        if s and e:
+            out.append(round((_parse_ts(e) - _parse_ts(s)).total_seconds()))
+    return sorted(out)
+
 # ------------------------------------------------------------------ timeouts
 def timeouts_spacedock_new(cfg_path, cap=1800):
     stderrs = glob.glob(os.path.join(cfg_path, "run-*", "datasets", "*", "attempts", "attempt-*", "codex-stderr.log"))
     n_to = sum(1 for f in stderrs if "timed out" in open(f, errors="ignore").read())
     return {"timeouts": n_to, "sessions": len(stderrs), "censored": n_to > 0} if n_to else {}
 
+def timeouts_harbor(cfg_path):
+    """Classify sessions that never reached turn.completed.
+    - "timed out"  → timeouts (right-censored timing, like spacedock_new)
+    - anything else (e.g. turn.failed "model is at capacity") → failedSessions:
+      fast failures scored 0, NOT censored — do not hatch/floor the timing for them."""
+    n_to = n_fail = n_sessions = 0
+    for f in glob.glob(os.path.join(cfg_path, _HARBOR_TRIAL_GLOB, "codex.txt")):
+        n_sessions += 1
+        txt = open(f, errors="ignore").read()
+        if '"turn.completed"' in txt:
+            continue
+        if "timed out" in txt:
+            n_to += 1
+        else:
+            n_fail += 1
+    out = {}
+    if n_to:
+        out.update({"timeouts": n_to, "censored": True})
+    if n_fail:
+        out["failedSessions"] = n_fail
+    if out:
+        out["sessions"] = n_sessions
+    return out
+
 # ------------------------------------------------------------------ per-config
 def build_config(cfg_path, cfg_id, short, family, effort):
     flavor = detect_flavor(cfg_path)
     sc, per_ds = scores(cfg_path)
     tok = {"direct": tokens_direct, "spacedock_old": tokens_spacedock_old,
-           "spacedock_new": tokens_spacedock_new}[flavor](cfg_path)
+           "spacedock_new": tokens_spacedock_new, "harbor": tokens_harbor}[flavor](cfg_path)
     durs = {"direct": durations_direct, "spacedock_old": durations_spacedock_old,
-            "spacedock_new": durations_spacedock_new}[flavor](cfg_path)
+            "spacedock_new": durations_spacedock_new, "harbor": durations_harbor}[flavor](cfg_path)
     row = {"id": cfg_id, "fam": family, "short": short, "effort": effort, "flavor": flavor,
            **sc, **tok, "meanSec": round(st.mean(durs)) if durs else None}
     if flavor == "spacedock_new":
         row.update(timeouts_spacedock_new(cfg_path))
+    elif flavor == "harbor":
+        row.update(timeouts_harbor(cfg_path))
     return row, per_ds, durs
 
 # ------------------------------------------------------------------ name guessing
@@ -193,7 +284,8 @@ def emit_js(CONFIGS, PER_DATASET, DURATIONS):
     print("// ---- paste into template: const CONFIGS = [...] ----")
     print("const CONFIGS = [")
     keys = ["id", "fam", "short", "effort", "strat", "sd", "min", "max",
-            "tokTotal", "tokOut", "meanSec", "censored", "timeouts", "sessions"]
+            "tokTotal", "tokOut", "tokIncompleteTrials", "meanSec",
+            "censored", "timeouts", "failedSessions", "sessions"]
     for c in CONFIGS:
         parts = [f"{k}:{jsval(c[k])}" for k in keys if k in c and c.get(k) is not None or k in ("tokTotal", "tokOut")]
         print("  { " + ", ".join(parts) + " },  // TODO add note: for lever-carrying configs")

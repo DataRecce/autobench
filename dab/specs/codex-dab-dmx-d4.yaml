@@ -1,0 +1,41 @@
+version: 1
+experiment: codex-dab-dmx-d4
+agent:
+  kind: codex
+  model: gpt-5.5
+  reasoning_effort: xhigh
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  override_timeout_sec: 3600
+benchmark:
+  kind: harbor
+  dataset: dab@1.0
+  plugin: dab
+  plugin_args:
+    hints: true
+    data_root: /home/kent/dataagentbench/data
+    query_mode: batch
+    workspace_variant: direct-minimal
+  tasks:
+  - agnews
+  - bookreview
+  - crmarenapro
+  - DEPS_DEV_V1
+  - GITHUB_REPOS
+  - googlelocal
+  - music_brainz_20k
+  - PANCANCER_ATLAS
+  - PATENTS
+  - stockindex
+  - stockmarket
+  - yelp
+trials: 1
+concurrency:
+  trials: 2
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null

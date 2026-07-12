@@ -255,7 +255,7 @@
         <svg id="scatterChart" viewBox="0 0 860 420" role="img" aria-label="Scatter of stratified pass@1 versus total token usage"></svg>
       </div>
       <p class="foot-note" style="color:var(--ink-3); margin-top:12px">
-        direct-structured on gpt-5.6-sol sits highest — the best score on the board — at essentially the same token cost as its gpt-5.5 run. spacedock/gpt-5.6-sol has no point: that codex build doesn't expose token usage (see notes).
+        direct-structured on gpt-5.6-sol sits highest — the best score on the board — at essentially the same token cost as its gpt-5.5 run. The spacedock link looks like a big rightward jump (58M → 124M), but that is <strong>not</strong> the model getting hungrier: per codex session the two are near-identical (~1.0M each). The gpt-5.5 run used a codex build that ran the first-officer + ensign as <em>one</em> session per dataset; the gpt-5.6-sol build splits them into <em>two</em>, so the same work is logged across 2× the sessions. It is a build/architecture change, not a model cost — read the direct harnesses for the true model comparison.
       </p>
     </div>
   </section>
@@ -346,13 +346,13 @@
       </table>
     </div>
     <p class="foot-note" style="color:var(--ink-3); margin-top:12px">
-      Row highlighted green = top stratified score (direct-structured · gpt-5.6-sol). Token totals cover all 5 draws. The spacedock rows carry the dab0022 README; gpt-5.6-sol's token usage is not metered by that codex build (—).
+      Row highlighted green = top stratified score (direct-structured · gpt-5.6-sol). Token totals cover all 5 draws. The spacedock rows carry the dab0022 README; the two run on different codex builds (gpt-5.5 = 1 combined FO+ensign session/dataset, gpt-5.6-sol = 2 split sessions/dataset), so the ~2× total reflects session-count, not model appetite — per session both are ~1.0M tokens.
     </p>
   </section>
 
   <footer>
     <p><strong style="color:var(--ink-2)">Benchmark.</strong> DAB scores an LLM solver on 54 analytics queries spanning 12 real datasets (Postgres / MongoDB / DuckDB). <code>stratified pass@1</code> weights each dataset equally regardless of query count. Every configuration is a merge of 5 independent runs — 270 query-trials each, 60 per-dataset codex sessions. Solver = codex runtime; both models run at reasoning effort <b>high</b>. This page compares gpt-5.5 against gpt-5.6-sol on the identical three harnesses.</p>
-    <p><strong style="color:var(--ink-2)">Token accounting.</strong> Totals are summed over all 5 runs; <code>total = input + output</code> (cached input is a subset of input). Direct-* token figures come from each run's <code>result.json</code>. On gpt-5.5, spacedock tokens were reconstructed from the codex session logs (~58M). On gpt-5.6-sol, the codex build updated for that model reports no usage for the multi-agent solver path (it logs only the first-officer thread), so its spacedock tokens show <code>—</code>.</p>
+    <p><strong style="color:var(--ink-2)">Token accounting.</strong> Totals are summed over all 5 runs; <code>total = input + output</code> (cached input is a subset of input). Both spacedock rows are the true FO+ensign cost, recovered from the codex session logs' <code>total_token_usage</code> — but the two codex builds log the multi-agent solver differently, which is a real caveat when comparing them. gpt-5.5 ran on the older build: the first-officer and ensign shared <em>one</em> session per dataset (60 sessions over the sweep → 58.3M). gpt-5.6-sol runs on the newer build: FO and ensign are <em>separate</em> sessions (≈120 sessions → 124.0M). Per session the two are near-identical (~1.0M), so the ~2× total is the build's session-split, not the model. Direct-* rows are single-session on both builds and directly comparable (~44M each). <em>(An earlier version of this page showed the gpt-5.6-sol spacedock cost as <code>—</code> because that build initially appeared to log only the FO thread; it logs both, so the real total is now recovered.)</em></p>
     <p><strong style="color:var(--ink-2)">Execution time.</strong> Mean wall-clock over the 60 dataset-sessions per config. Scopes differ slightly: direct-* is per-trial wall-clock (env-setup + agent + verifier); spacedock is codex agent task duration. The spacedock harness is the slowest on both models by ~2×.</p>
     <p class="foot-note"><strong style="color:var(--ink-2)">Notes.</strong> (1) All configs run at reasoning effort <b>high</b>; the effort dimension is held fixed so the only variable is the model. (2) The spacedock harness carries the dab0022 semi-structured-rules README — v0.22 on gpt-5.5 (with one disclosed PATENTS fresh-draw substitution), v0.24 on gpt-5.6-sol; the plugin version doesn't affect the bare harnesses. (3) A 5-draw mean carries ~±0.03 of noise (direct-minimal ~±0.07) — read the whiskers, not small gaps between means; on a single draw minimal briefly looked like the gpt-5.6-sol winner before the distribution settled on structured. Reference lines: codex batch anchor 0.697, Opus-4.8 incumbent 0.654.</p>
   </footer>
@@ -369,7 +369,7 @@ const CONFIGS = [
   { id:'ds5', fam:'direct-structured', short:'direct-str', model:'gpt-5.5', effort:'high', strat:0.7174, sd:0.0257, min:0.6886, max:0.7627, tokTotal:37133295, tokOut:774172, meanSec:460 },
   { id:'ds6', fam:'direct-structured', short:'direct-str', model:'gpt-5.6-sol', effort:'xhigh', strat:0.779, sd:0.0291, min:0.7413, max:0.8264, tokTotal:43494766, tokOut:564987, meanSec:442 },
   { id:'sd5', fam:'spacedock', short:'spacedock', model:'gpt-5.5', effort:'high', strat:0.7433, sd:0.0488, min:0.6675, max:0.7985, tokTotal:58274094, tokOut:1365799, meanSec:637, note:'dab0022 · v0.22' },
-  { id:'sd6', fam:'spacedock', short:'spacedock', model:'gpt-5.6-sol', effort:'xhigh', strat:0.7218, sd:0.0409, min:0.6788, max:0.7797, tokTotal:null, tokOut:null, meanSec:941, note:'dab0022 · v0.24' },
+  { id:'sd6', fam:'spacedock', short:'spacedock', model:'gpt-5.6-sol', effort:'xhigh', strat:0.7218, sd:0.0409, min:0.6788, max:0.7797, tokTotal:124012875, tokOut:1696354, meanSec:941, note:'dab0022 · v0.24 · 2-session build' },
 ];
 const GROUPS = [
   { fam:'direct-minimal', high:'dm5', xhigh:'dm6' },
@@ -531,12 +531,12 @@ function drawScatter(){
   const svg = document.getElementById('scatterChart'); svg.innerHTML = '';
   const W = 860, H = 420, m = { t: 24, r: 30, b: 56, l: 56 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
-  const xLo = 30, xHi = 70, yLo = 0.66, yHi = 0.82;
+  const xLo = 0, xHi = 140, yLo = 0.66, yHi = 0.82;
   const X = v => m.l + ((v - xLo) / (xHi - xLo)) * pw;
   const Y = v => m.t + ph - ((v - yLo) / (yHi - yLo)) * ph;
 
   // grid + axes
-  for (let t = xLo; t <= xHi + 1e-9; t += 10) {
+  for (let t = xLo; t <= xHi + 1e-9; t += 20) {
     const xx = X(t);
     svg.appendChild(el('line', { x1: xx, y1: m.t, x2: xx, y2: m.t + ph, stroke: cssv('--grid'), 'stroke-width': 1 }));
     const l = el('text', { x: xx, y: m.t + ph + 18, 'text-anchor': 'middle', 'font-size': 11, fill: cssv('--ink-3') });
@@ -571,7 +571,7 @@ function drawScatter(){
   });
 
   // points
-  const lblOff = { 'sd-h': [10,-10], 'dm-h': [-8,18,'end'], 'dm-x': [10,-10], 'ds-h': [10,16], 'ds-x': [10,-10] };
+  const lblOff = { 'sd5': [10,18], 'sd6': [-10,-10,'end'], 'dm5': [10,16], 'dm6': [10,-10], 'ds5': [-8,16,'end'], 'ds6': [10,-10] };
   CONFIGS.forEach(c => {
     if (!c.tokTotal) return;
     const cx = X(c.tokTotal/1e6), cy = Y(c.strat), col = c.effort === 'high' ? cssv('--high') : cssv('--xhigh');
@@ -587,9 +587,6 @@ function drawScatter(){
     t.textContent = c.short + '·' + MSHORT[c.model]; svg.appendChild(t);
   });
 
-  // note for missing point
-  const nn = el('text', { x: m.l + pw, y: m.t + 4, 'text-anchor': 'end', 'font-size': 10.5, fill: cssv('--ink-3') });
-  nn.textContent = 'spacedock·5.6-sol: tokens not metered'; svg.appendChild(nn);
 }
 
 // ---------------------------------------------------------------- TIME CHART

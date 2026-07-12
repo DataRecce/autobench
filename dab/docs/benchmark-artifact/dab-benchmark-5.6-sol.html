@@ -1,4 +1,4 @@
-<title>DAB Benchmark — Harness comparison (gpt-5.6-sol, high)</title>
+<title>DAB Benchmark — Harness × Reasoning Effort (gpt-5.6-sol)</title>
 <style>
   :root {
     --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -159,15 +159,15 @@
 <div class="wrap">
 
   <header>
-    <p class="eyebrow"><span class="dot"></span> DAB · Database-Analytics Benchmark · Solver: codex · model gpt-5.6-sol</p>
-    <h1>Which harness wins on gpt-5.6-sol?</h1>
-    <p class="lede">Three solver harnesses scored on the DAB analytics benchmark at fixed <b>high</b> reasoning effort — a bare minimal prompt, a lightly-structured prompt, and a prescriptive README (dab0022). Each is a 5-run merge. The question a stronger model raises: does hand-written prompt scaffolding still earn its keep?</p>
+    <p class="eyebrow"><span class="dot"></span> DAB · Database-Analytics Benchmark · Solver: codex</p>
+    <h1>Harness &amp; reasoning effort on DAB</h1>
+    <p class="lede">Six solver configurations scored on the DAB analytics benchmark — three prompt harnesses (bare minimal, lightly-structured, and the prescriptive dab0022 README) crossed with two reasoning-effort tiers. The question a stronger model raises: does the harness that wins at <b>high</b> effort still win at <b>xhigh</b>?</p>
     <div class="meta-row">
       <span class="chip">model <b>gpt-5.6-sol</b></span>
-      <span class="chip">effort <b>high</b></span>
       <span class="chip">aggregation <b>5-run merge</b></span>
       <span class="chip">per run <b>54 queries · 12 datasets</b></span>
-      <span class="chip">total draws <b>15</b></span>
+      <span class="chip">metric <b>stratified pass@1</b></span>
+      <span class="chip">total draws <b>30</b></span>
     </div>
   </header>
 
@@ -176,25 +176,25 @@
     <div class="tiles">
       <div class="tile best">
         <span class="rail"></span>
-        <p class="k">Top harness</p>
+        <p class="k">Top configuration</p>
         <div class="v">0.779</div>
         <div class="sub">direct-structured · high<br>stratified pass@1 (mean of 5)</div>
-        <span class="badge">▲ best config on record</span>
+        <span class="badge">▲ best on record</span>
       </div>
       <div class="tile">
-        <p class="k">README lever gains</p>
-        <div class="v">+0.003</div>
-        <div class="sub">dab0022 README (0.722) vs<br>bare minimal (0.719) — a dead tie</div>
+        <p class="k">xhigh levels the field</p>
+        <div class="v">~0.77</div>
+        <div class="sub">all 3 harnesses tie at xhigh<br>(the 0.06 high-tier gap vanishes)</div>
       </div>
       <div class="tile">
-        <p class="k">vs gpt-5.5 @ high</p>
-        <div class="v">+0.062</div>
-        <div class="sub">structured jumps 0.717 → 0.779<br>the gain lands in structure, not the README</div>
+        <p class="k">Biggest xhigh lift</p>
+        <div class="v">+0.055</div>
+        <div class="sub">direct-minimal, high→xhigh<br>weak harnesses catch up</div>
       </div>
       <div class="tile">
-        <p class="k">Noisiest harness</p>
-        <div class="v">±0.069</div>
-        <div class="sub">minimal, sd across 5 draws<br>swinging 0.595 – 0.783</div>
+        <p class="k">Efficiency pick</p>
+        <div class="v">43M</div>
+        <div class="sub">structured · high — the top score<br>for the fewest tokens</div>
       </div>
     </div>
   </section>
@@ -202,14 +202,13 @@
   <!-- ============ MAIN BAR CHART ============ -->
   <section>
     <div class="sec-head">
-      <h2>Stratified pass@1 by harness</h2>
-      <span class="sec-note">all at high effort · whiskers = ±1 stdev across 5 draws · dashed tick = gpt-5.5 @ high · bars from 0</span>
+      <h2>Stratified pass@1 by harness &amp; effort</h2>
+      <span class="sec-note">whiskers = ±1 stdev across 5 runs · bars from 0</span>
     </div>
     <div class="card">
       <div class="legend" style="margin-bottom:18px">
-        <span class="item"><span class="sw" style="background:var(--good)"></span>direct-structured</span>
-        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>spacedock (dab0022 README)</span>
-        <span class="item"><span class="sw" style="background:var(--high)"></span>direct-minimal</span>
+        <span class="item"><span class="sw" style="background:var(--high)"></span>reasoning: high</span>
+        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>reasoning: xhigh</span>
         <span class="item"><span class="ln" style="border-top-color:var(--ink-3)"></span>codex anchor 0.697</span>
         <span class="item"><span class="ln" style="border-top-color:var(--ink-3);opacity:.6"></span>Opus-4.8 incumbent 0.654</span>
       </div>
@@ -222,13 +221,20 @@
   <!-- ============ INTERACTION CALLOUT ============ -->
   <section>
     <div class="sec-head">
-      <h2>The finding: a stronger model doesn't need the README</h2>
+      <h2>The finding: xhigh is a leveler</h2>
     </div>
-    <div class="card callout" style="grid-template-columns:1fr">
+    <div class="card callout">
       <div class="txt">
-        <p>On gpt-5.5, the crafted <strong>dab0022 README won</strong> (0.743 &gt; structured 0.717 &gt; minimal 0.710) — the hand-written scaffolding earned its keep. On <strong>gpt-5.6-sol the ranking flips</strong>: the lightly-structured harness leads at <strong>0.779</strong>, while the prescriptive README (0.722) collapses to a <strong>dead tie with bare minimal</strong> (0.719, Δ 0.003). The README buys nothing the stronger model can't already do.</p>
-        <p>The gain is <strong>concentrated in structure</strong>: direct-structured jumps +0.062 over gpt-5.5, while minimal barely moves (+0.009) and the README actually slips (−0.021). A capable model rewards a light frame that stays out of its way — not a bare prompt, and not a rulebook it now fights.</p>
-        <p><strong>A cautionary note on single draws.</strong> The first draw of each harness read minimal 0.770 as the winner. It wasn't — minimal's true 5-draw mean is 0.719 and it's the <em>noisiest</em> harness (0.595–0.783, sd 0.069). Structure only revealed itself as the real winner once all five draws were in. Rank harnesses on distributions, never on one run.</p>
+        <p>At <strong>high</strong> effort the harnesses are clearly <strong>separated</strong> — structured leads at 0.779, well ahead of dab0022 (0.722) and minimal (0.719). The scaffolding matters.</p>
+        <p>At <strong>xhigh</strong> that gap <strong>collapses</strong>: all three land in a dead heat around <strong>0.77</strong> (minimal 0.774, dab0022 0.769, structured 0.767 — within 0.007, far inside their run-to-run noise). xhigh <em>lifts the weaker harnesses</em> — minimal +0.055, dab0022 +0.047 — up to structured's level, while structured itself barely moves (−0.012).</p>
+        <p>Takeaway: <strong>the harness stops mattering at xhigh.</strong> Max reasoning erases the scaffolding advantage — so extra effort only <em>rescues a weak harness</em>, it doesn't raise the ceiling. Peak DAB (~0.78) is reachable either way; structured@high gets there for far fewer tokens.</p>
+      </div>
+      <div class="viz">
+        <div class="slope-row">
+          <div class="chart-scroll">
+            <svg id="slopeChart" viewBox="0 0 340 260" role="img" aria-label="Slope chart: change from high to xhigh effort per harness"></svg>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -241,15 +247,15 @@
     </div>
     <div class="card">
       <div class="legend" style="margin-bottom:16px">
-        <span class="item"><span class="sw" style="background:var(--good)"></span>direct-structured</span>
-        <span class="item"><span class="sw" style="background:var(--high)"></span>direct-minimal</span>
-        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>spacedock (dab0022)</span>
+        <span class="item"><span class="sw" style="background:var(--high)"></span>reasoning: high</span>
+        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>reasoning: xhigh</span>
+        <span class="item">— line links the two efforts of one harness</span>
       </div>
       <div class="chart-scroll">
         <svg id="scatterChart" viewBox="0 0 860 420" role="img" aria-label="Scatter of stratified pass@1 versus total token usage"></svg>
       </div>
       <p class="foot-note" style="color:var(--ink-3); margin-top:12px">
-        direct-structured sits highest-and-leftmost — the best score for the fewest tokens. Both bare harnesses cost ~44M tokens over the 5-run sweep; the spacedock (dab0022) harness burns <strong>124M — 2.8× more</strong> for a score no better than bare minimal. Its multi-agent first-officer + ensign loop re-sends context across two codex sessions per dataset, so the extra spend buys nothing here.
+        <strong>direct-structured·high</strong> sits highest-and-leftmost — the top score (0.779) for the fewest tokens (~43M). Every arrow points right: xhigh costs more everywhere, and for the two direct harnesses it barely moves the score. The two spacedock (dab0022) points sit far right (124M→158M) — its FO+ensign multi-agent loop spends 3× the tokens for no score advantage over the bare harnesses.
       </p>
     </div>
   </section>
@@ -262,16 +268,14 @@
     </div>
     <div class="card">
       <div class="legend" style="margin-bottom:18px">
-        <span class="item"><span class="sw" style="background:var(--good)"></span>direct-structured</span>
-        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>spacedock (dab0022)</span>
-        <span class="item"><span class="sw" style="background:var(--high)"></span>direct-minimal</span>
-        <span class="item"><span class="ln" style="border-top-color:var(--xhigh)"></span>1800s reference</span>
+        <span class="item"><span class="sw" style="background:var(--high)"></span>reasoning: high</span>
+        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>reasoning: xhigh</span>
       </div>
       <div class="chart-scroll">
         <svg id="timeChart" viewBox="0 0 860 430" role="img" aria-label="Grouped bar chart of mean session execution time for six configurations"></svg>
       </div>
       <p class="foot-note" style="color:var(--ink-3); margin-top:12px">
-        The spacedock (README) harness runs ~2.1× longer per session than either bare harness — its multi-agent first-officer + ensign structure spends far more wall-clock for a score no better than bare minimal.
+        The bare harnesses are fast (~7–8 min/session) and barely slow down at xhigh. spacedock (dab0022) is ~2× slower — its multi-agent first-officer + ensign loop — and xhigh adds a little more (16.7 min/session). All runs are uncapped, so these are true means, not floors.
       </p>
     </div>
   </section>
@@ -284,16 +288,14 @@
     </div>
     <div class="card">
       <div class="legend" style="margin-bottom:18px">
-        <span class="item"><span class="sw" style="background:var(--good)"></span>direct-structured</span>
-        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>spacedock (dab0022)</span>
-        <span class="item"><span class="sw" style="background:var(--high)"></span>direct-minimal</span>
-        <span class="item"><span class="ln" style="border-top-color:var(--xhigh);border-top-style:dashed"></span>1800s reference</span>
+        <span class="item"><span class="sw" style="background:var(--high)"></span>reasoning: high</span>
+        <span class="item"><span class="sw" style="background:var(--xhigh)"></span>reasoning: xhigh</span>
       </div>
       <div class="chart-scroll">
         <svg id="distChart" viewBox="0 0 860 460" role="img" aria-label="Box-plot distribution of session execution time per configuration"></svg>
       </div>
       <p class="foot-note" style="color:var(--ink-3); margin-top:12px">
-        Both bare harnesses keep their whole distribution under ~13 min; the spacedock (README) box sits far to the right — its heavy multi-agent loop is the slowest by a wide margin, and a handful of sessions run past the 1800s mark.
+        The bare-harness boxes are tight and low; the spacedock (dab0022) boxes sit higher and wider. Because rk runs are uncapped, the long tail is real — one spacedock·xhigh session ran ~93 min (a single hard dataset), the kind of tail that the old 1800s-capped runs silently truncated.
       </p>
     </div>
   </section>
@@ -321,14 +323,14 @@
   <section>
     <div class="sec-head">
       <h2>Full results</h2>
-      <span class="sec-note">stratified pass@1 · 5-draw merge · token totals = full sweep</span>
+      <span class="sec-note">stratified pass@1 · token totals = full 5-run sweep</span>
     </div>
     <div class="table-scroll">
       <table>
         <thead>
           <tr>
             <th>Configuration</th>
-            <th>Type</th>
+            <th>Effort</th>
             <th>Stratified<br>mean</th>
             <th>±stdev</th>
             <th>min</th>
@@ -342,15 +344,15 @@
       </table>
     </div>
     <p class="foot-note" style="color:var(--ink-3); margin-top:12px">
-      Row highlighted green = top stratified score. Token totals cover all 5 draws (270 query-trials). The spacedock row carries the dab0022 semi-structured-rules README (v0.24); its tokens sum both the first-officer and ensign codex sessions per dataset. “bare” = a plain prompt harness with no lever.
+      Rows highlighted green = top stratified score. Token totals cover all 5 runs (270 query-trials). Spacedock·high carries the dab0022 semi-structured-rules README lever.
     </p>
   </section>
 
   <footer>
-    <p><strong style="color:var(--ink-2)">Benchmark.</strong> DAB scores an LLM solver on 54 analytics queries spanning 12 real datasets (Postgres / MongoDB / DuckDB). <code>stratified pass@1</code> weights each dataset equally regardless of query count. Every configuration is a merge of 5 independent runs — 270 query-trials each, solved in 60 per-dataset codex sessions (12 datasets × 5 runs). Solver = codex runtime, model gpt-5.6-sol, reasoning effort high.</p>
-    <p><strong style="color:var(--ink-2)">Token accounting.</strong> Totals are summed over all 5 runs; <code>total = input + output</code> (cached input is a subset of input). All figures are recovered from the codex session rollout logs' final <code>total_token_usage</code> per session. Direct-* harnesses run one codex session per dataset; the spacedock (dab0022) harness runs two — a first-officer thread that dispatches an ensign solver thread — and its total sums both. (Earlier codex builds logged only the first-officer thread, so this page previously showed <code>—</code>; the newer build logs both, making the true multi-agent cost recoverable.)</p>
-    <p><strong style="color:var(--ink-2)">Execution time.</strong> Mean wall-clock over the 60 dataset-sessions per config. Scopes differ slightly: direct-* is per-trial wall-clock (env-setup + agent + verifier); spacedock is codex agent task duration. The spacedock harness's multi-agent structure makes it the slowest by ~2×.</p>
-    <p class="foot-note"><strong style="color:var(--ink-2)">Notes.</strong> (1) All three harnesses run at reasoning effort <b>high</b>; this page does not include the xhigh tier. (2) The spacedock row uses the dab0022 semi-structured-rules README on spacedock <b>v0.24</b> (a separate v0.22 draw was excluded to keep the version clean); the bare harnesses use no spacedock plugin, so version is irrelevant to them. (3) “vs gpt-5.5” deltas compare against the same three harnesses at high effort on the prior model (structured 0.717, spacedock 0.743, minimal 0.710). (4) A 5-draw mean carries roughly ±0.03 of noise (minimal ±0.07) — read the whiskers, not small gaps between means. Reference lines: codex batch anchor 0.697, Opus-4.8 incumbent 0.654.</p>
+    <p><strong style="color:var(--ink-2)">Benchmark.</strong> DAB scores an LLM solver on 54 analytics queries spanning 12 real datasets (Postgres / MongoDB / DuckDB). <code>stratified pass@1</code> weights each dataset equally regardless of query count. Every configuration is a merge of 5 independent runs — 270 query-trials each, solved in 60 per-dataset codex sessions (12 datasets × 5 runs). Solver = codex runtime, model gpt-5.6-sol. All runs on razorback/harbor, <strong>uncapped</strong> (no agent timeout).</p>
+    <p><strong style="color:var(--ink-2)">Token accounting.</strong> Totals are summed over all 5 runs; <code>total = input + output</code> (cached input is a subset of input). All figures are recovered from the codex session rollout logs' final <code>total_token_usage</code>. Direct-* harnesses run one codex session per dataset; the spacedock (dab0022) harness runs two — a first-officer thread that dispatches an ensign solver thread — and its total sums both.</p>
+    <p><strong style="color:var(--ink-2)">Execution time.</strong> Mean wall-clock over the 60 dataset-sessions per config. Scopes differ slightly: direct-* is per-trial wall-clock (env-setup + agent + verifier); spacedock is codex agent task duration. Runs are uncapped, so means are true figures (the spacedock long tail is real, not truncated).</p>
+    <p class="foot-note"><strong style="color:var(--ink-2)">Notes.</strong> (1) The spacedock rows carry the dab0022 semi-structured-rules README on spacedock <b>v0.24</b>; the bare harnesses use no spacedock plugin. (2) At xhigh the three harnesses are a statistical three-way tie (~0.77, within 0.007 — far inside their ±0.03–0.05 run-to-run noise); read the whiskers, not the ordering. (3) One spacedock·xhigh draw scored 0.667 (its low outlier) on an isolated PATENTS answer-format flake — the solver emitted a list where the validator expects a string, scoring that dataset 0; it is a genuine draw, not an infrastructure error. (4) A 5-draw mean carries roughly ±0.03 of noise (minimal ±0.07). Reference lines: codex batch anchor 0.697, Opus-4.8 incumbent 0.654.</p>
   </footer>
 </div>
 
@@ -358,39 +360,48 @@
 
 <script>
 // ---------------------------------------------------------------- DATA
-// tokTotal / tokOut are 5-run sums; cost in USD (null = not captured)
+// tokTotal / tokOut are 5-run sums, recovered from codex rollout logs; all configs uncapped (no timeouts)
 const CONFIGS = [
-  { id:'ds-h', fam:'direct-structured', short:'direct-str', effort:'high', col:'--good',  strat:0.7790, sd:0.0291, min:0.7413, max:0.8264, tokTotal:43494766, tokOut:564987, meanSec:442 },
-  { id:'sd-h', fam:'spacedock (dab0022)', short:'spacedock', effort:'high', col:'--xhigh', strat:0.7218, sd:0.0409, min:0.6788, max:0.7797, tokTotal:124012875, tokOut:1696354, meanSec:941, note:'README lever · v0.24' },
-  { id:'dm-h', fam:'direct-minimal',    short:'direct-min', effort:'high', col:'--high',  strat:0.7185, sd:0.0690, min:0.5950, max:0.7825, tokTotal:44276047, tokOut:551743, meanSec:441 },
+  { id:'dm-h', fam:'direct-minimal',      short:'direct-min', effort:'high',  strat:0.7185, sd:0.0690, min:0.5950, max:0.7825, tokTotal:44276047,  tokOut:551743,  meanSec:441 },
+  { id:'dm-x', fam:'direct-minimal',      short:'direct-min', effort:'xhigh', strat:0.7735, sd:0.0362, min:0.7150, max:0.8200, tokTotal:48119669,  tokOut:648650,  meanSec:455 },
+  { id:'ds-h', fam:'direct-structured',   short:'direct-str', effort:'high',  strat:0.7790, sd:0.0291, min:0.7413, max:0.8264, tokTotal:43494766,  tokOut:564987,  meanSec:442, note:'best score/token' },
+  { id:'ds-x', fam:'direct-structured',   short:'direct-str', effort:'xhigh', strat:0.7672, sd:0.0265, min:0.7150, max:0.7850, tokTotal:56552048,  tokOut:628505,  meanSec:457 },
+  { id:'sd-h', fam:'spacedock (dab0022)', short:'spacedock',  effort:'high',  strat:0.7218, sd:0.0409, min:0.6788, max:0.7797, tokTotal:124012875, tokOut:1696354, meanSec:941, note:'dab0022 · v0.24' },
+  { id:'sd-x', fam:'spacedock (dab0022)', short:'spacedock',  effort:'xhigh', strat:0.7688, sd:0.0527, min:0.6675, max:0.8200, tokTotal:158359485, tokOut:1909263, meanSec:997, note:'dab0022 · v0.24' },
 ];
-// gpt-5.5 @ high reference means (prior model, same harnesses) — for the cross-model finding
-const PRIOR = { 'ds-h':0.7174, 'sd-h':0.7433, 'dm-h':0.7096 };
+const GROUPS = [
+  { fam:'direct-minimal',      high:'dm-h', xhigh:'dm-x' },
+  { fam:'direct-structured',   high:'ds-h', xhigh:'ds-x' },
+  { fam:'spacedock (dab0022)', high:'sd-h', xhigh:'sd-x' },
+];
 const REF = { anchor:0.6966, opus:0.6536 };
 
 // raw per-session wall-clock seconds (60 sessions per config)
 const DURATIONS = {
-  'ds-h':[193, 200, 204, 205, 205, 212, 214, 218, 220, 224, 226, 235, 236, 238, 239, 248, 250, 258, 259, 269, 284, 301, 303, 306, 317, 325, 338, 339, 340, 354, 363, 371, 385, 398, 403, 425, 428, 429, 433, 445, 483, 510, 524, 534, 564, 564, 579, 590, 598, 612, 647, 675, 701, 732, 885, 897, 999, 1071, 1113, 1375],
-  'sd-h':[95, 191, 443, 474, 557, 557, 574, 596, 603, 603, 637, 641, 641, 650, 666, 684, 713, 720, 728, 753, 759, 797, 800, 807, 811, 817, 819, 832, 835, 837, 843, 868, 872, 882, 909, 940, 962, 976, 987, 996, 1022, 1033, 1085, 1112, 1159, 1207, 1282, 1313, 1339, 1342, 1380, 1381, 1389, 1390, 1456, 1463, 1477, 1886, 1908, 1986],
   'dm-h':[181, 182, 188, 190, 200, 203, 203, 215, 220, 226, 228, 231, 236, 241, 242, 245, 245, 245, 262, 267, 271, 272, 277, 288, 291, 296, 303, 303, 312, 327, 339, 345, 345, 349, 370, 376, 413, 415, 452, 454, 454, 473, 494, 509, 512, 532, 536, 643, 658, 664, 753, 769, 775, 831, 934, 992, 1091, 1115, 1196, 1291],
+  'dm-x':[193, 200, 200, 218, 219, 223, 226, 226, 227, 229, 241, 241, 242, 256, 258, 267, 270, 287, 304, 306, 309, 328, 328, 343, 345, 351, 371, 382, 383, 386, 392, 405, 405, 414, 425, 425, 426, 434, 476, 492, 492, 503, 508, 509, 516, 538, 549, 552, 556, 573, 582, 682, 750, 781, 821, 939, 1016, 1114, 1264, 1396],
+  'ds-h':[193, 200, 204, 205, 205, 212, 214, 218, 220, 224, 226, 235, 236, 238, 239, 248, 250, 258, 259, 269, 284, 301, 303, 306, 317, 325, 338, 339, 340, 354, 363, 371, 385, 398, 403, 425, 428, 429, 433, 445, 483, 510, 524, 534, 564, 564, 579, 590, 598, 612, 647, 675, 701, 732, 885, 897, 999, 1071, 1113, 1375],
+  'ds-x':[179, 191, 197, 201, 208, 209, 220, 230, 242, 243, 243, 253, 257, 259, 259, 272, 275, 275, 276, 282, 282, 291, 291, 300, 315, 318, 319, 321, 345, 346, 348, 355, 388, 414, 418, 439, 467, 479, 481, 494, 498, 514, 514, 515, 546, 594, 615, 623, 624, 654, 655, 687, 691, 855, 940, 946, 960, 998, 1305, 1529],
+  'sd-h':[95, 191, 443, 474, 557, 557, 574, 596, 603, 603, 637, 641, 641, 650, 666, 684, 713, 720, 728, 753, 759, 797, 800, 807, 811, 817, 819, 832, 835, 837, 843, 868, 872, 882, 909, 940, 962, 976, 987, 996, 1022, 1033, 1085, 1112, 1159, 1207, 1282, 1313, 1339, 1342, 1380, 1381, 1389, 1390, 1456, 1463, 1477, 1886, 1908, 1986],
+  'sd-x':[520, 567, 610, 618, 620, 631, 641, 642, 646, 646, 647, 654, 663, 700, 705, 713, 714, 720, 721, 723, 725, 736, 772, 780, 805, 808, 816, 820, 822, 825, 829, 834, 837, 843, 849, 851, 875, 875, 917, 937, 970, 978, 990, 993, 1006, 1056, 1072, 1126, 1153, 1166, 1255, 1323, 1424, 1443, 1544, 1593, 1725, 1753, 2003, 5587],
 };
 const quantile = (a, p) => { const s = [...a].sort((x, y) => x - y), i = (s.length - 1) * p, lo = Math.floor(i), hi = Math.min(lo + 1, s.length - 1); return s[lo] + (s[hi] - s[lo]) * (i - lo); };
 
 const DATASETS = [
-  ['crmarenapro',13, {'dm-h': 12, 'ds-h': 12.2, 'sd-h': 11.4}],
-  ['yelp',7, {'dm-h': 3.8, 'ds-h': 6.2, 'sd-h': 6.8}],
-  ['stockmarket',5, {'dm-h': 4.2, 'ds-h': 4.2, 'sd-h': 3.4}],
-  ['GITHUB_REPOS',4, {'dm-h': 1.6, 'ds-h': 2, 'sd-h': 1.6}],
-  ['agnews',4, {'dm-h': 1.4, 'ds-h': 1.6, 'sd-h': 1}],
-  ['googlelocal',4, {'dm-h': 3.2, 'ds-h': 3, 'sd-h': 3.8}],
-  ['PANCANCER_ATLAS',3, {'dm-h': 2, 'ds-h': 2, 'sd-h': 1.6}],
-  ['PATENTS',3, {'dm-h': 2.8, 'ds-h': 2.6, 'sd-h': 3}],
-  ['bookreview',3, {'dm-h': 3, 'ds-h': 3, 'sd-h': 2.4}],
-  ['music_brainz_20k',3, {'dm-h': 2.6, 'ds-h': 3, 'sd-h': 3}],
-  ['stockindex',3, {'dm-h': 3, 'ds-h': 3, 'sd-h': 2.4}],
-  ['DEPS_DEV_V1',2, {'dm-h': 0.6, 'ds-h': 1, 'sd-h': 0.8}],
+  ['crmarenapro',13, {'dm-h':12.0,'dm-x':11.6,'ds-h':12.2,'ds-x':12.0,'sd-h':11.4,'sd-x':11.8}],
+  ['yelp',7, {'dm-h':3.8,'dm-x':6.6,'ds-h':6.2,'ds-x':6.6,'sd-h':6.8,'sd-x':6.8}],
+  ['stockmarket',5, {'dm-h':4.2,'dm-x':4.4,'ds-h':4.2,'ds-x':4.2,'sd-h':3.4,'sd-x':4.4}],
+  ['googlelocal',4, {'dm-h':3.2,'dm-x':3.0,'ds-h':3.0,'ds-x':3.0,'sd-h':3.8,'sd-x':4.0}],
+  ['GITHUB_REPOS',4, {'dm-h':1.6,'dm-x':2.0,'ds-h':2.0,'ds-x':2.0,'sd-h':1.6,'sd-x':1.8}],
+  ['agnews',4, {'dm-h':1.4,'dm-x':1.4,'ds-h':1.6,'ds-x':1.4,'sd-h':1.0,'sd-x':1.0}],
+  ['stockindex',3, {'dm-h':3.0,'dm-x':3.0,'ds-h':3.0,'ds-x':2.8,'sd-h':2.4,'sd-x':2.6}],
+  ['music_brainz_20k',3, {'dm-h':2.6,'dm-x':3.0,'ds-h':3.0,'ds-x':3.0,'sd-h':3.0,'sd-x':3.0}],
+  ['PATENTS',3, {'dm-h':2.8,'dm-x':2.4,'ds-h':2.6,'ds-x':2.4,'sd-h':3.0,'sd-x':2.4}],
+  ['PANCANCER_ATLAS',3, {'dm-h':2.0,'dm-x':2.0,'ds-h':2.0,'ds-x':2.0,'sd-h':1.6,'sd-x':1.8}],
+  ['bookreview',3, {'dm-h':3.0,'dm-x':3.0,'ds-h':3.0,'ds-x':3.0,'sd-h':2.4,'sd-x':3.0}],
+  ['DEPS_DEV_V1',2, {'dm-h':0.6,'dm-x':1.0,'ds-h':1.0,'ds-x':1.0,'sd-h':0.8,'sd-x':1.0}],
 ];
-const COL_ORDER = ['ds-h','sd-h','dm-h'];
+const COL_ORDER = ['sd-h','sd-x','dm-h','dm-x','ds-h','ds-x'];
 
 const cfg = id => CONFIGS.find(c => c.id === id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -437,38 +448,81 @@ function drawBars(){
     t.textContent = rf.txt; svg.appendChild(t);
   });
 
-  const n = COL_ORDER.length, gGap = 46, bw = (pw - gGap * (n - 1)) / n;
-  COL_ORDER.forEach((id, gi) => {
-    const c = cfg(id), col = cssv(c.col), bx = m.l + gi * (bw + gGap), by = y(c.strat), bh = m.t + ph - by;
-    const rect = el('rect', { x: bx, y: by, width: bw, height: bh, rx: 5, fill: col, class: 'bar-rect' });
-    const noteLine = c.note ? `<div class="tt-r"><span>note</span><span>${c.note}</span></div>` : '';
-    const prior = PRIOR[c.id];
-    rect.addEventListener('mousemove', ev => showTT(
-      `<div class="tt-t">${c.fam}</div>`+
-      `<div class="tt-r"><span>stratified</span><span>${c.strat.toFixed(4)}</span></div>`+
-      `<div class="tt-r"><span>range (5 draws)</span><span>${c.min.toFixed(3)}–${c.max.toFixed(3)}</span></div>`+
-      `<div class="tt-r"><span>±stdev</span><span>${c.sd.toFixed(4)}</span></div>`+
-      `<div class="tt-r"><span>gpt-5.5 @ high</span><span>${prior.toFixed(3)} (${(c.strat-prior>=0?'+':'')+(c.strat-prior).toFixed(3)})</span></div>`+
-      `<div class="tt-r"><span>tokens</span><span>${fmtM(c.tokTotal)}</span></div>`+ noteLine, ev));
-    rect.addEventListener('mouseleave', hideTT); svg.appendChild(rect);
+  const gGap = 34, gw = (pw - gGap * (GROUPS.length - 1)) / GROUPS.length, barGap = 14, bw = (gw - barGap) / 2;
+  GROUPS.forEach((g, gi) => {
+    const gx = m.l + gi * (gw + gGap);
+    [['high', g.high, cssv('--high')], ['xhigh', g.xhigh, cssv('--xhigh')]].forEach(([eff, id, col], bi) => {
+      const c = cfg(id), bx = gx + bi * (bw + barGap), by = y(c.strat), bh = m.t + ph - by;
+      const rect = el('rect', { x: bx, y: by, width: bw, height: bh, rx: 5, fill: col, class: 'bar-rect' });
+      const noteLine = c.note ? `<div class="tt-r"><span>note</span><span>${c.note}</span></div>` : '';
+      const toLine = c.timeouts ? `<div class="tt-r"><span>⚠ timed out</span><span>${c.timeouts}/${c.sessions} sessions</span></div>` : '';
+      rect.addEventListener('mousemove', ev => showTT(
+        `<div class="tt-t">${c.fam} · ${eff}</div>`+
+        `<div class="tt-r"><span>stratified</span><span>${c.strat.toFixed(4)}</span></div>`+
+        `<div class="tt-r"><span>range</span><span>${c.min.toFixed(3)}–${c.max.toFixed(3)}</span></div>`+
+        `<div class="tt-r"><span>±stdev</span><span>${c.sd.toFixed(4)}</span></div>`+
+        `<div class="tt-r"><span>tokens</span><span>${fmtM(c.tokTotal)}</span></div>`+ noteLine + toLine, ev));
+      rect.addEventListener('mouseleave', hideTT); svg.appendChild(rect);
 
-    const cx = bx + bw / 2, yHi = y(Math.min(yMax, c.strat + c.sd)), yLo = y(Math.max(0, c.strat - c.sd)), wk = cssv('--ink');
-    svg.appendChild(el('line', { x1: cx, y1: yHi, x2: cx, y2: yLo, stroke: wk, 'stroke-width': 1.5, opacity: .55 }));
-    svg.appendChild(el('line', { x1: cx - 5, y1: yHi, x2: cx + 5, y2: yHi, stroke: wk, 'stroke-width': 1.5, opacity: .55 }));
-    svg.appendChild(el('line', { x1: cx - 5, y1: yLo, x2: cx + 5, y2: yLo, stroke: wk, 'stroke-width': 1.5, opacity: .55 }));
-    const vl = el('text', { x: cx, y: yHi - 8, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 700, fill: cssv('--ink') });
-    vl.textContent = c.strat.toFixed(3); svg.appendChild(vl);
-    // faint marker for the gpt-5.5 prior at high
-    const yp = y(prior);
-    svg.appendChild(el('line', { x1: bx+6, y1: yp, x2: bx+bw-6, y2: yp, stroke: cssv('--ink-3'), 'stroke-width': 1.4, 'stroke-dasharray': '4 3', opacity: .8 }));
-    const gl = el('text', { x: cx, y: m.t + ph + 22, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600, fill: cssv('--ink-2') });
-    gl.textContent = c.short; svg.appendChild(gl);
-    const gl2 = el('text', { x: cx, y: m.t + ph + 38, 'text-anchor': 'middle', 'font-size': 10.5, fill: cssv('--ink-3') });
-    gl2.textContent = c.note ? c.note : 'bare harness'; svg.appendChild(gl2);
+      // caveat overlay + caption for timed-out config
+      if (c.timeouts) {
+        const ov = el('rect', { x: bx, y: by, width: bw, height: bh, rx: 5, fill: 'url(#hatch)', 'pointer-events': 'none' });
+        svg.appendChild(ov);
+      }
+
+      const cx = bx + bw / 2, yHi = y(Math.min(yMax, c.strat + c.sd)), yLo = y(Math.max(0, c.strat - c.sd)), wk = cssv('--ink');
+      svg.appendChild(el('line', { x1: cx, y1: yHi, x2: cx, y2: yLo, stroke: wk, 'stroke-width': 1.5, opacity: .55 }));
+      svg.appendChild(el('line', { x1: cx - 5, y1: yHi, x2: cx + 5, y2: yHi, stroke: wk, 'stroke-width': 1.5, opacity: .55 }));
+      svg.appendChild(el('line', { x1: cx - 5, y1: yLo, x2: cx + 5, y2: yLo, stroke: wk, 'stroke-width': 1.5, opacity: .55 }));
+      const vl = el('text', { x: cx, y: yHi - 8, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 700, fill: cssv('--ink') });
+      vl.textContent = c.strat.toFixed(3); svg.appendChild(vl);
+      if (c.timeouts) {
+        const cap = el('text', { x: cx, y: yHi - 24, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 700, fill: col });
+        cap.textContent = `⚠ ${c.timeouts}/${c.sessions} timed out`; svg.appendChild(cap);
+      }
+      const efl = el('text', { x: cx, y: m.t + ph + 16, 'text-anchor': 'middle', 'font-size': 10.5, fill: col });
+      efl.textContent = eff; svg.appendChild(efl);
+    });
+    const gl = el('text', { x: gx + gw / 2, y: m.t + ph + 38, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 600, fill: cssv('--ink-2') });
+    gl.textContent = g.fam; svg.appendChild(gl);
   });
   svg.appendChild(el('line', { x1: m.l, y1: m.t + ph, x2: W - m.r, y2: m.t + ph, stroke: cssv('--axis'), 'stroke-width': 1 }));
   const yt = el('text', { x: -(m.t + ph / 2), y: 15, transform: 'rotate(-90)', 'text-anchor': 'middle', 'font-size': 11, fill: cssv('--ink-3') });
   yt.textContent = 'stratified pass@1'; svg.appendChild(yt);
+}
+
+// ---------------------------------------------------------------- SLOPE CHART
+function drawSlope(){
+  const svg = document.getElementById('slopeChart'); svg.innerHTML = '';
+  const W = 340, H = 260, m = { t: 22, r: 92, b: 30, l: 40 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b, lo = 0.68, hi = 0.80;
+  const y = v => m.t + ph - ((v - lo) / (hi - lo)) * ph, xH = m.l, xX = m.l + pw;
+  [lo, hi].forEach(v => {
+    const yy = y(v);
+    svg.appendChild(el('line', { x1: m.l, y1: yy, x2: m.l + pw, y2: yy, stroke: cssv('--grid'), 'stroke-width': 1 }));
+    const t = el('text', { x: m.l - 8, y: yy + 4, 'text-anchor': 'end', 'font-size': 10, fill: cssv('--ink-3') });
+    t.textContent = v.toFixed(2); svg.appendChild(t);
+  });
+  ['high', 'xhigh'].forEach((lab, i) => {
+    const t = el('text', { x: i === 0 ? xH : xX, y: m.t + ph + 18, 'text-anchor': i === 0 ? 'start' : 'end', 'font-size': 11, fill: cssv('--ink-2') });
+    t.textContent = lab; svg.appendChild(t);
+  });
+  const cols = { 'spacedock (dab0022)': cssv('--xhigh'), 'direct-minimal': cssv('--high'), 'direct-structured': cssv('--good') };
+  GROUPS.forEach(g => {
+    const h = cfg(g.high).strat, x = cfg(g.xhigh).strat, col = cols[g.fam], yH = y(h), yX = y(x);
+    const g2 = el('g', {});
+    g2.appendChild(el('line', { x1: xH, y1: yH, x2: xX, y2: yX, stroke: col, 'stroke-width': 2.4 }));
+    g2.appendChild(el('circle', { cx: xH, cy: yH, r: 4.5, fill: col }));
+    g2.appendChild(el('circle', { cx: xX, cy: yX, r: 4.5, fill: col }));
+    const lbl = el('text', { x: xX + 8, y: yX + 3.5, 'font-size': 10.5, fill: col, 'font-weight': 600 });
+    lbl.textContent = cfg(g.high).short; g2.appendChild(lbl);
+    g2.addEventListener('mousemove', ev => showTT(
+      `<div class="tt-t">${g.fam}</div>`+
+      `<div class="tt-r"><span>high</span><span>${h.toFixed(3)}</span></div>`+
+      `<div class="tt-r"><span>xhigh</span><span>${x.toFixed(3)}</span></div>`+
+      `<div class="tt-r"><span>Δ</span><span>${(x - h >= 0 ? '+' : '') + (x - h).toFixed(3)}</span></div>`, ev));
+    g2.addEventListener('mouseleave', hideTT); svg.appendChild(g2);
+  });
 }
 
 // ---------------------------------------------------------------- SCATTER (score vs tokens)
@@ -476,7 +530,7 @@ function drawScatter(){
   const svg = document.getElementById('scatterChart'); svg.innerHTML = '';
   const W = 860, H = 420, m = { t: 24, r: 30, b: 56, l: 56 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
-  const xLo = 0, xHi = 140, yLo = 0.66, yHi = 0.82;
+  const xLo = 0, xHi = 170, yLo = 0.68, yHi = 0.80;
   const X = v => m.l + ((v - xLo) / (xHi - xLo)) * pw;
   const Y = v => m.t + ph - ((v - yLo) / (yHi - yLo)) * ph;
 
@@ -506,21 +560,30 @@ function drawScatter(){
   const yt = el('text', { x: -(m.t + ph / 2), y: 16, transform: 'rotate(-90)', 'text-anchor': 'middle', 'font-size': 11, fill: cssv('--ink-3') });
   yt.textContent = 'stratified pass@1'; svg.appendChild(yt);
 
+  // connect efforts within a family (only where both have tokens)
+  GROUPS.forEach(g => {
+    const a = cfg(g.high), b = cfg(g.xhigh);
+    if (a.tokTotal && b.tokTotal) {
+      svg.appendChild(el('line', { x1: X(a.tokTotal/1e6), y1: Y(a.strat), x2: X(b.tokTotal/1e6), y2: Y(b.strat),
+        stroke: cssv('--ink-3'), 'stroke-width': 1.4, opacity: .45 }));
+    }
+  });
+
   // points
-  const lblOff = { 'ds-h': [10,-10], 'dm-h': [10,16], 'sd-h': [-10,-10,'end'] };
+  const lblOff = { 'dm-h': [8,16], 'dm-x': [8,-9], 'ds-h': [-6,-9,'end'], 'ds-x': [8,15], 'sd-h': [8,16], 'sd-x': [-10,-9,'end'] };
   CONFIGS.forEach(c => {
     if (!c.tokTotal) return;
-    const cx = X(c.tokTotal/1e6), cy = Y(c.strat), col = cssv(c.col);
+    const cx = X(c.tokTotal/1e6), cy = Y(c.strat), col = c.effort === 'high' ? cssv('--high') : cssv('--xhigh');
     const dot = el('circle', { cx, cy, r: 7, fill: col, stroke: cssv('--surface'), 'stroke-width': 2, class: 'dot-pt' });
     dot.addEventListener('mousemove', ev => showTT(
-      `<div class="tt-t">${c.fam}</div>`+
+      `<div class="tt-t">${c.fam} · ${c.effort}</div>`+
       `<div class="tt-r"><span>stratified</span><span>${c.strat.toFixed(4)}</span></div>`+
       `<div class="tt-r"><span>total tokens</span><span>${fmtM(c.tokTotal)}</span></div>`+
       `<div class="tt-r"><span>output</span><span>${fmtK(c.tokOut)}</span></div>`, ev));
     dot.addEventListener('mouseleave', hideTT); svg.appendChild(dot);
     const off = lblOff[c.id] || [10,-10];
     const t = el('text', { x: cx + off[0], y: cy + off[1], 'text-anchor': off[2] || 'start', 'font-size': 11, 'font-weight': 600, fill: cssv('--ink-2') });
-    t.textContent = c.short; svg.appendChild(t);
+    t.textContent = c.short + '·' + c.effort; svg.appendChild(t);
   });
 
 }
@@ -544,25 +607,33 @@ function drawTime(){
     const lbl = el('text', { x: m.l - 10, y: yy + 4, 'text-anchor': 'end', 'font-size': 11, fill: cssv('--ink-3') });
     lbl.textContent = t; svg.appendChild(lbl);
   }
-  // timeout wall
-  const yw = y(1800);
-  svg.appendChild(el('line', { x1: m.l, y1: yw, x2: W - m.r, y2: yw, stroke: cssv('--xhigh'), 'stroke-width': 1.4, 'stroke-dasharray': '6 5', opacity: .8 }));
-  const wt = el('text', { x: W - m.r, y: yw - 6, 'text-anchor': 'end', 'font-size': 10.5, fill: cssv('--xhigh'), opacity: .9 });
-  wt.textContent = '1800s timeout wall'; svg.appendChild(wt);
+  // (no timeout wall — rk runs are uncapped)
 
-  const n = COL_ORDER.length, gGap = 46, bw = (pw - gGap * (n - 1)) / n;
-  COL_ORDER.forEach((id, gi) => {
-    const c = cfg(id), col = cssv(c.col), bx = m.l + gi * (bw + gGap), by = y(c.meanSec), bh = m.t + ph - by;
-    const rect = el('rect', { x: bx, y: by, width: bw, height: bh, rx: 5, fill: col, class: 'bar-rect' });
-    rect.addEventListener('mousemove', ev => showTT(
-      `<div class="tt-t">${c.fam}</div>`+
-      `<div class="tt-r"><span>mean / session</span><span>${c.meanSec}s (${(c.meanSec/60).toFixed(1)}m)</span></div>`, ev));
-    rect.addEventListener('mouseleave', hideTT); svg.appendChild(rect);
-    const cx = bx + bw / 2;
-    const vl = el('text', { x: cx, y: by - 8, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 700, fill: cssv('--ink') });
-    vl.textContent = (c.meanSec/60).toFixed(1) + 'm'; svg.appendChild(vl);
-    const gl = el('text', { x: cx, y: m.t + ph + 22, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600, fill: cssv('--ink-2') });
-    gl.textContent = c.short; svg.appendChild(gl);
+  const gGap = 34, gw = (pw - gGap * (GROUPS.length - 1)) / GROUPS.length, barGap = 14, bw = (gw - barGap) / 2;
+  GROUPS.forEach((g, gi) => {
+    const gx = m.l + gi * (gw + gGap);
+    [['high', g.high, cssv('--high')], ['xhigh', g.xhigh, cssv('--xhigh')]].forEach(([eff, id, col], bi) => {
+      const c = cfg(id), bx = gx + bi * (bw + barGap), by = y(c.meanSec), bh = m.t + ph - by;
+      const rect = el('rect', { x: bx, y: by, width: bw, height: bh, rx: 5, fill: col, class: 'bar-rect' });
+      const censLine = c.censored ? `<div class="tt-r"><span>⚠ censored</span><span>${c.timeouts}/${c.sessions} @1800s</span></div>` : '';
+      rect.addEventListener('mousemove', ev => showTT(
+        `<div class="tt-t">${c.fam} · ${eff}</div>`+
+        `<div class="tt-r"><span>mean / session</span><span>${c.meanSec}s (${(c.meanSec/60).toFixed(1)}m)</span></div>`+ censLine, ev));
+      rect.addEventListener('mouseleave', hideTT); svg.appendChild(rect);
+      if (c.censored) svg.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 5, fill: 'url(#hatchT)', 'pointer-events': 'none' }));
+
+      const cx = bx + bw / 2;
+      const vl = el('text', { x: cx, y: by - 8, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 700, fill: cssv('--ink') });
+      vl.textContent = (c.meanSec/60).toFixed(1) + 'm'; svg.appendChild(vl);
+      if (c.censored) {
+        const cap = el('text', { x: cx, y: by - 24, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 700, fill: col });
+        cap.textContent = '⚠ floor · 21/60 capped'; svg.appendChild(cap);
+      }
+      const efl = el('text', { x: cx, y: m.t + ph + 16, 'text-anchor': 'middle', 'font-size': 10.5, fill: col });
+      efl.textContent = eff; svg.appendChild(efl);
+    });
+    const gl = el('text', { x: gx + gw / 2, y: m.t + ph + 38, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 600, fill: cssv('--ink-2') });
+    gl.textContent = g.fam; svg.appendChild(gl);
   });
   svg.appendChild(el('line', { x1: m.l, y1: m.t + ph, x2: W - m.r, y2: m.t + ph, stroke: cssv('--axis'), 'stroke-width': 1 }));
   const yt = el('text', { x: -(m.t + ph / 2), y: 15, transform: 'rotate(-90)', 'text-anchor': 'middle', 'font-size': 11, fill: cssv('--ink-3') });
@@ -587,14 +658,10 @@ function drawDist(){
   }
   const xlab = el('text', { x: m.l + pw / 2, y: H - 6, 'text-anchor': 'middle', 'font-size': 11, fill: cssv('--ink-3') });
   xlab.textContent = 'session wall-clock (seconds)'; svg.appendChild(xlab);
-  // timeout wall
-  const xw = X(1800);
-  svg.appendChild(el('line', { x1: xw, y1: m.t, x2: xw, y2: m.t + ph, stroke: cssv('--xhigh'), 'stroke-width': 1.4, 'stroke-dasharray': '6 5', opacity: .8 }));
-  const wt = el('text', { x: xw + 5, y: m.t + 11, 'text-anchor': 'start', 'font-size': 10.5, fill: cssv('--xhigh'), opacity: .9 });
-  wt.textContent = '1800s wall'; svg.appendChild(wt);
+  // (no timeout wall — rk runs are uncapped)
 
   CONFIGS.forEach((c, ri) => {
-    const cy = m.t + rowH * (ri + 0.5), col = cssv(c.col);
+    const cy = m.t + rowH * (ri + 0.5), col = c.effort === 'high' ? cssv('--high') : cssv('--xhigh');
     const a = DURATIONS[c.id];
     const q1 = quantile(a, .25), med = quantile(a, .5), q3 = quantile(a, .75), iqr = q3 - q1;
     const loF = q1 - 1.5 * iqr, hiF = q3 + 1.5 * iqr;
@@ -605,7 +672,7 @@ function drawDist(){
     const rowRect = el('rect', { x: m.l, y: cy - rowH / 2, width: pw, height: rowH, fill: 'transparent' });
     const capTxt = c.censored ? `<div class="tt-r"><span>⚠ at 1800s cap</span><span>${c.timeouts}/${c.sessions}</span></div>` : '';
     rowRect.addEventListener('mousemove', ev => showTT(
-      `<div class="tt-t">${c.fam}</div>`+
+      `<div class="tt-t">${c.fam} · ${c.effort}</div>`+
       `<div class="tt-r"><span>median</span><span>${med.toFixed(0)}s (${(med/60).toFixed(1)}m)</span></div>`+
       `<div class="tt-r"><span>IQR</span><span>${q1.toFixed(0)}–${q3.toFixed(0)}s</span></div>`+
       `<div class="tt-r"><span>min / max</span><span>${Math.min(...a)} / ${Math.max(...a)}s</span></div>`+
@@ -630,7 +697,7 @@ function drawDist(){
     const lb = el('text', { x: m.l - 12, y: cy - 3, 'text-anchor': 'end', 'font-size': 11.5, 'font-weight': 600, fill: cssv('--ink-2') });
     lb.textContent = c.short; svg.appendChild(lb);
     const lb2 = el('text', { x: m.l - 12, y: cy + 12, 'text-anchor': 'end', 'font-size': 10.5, fill: col });
-    lb2.textContent = (c.meanSec/60).toFixed(1) + 'm avg'; svg.appendChild(lb2);
+    lb2.textContent = c.effort; svg.appendChild(lb2);
   });
 }
 
@@ -650,8 +717,8 @@ function drawHeat(){
     const c = cfg(id), cx = labelW + ci * cw + cw / 2;
     const t1 = el('text', { x: cx, y: 18, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600, fill: cssv('--ink-2') });
     t1.textContent = c.short; svg.appendChild(t1);
-    const t2 = el('text', { x: cx, y: 34, 'text-anchor': 'middle', 'font-size': 10.5, fill: cssv(c.col) });
-    t2.textContent = c.strat.toFixed(3); svg.appendChild(t2);
+    const t2 = el('text', { x: cx, y: 34, 'text-anchor': 'middle', 'font-size': 10.5, fill: c.effort === 'high' ? cssv('--high') : cssv('--xhigh') });
+    t2.textContent = c.effort; svg.appendChild(t2);
   });
   DATASETS.forEach((d, ri) => {
     const [name, n, vals] = d, ry = headH + ri * chh;
@@ -665,7 +732,7 @@ function drawHeat(){
       const c = cfg(id);
       cell.addEventListener('mousemove', ev => showTT(
         `<div class="tt-t">${name}</div>`+
-        `<div class="tt-r"><span>${c.short}</span><span></span></div>`+
+        `<div class="tt-r"><span>${c.short} · ${c.effort}</span><span></span></div>`+
         `<div class="tt-r"><span>pass rate</span><span>${(f * 100).toFixed(0)}%</span></div>`+
         `<div class="tt-r"><span>mean passed</span><span>${mp} / ${n}</span></div>`, ev));
       cell.addEventListener('mouseleave', hideTT); svg.appendChild(cell);
@@ -682,9 +749,10 @@ function fillTable(){
   CONFIGS.slice().sort((a, b) => b.strat - a.strat).forEach(c => {
     const tr = document.createElement('tr');
     if (c.strat === best) tr.className = 'win';
-    const eff = c.note ? '<span class="effort-tag x">README</span>' : '<span class="effort-tag h">bare</span>';
+    const eff = c.effort === 'high' ? '<span class="effort-tag h">high</span>' : '<span class="effort-tag x">xhigh</span>';
     const notes = [];
     if (c.note) notes.push(c.note);
+    if (c.timeouts) notes.push(`⚠ ${c.timeouts}/${c.sessions} timed out`);
     const note = notes.length ? ` <span class="fam">${notes.join(' · ')}</span>` : '';
     const tot = c.tokTotal == null ? '<span class="na">—</span>' : fmtM(c.tokTotal);
     const out = c.tokOut == null ? '<span class="na">—</span>' : fmtK(c.tokOut);
@@ -704,7 +772,7 @@ function fillTable(){
   });
 }
 
-function renderAll(){ drawBars(); drawScatter(); drawTime(); drawDist(); drawHeat(); }
+function renderAll(){ drawBars(); drawSlope(); drawScatter(); drawTime(); drawDist(); drawHeat(); }
 fillTable();
 renderAll();
 
