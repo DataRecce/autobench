@@ -69,8 +69,10 @@ config is frozen on purpose; the product is the longitudinal record, not a bette
 Each run lives as a folder `{slug}/` containing `index.md` as the canonical entity file,
 with per-stage artifacts (draw tables, extractor JSON, taint-audit notes) alongside it.
 Slugs encode subject + effort + harness version so both trigger types name uniformly:
-`gpt-5.5-high-spacedock-v0.25` (spacedock release), `gpt-5.7-high-spacedock-v0.25`
-(model release). Slugs are lowercase, hyphens, no spaces.
+`gpt55-high-spacedock-v025` (spacedock release), `gpt57-high-spacedock-v025`
+(model release). Slugs are lowercase, hyphens, no spaces — and NO DOTS: the slug feeds
+dispatch worker names, which reject anything outside `[a-z0-9-]` (drop the dots from
+model and version numbers; the human-readable `title` keeps them).
 
 ## Schema
 
