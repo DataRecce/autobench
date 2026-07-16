@@ -29,7 +29,8 @@ solver harness carrying the dab0022 semi-structured-rules README, at **gpt-5.5 @
 reasoning effort**. A run is triggered by one of two events: **spacedock releases a new
 version** (re-run the pinned config on the new harness), or **a new GPT model ships**
 (run the pinned harness with that model substituted, still @ high). Each run executes
-**5 full DAB draws** and records three metrics — **stratified pass@1** (per-draw +
+**5 full DAB draws as ONE rk run** (`trials: 5`, `concurrency.trials: 4` — never five
+sequential single-trial runs) and records three metrics — **stratified pass@1** (per-draw +
 mean/sd), **execution time**, and **token usage** (from harbor rollouts, never codex
 stdout) — then appends its row to the single **regression Artifacts page**, which is
 updated in place at the same URL after every run.
@@ -42,9 +43,16 @@ config is frozen on purpose; the product is the longitudinal record, not a bette
 - Harness: spacedock solver workflow (`agent.kind: spacedock_solver`, `runtime: codex`)
   with the dab0022 `### Semi-structured data rules` README lever
 - Model: `gpt-5.5` @ `high` (a model-release trigger substitutes the new model, effort stays `high`)
-- Draws per run: 5, each with its own experiment name (N draws = N experiment names)
+- Draws per run: 5, configured in ONE spec as `trials: 5` with `concurrency.trials: 4`
+  (draws = harbor attempts inside a single run dir; one experiment name per regression run)
 - Benchmark: full DAB board (12 datasets, 54 queries)
-- Reference spec lineage: `specs/codex-dab-d22-g56sol-h2.yaml` (adjust `model` per trigger)
+- Baseline spec: `specs/dab0022-patents-semistructured-rules.yaml` — copy it and change
+  ONLY `experiment:`, `model:` (per trigger), `trials: 1 → 5`, `concurrency.trials: 2 → 4`
+- Concurrency safety: harbor's trial queue is attempt-major (attempt 1 of all 12 datasets,
+  then attempt 2, …), so on a full-board run the 4 concurrent slots hold different datasets
+  and the shared global pg volume is safe. A SINGLE-dataset re-run (feedback bounce) makes
+  same-dataset trials consecutive and WILL collide on the volume — use `concurrency.trials: 1`
+  there (the dab0018 lesson, scoped)
 
 ## Regression Artifacts page
 
@@ -85,7 +93,7 @@ for a copy-paste starter.
 | `model` | string | Model under test (e.g., `gpt-5.5`) |
 | `effort` | string | Reasoning effort — always `high` in this workflow |
 | `spacedock-version` | string | `git -C spacedock describe --tags` at execution time |
-| `draws` | list | The 5 rk experiment names (or run-dir references for backfills) |
+| `draws` | list | The 5 draw references: `{experiment}/trial-{n}` for a native `trials: 5` run, or run-dir references for backfills |
 | `pass-at-1` | number | Stratified pass@1 mean over the 5 draws |
 | `pass-at-1-sd` | number | Stdev of the per-draw stratified pass@1 |
 | `tokens-total` | integer | Total tokens across the 5-draw sweep (harbor rollouts, FO+ensign) |
@@ -101,19 +109,19 @@ to the codex runtime) and the run is pinned but not yet launched. Set by whoever
 the entity.
 
 - **Inputs:** The trigger (release tag or model id); this README's Pinned configuration; the reference spec lineage
-- **Outputs:** Frontmatter fully pinned: `trigger`, `model`, `effort: high`, `spacedock-version` (from `git -C spacedock describe --tags` — the plugin is sourced live and NOT pinned by rk, so record it now and again at execution); 5 fresh experiment names listed under `draws`; the 5 spec files written under `specs/` (copy the reference spec, adjust model + experiment name only)
-- **Good:** Specs differ from the reference lineage ONLY in model and experiment name; spacedock version recorded before anything runs; slug matches the naming convention
-- **Bad:** Reusing an experiment name from `dab/runs/` (collides with prior draws); "improving" the README or spec while pinning — this workflow never tunes; leaving `spacedock-version` blank to fill in later
+- **Outputs:** Frontmatter fully pinned: `trigger`, `model`, `effort: high`, `spacedock-version` (from `git -C spacedock describe --tags` — the plugin is sourced live and NOT pinned by rk, so record it now and again at execution); ONE fresh experiment name; ONE spec file written under `specs/` (copy `dab0022-patents-semistructured-rules.yaml`, change only `experiment:`, `model:`, `trials: 5`, `concurrency.trials: 4`)
+- **Good:** The spec diffs against the dab0022 baseline in exactly those four keys and nothing else; spacedock version recorded before anything runs; slug matches the naming convention
+- **Bad:** Reusing an experiment name from `dab/runs/`; writing 5 separate specs (draws are `trials: 5` attempts, not separate experiments); "improving" the README or spec while pinning — this workflow never tunes; leaving `spacedock-version` blank to fill in later
 
 ### `execution`
 
 The 5 full DAB draws are running. This stage sits parked for hours — entities here are
 normal, not stalled.
 
-- **Inputs:** The 5 pinned specs from `queued`
-- **Outputs:** 5 completed run dirs under `dab/runs/{experiment-name}/`; launch log paths + PIDs recorded in the entity body; any mid-run incident (crash, re-launch, substitution) noted as it happens
-- **Good:** Launched detached (`nohup` + log + pid file — rk runs exceed the Bash timeout); `RAZORBACK_SPACEDOCK_PLUGIN_DIR` and `RAZORBACK_REGISTRY=dab/razorback-registry.yaml` exported before every `rk run`; `concurrency.trials: 1` (shared pg volume collides); draws launched sequentially or on disjoint backends
-- **Bad:** Foreground `rk run` (dies at Bash timeout); silently re-running a failed draw without noting it; running concurrent draws against the same globally-named pg volume
+- **Inputs:** The pinned spec from `queued`
+- **Outputs:** One completed run dir under `dab/runs/{experiment-name}/` containing all 5 trials; launch log path + PID recorded in the entity body; any mid-run incident (crash, re-launch, substitution) noted as it happens
+- **Good:** ONE detached `rk run` (`nohup` + log + pid file — a 5-trial full-board run far exceeds the Bash timeout) with `trials: 5`, `concurrency.trials: 4`; `RAZORBACK_SPACEDOCK_PLUGIN_DIR` and `RAZORBACK_REGISTRY=dab/razorback-registry.yaml` exported before the launch
+- **Bad:** Foreground `rk run` (dies at Bash timeout); executing the 5 draws one by one as separate runs; silently re-running a failed draw without noting it; single-dataset bounce re-runs at `concurrency.trials` > 1 (same-dataset trials are consecutive in harbor's attempt-major queue and collide on the shared global pg volume)
 
 ### `analysis`
 
@@ -121,7 +129,7 @@ All 5 draws are complete and the numbers are being extracted and audited. This i
 approval gate: the captain reviews the audited numbers before they go public. Rejection
 (e.g., a tainted draw) bounces back to `execution` to re-run the affected draws.
 
-- **Inputs:** The 5 run dirs; `dab/docs/benchmark-artifact/extract_benchmark_data.py`; the taint-audit checklist below
+- **Inputs:** The run dir (5 trials; backfills may span multiple run dirs); `dab/docs/benchmark-artifact/extract_benchmark_data.py`; the taint-audit checklist below
 - **Outputs:** Per-draw stratified pass@1 table + mean/sd/min/max in the entity body; `pass-at-1`, `pass-at-1-sd`, `tokens-total`, `mean-session-sec` filled in frontmatter; a taint-audit section stating what was checked and what was found (clean is a finding too); comparison against the previous regression row (delta + whether it exceeds the ±0.03 five-draw noise band)
 - **Good:** Tokens measured from harbor `sessions/` rollouts via the extractor (codex stdout undercounts ~5×); taint audit run BEFORE trusting any number — grep `reward_per_query` for "validator error" (the ~1-in-5 dab0022 list-answer crash scores a dataset 0), check for the postgres-degradation dual signature (whole-dataset `coverage_missing` + mid-run Connection-refused abstains), check dataset coverage is complete; a low draw is called tainted only WITH evidence, variance only WITHOUT
 - **Bad:** Quoting a mean before the taint audit; calling any single-draw delta a regression (the 5-draw mean itself wobbles ±0.03); comparing across rows without noting harness-version and README-lever differences; recomputing tokens from codex stdout
@@ -185,7 +193,7 @@ Brief description: what triggered this run and what it measures.
 ## Acceptance criteria
 
 **AC-1 — Five clean (or disclosed-substitution) full draws exist under `dab/runs/`.**
-Verified by: the 5 experiment names in `draws` each resolve to a completed run dir.
+Verified by: the 5 entries in `draws` each resolve to a completed trial in the run dir.
 
 **AC-2 — pass@1, tokens, and timing in frontmatter match the extractor output.**
 Verified by: re-running `extract_benchmark_data.py` over the 5 run dirs.
