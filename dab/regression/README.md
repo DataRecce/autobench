@@ -125,7 +125,7 @@ normal, not stalled.
 
 - **Inputs:** The pinned spec from `queued`
 - **Outputs:** One completed run dir under `dab/runs/{experiment-name}/` containing all 5 trials; launch log path + PID recorded in the entity body; any mid-run incident (crash, re-launch, substitution) noted as it happens
-- **Good:** ONE detached `rk run` (`nohup` + log + pid file — a 5-trial full-board run far exceeds the Bash timeout) with `trials: 5`, `concurrency.trials: 4`; `RAZORBACK_SPACEDOCK_PLUGIN_DIR` and `RAZORBACK_REGISTRY=dab/razorback-registry.yaml` exported before the launch
+- **Good:** ONE detached `rk run` (`nohup` + log + pid file — a 5-trial full-board run far exceeds the Bash timeout) with `trials: 5`, `concurrency.trials: 4`; `RAZORBACK_SPACEDOCK_PLUGIN_DIR`, `RAZORBACK_REGISTRY=dab/razorback-registry.yaml`, AND `RAZORBACK_RUNS_DIR=/home/kent/autobench/dab/runs` exported before the launch (without the runs-dir export, rk silently writes to `~/.local/share/razorback/runs/` — the first v0.25 run did; a symlink in `dab/runs/` bridges it); the spec must be FROZEN first (`rk freeze --allow-missing`) — rk refuses unfrozen spacedock_solver specs
 - **Bad:** Foreground `rk run` (dies at Bash timeout); executing the 5 draws one by one as separate runs; silently re-running a failed draw without noting it; single-dataset bounce re-runs at `concurrency.trials` > 1 (same-dataset trials are consecutive in harbor's attempt-major queue and collide on the shared global pg volume)
 
 ### `analysis`
