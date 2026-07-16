@@ -1,9 +1,9 @@
 ---
 id:
 title: gpt-5.5 @ high — spacedock v0.25 (spacedock release)
-status: queued
+status: execution
 source: spacedock v0.25.0 release (captain-filed 2026-07-16)
-started:
+started: 2026-07-16T16:20:11Z
 completed:
 verdict:
 score:
