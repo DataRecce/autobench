@@ -43,6 +43,9 @@ config is frozen on purpose; the product is the longitudinal record, not a bette
 - Harness: spacedock solver workflow (`agent.kind: spacedock_solver`, `runtime: codex`)
   with the dab0022 `### Semi-structured data rules` README lever
 - Model: `gpt-5.5` @ `high` (a model-release trigger substitutes the new model, effort stays `high`)
+- Query mode: **batch** (`plugin_args.query_mode: batch`, `workspace_variant: spacedock`) —
+  the dab0022 baseline spec already carries this; the four-keys-only copy rule below
+  preserves it. Never switch to per-query mode in this workflow.
 - Draws per run: 5, configured in ONE spec as `trials: 5` with `concurrency.trials: 4`
   (draws = harbor attempts inside a single run dir; one experiment name per regression run)
 - Benchmark: full DAB board (12 datasets, 54 queries)
