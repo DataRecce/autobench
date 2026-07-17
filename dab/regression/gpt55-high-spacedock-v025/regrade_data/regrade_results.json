@@ -1,0 +1,137 @@
+[
+  {
+    "trial": "GITHUB_REPOS__naR27Bq",
+    "dataset": "GITHUB_REPOS",
+    "q": 1,
+    "crashed": true,
+    "crash": "TypeError: expected string or bytes-like object, got 'float'",
+    "corrected_reward": 0.0,
+    "reason": "No value in LLM output rounds to 0.33"
+  },
+  {
+    "trial": "GITHUB_REPOS__naR27Bq",
+    "dataset": "GITHUB_REPOS",
+    "q": 3,
+    "crashed": true,
+    "crash": "TypeError: expected string or bytes-like object, got 'int'",
+    "corrected_reward": 1.0,
+    "reason": "Found 1077 in LLM output."
+  },
+  {
+    "trial": "GITHUB_REPOS__naR27Bq",
+    "dataset": "GITHUB_REPOS",
+    "q": 4,
+    "crashed": true,
+    "crash": "AttributeError: 'list' object has no attribute 'lower'",
+    "corrected_reward": 1.0,
+    "reason": "All repo names matched with fuzzy tolerance."
+  },
+  {
+    "trial": "music_brainz_20k__GWkSAqQ",
+    "dataset": "music_brainz_20k",
+    "q": 1,
+    "crashed": true,
+    "crash": "TypeError: expected string or bytes-like object, got 'float'",
+    "corrected_reward": 1.0,
+    "reason": "Ground truth found in LLM output."
+  },
+  {
+    "trial": "music_brainz_20k__qpXdM35",
+    "dataset": "music_brainz_20k",
+    "q": 1,
+    "crashed": true,
+    "crash": "TypeError: expected string or bytes-like object, got 'float'",
+    "corrected_reward": 1.0,
+    "reason": "Ground truth found in LLM output."
+  },
+  {
+    "trial": "PANCANCER_ATLAS__RQG9mgJ",
+    "dataset": "PANCANCER_ATLAS",
+    "q": 1,
+    "crashed": true,
+    "crash": "AttributeError: 'list' object has no attribute 'find'",
+    "corrected_reward": 0.0,
+    "reason": "Missing histology type: 9382/3"
+  },
+  {
+    "trial": "PANCANCER_ATLAS__RQG9mgJ",
+    "dataset": "PANCANCER_ATLAS",
+    "q": 2,
+    "crashed": true,
+    "crash": "AttributeError: 'list' object has no attribute 'lower'",
+    "corrected_reward": 1.0,
+    "reason": "All histological types matched (fuzzy)."
+  },
+  {
+    "trial": "PANCANCER_ATLAS__RQG9mgJ",
+    "dataset": "PANCANCER_ATLAS",
+    "q": 3,
+    "crashed": true,
+    "crash": "TypeError: expected string or bytes-like object, got 'float'",
+    "corrected_reward": 1.0,
+    "reason": "Matched value: 305.1239 -> rounded 305.12"
+  },
+  {
+    "trial": "PANCANCER_ATLAS__twXnPRq",
+    "dataset": "PANCANCER_ATLAS",
+    "q": 1,
+    "crashed": true,
+    "crash": "AttributeError: 'dict' object has no attribute 'find'",
+    "corrected_reward": 0.0,
+    "reason": "Missing histology type: 9382/3"
+  },
+  {
+    "trial": "PANCANCER_ATLAS__twXnPRq",
+    "dataset": "PANCANCER_ATLAS",
+    "q": 2,
+    "crashed": true,
+    "crash": "AttributeError: 'list' object has no attribute 'lower'",
+    "corrected_reward": 0.0,
+    "reason": "Not matched (fuzzy) within 3 chars: 'Mixed Histology (please specify)'"
+  },
+  {
+    "trial": "PANCANCER_ATLAS__twXnPRq",
+    "dataset": "PANCANCER_ATLAS",
+    "q": 3,
+    "crashed": true,
+    "crash": "TypeError: expected string or bytes-like object, got 'float'",
+    "corrected_reward": 0.0,
+    "reason": "No value in LLM output matches 305.12, 305.1, or 305"
+  },
+  {
+    "trial": "PATENTS__gyJU8bk",
+    "dataset": "PATENTS",
+    "q": 1,
+    "crashed": true,
+    "crash": "AttributeError: 'list' object has no attribute 'lower'",
+    "corrected_reward": 0.0,
+    "reason": "Missing CPC code: A41G"
+  },
+  {
+    "trial": "PATENTS__vxdxuQ6",
+    "dataset": "PATENTS",
+    "q": 1,
+    "crashed": true,
+    "crash": "AttributeError: 'list' object has no attribute 'lower'",
+    "corrected_reward": 1.0,
+    "reason": "All CPC codes present in LLM output."
+  },
+  {
+    "trial": "PATENTS__vxdxuQ6",
+    "dataset": "PATENTS",
+    "q": 2,
+    "crashed": true,
+    "crash": "AttributeError: 'list' object has no attribute 'lower'",
+    "corrected_reward": 0.0,
+    "reason": "Code/year not found near 'BAKING; EDIBLE DOUGHS' (CPC: A21, Year: 2015, Window: "
+  },
+  {
+    "trial": "PATENTS__vxdxuQ6",
+    "dataset": "PATENTS",
+    "q": 3,
+    "crashed": true,
+    "crash": "TypeError: normalize() argument 2 must be str, not list",
+    "corrected_reward": 0.0,
+    "reason": "No match for: BLOOM ENERGY CORP + PROCESSES OR MEANS, e.g. BATTERIES, FOR THE DI"
+  }
+]

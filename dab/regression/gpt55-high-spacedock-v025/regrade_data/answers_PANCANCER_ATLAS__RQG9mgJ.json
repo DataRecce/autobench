@@ -1,0 +1,31 @@
+{
+  "q1": [
+    {
+      "histological_type": "Astrocytoma",
+      "average_log10_igf2_expression": 2.5713
+    },
+    {
+      "histological_type": "Oligoastrocytoma",
+      "average_log10_igf2_expression": 2.7136
+    },
+    {
+      "histological_type": "Oligodendroglioma",
+      "average_log10_igf2_expression": 2.6825
+    }
+  ],
+  "q2": [
+    {
+      "histological_type": "Infiltrating Lobular Carcinoma",
+      "cdh1_mutation_percentage": 41.573
+    },
+    {
+      "histological_type": "Mixed Histology (please specify)",
+      "cdh1_mutation_percentage": 12.5
+    },
+    {
+      "histological_type": "Other  specify",
+      "cdh1_mutation_percentage": 8.3333
+    }
+  ],
+  "q3": 305.1239
+}

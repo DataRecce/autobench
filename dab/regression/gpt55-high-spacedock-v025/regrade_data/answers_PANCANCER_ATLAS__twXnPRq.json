@@ -1,0 +1,22 @@
+{
+  "q1": {
+    "Astrocytoma": 2.424754,
+    "Oligoastrocytoma": 2.76947,
+    "Oligodendroglioma": 2.610668
+  },
+  "q2": [
+    {
+      "histological_type": "Infiltrating Lobular Carcinoma",
+      "percentage": 54.166667
+    },
+    {
+      "histological_type": "Other  specify",
+      "percentage": 11.111111
+    },
+    {
+      "histological_type": "Infiltrating Ductal Carcinoma",
+      "percentage": 2.298851
+    }
+  ],
+  "q3": 47.519008264463
+}

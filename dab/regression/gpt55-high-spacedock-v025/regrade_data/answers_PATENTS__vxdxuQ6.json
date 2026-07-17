@@ -1,0 +1,207 @@
+{
+  "q1": [
+    "A22B",
+    "A23J",
+    "A23P",
+    "A24D",
+    "A24F",
+    "A41G",
+    "A47F",
+    "A61G",
+    "A61H",
+    "A61P",
+    "A62D",
+    "A63H",
+    "B04B",
+    "B07B",
+    "B08B",
+    "B09C",
+    "B21J",
+    "B22F",
+    "B24B",
+    "B25B",
+    "B25D",
+    "B27C",
+    "B27M",
+    "B60D",
+    "B60L",
+    "B60P",
+    "B61H",
+    "B63C",
+    "B63G",
+    "B65G",
+    "B66F",
+    "C01D",
+    "C01G",
+    "C21B",
+    "C21C",
+    "C22C",
+    "D21B",
+    "E01H",
+    "E02B",
+    "E02D",
+    "E03B",
+    "E04B",
+    "E04G",
+    "E21D",
+    "E21F",
+    "F02K",
+    "F04F",
+    "F16M",
+    "F25J",
+    "F26B",
+    "G01H",
+    "G01L",
+    "G01S",
+    "G05D",
+    "G06N",
+    "G06Q",
+    "G06T",
+    "G06V",
+    "G08G",
+    "G09F",
+    "G10L",
+    "G16B",
+    "G16C",
+    "G16H",
+    "G21F",
+    "H01M",
+    "H02B",
+    "H02G",
+    "H02J",
+    "H03H",
+    "H04K",
+    "H05F"
+  ],
+  "q2": [
+    {
+      "title": "BAKING; EDIBLE DOUGHS",
+      "cpc_group_code": "A21",
+      "best_year": 2015
+    },
+    {
+      "title": "MEDICAL OR VETERINARY SCIENCE; HYGIENE",
+      "cpc_group_code": "A61",
+      "best_year": 2016
+    },
+    {
+      "title": "MACHINE TOOLS; METAL-WORKING NOT OTHERWISE PROVIDED FOR",
+      "cpc_group_code": "B23",
+      "best_year": 2015
+    },
+    {
+      "title": "WORKING OF PLASTICS; WORKING OF SUBSTANCES IN A PLASTIC STATE IN GENERAL",
+      "cpc_group_code": "B29",
+      "best_year": 2007
+    },
+    {
+      "title": "PRINTING; LINING MACHINES; TYPEWRITERS; STAMPS",
+      "cpc_group_code": "B41",
+      "best_year": 2007
+    },
+    {
+      "title": "VEHICLES IN GENERAL",
+      "cpc_group_code": "B60",
+      "best_year": 2009
+    },
+    {
+      "title": "LAND VEHICLES FOR TRAVELLING OTHERWISE THAN ON RAILS",
+      "cpc_group_code": "B62",
+      "best_year": 2010
+    },
+    {
+      "title": "SHIPS OR OTHER WATERBORNE VESSELS; RELATED EQUIPMENT",
+      "cpc_group_code": "B63",
+      "best_year": 2014
+    },
+    {
+      "title": "DYES; PAINTS; POLISHES; NATURAL RESINS; ADHESIVES; COMPOSITIONS NOT OTHERWISE PROVIDED FOR; APPLICATIONS OF MATERIALS NOT OTHERWISE PROVIDED FOR",
+      "cpc_group_code": "C09",
+      "best_year": 2015
+    },
+    {
+      "title": "HYDRAULIC ENGINEERING; FOUNDATIONS; SOIL SHIFTING",
+      "cpc_group_code": "E02",
+      "best_year": 2012
+    },
+    {
+      "title": "LOCKS; KEYS; WINDOW OR DOOR FITTINGS; SAFES",
+      "cpc_group_code": "E05",
+      "best_year": 2012
+    },
+    {
+      "title": "COMBUSTION ENGINES; HOT-GAS OR COMBUSTION-PRODUCT ENGINE PLANTS",
+      "cpc_group_code": "F02",
+      "best_year": 2010
+    },
+    {
+      "title": "ENGINEERING ELEMENTS AND UNITS; GENERAL MEASURES FOR PRODUCING AND MAINTAINING EFFECTIVE FUNCTIONING OF MACHINES OR INSTALLATIONS; THERMAL INSULATION IN GENERAL",
+      "cpc_group_code": "F16",
+      "best_year": 2009
+    },
+    {
+      "title": "COMBUSTION APPARATUS; COMBUSTION PROCESSES",
+      "cpc_group_code": "F23",
+      "best_year": 2018
+    },
+    {
+      "title": "HEATING; RANGES; VENTILATING",
+      "cpc_group_code": "F24",
+      "best_year": 2018
+    },
+    {
+      "title": "WEAPONS",
+      "cpc_group_code": "F41",
+      "best_year": 2012
+    },
+    {
+      "title": "MEASURING; TESTING",
+      "cpc_group_code": "G01",
+      "best_year": 2008
+    },
+    {
+      "title": "OPTICS",
+      "cpc_group_code": "G02",
+      "best_year": 2016
+    },
+    {
+      "title": "SIGNALLING",
+      "cpc_group_code": "G08",
+      "best_year": 2017
+    },
+    {
+      "title": "ELECTRIC ELEMENTS",
+      "cpc_group_code": "H01",
+      "best_year": 2008
+    },
+    {
+      "title": "GENERATION; CONVERSION OR DISTRIBUTION OF ELECTRIC POWER",
+      "cpc_group_code": "H02",
+      "best_year": 2009
+    },
+    {
+      "title": "ELECTRONIC CIRCUITRY",
+      "cpc_group_code": "H03",
+      "best_year": 2015
+    },
+    {
+      "title": "ELECTRIC COMMUNICATION TECHNIQUE",
+      "cpc_group_code": "H04",
+      "best_year": 2015
+    }
+  ],
+  "q3": [
+    {
+      "citing_assignee": "BLOOM ENERGY CORP",
+      "cpc_subclass_title": "PROCESSES OR MEANS, e.g. BATTERIES, FOR THE DIRECT CONVERSION OF CHEMICAL ENERGY INTO ELECTRICAL ENERGY"
+    },
+    {
+      "citing_assignee": "CRYSTAL IS INC",
+      "cpc_subclass_title": "SEMICONDUCTOR DEVICES NOT COVERED BY CLASS H10"
+    },
+    {
+      "citing_assignee": "SCHOWALTER LEO J",
+      "cpc_subclass_title": "SEMICONDUCTOR DEVICES NOT COVERED BY CLASS H10"
+    }
+  ]
+}
