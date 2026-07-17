@@ -1,11 +1,11 @@
 ---
 id:
 title: gpt-5.6-sol @ high — spacedock v0.24 (model release)
-status: analysis
+status: done
 source: backfill (dab/runs/codex-dab-d22-g56sol-h2..h6)
 started: 2026-07-16
-completed:
-verdict:
+completed: 2026-07-17T03:33:54Z
+verdict: PASSED
 score:
 worktree:
 issue:
@@ -15,16 +15,17 @@ model: gpt-5.6-sol
 effort: high
 spacedock-version: v0.24
 draws:
-  - codex-dab-d22-g56sol-h2
-  - codex-dab-d22-g56sol-h3
-  - codex-dab-d22-g56sol-h4
-  - codex-dab-d22-g56sol-h5
-  - codex-dab-d22-g56sol-h6
+    - codex-dab-d22-g56sol-h2
+    - codex-dab-d22-g56sol-h3
+    - codex-dab-d22-g56sol-h4
+    - codex-dab-d22-g56sol-h5
+    - codex-dab-d22-g56sol-h6
 pass-at-1: 0.7218
 pass-at-1-sd: 0.0409
 tokens-total: 124012875
 mean-session-sec: 941
-artifact-url:
+artifact-url: https://claude.ai/code/artifact/eb40262c-da0b-4b80-bcf0-b565e7a5dfed
+archived: 2026-07-17T03:33:54Z
 ---
 
 Backfill of the gpt-5.6-sol model-release regression: spacedock harness + dab0022
@@ -51,13 +52,13 @@ Verified by: `artifact-url` set; row visible with matching numbers and caveats.
 
 | draw | experiment | stratified pass@1 | notes |
 |------|-----------|-------------------|-------|
-| 1 | codex-dab-d22-g56sol-h2 | _(analysis fills)_ | |
-| 2 | codex-dab-d22-g56sol-h3 | _(analysis fills)_ | |
-| 3 | codex-dab-d22-g56sol-h4 | _(analysis fills)_ | |
-| 4 | codex-dab-d22-g56sol-h5 | _(analysis fills)_ | |
-| 5 | codex-dab-d22-g56sol-h6 | _(analysis fills)_ | |
+| 1 | codex-dab-d22-g56sol-h2 | 0.7108 | |
+| 2 | codex-dab-d22-g56sol-h3 | 0.7797 | max |
+| 3 | codex-dab-d22-g56sol-h4 | 0.7589 | |
+| 4 | codex-dab-d22-g56sol-h5 | 0.6808 | |
+| 5 | codex-dab-d22-g56sol-h6 | 0.6788 | min |
 
-Mean 0.7218 · sd 0.0409 · min 0.6788 · max 0.7797 (from the scorecard extractor row)
+Mean 0.7218 · sd 0.0409 · min 0.6788 · max 0.7797 (per-draw recomputed from run dirs, reproduces the scorecard aggregate)
 
 ## Caveats (travel with this row on the page)
 

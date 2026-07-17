@@ -62,7 +62,8 @@ config is frozen on purpose; the product is the longitudinal record, not a bette
 - Page source: `dab/docs/benchmark-artifact/dab-regression.html` (created on first publish)
 - Published via the Claude `Artifact` tool; re-publishing the same file path keeps the
   same URL. The live URL is recorded below and in each run's `artifact-url` field once known.
-- Live URL: _(set at first publish)_
+- Live URL: https://claude.ai/code/artifact/eb40262c-da0b-4b80-bcf0-b565e7a5dfed
+  (published 2026-07-17 with the first 3 rows; re-publish the same file path to update in place)
 
 ## File Naming
 

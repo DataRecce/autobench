@@ -1,11 +1,11 @@
 ---
 id:
 title: gpt-5.5 @ high — spacedock v0.22 baseline
-status: analysis
+status: done
 source: backfill (dab/runs/codex-dab-spacedock-high)
 started: 2026-07-16
-completed:
-verdict:
+completed: 2026-07-17T03:33:54Z
+verdict: PASSED
 score:
 worktree:
 issue:
@@ -15,16 +15,17 @@ model: gpt-5.5
 effort: high
 spacedock-version: v0.22
 draws:
-  - codex-dab-spacedock-high/run-001
-  - codex-dab-spacedock-high/run-002
-  - codex-dab-spacedock-high/run-003
-  - codex-dab-spacedock-high/run-004
-  - codex-dab-spacedock-high/run-005
+    - codex-dab-spacedock-high/run-001
+    - codex-dab-spacedock-high/run-002
+    - codex-dab-spacedock-high/run-003
+    - codex-dab-spacedock-high/run-004
+    - codex-dab-spacedock-high/run-005
 pass-at-1: 0.7433
 pass-at-1-sd: 0.0488
 tokens-total: 58274094
 mean-session-sec: 637
-artifact-url:
+artifact-url: https://claude.ai/code/artifact/eb40262c-da0b-4b80-bcf0-b565e7a5dfed
+archived: 2026-07-17T03:33:54Z
 ---
 
 Backfill of the original pinned-config baseline: spacedock harness + dab0022

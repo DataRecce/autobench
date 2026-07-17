@@ -1,0 +1,311 @@
+<title>DAB Regression Ledger</title>
+<style>
+  :root {
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --bg: #eceef2; --surface: #ffffff; --surface-2: #f5f6f9;
+    --border: #dde1e8; --border-strong: #c8cdd7;
+    --ink: #14171d; --ink-2: #4b515c; --ink-3: #838a96;
+    --accent: #2a78d6;
+    --baseline: #5b6472; --clean: #0b8a5a; --flag: #d1443b;
+    --m55: #6b7280; --m56: #7c3aed;
+    --track: rgba(20,23,29,.09); --axis: rgba(20,23,29,.28);
+    --shadow: 0 1px 2px rgba(20,23,29,.05), 0 8px 24px rgba(20,23,29,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101215; --surface: #191c21; --surface-2: #1f232a; --border: #2b3038;
+      --border-strong: #3a414b; --ink: #f2f3f5; --ink-2: #c0c5cd; --ink-3: #858c98;
+      --accent: #3987e5; --baseline: #8a93a1; --clean: #2bb47e; --flag: #ec6a60;
+      --m55: #9aa2ad; --m56: #a78bfa;
+      --track: rgba(255,255,255,.08); --axis: rgba(255,255,255,.28);
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #eceef2; --surface: #ffffff; --surface-2: #f5f6f9;
+    --border: #dde1e8; --border-strong: #c8cdd7;
+    --ink: #14171d; --ink-2: #4b515c; --ink-3: #838a96;
+    --accent: #2a78d6; --baseline: #5b6472; --clean: #0b8a5a; --flag: #d1443b;
+    --m55: #6b7280; --m56: #7c3aed;
+    --track: rgba(20,23,29,.09); --axis: rgba(20,23,29,.28);
+    --shadow: 0 1px 2px rgba(20,23,29,.05), 0 8px 24px rgba(20,23,29,.06);
+  }
+  :root[data-theme="dark"] {
+    --bg: #101215; --surface: #191c21; --surface-2: #1f232a; --border: #2b3038;
+    --border-strong: #3a414b; --ink: #f2f3f5; --ink-2: #c0c5cd; --ink-3: #858c98;
+    --accent: #3987e5; --baseline: #8a93a1; --clean: #2bb47e; --flag: #ec6a60;
+    --m55: #9aa2ad; --m56: #a78bfa;
+    --track: rgba(255,255,255,.08); --axis: rgba(255,255,255,.28);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 40px) 72px; }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--flag); }
+  h1 { font-size: clamp(28px, 4.5vw, 44px); line-height: 1.06; margin: 0 0 16px; letter-spacing: -.02em; text-wrap: balance; font-weight: 680; }
+  .lede { font-size: clamp(15px, 1.5vw, 17.5px); color: var(--ink-2); max-width: 66ch; margin: 0 0 22px; }
+  .lede b { color: var(--ink); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; }
+  .chip { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; display: inline-flex; gap: 7px; align-items: center; }
+  .chip b { color: var(--ink); font-weight: 600; }
+
+  .rule { height: 1px; background: var(--border); border: 0; margin: 30px 0; }
+
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 16px; flex-wrap: wrap; }
+  h2 { font-size: clamp(18px, 2.2vw, 22px); margin: 0; letter-spacing: -.01em; font-weight: 640; }
+  .sec-note { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); }
+
+  /* summary tiles */
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 640px) { .tiles { grid-template-columns: 1fr; } }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .tile .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 9px; }
+  .tile .v { font-size: clamp(24px, 3.4vw, 32px); font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .tile .sub { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); margin-top: 8px; }
+  .tile .sub.flag { color: var(--flag); }
+  .tile .sub.clean { color: var(--clean); }
+
+  /* run cards */
+  .runs { display: flex; flex-direction: column; gap: 14px; }
+  .run { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+  .run.is-flag { border-color: color-mix(in srgb, var(--flag) 45%, var(--border)); }
+  .run-top { display: grid; grid-template-columns: 1fr auto; gap: 16px 24px; padding: 18px 20px; align-items: start; }
+  @media (max-width: 640px) { .run-top { grid-template-columns: 1fr; } }
+
+  .trigger { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 7px; margin: 0 0 9px; color: var(--ink-3); }
+  .trigger .tag { width: 8px; height: 8px; border-radius: 2px; }
+  .subject { font-size: 19px; font-weight: 660; letter-spacing: -.01em; margin: 0 0 3px; }
+  .subject .ver { color: var(--ink-3); font-weight: 500; }
+  .meta { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+  .meta span b { color: var(--ink); font-weight: 600; }
+
+  .score { text-align: right; }
+  @media (max-width: 640px) { .score { text-align: left; } }
+  .score .big { font-size: clamp(30px, 5vw, 40px); font-weight: 720; letter-spacing: -.025em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .score .sd { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+  .score .raw { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); margin-top: 5px; }
+  .score .raw s { color: var(--ink-3); }
+
+  .pill { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; padding: 4px 9px; border-radius: 999px; display: inline-block; margin-top: 10px; }
+  .pill.baseline { color: var(--baseline); background: color-mix(in srgb, var(--baseline) 14%, transparent); }
+  .pill.clean { color: var(--clean); background: color-mix(in srgb, var(--clean) 14%, transparent); }
+  .pill.flag { color: var(--flag); background: color-mix(in srgb, var(--flag) 15%, transparent); }
+
+  /* per-draw bars */
+  .draws { padding: 0 20px 16px; }
+  .draws .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px; }
+  .bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end; height: 74px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+  .bar-track { width: 100%; max-width: 46px; height: 100%; background: var(--track); border-radius: 5px; display: flex; align-items: flex-end; overflow: hidden; position: relative; }
+  .bar-fill { width: 100%; border-radius: 5px 5px 0 0; }
+  .bar-val { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .bar-i { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+
+  .caveats { border-top: 1px solid var(--border); background: var(--surface-2); padding: 13px 20px 15px; }
+  .caveats .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 7px; }
+  .caveats ul { margin: 0; padding-left: 17px; display: flex; flex-direction: column; gap: 5px; }
+  .caveats li { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .caveats li b { color: var(--ink); font-weight: 600; }
+  .caveats code { font-family: var(--font-mono); font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+
+  .notes { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 22px 24px; }
+  .notes h3 { font-size: 13px; font-family: var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 14px; font-weight: 600; }
+  .notes dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 11px 20px; }
+  @media (max-width: 560px) { .notes dl { grid-template-columns: 1fr; gap: 4px 0; } .notes dd { margin-bottom: 10px; } }
+  .notes dt { font-weight: 640; font-size: 14px; }
+  .notes dd { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .notes dd code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+
+  footer { margin-top: 30px; font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); line-height: 1.7; }
+  footer b { color: var(--ink-2); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow"><span class="dot"></span> DAB Regression Ledger · pinned config</p>
+  <h1>Watching DAB hold steady as the harness and the model move underneath it.</h1>
+  <p class="lede">A fixed measurement re-run on every trigger: a <b>spacedock harness release</b> or a <b>new GPT model</b>. The config is frozen on purpose — spacedock solver with the dab0022 semi-structured-rules README, <b>gpt-5.5 @ high</b>, batch mode, five full-board draws per run. The product is the trend, not a peak score. Each row records stratified pass@1, token cost, and session time; scores are stratified over 12 datasets, tokens counted from harbor rollouts (FO + ensign).</p>
+  <div class="chips">
+    <span class="chip">solver <b>spacedock · dab0022</b></span>
+    <span class="chip">model <b>gpt-5.5 @ high</b></span>
+    <span class="chip">draws <b>5 · trials:5 / conc:4</b></span>
+    <span class="chip">board <b>12 datasets</b></span>
+  </div>
+
+  <hr class="rule">
+
+  <div class="sec-head"><h2>Latest run — spacedock v0.25.0</h2><span class="sec-note">re-graded 2026-07-17</span></div>
+  <div class="tiles">
+    <div class="tile">
+      <p class="k">Corrected pass@1</p>
+      <div class="v" style="color:var(--flag)">0.700</div>
+      <p class="sub">± 0.072 · raw 0.664 before crash re-grade</p>
+    </div>
+    <div class="tile">
+      <p class="k">vs v0.22 baseline</p>
+      <div class="v">−0.043</div>
+      <p class="sub flag">real residual regression, outside the ±0.03 band</p>
+    </div>
+    <div class="tile">
+      <p class="k">Status</p>
+      <div class="v" style="font-size:22px;line-height:1.15;padding-top:5px">Regression<br>flagged</div>
+      <p class="sub">pending a v0.24 → v0.25 A/B confirm</p>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <div class="sec-head"><h2>Run ledger</h2><span class="sec-note">newest first · not apples-to-apples (model & plugin both vary)</span></div>
+  <div class="runs">
+
+    <!-- v0.25 -->
+    <div class="run is-flag">
+      <div class="run-top">
+        <div>
+          <p class="trigger"><span class="tag" style="background:var(--accent)"></span> spacedock release</p>
+          <p class="subject">gpt-5.5 <span class="ver">· spacedock v0.25.0</span></p>
+          <div class="meta">
+            <span>tokens <b>75.4M</b></span>
+            <span>session <b>808s</b></span>
+            <span>wall <b>3h30m</b></span>
+            <span>2026-07-16</span>
+          </div>
+        </div>
+        <div class="score">
+          <div class="big" style="color:var(--flag)">0.700</div>
+          <div class="sd">± 0.072 · corrected</div>
+          <div class="raw">raw <s>0.664</s> · +7 of 15 crash-cells re-graded</div>
+          <span class="pill flag">regression flagged</span>
+        </div>
+      </div>
+      <div class="draws">
+        <p class="lbl">Per-draw stratified pass@1 · corrected (raw tick)</p>
+        <div class="bars" id="bars-v025"></div>
+      </div>
+      <div class="caveats">
+        <p class="lbl">Caveats</p>
+        <ul>
+          <li><b>Validator-crash spike, partly a harness bug.</b> 15 query-cells across 7 trials crashed the grader on list-shaped answers. The batch path <code>verify_batch.py:24</code> passes the raw value to the validator; the single-answer path <code>verify.py:33</code> coerces <code>str()</code> first. Applying that same coercion re-graded <b>7 of 15</b> cells to pass (+0.036).</li>
+          <li><b>The residual −0.043 vs v0.22 is genuine.</b> 6 of the remaining crash-cells are real content misses; corrected 0.700 sits below the earlier optimistic 0.721 substitution.</li>
+          <li>First row on plugin <b>v0.25</b>. Confirm with a v0.24 → v0.25 A/B at this pinned config before any public regression verdict.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- v0.24 / 5.6-sol -->
+    <div class="run">
+      <div class="run-top">
+        <div>
+          <p class="trigger"><span class="tag" style="background:var(--m56)"></span> model release</p>
+          <p class="subject">gpt-5.6-sol <span class="ver">· spacedock v0.24</span></p>
+          <div class="meta">
+            <span>tokens <b>124.0M</b></span>
+            <span>session <b>941s</b></span>
+            <span>2026-07-12</span>
+          </div>
+        </div>
+        <div class="score">
+          <div class="big">0.722</div>
+          <div class="sd">± 0.041</div>
+          <div class="raw">min 0.679 · max 0.780</div>
+          <span class="pill clean">measured</span>
+        </div>
+      </div>
+      <div class="draws">
+        <p class="lbl">Per-draw stratified pass@1</p>
+        <div class="bars" id="bars-v024"></div>
+      </div>
+      <div class="caveats">
+        <p class="lbl">Caveats</p>
+        <ul>
+          <li>Different model <b>and</b> plugin version from the baseline — read the delta as directional, not causal. Plugin version alone shifts this config ~+0.04 (v0.22 → v0.24).</li>
+          <li>The h1 draw (plugin v0.22) is excluded to keep this row uniform on v0.24; clean set is h2–h6.</li>
+          <li>Token total ~2× the bare harnesses at the same model/effort — a spacedock-harness blow-up on gpt-5.6-sol, not a model property.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- v0.22 baseline -->
+    <div class="run">
+      <div class="run-top">
+        <div>
+          <p class="trigger"><span class="tag" style="background:var(--baseline)"></span> baseline</p>
+          <p class="subject">gpt-5.5 <span class="ver">· spacedock v0.22</span></p>
+          <div class="meta">
+            <span>tokens <b>58.3M</b></span>
+            <span>session <b>637s</b></span>
+            <span>CAIS import</span>
+          </div>
+        </div>
+        <div class="score">
+          <div class="big">0.743</div>
+          <div class="sd">± 0.049</div>
+          <div class="raw">min 0.668 · max 0.799</div>
+          <span class="pill baseline">baseline</span>
+        </div>
+      </div>
+      <div class="draws">
+        <p class="lbl">Per-draw stratified pass@1</p>
+        <div class="bars" id="bars-v022"></div>
+      </div>
+      <div class="caveats">
+        <p class="lbl">Caveats</p>
+        <ul>
+          <li>CAIS-style 5-run merge imported from the leaderboard submission, not an rk-native sweep.</li>
+          <li>PATENTS draw-5 is a disclosed fresh-draw substitution (leaderboard note 4).</li>
+          <li>Plugin <b>v0.22</b> — the anchor the later rows are read against, carrying the ~+0.04 version offset.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="rule">
+
+  <div class="notes">
+    <h3>Reading this ledger</h3>
+    <dl>
+      <dt>The config is frozen</dt>
+      <dd>Every run is the same pinned harness, model, effort, and board. This tracker never tunes for score — the sibling <code>dab/hypotheses</code> loop does that. A change here means the harness or the model moved, not the prompt.</dd>
+      <dt>Two trigger types</dt>
+      <dd>A <b>spacedock release</b> re-runs the pinned config on the new harness (model held at gpt-5.5). A <b>model release</b> swaps in the new model at the same effort. So consecutive rows rarely isolate one variable — the v0.25 row is the first that holds the model fixed against the v0.22 baseline.</dd>
+      <dt>The ±0.03 band</dt>
+      <dd>A five-draw stratified mean carries roughly ±0.03 of noise on this config. Deltas inside that band are not signal; the v0.25 corrected drop (−0.043) clears it.</dd>
+      <dt>Tokens &amp; time</dt>
+      <dd>Counted from harbor session rollouts across the FO and ensign threads — not codex stdout, which undercounts ~5×. Session time is the mean per-dataset codex wall time.</dd>
+    </dl>
+  </div>
+
+  <footer>
+    <b>Pinned:</b> spacedock solver · dab0022 semi-structured-rules README · gpt-5.5 @ high · batch · 5 draws (trials:5, concurrency:4) · 12-dataset board.<br>
+    <b>Source:</b> dab/regression workflow · scores stratified over datasets · tokens from harbor rollouts · v0.25 re-graded via str()-coercion on the 15 validator-crash cells.
+  </footer>
+</div>
+
+<script>
+  // per-draw stratified pass@1 — bars scaled on a 0.50–0.82 window so movement reads
+  const LO = 0.50, HI = 0.82;
+  const DATA = {
+    'bars-v025': { draws: [0.7300,0.7835,0.7302,0.6008,0.6553], raw: [0.7022,0.7280,0.7302,0.5730,0.5858], color: 'var(--flag)' },
+    'bars-v024': { draws: [0.7108,0.7797,0.7589,0.6808,0.6788], color: 'var(--m56)' },
+    'bars-v022': { draws: [0.7675,0.7985,0.7058,0.6675,0.7771], color: 'var(--baseline)' },
+  };
+  const pct = v => Math.max(3, Math.min(100, ((v - LO) / (HI - LO)) * 100));
+  for (const [id, d] of Object.entries(DATA)) {
+    const host = document.getElementById(id);
+    if (!host) continue;
+    d.draws.forEach((v, i) => {
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      const rawTick = d.raw ? `<div style="position:absolute;left:0;right:0;bottom:${pct(d.raw[i])}%;height:2px;background:var(--axis)"></div>` : '';
+      col.innerHTML =
+        `<div class="bar-val">${v.toFixed(3)}</div>` +
+        `<div class="bar-track"><div class="bar-fill" style="height:${pct(v)}%;background:${d.color}"></div>${rawTick}</div>` +
+        `<div class="bar-i">d${i + 1}</div>`;
+      host.appendChild(col);
+    });
+  }
+</script>

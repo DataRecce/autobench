@@ -1,11 +1,11 @@
 ---
 id:
 title: gpt-5.5 @ high — spacedock v0.25 (spacedock release)
-status: analysis
+status: done
 source: spacedock v0.25.0 release (captain-filed 2026-07-16)
 started: 2026-07-16T16:20:11Z
-completed:
-verdict:
+completed: 2026-07-17T03:33:54Z
+verdict: PASSED
 score:
 worktree:
 issue:
@@ -19,7 +19,8 @@ pass-at-1: 0.6639
 pass-at-1-sd: 0.0780
 tokens-total: 75435103
 mean-session-sec: 808
-artifact-url:
+artifact-url: https://claude.ai/code/artifact/eb40262c-da0b-4b80-bcf0-b565e7a5dfed
+archived: 2026-07-17T03:33:54Z
 ---
 
 Regression run for the spacedock v0.25.0 release: pinned config (spacedock harness +
