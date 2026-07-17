@@ -14,11 +14,11 @@ trigger: spacedock-release
 model: gpt-5.5
 effort: high
 spacedock-version: v0.25.0 (601c3f53)
-draws: []
-pass-at-1:
-pass-at-1-sd:
-tokens-total:
-mean-session-sec:
+draws: '["regr-sd0250-gpt55-high/3a67e091dc4b2d5f#attempt-0", "regr-sd0250-gpt55-high/3a67e091dc4b2d5f#attempt-1", "regr-sd0250-gpt55-high/3a67e091dc4b2d5f#attempt-2", "regr-sd0250-gpt55-high/3a67e091dc4b2d5f#attempt-3", "regr-sd0250-gpt55-high/3a67e091dc4b2d5f#attempt-4"]'
+pass-at-1: 0.6639
+pass-at-1-sd: 0.0780
+tokens-total: 75435103
+mean-session-sec: 808
 artifact-url:
 ---
 
@@ -41,10 +41,81 @@ Verified by: `artifact-url` set; row visible with matching numbers.
 
 ## Draws
 
+One rk job (`regr-sd0250-gpt55-high/3a67e091dc4b2d5f`, 60/60 trials completed, 0
+errors), 5 harbor attempts x 12 datasets. Draw = harbor attempt, grouped by
+`trial_index` in the job's `per_trial_outcomes.json` (verified: every dataset has
+exactly trial_index 0–4; attempts interleave in wall-clock, they are not time blocks).
+Stratified pass@1 per draw = mean over the 12 per-dataset trial rewards of that
+attempt. Numbers produced by the one-off script
+`analyze_sd0250.py` (committed beside this entity; reuses
+`extract_benchmark_data.py`'s harbor token/duration functions unmodified); micro
+trial-mean cross-check 0.663855 == harbor `result.json` headline.
+
 | draw | experiment | stratified pass@1 | notes |
 |------|-----------|-------------------|-------|
+| 0 | 3a67e091dc4b2d5f attempt-0 | 0.7022 | music_brainz q1 validator crash (float answer) |
+| 1 | 3a67e091dc4b2d5f attempt-1 | 0.7280 | PANCANCER_ATLAS zeroed 3/3 queries by validator crashes |
+| 2 | 3a67e091dc4b2d5f attempt-2 | 0.7302 | PATENTS q1 validator crash (list answer) |
+| 3 | 3a67e091dc4b2d5f attempt-3 | 0.5730 | PANCANCER_ATLAS zeroed 3/3 + music_brainz q1 crash |
+| 4 | 3a67e091dc4b2d5f attempt-4 | 0.5858 | PATENTS zeroed 3/3 + GITHUB_REPOS 3/4 queries crashed |
+
+**mean 0.6639, sd 0.0780, min 0.5730, max 0.7302** (raw, as-scored).
+
+Sensitivity: substituting each crashed query-cell with that query's mean reward over
+its crash-free draws gives per-draw 0.7300 / 0.7835 / 0.7580 / 0.6564 / 0.6761 →
+**substituted mean 0.7208, sd 0.0538**. Draws 3–4 stay lowest even after
+substitution, so part of their gap is genuine variance, but ~0.06 of the headline
+drop is validator-crash mechanics.
+
+Tokens (harbor `sessions/` rollouts, FO+ensign threads, extractor `tokens_harbor`
+path): **75,435,103 total / 1,614,608 output**, no incomplete-rollout trials flagged.
+Mean session wall-clock (trial `result.json` started→finished): **808 s** (p50 715,
+max 1774), no timeouts, no failed sessions. Whole-job wall-clock: 2026-07-16
+16:27:28Z → 19:57:42Z = **3h30m14s** (trial activity window 16:27:35 → 19:57:42).
 
 ## Taint audit
+
+Run BEFORE trusting any number; all 60 trial dirs swept.
+
+- **Validator-error grep** (`reward_per_query.json`, all 60 trials): **7 trials hit,
+  15/270 query-cells zeroed by `validator error`** — the known answer-shape crash
+  family (`'list' object has no attribute 'lower'`, plus float/int/dict variants of
+  the same non-string-answer TypeError/AttributeError). Every one of the 5 draws is
+  hit at least once; 4 dataset-trials were fully zeroed (PANCANCER_ATLAS in draws 1
+  and 3, PATENTS in draw 4, GITHUB_REPOS 3-of-4-queries in draw 4). This is a large
+  spike vs the historical rate (~1 dataset per 5 draws, ~1–2 cells/60 trials). Per
+  standing policy these are genuine draws (solver emitted non-string answers; the
+  fragile validator zeroes them), NOT infra taint — but at this frequency the crash
+  spike is itself the candidate v0.25 regression signal, and clean-draw substitution
+  is not available as a headline fix since no draw is crash-free.
+- **Postgres-degradation dual signature**: zero `coverage_missing` hits and zero
+  mid-run Connection-refused abstains across all verifier outputs — **clean**.
+- **Coverage**: all 12 datasets present in all 5 draws (12 x trial_index {0..4}),
+  60/60 trials completed, 0 errored — **complete**.
+- **Session health**: no codex timeouts, no failed sessions (extractor
+  `timeouts_harbor`: none); attempts interleave across the full 3.5 h window, so the
+  two low draws are not correlated with any time-local degradation — **clean**.
+
+Verdict: no infrastructure taint. The low draws are explained by (a) the validator
+answer-shape crash spike and (b) residual genuine variance, both solver-behavior
+phenomena under the v0.25 harness.
+
+## Comparison vs v0.22 baseline
+
+Raw stratified **0.6639 (sd 0.0780) vs the v0.22 baseline row 0.7433 (sd 0.0488):
+delta −0.0795**, far outside the ±0.03 five-draw noise band. The confound cuts the
+wrong way for v0.25: plugin version alone measured ~**+0.04** going v0.22→v0.24 on
+this config (gpt-5.5 dab0022 xhigh 0.704→0.748; v0.24 ≈ high on 5.5), so against a
+v0.24-era expectation (~0.74–0.78) the raw gap is effectively ~−0.08 to −0.12. Even
+the crash-substituted sensitivity number 0.7208 sits −0.023 below the v0.22 baseline
+(within the noise band, but the direction is negative and the baseline itself
+predates the +0.04 plugin lift). Cost also moved: tokens 75.4M vs 58.3M (**+29%**)
+and mean session 808 s vs 637 s (**+27%**). This is the first row on plugin v0.25
+(checkout 601c3f53, tag v0.25.0); no other v0.25 measurements exist yet, so
+attribution to the release vs. an unlucky job cannot be settled from this run alone —
+but the coherent picture (score down, answer-shape crash rate up ~7x, tokens and
+wall-clock up ~30%) points at a real behavioral change in the v0.25 harness rather
+than sampling noise.
 
 ## Publication
 
@@ -90,3 +161,18 @@ Verified by: `artifact-url` set; row visible with matching numbers.
 ### Summary
 
 Pinned spec created as a verified 3-line fork of the dab0022 spec and committed. First launch failed fast on rk's frozen-spec requirement (SpecError, no run dir created); spec was frozen with --allow-missing per repo convention and relaunched. The 60-trial run (5 draws x 12 datasets, concurrency 4) is confirmed live via docker task environments and is parked to completion; log/PID/timestamps and the v0.25.0 checkout confirmation are recorded in the Execution log.
+
+## Stage Report: analysis
+
+- DONE: Fill the entity's "## Draws" table with the per-draw stratified pass@1 (5 draws = the 5 harbor attempts of the 60-trial job, grouped by attempt from trial metadata) plus mean/sd/min/max, and set frontmatter pass-at-1, pass-at-1-sd, tokens-total (harbor sessions/ rollouts via the extractor's tokens_harbor path — NEVER codex stdout), mean-session-sec, and draws (5 attempt references)
+  Draws table filled (0.7022/0.7280/0.7302/0.5730/0.5858, mean 0.6639 sd 0.0780); frontmatter set via spacedock status (pass-at-1 0.6639, sd 0.0780, tokens-total 75435103 from tokens_harbor over sessions/ rollouts, mean-session-sec 808, draws = 5 attempt refs); draw split verified against trial_index in per_trial_outcomes.json and micro-mean cross-check 0.663855 == harbor result.json
+- DONE: Run the taint audit BEFORE trusting any number and record findings under "## Taint audit" (clean is a finding): grep every trial's reward_per_query for "validator error" (the known list-answer crash zeroes a dataset), check for the postgres-degradation dual signature (whole-dataset coverage_missing + mid-run connection-refused abstains), and confirm all 12 datasets have complete coverage in all 5 draws
+  All 60 trials swept: 7 trials / 15 of 270 query-cells hit the answer-shape validator crash (every draw affected; 4 dataset-trials fully zeroed); postgres dual signature ZERO hits; coverage complete 12 datasets x 5 draws, 60/60 completed 0 errored; no timeouts/failed sessions
+- DONE: Write a comparison paragraph in the entity body: delta vs the v0.22 baseline row (0.7433 sd 0.0488) and vs the ±0.03 five-draw noise band, explicitly noting the plugin-version confound (~+0.04 v0.22→v0.24 effect on this config) and that this is the first row on plugin v0.25
+  "## Comparison vs v0.22 baseline" section added: raw delta −0.0795 (outside ±0.03), crash-substituted sensitivity 0.7208 (−0.023), plugin confound cuts AGAINST v0.25 (~−0.08 to −0.12 vs v0.24-era expectation), tokens +29% and session time +27%, first-v0.25-row caveat stated
+
+### Summary
+
+All five draws of the 60-trial v0.25 regression job were split by harbor attempt, audited, and scored: raw stratified pass@1 0.6639 sd 0.0780 vs the v0.22 baseline 0.7433 — a −0.08 drop that the plugin-version confound makes LARGER, not smaller. The taint audit found no infrastructure taint (postgres clean, coverage complete, no timeouts), but a ~7x spike in the known answer-shape validator crash (15/270 query-cells, every draw hit, 4 dataset-trials zeroed); crash-substituted sensitivity is 0.7208, still below baseline. Tokens (+29%) and session time (+27%) rose in the same run — a coherent behavioral-regression picture for the v0.25 harness rather than sampling noise.
+
+GATE RECOMMENDATION: **PASSED** as a valid measurement — no draw is infrastructure-tainted, so re-running draws is not indicated (per standing policy the answer-shape crashes are genuine solver behavior, and with all 5 draws affected a re-run would sample the same elevated crash rate, which is itself the finding). The number that should go public is the raw 0.6639 with the crash-spike disclosure and the 0.7208 sensitivity alongside. Recommend the captain treat the v0.25 release as regression-flagged pending a confirming run or a v0.24-vs-v0.25 bisect before publicizing any release verdict.
