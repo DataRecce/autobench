@@ -293,16 +293,97 @@ SKIPPED — anchor exemption (README Stages line 457). See `## Pre-smoke Decisio
 
 ## Run result
 
-*(empty until `full`.)* The spec-level evidence AC-1 / AC-2 / AC-4 ask to be pasted here was
-produced at `propose` and lives in `## Propose artifacts` above — the frozen spec is immutable, so
-that evidence does not need re-deriving. Two things the `full` ensign still MUST capture HERE at
-launch time:
-1. **AC-4 re-capture at launch:** `git -C spacedock describe --tags` / `rev-parse HEAD` /
-   `status --short`, taken at the moment `rk run` starts. This is not redundant with the propose
-   capture — the gatekeeper flagged that `provenance.plugins: []` in the frozen spec, so the plugin
-   version leaves **no trace in any run artifact** and this manual capture is the ONLY record of the
-   largest confound.
-2. **AC-3:** `rk audit <run-dir> --policy strict` on the same run-dir as `rk score`.
+The spec-level evidence AC-1 / AC-2 ask to be pasted here was produced at `propose` and lives in
+`## Propose artifacts` above; the frozen spec is immutable, so it does not need re-deriving. AC-4's
+launch-time capture and the two recorded captain decisions are below. **AC-3 (`rk audit --policy
+strict` + `rk score`) is still outstanding** — it runs on a later turn, once the handle's `done`
+sentinel appears with `rc=0`.
+
+### Launched — detached, 2026-07-27
+
+| | |
+|---|---|
+| Handle | `runs/.rk-handles/spd0042-full-20260727-123939/` (`meta` · `cmd` · `pid` · `log` · `done`) |
+| Command | `drivers/rk-run-detached.sh spd0042-full specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml run` |
+| Worker PID | 14136 |
+| Job dir | `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/` (deterministic job name `1984b76c702a0dfa`) |
+| Board | 60 cells, `trials: 1`, `concurrency.trials: 4` |
+| ntfy | `adebench-rk-381c976fe07465bf` (push on completion) |
+| ETA | **~3.5 h**, band 3–5 h. The spd0038 anchor board — same 60 cells, same concurrency, gpt-5.5 @ xhigh — took 3 h 20 m (`08:38:47 → 11:58:25` on 2026-06-29). Widened at the top end because gpt-5.6-sol showed a ~2× token blow-up under the spacedock harness on DAB, which may stretch wallclock. |
+
+Launch verified live, not just spawned: at T+2m35s the worker PID was alive, no `done` sentinel, and
+harbor had written `_job_config.yaml`, `lock.json`, `result.json` and the per-cell task dirs into the
+job dir.
+
+**Pre-flight done before committing the board** (the plugin had moved 175 commits since the spec was
+frozen, and `rk run` carries an `--allow-plugin-drift` escape hatch, so a drift refusal was a real
+launch risk): `rk run … --explain` resolved cleanly — 60 tasks, `model: gpt-5.6-sol`,
+`reasoning_effort: xhigh`, `kind: spacedock_solver` / `runtime: codex`, workflow README found at
+`solver_workflows/spd0038-compose-6-stabilizers/README.md`, and the "Stage the Spacedock plugin into
+Codex skills" preparation step present. No drift refusal. `--explain` leaves an empty job dir behind;
+it was removed (0 files in it) so the real run started from a pristine dir — no stale `lock.json`.
+
+### AC-4 — plugin pin AT LAUNCH ✅ (SUPERSEDES the propose-stage value)
+
+```
+$ git -C spacedock describe --tags
+v0.27.0-pre0
+$ git -C spacedock tag --points-at HEAD
+v0.26.0
+v0.27.0-pre0
+$ git -C spacedock rev-parse HEAD
+ca136f83a579fd44c223321ae7f8fe7785c685f7
+$ git -C spacedock status --short
+(empty — clean tree)
+$ git -C spacedock rev-parse origin/stable
+ca136f83a579fd44c223321ae7f8fe7785c685f7
+```
+
+**This run used spacedock `v0.26.0` @ `ca136f83a579fd44c223321ae7f8fe7785c685f7`.** The captain
+repinned before launch: the entity was filed against `v0.26.0-pre0` @ `601c3f53`, which turned out to
+be 175 commits behind origin, and the captain asked for latest stable. **This value supersedes
+`v0.26.0-pre0` @ `601c3f53` wherever it appears earlier in this entity** — in the `## Hypothesis`
+Configuration table, in `## Known confound`, and in the propose-stage AC-4 block under
+`## Propose artifacts`. Those earlier mentions are the pin *as filed*, kept for the audit trail; this
+is the pin *as run*. Do not treat them as two different runs.
+
+One naming wrinkle worth stating so nobody thinks the pins disagree: `git describe --tags` reports
+`v0.27.0-pre0` because that tag also points at this commit. `v0.26.0`, `v0.27.0-pre0`, and
+`origin/stable` are all the same commit `ca136f83`. Tree clean.
+
+Why this capture matters: `provenance.plugins: []` in the frozen spec, so **the plugin version
+leaves no trace in any run artifact**. This block is the only record of the largest of the three
+confounds.
+
+### Recorded captain decision — the gpt-5.5 control arm was DECLINED
+
+At the propose gate the FO recommended running a same-environment gpt-5.5 control board FIRST, which
+would have made this board interpretable at ±3 cells. **The captain declined and chose to launch
+directly, accepting the wider bar.** This is a deliberate recorded decision, not an oversight — do
+not re-derive it at `analyze` and do not treat the missing control as a methodology gap.
+
+### The bar `analyze` MUST apply (do not soften)
+
+Three variables moved versus the 26/60 anchor:
+
+| Variable | Anchor | This run |
+|---|---|---|
+| model | `gpt-5.5` | `gpt-5.6-sol` |
+| spacedock plugin | v0.22 | **v0.26.0 @ `ca136f83`** |
+| codex CLI (`agent_cli_hash`) | `d3be844c…` (all 78 prior run specs) | `134063e1…` = codex-cli 0.145.0 |
+
+Therefore:
+- A delta of **±5 cells or less is UNINTERPRETABLE** and must not be attributed to the model.
+- Only **≥ +6 cells (≥ 32/60)** reads as probable model signal.
+- At `trials: 1` this is **directional evidence, never a demonstrated lift.**
+
+### Still outstanding (next turn, after `done` shows rc=0)
+
+- **AC-3:** `uv run --project ../razorback rk audit <run-dir> --policy strict` and
+  `rk score <run-dir> --format json`, on the same run-dir. 0 `coverage_missing`, 0 tainted; any
+  `AgentTimeoutError` / usage-limit / backend-degradation cell named and excluded from the headline
+  rather than silently counted as a fail.
+- Headline + run-dir path recorded here.
 
 ## Behavioral analysis
 
@@ -339,3 +420,28 @@ as an addendum to `## Known confound`. It is unfixable at propose (old binary go
 with the disambiguating arm, so it does not block — but the gatekeeper's captain note argues the
 gpt-5.5 control arm on today's plugin+CLI should arguably run FIRST, since it would make this board
 interpretable at ±3 cells instead of the ≥+6 the triple confound now demands.
+
+## Stage Report: full
+
+- DONE: Launch the FULL 60-cell board DETACHED via drivers/rk-run-detached.sh using specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml, then report the handle path under runs/.rk-handles/ and an ETA. Do NOT block waiting for the run to finish and do NOT run audit/score now — launch, record, exit.
+  Handle `runs/.rk-handles/spd0042-full-20260727-123939/`, worker PID 14136, job dir `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/`, ETA ~3.5 h (band 3–5 h; the anchor board took 3 h 20 m). Verified LIVE at T+2m35s, not merely spawned: PID alive, no `done` sentinel, harbor had written `_job_config.yaml` + `lock.json` + per-cell dirs. No audit/score run.
+- DONE: AC-4 launch-time capture into '## Run result': record git -C spacedock describe --tags, rev-parse HEAD, and status --short taken AT LAUNCH. The captain repinned the plugin from v0.26.0-pre0 to v0.26.0 @ ca136f83a579fd44c223321ae7f8fe7785c685f7 (also tagged v0.27.0-pre0, == origin/stable) — state plainly that this SUPERSEDES the v0.26.0-pre0 value in the entity's Configuration table and in the propose AC-4 block. provenance.plugins is empty in the frozen spec, so this capture is the ONLY record of the largest confound.
+  `## Run result` → AC-4. Captured `ca136f83a579fd44c223321ae7f8fe7785c685f7`, tree clean, `== origin/stable`; the supersedes-note names all three earlier mentions (Configuration table, `## Known confound`, propose AC-4). Also flagged that `describe --tags` reports `v0.27.0-pre0` because that tag points at the same commit — a naming wrinkle, not a pin disagreement.
+- DONE: Record in '## Run result' that the captain DECLINED the gpt-5.5 control arm and chose to launch directly, so 'analyze' must apply the triple-confound bar (model + plugin + codex CLI): a delta of less than +6 cells vs the 26/60 anchor is NOT attributable to the model.
+  `## Run result` → "Recorded captain decision" + "The bar `analyze` MUST apply", carrying the three-variable table and the unsoftened thresholds (≤ ±5 cells uninterpretable; ≥ +6 cells / ≥ 32/60 = probable model signal; trials=1 is directional evidence, never a demonstrated lift).
+- SKIPPED: `rk audit` / `rk score`
+  The run is still in flight; per the dispatch these belong to a later turn once `done` shows rc=0. AC-3 is recorded as outstanding in `## Run result`.
+
+### Summary
+
+Launched the 60-cell board detached and recorded the launch-time plugin pin, which supersedes the
+as-filed one. Added one unrequested $0 pre-flight before committing 3.5 h of compute: the plugin had
+moved 175 commits since the spec was frozen and `rk run` carries `--allow-plugin-drift`, so a drift
+refusal was a live risk — `--explain` confirmed the spec resolves (60 tasks, gpt-5.6-sol, xhigh,
+spacedock_solver/codex, plugin-staging step present). `--explain` leaves an empty job dir behind, so
+I removed it (0 files) to avoid the known stale-`lock.json` trap on the real launch.
+
+The run is in flight; the FO polls the handle's `done` sentinel. Nothing is decidable yet — AC-3
+(strict audit + score) and the headline are the next turn's work. When the number lands, the bar in
+`## Run result` is the one to apply: under three simultaneous confounds, anything short of +6 cells
+over the 26/60 anchor is not attributable to the model.
