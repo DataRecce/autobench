@@ -508,12 +508,113 @@ dirs** started (matching `concurrency.trials: 4`), and **zero `exception.txt` fi
 job dir** — i.e. no cell has errored. Attempt 1 by contrast ran clean for 70 minutes before failing,
 so an early green check does not clear this run; the meaningful checkpoint is ~T+70 m.
 
-#### Outstanding for attempt 2
+#### ATTEMPT 2 RESULT — clean board, 33/60 = 0.5500 (analyzed 2026-07-28)
 
-- AC-3: `rk audit <run-dir> --policy strict` + `rk score`, once `done` shows `rc=0`. Not run in this
-  dispatch — the board is still in flight.
-- Before trusting any number: check `summary.json`'s `n_trials_errored` **first**. Attempt 1 returned
-  `rc=0` with 41 dead cells and an ntfy "OK".
+Finished `rc=0` at 2026-07-28T03:43:22Z, **3 h 15 m 53 s** — a healthy duration next to the anchor's
+3 h 20 m, not attempt 1's fast-fail signature. The health checks that attempt 1 failed all pass:
+
+| Check | Value |
+|---|---|
+| `n_trials_total` / `completed` / `errored` | 60 / **60** / **0** |
+| `error_reason` values | `{None: 60}` — no error of any class |
+| `exception.txt` files | 0 |
+| `refresh_token_reused` anywhere in the run dir | **0** — the auth failure did not recur |
+| rewards | 33 × `1.0`, 27 × `0.0`, 0 × `null` |
+| `stratified_pass_at_1` | **0.55** — an honest 33/60, denominator uncensored |
+
+**33/60 = 0.5500 is the highest score recorded on this board**: +7 over the `@baseline` control
+(spd0038, 26/60 = 0.4333) and +6 over the all-time high (spd0013, 27/60, on the old v0.12 plugin).
+
+##### The audit is NOT a clean bill of health — and it means something different than expected
+
+`rk audit --policy strict` → `TaintFindingsError: 5 non-clean trial(s) (tainted=0, coverage_missing=5)`,
+all `missing_reason: spacedock_dispatch_events_absent`: **divvy001 (reward 1.0), retail001 (1.0),
+netflix001 (0.0), recharge001 (0.0), scd001 (0.0)**. The anchor board had **0** coverage_missing, so
+this is a real difference from the control, not background noise.
+
+I was asked to argue rather than assume whether this is a benign instrumentation gap. **It is not.**
+I read the five cells, and the finding is worse than a missing trace:
+
+- `subagent-trace-manifest.json` in each of the five reads `"dispatches": []`, `"captured": 0`.
+  Every one of the other 55 cells reads `dispatches: 1, captured: 1`. So nothing was *lost* —
+  `captured == expected == 0` because **no sub-agent was ever dispatched.**
+- The reason, from each cell's own final message: the solver **aborted before doing any work** at the
+  spacedock launcher gate. Verbatim from `retail001`: *"The first-officer contract requires aborting
+  before dispatch when the launcher is unavailable, so no worker was spawned, no dataset was queried,
+  and no files were changed."* `divvy001`, `netflix001`, `recharge001` and `scd001` say the same.
+
+So `coverage_missing` here is not a telemetry artifact — it is a faithful flag on five cells where
+**the benchmark task was never attempted.** The audit earned its keep twice on this entity.
+
+##### Two of those un-attempted cells scored 1.0 — they are do-nothing passes
+
+`divvy001` and `retail001` returned `reward: 1.0` while their solver explicitly changed nothing. That
+is not a lucky guess; it is a **benchmark-validity defect**. The verifier
+(`_views/spider2-dbt-<task>/tests/test.sh`) compares the *working* DuckDB shipped into the container
+at `/app/<ds>.duckdb` against gold at `/tests/<ds>.duckdb`. For these two tasks the shipped project
+state **already satisfies the comparison**, so a solver that does nothing scores 1.0.
+
+Proven directly, not inferred — I ran the task's own verifier against the untouched shipped project:
+
+```
+$ python _views/spider2-dbt-retail001/tests/verify.py \
+    --predicted-db _views/spider2-dbt-retail001/dbt_project/retail.duckdb \
+    --gold-db     _views/spider2-dbt-retail001/tests/retail.duckdb \
+    --eval-spec   _views/spider2-dbt-retail001/tests/spider2_eval.jsonl ...
+{"reward": 1.0}
+```
+
+Scope of that proof, precisely: **`retail001` is proven** by the replay above. The same replay for
+`divvy001` was still running when this analysis was written (its comparison is over ~426 k rows), so
+`divvy001` rests on the run-artifact evidence alone — the solver stated it changed nothing and the
+verifier returned 1.0 — which is strong but one step less direct. Re-run the same command to close it.
+
+Note the inversion this creates: the **anchor FAILED both cells** — it dispatched a worker, rebuilt
+the models, and its rebuild diverged from gold. On these two cells the benchmark actively penalises
+doing the task. They cannot discriminate solver quality in either direction and should be treated as
+non-informative wherever they appear, including in the 26/60 anchor.
+
+##### The honest range
+
+| Reading | Score | vs anchor | McNemar exact (2-sided) |
+|---|---|---|---|
+| **A. Headline**, all 60 cells as scored | 33/60 = **0.5500** | **+7** | discordant 9:2, **p = 0.065** |
+| **B. Harshest** — the 2 do-nothing passes counted as FAIL | 31/60 = 0.5167 | **+5** | discordant 7:2, p = 0.180 |
+| **C. Gate-aborts excluded** — all 5 un-attempted cells dropped | 31/55 = 0.5636 | **+6** (anchor 25/55) | discordant 7:1, p = 0.070 |
+
+Reading **C** is the one I consider most faithful: five cells were never attempted, so they measure
+the harness, not the model, and dropping them is the standard treatment for a cell that did not run.
+It also does not flatter the result — it *raises* the rate to 0.5636 while *lowering* the net to +6,
+because the anchor's one pass among those five (`recharge001`) is removed too.
+
+**The entity's own ≥ +6 bar is met in readings A and C and missed in B.** That is the honest summary:
+the result clears the bar on the two defensible readings and grazes it on the most conservative one.
+No reading reaches p < 0.05.
+
+##### Why the Wilson CI must not be used here
+
+`rk score` reports `pass_at_1: 0.55`, `wilson_ci: [0.4249, 0.6691]`. That lower bound sits *below* the
+anchor's 0.4333, and a reader will conclude "not distinguishable from baseline". **That is the wrong
+instrument.** The Wilson interval is for a *single* proportion measured on an *independent* sample. It
+answers "where might 0.55 sit if I resampled 60 fresh tasks?" — but the two boards are not
+independent samples: they are **the same 60 tasks**, so 49 cells agree and carry no information about
+the difference at all. Pooling them into an unpaired interval throws away the pairing and inflates the
+uncertainty.
+
+The correct instrument is **McNemar's exact test on the 11 discordant pairs** (9 gains, 2
+regressions), which conditions on exactly the cells that moved: **p = 0.065**. Suggestive, and
+*still not significant at α = 0.05* — I am not going to launder a marginal p-value into a win because
+the headline number is large.
+
+##### Acceptance criteria (attempt 2)
+
+| AC | Status |
+|---|---|
+| AC-1 (model is the only spec variable) | ✅ held — same frozen spec, not re-frozen |
+| AC-2 (README not a variable) | ✅ held — `solver_workflow_content_hash` unchanged |
+| AC-3 (score paired with a clean strict audit) | ⚠️ **PARTIAL, not satisfied** — audit is non-clean (5 coverage_missing). It is *better* than attempt 1's 41 and `tainted=0`, but AC-3 as written demands **0** coverage_missing. The five cells are named and their effect quantified in the range table above rather than silently counted as fails, which is what AC-3's second sentence asks for. Calling this ✅ would be grade inflation. |
+| AC-4 (plugin pin recorded) | ✅ held — `v0.26.0` @ `ca136f83`, captured at launch above |
+| AC-5 (verdict names the confound, no model attribution) | ✅ satisfied in `## Verdict` |
 
 ## Behavioral analysis
 
@@ -549,6 +650,111 @@ Three independent reasons this cannot be promoted, any one of which is sufficien
 
 Net: there is *something* here worth measuring, which is an argument for buying the re-run. It is not
 an argument that gpt-5.6-sol is better, and it must not be written down as one.
+
+---
+
+### ATTEMPT 2 — full paired ledger and mechanisms (2026-07-28)
+
+#### 1. Net + the complete per-cell ledger, both directions
+
+Paired against `@baseline` = `runs/spd0038-compose-6-stabilizers-full/fb10902ab7d9ffa7` (26/60), same
+60 cells, same solver README:
+
+| | count | cells |
+|---|---|---|
+| Both PASS | 24 | (unchanged) |
+| **FAIL → PASS (gains)** | **9** | asana001, asset001, **divvy001\***, f1001, jira001, recharge002, **retail001\***, superstore001, tickit002 |
+| **PASS → FAIL (regressions)** | **2** | quickbooks003, **recharge001\*\*** |
+| Both FAIL | 25 | airport001, analytics_engineering001, atp_tour001, flicks001, hive001, intercom001, movie_recomm001, nba001, netflix001, pendo001, playbook002, provider001, quickbooks001, reddit001, salesforce001, scd001, shopify_holistic_reporting001, social_media001, synthea001, tpch001, twilio001, xero001, xero_new001, xero_new002, zuora001 |
+
+`*` do-nothing pass — solver did no work; the shipped state already matched gold. Not a real gain.
+`**` launcher-gate abort — solver did no work. Not a real regression (see §3).
+
+**Net +7 (9 − 2). McNemar exact two-sided p = 0.065.** Strip the two artefactual gains and the
+artefactual regression and the *real* ledger is **7 gains, 1 regression, net +6, p = 0.070**.
+
+#### 2. What actually changed — committed-artifact read on four gains
+
+Read from each cell's first-officer transcript (`agent/codex.txt`), comparing what the anchor
+committed against what this run committed:
+
+| Cell | Anchor (FAIL) built | spd0042 (PASS) built | Mechanism |
+|---|---|---|---|
+| **asana001** | `asana__user` **4 rows**, `asana__team` **3 rows** | `asana__user` **20 rows**, `asana__team` **25 rows** | **Row-completeness.** The anchor dropped every user/team with no matching task — an inner-join grain collapse. This run kept them and explicitly noted "sparse zero/NULL metrics were verified against the fixture's unmatched task-user and task-project relationships". Same failure family as the `spd0020 preserve-all-rows-left-join` lever. |
+| **jira001** | `jira__project_enhanced` **2 rows**, described as "one row per **active** `project_id`" | **3 rows**, 3 distinct project IDs | **Invented attribute filter.** The anchor silently filtered on an "active" predicate the instruction never asked for. This run kept all three and reported the empty slice honestly ("epics are null because the source contains no Epic-classified issues") instead of filtering it away. Same family as `spd0018 no-invented-attribute-filter`. |
+| **f1001** | identical row counts (860 / 20 / 20 / 20, Hamilton top) but `dbt build` reported "**38 view models**" | same counts, built as "physical DuckDB **base tables**"; also "repaired source references in all 13 models under `models/staging/f1_dataset/`" | **Materialization**, probable. The outputs agree numerically, so the discriminator is almost certainly view-vs-base-table (the grader reads tables out of the DuckDB). Same family as `spd0006 materialization-gate`. Flagged as *probable* — inferred from the FO's own reported evidence, not from opening the DuckDB. |
+| **superstore001** | `dim_regional_managers` 4 rows, `fct_sales` 9,994 rows, both base tables | **identical**: 4 rows, 9,994 rows, both base tables | **Undetermined.** Both transcripts report the same grain, the same row counts and the same materialization; the difference must be column-level content the FO summary does not expose. I could not attribute this one and am not going to invent a mechanism for it. |
+
+Three of four are **completeness** failures in the anchor — dropped rows, invented filters — rather
+than analytic errors. That is a coherent story: the newer model is less prone to silently narrowing
+the output set. It is a *story consistent with four cells*, not a demonstrated law.
+
+#### 3. The regressions — one is real, one is not
+
+- **recharge001 — NOT a model regression.** The solver never ran the task. It aborted at the
+  spacedock launcher gate: *"Blocked by the required Spacedock startup gate: `spacedock` is not on
+  `PATH`… No worker was dispatched and no files were changed."* This is the plugin's mandatory
+  first-officer version gate firing against a container that has no `spacedock` binary. It is a
+  **harness/plugin defect**, and it cost a cell the anchor passed.
+- **quickbooks003 — the one real regression.** Both runs built the targets as base tables and both
+  reported clean tests. The anchor changed **2** models; this run changed **5**, adding
+  `quickbooks__profit_and_loss`, `int_quickbooks__cash_flow_classifications` and
+  `quickbooks__cash_flow_statement`. It also reported "the fixture contained 276 Asset rows but no
+  qualifying Liability or Equity rows". The most likely mechanism is **over-building**: it authored
+  more of the declared schema than the task graded, and one of the extra derivations perturbed a
+  graded table. This matches the known `quickbooks003 re-grain tax` seen in dab0018. Worth noting the
+  irony: the same do-more-completely disposition that wins asana001 and jira001 plausibly loses this
+  cell.
+
+#### 4. The launcher-gate defect is a scoring drag, and it is unattributable
+
+All 60 cells hit `spacedock: command not found`. **55 worked around it and dispatched anyway; 5
+treated it as a hard abort.** From `asana001`'s transcript, the work-around reasoning: *"the
+benchmark's explicit inline contract … directly requires one worker. I'm therefore continuing with
+the mandated direct Codex dispatch."* The anchor board aborted **0/60**.
+
+Two things follow. First, the gate handling is **non-deterministic** — the same environment condition
+produced abort in 5 cells and work-around in 55. Second, this **understates** the board: three of the
+five aborted cells (netflix001, recharge001, scd001) scored 0 without being attempted, and one of
+them (recharge001) is a cell the anchor passed. A run without this defect would plausibly score
+*higher*, not lower.
+
+It cannot be attributed to the model alone: the v0.26.0 first-officer contract supplies the mandatory
+gate and gpt-5.6-sol supplies the literal compliance. Model × plugin, inseparable — the same confound
+that governs the headline.
+
+#### 5. Was the change executed? (the confound question)
+
+Per the stage definition's classification: **every** moved cell here is
+**model-swap-attributable**, because the README is byte-identical between the two boards (AC-2). There
+is no README lever in this entity to be executed or ignored — but "model-swap-attributable" must be
+read as **model + plugin + codex-CLI attributable**, since all three moved together. Nothing in this
+board can separate them.
+
+#### 6. Same-config test-retest — a free variance measurement nobody had
+
+Attempt 1 and attempt 2 are the **identical configuration** (same frozen spec, model, plugin, CLI).
+Attempt 1 completed 19 cells before dying, so those 19 give a direct same-config replication:
+
+| | attempt 1 | attempt 2 |
+|---|---|---|
+| Passes on the 19 shared cells | 15/19 | 14/19 |
+| Cells disagreeing between the two runs | **3/19 = 15.8%** | airport001 (P→F), hive001 (P→F), f1002 (F→P) |
+
+This is the most useful number in the analysis, and it cuts **both** ways:
+
+- **Per-cell instability is high (~16%).** Scaled to 60 cells, two draws of the same config would be
+  expected to disagree on **~9–10 cells** from noise alone. The anchor-vs-spd0042 comparison produced
+  **11 discordant pairs** — so the *number* of cells that moved is entirely ordinary and is **not**
+  evidence of anything. Only the *direction* split (9:2 rather than ~5:5) carries signal, which is
+  precisely what McNemar tests and why the paired test is the right instrument.
+- **Net score is far more stable than per-cell verdicts.** 15/19 vs 14/19 — the flips nearly cancel.
+  Same-config net drift on this slice is ≈ −1 cell, which is why a +7 net still looks interesting
+  even against 16% per-cell churn.
+
+Caveat, stated because it matters: the 19 cells are attempt 1's spec-order prefix, not a random
+sample, so 15.8% is a rough estimate from a biased slice with a wide interval. It is one replication,
+not a variance study. But it is real same-config evidence, and it was free.
 
 ## Failure Review
 
@@ -712,7 +918,110 @@ proposing to the workflow, but out of scope for this entity.
   gpt-5.5 arm is the only thing that separates model from plugin from CLI. Still the captain's call.
 - **Not filed:** no GitHub issue opened, per the dispatch.
 
+---
+
+### ATTEMPT 2 — recommendation (2026-07-28). Recommendation only; nothing executed.
+
+`razorback-registry.yaml` was **not modified**. `@baseline` is still spd0038 @ 26/60. Promotion is
+the captain's call.
+
+#### Recommendation: **PROMOTE `@baseline` to this run — with the score recorded as 31/55 = 0.5636 and an explicit "single draw" tag.**
+
+Reasoning, and the case against it:
+
+**For.** The board is clean (60/60, 0 errors). Every defensible reading beats the anchor: +7 headline,
++6 excluding un-attempted cells, +5 in the harshest reading. The gains have coherent, artifact-level
+mechanisms (row-completeness, no invented filters) rather than looking like scattered luck. And the
+purpose of `@baseline` is to be *the best known configuration to build on* — on that job this
+configuration is better than spd0038 on every reading, and leaving `@baseline` at a config we now
+believe is worse means every future hypothesis is measured against a stale control.
+
+**Against, and it is not weak.** `p = 0.065` is not significance. `trials = 1`. The same-config
+test-retest above shows ~16% per-cell churn, so a repeat draw of *this very config* would look
+materially different cell-by-cell. And this workflow has a recorded scar for exactly this mistake —
+the DAB characterization where a lucky single draw was read as a new champion and the true mean was
+5 points lower.
+
+**Why I still land on promote:** the two are reconcilable because promotion and belief are different
+acts. Moving `@baseline` changes which control future work is measured against; it does not assert a
+proven lift. The honest form is to promote the *configuration* while recording the *number* as a
+single draw with p = 0.065. What must **not** happen is this being cited later as "gpt-5.6-sol is
+worth +7 cells" — that claim is unsupported by this board and by any reading in it.
+
+If the captain prefers not to move `@baseline` on one draw, that is a defensible read of the same
+evidence, and the disambiguator below is the thing to buy first either way.
+
+#### The single cheapest run that would disambiguate
+
+**Re-run the spd0038 champion README with `gpt-5.5`, today, on the current plugin + CLI.** One 60-cell
+board, ~3.5 h, same shape as this one.
+
+It is the cheapest because it is the *only* single run that splits the triple confound. Today's
+environment differs from the anchor in three ways at once; holding plugin and CLI at today's values
+and moving only the model back to gpt-5.5 isolates the model exactly. Concretely: if that arm lands
+near 26/60, the +7 is the model; if it lands near 33/60, the +7 was the plugin/CLI upgrade and the
+model bought nothing. Either answer is decisive, and it also re-measures the anchor under the
+launcher-gate defect, making the two boards comparable in a way they currently are not.
+
+A `trials: 3` repeat of *this* config would cost 3× as much and still could not attribute the delta —
+it would only tighten a number we cannot assign a cause to. Variance second, attribution first.
+
+#### Also worth doing, cheap, and independent of the above
+
+1. **Null-solver board (highest value per minute).** Run the verifier against every task's untouched
+   shipped project. `retail001` is *proven* to score 1.0 with zero work, and `divvy001` is
+   near-certain. If more of the 60 are do-nothing-passable, then **every board this workflow has ever
+   scored — including the 26/60 `@baseline` — contains free cells**, and the real discriminating
+   denominator is smaller than 60. This is a benchmark-validity question, not a hypothesis question,
+   and it is answerable with no model calls at all.
+2. **Fix the launcher gate.** Put a `spacedock` binary on `PATH` in the task image (or set
+   `SPACEDOCK_BIN`). It cost 5 cells this run, including one the anchor passed, and its firing is
+   non-deterministic, which injects variance into every future board.
+3. **Sentinel guard.** Have the detached-run sentinel fail loudly on `n_trials_errored > 0`, and warn
+   when wallclock lands far under the reference board. Attempt 1 returned `rc=0` with an ntfy "OK"
+   and 41 dead cells.
+
+#### Routing
+
+- **This entity:** ready for `conclude` on the captain's promote decision. No further run is needed
+  *for this entity* — it has a clean board and a full analysis.
+- **Not executed, per the dispatch:** no registry change, no re-run, no GitHub issue.
+
 ## Verdict
+
+### Attempt 2 verdict (2026-07-28) — supersedes the attempt-1 verdict below for the hypothesis, which stands as the record of the invalid run
+
+**RESULT: 33/60 = 0.5500 on a clean board — the highest score recorded on spider2-dbt, and a strong
+directional result. NOT a demonstrated stable lift, and NOT attributable to the model.**
+
+On the hypothesis as written — "gpt-5.6-sol @ xhigh raises the board above 26/60 by ≥ +4 cells" — the
+board delivers +7, which clears the stated threshold. But the claim named the *model* as the cause,
+and that part is **not established**:
+
+- **The delta is model + spacedock plugin + codex CLI, combined.** All three moved together
+  (gpt-5.5 → gpt-5.6-sol; v0.22 → v0.26.0; `d3be844c` → `134063e1`/0.145.0). Per AC-5: **no part of
+  the +7 may be assigned to the model alone.** The correct sentence is "*this configuration* scores
+  0.55", never "gpt-5.6-sol is worth +7".
+- **`trials = 1`.** One draw. The paired test — the right instrument, not the Wilson CI — gives
+  **p = 0.065**, which is suggestive and not significant. The same-config test-retest measured ~16%
+  per-cell churn, and the 11 discordant pairs are fully consistent with that churn; only their 9:2
+  *direction* carries the signal.
+- **Two of the 33 passes are do-nothing passes** (divvy001, retail001 — proven for retail001 by
+  replaying the verifier against the untouched project). **Three more cells were never attempted** at
+  all, aborted at the spacedock launcher gate. The honest range is **+5 to +7** depending on how those
+  five are treated, and the entity's ≥ +6 bar is met on two of three readings and missed on the
+  third.
+
+What is solid: the board is clean, the gains have real artifact-level mechanisms — the anchor was
+dropping rows and inventing filters, and this configuration does not — and the one genuine regression
+(quickbooks003) is over-building, plausibly the same disposition that produces the gains. What is not
+solid is any causal claim about the model.
+
+**Recommendation (not executed): promote `@baseline` to this configuration, record it as 31/55 =
+0.5636 single-draw, and buy the gpt-5.5-on-today's-environment arm before believing anything about
+the model.** `razorback-registry.yaml` is untouched.
+
+### Attempt 1 verdict (2026-07-27) — the invalid run
 
 **INVALID RUN — no verdict on the hypothesis. Not a GO, not a NO-GO, not a promotion.**
 
@@ -857,3 +1166,44 @@ exactly, so attempt 2 runs the same binary the spec was frozen against — no CL
 time. Also flagged in the entity: a finish far under 3 h is a failure signature, and
 `n_trials_errored` must be read before any score, because attempt 1 returned `rc=0` with an ntfy "OK"
 and 41 dead cells.
+
+## Stage Report: analyze (cycle 2 — clean board)
+
+- DONE: Paired per-cell analysis vs @baseline (runs/spd0038-compose-6-stabilizers-full/fb10902ab7d9ffa7, 26/60): name EVERY flip and EVERY regression by cell slug, run McNemar exact on the paired 60 cells, and report the delta with its p-value. Do NOT lean on the single-proportion Wilson CI — 33/60's Wilson CI is [0.4249, 0.6691], whose lower bound sits BELOW the anchor's 0.4333, and explain in the entity why the paired test is the correct instrument here and the unpaired CI is not.
+  `## Behavioral analysis` §1: full ledger — 24 both-PASS, **9 gains** (asana001, asset001, divvy001, f1001, jira001, recharge002, retail001, superstore001, tickit002), **2 regressions** (quickbooks003, recharge001), 25 both-FAIL. **McNemar exact two-sided p = 0.0654** on 11 discordant pairs (9:2). Wilson-CI trap explained in `## Run result`: the CI is for an independent single proportion, but the boards share all 60 cells, so 49 agreeing cells carry no information about the difference and pooling them inflates the uncertainty.
+- DONE: Disclose the audit honestly in '## Run result': strict audit = 5 coverage_missing / 0 tainted, all missing_reason spacedock_dispatch_events_absent, on divvy001(PASS), retail001(PASS), netflix001(FAIL), recharge001(FAIL), scd001(FAIL). Report the full range: headline 33/60=0.5500 (+7); drop-all-unverified 31/55=0.5636; harshest reading with both unverified passes counted as fails 31/60=0.5167 (+5, which falls just UNDER the >=+6 bar). Note the anchor board had 0 coverage_missing, so this is a difference from the control, and state whether AC-3 is satisfied, partial, or failed with your reasoning.
+  `## Run result` → all three readings tabulated with per-reading McNemar (A: +7, p=0.065 / B: +5, p=0.180 / C: +6 on 55, p=0.070). AC-3 called **PARTIAL, not satisfied** — AC-3 demands 0 coverage_missing and there are 5; calling it ✅ would be grade inflation. Anchor's 0 coverage_missing noted as a real difference from the control.
+- DONE: Attribution + recommendation in '## Behavioral analysis' and '## Follow-up Routing': the delta is model + spacedock plugin + codex CLI COMBINED, never the model alone. Sample committed artifacts from 3-4 flipped cells to say behaviorally WHAT changed. Then recommend (do NOT execute) whether to promote @baseline, and name the single cheapest run that would disambiguate. Do not touch razorback-registry.yaml.
+  Four cells read from the FO transcripts (§2): asana001 = row-completeness (4→20 / 3→25 rows, anchor inner-join collapse); jira001 = invented "active" filter (2→3 rows); f1001 = materialization view-vs-base-table (probable, flagged); superstore001 = **undetermined**, identical reported outputs, no mechanism invented. Recommendation = promote, recorded as 31/55 single-draw; cheapest disambiguator = spd0038 README + **gpt-5.5 on today's plugin+CLI**, the only single run that splits the triple confound. `razorback-registry.yaml` NOT modified (`git status` clean).
+- SKIPPED: re-running anything; modifying razorback-registry.yaml; opening a GitHub issue; revising attempt 1's post-mortem
+  All prohibited by the dispatch. Attempt 1's sections are untouched; attempt 2 is appended as dated subsections throughout.
+
+### Summary
+
+The board is clean and real: 60/60, 0 errors, 3h16m, **33/60 = 0.5500**, the highest ever recorded
+here. I verified every FO-supplied number and they all held — but two FO readings did not.
+
+**The coverage_missing finding is worse than an instrumentation gap.** All five flagged cells have
+`dispatches: 0` (all other 55 have 1) because the solver **aborted before doing any work** at the
+spacedock launcher gate. So `coverage_missing` faithfully flags five cells where the task was never
+attempted, and the FO's read that "the passes are very likely real" is wrong in the way that matters:
+divvy001 and retail001 scored 1.0 having changed nothing. That is a **benchmark-validity defect** —
+the shipped project state already satisfies the grader. I proved it for retail001 by running the
+task's own verifier against the untouched project: `{"reward": 1.0}`. The anchor FAILED both cells
+because it did the work and its rebuild diverged from gold, so these two cells actively penalise
+attempting the task, and they contaminate the 26/60 anchor too.
+
+Second finding: a **free same-config variance measurement**. Attempt 1 and attempt 2 are the identical
+configuration, and attempt 1's 19 completed cells give a direct replication — 3/19 = **15.8% per-cell
+churn**, but net 15/19 vs 14/19. Scaled up, two draws of the same config would disagree on ~9–10 of
+60 cells, so the 11 discordant pairs here are *ordinary*; only their 9:2 direction is signal. That is
+the empirical justification for using McNemar, and it is why p = 0.065 rather than anything stronger.
+
+Also: recharge001 is not a model regression — it is a launcher-gate abort, so the real ledger is
+7 gains / 1 regression. The gate fired non-deterministically (5 abort, 55 work around, anchor 0),
+which understates this board and injects variance into every future one.
+
+Recommendation (not executed): promote, record as 31/55 = 0.5636 single-draw, and buy the
+gpt-5.5-on-today's-environment arm before believing anything causal about the model. Highest-value
+cheap follow-up is a **null-solver board** — if more than two of the 60 tasks are do-nothing-passable,
+every score this workflow has ever recorded needs a smaller denominator.
