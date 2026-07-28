@@ -306,7 +306,7 @@ sentinel appears with `rc=0`.
 | Handle | `runs/.rk-handles/spd0042-full-20260727-123939/` (`meta` · `cmd` · `pid` · `log` · `done`) |
 | Command | `drivers/rk-run-detached.sh spd0042-full specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml run` |
 | Worker PID | 14136 |
-| Job dir | `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/` (deterministic job name `1984b76c702a0dfa`) |
+| Job dir | `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa-INVALID-auth-refresh-token-reused/` — **renamed 2026-07-28**; ran as `1984b76c702a0dfa` (deterministic, spec-derived job name) |
 | Board | 60 cells, `trials: 1`, `concurrency.trials: 4` |
 | ntfy | `adebench-rk-381c976fe07465bf` (push on completion) |
 | ETA | **~3.5 h**, band 3–5 h. The spd0038 anchor board — same 60 cells, same concurrency, gpt-5.5 @ xhigh — took 3 h 20 m (`08:38:47 → 11:58:25` on 2026-06-29). Widened at the top end because gpt-5.6-sol showed a ~2× token blow-up under the spacedock harness on DAB, which may stretch wallclock. |
@@ -383,7 +383,14 @@ The board returned `rc=0` at **2026-07-27T14:10:14Z** after **1 h 30 m 25 s** �
 anchor's 3 h 20 m, on a model expected to be *slower*. That speed was the failure signature, not a
 win: **41 of 60 cells exited early.** Root cause in `## Failure Review`.
 
-Run-dir: `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa` (kept for the audit trail).
+Run-dir: **`runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa-INVALID-auth-refresh-token-reused`**
+— kept in full for the audit trail (all 60 cell dirs, `summary.json`, `lock.json`, the codex logs).
+It ran as `1984b76c702a0dfa` and was **renamed on 2026-07-28** before attempt 2, because the job name
+is spec-derived: an unchanged frozen spec resolves to the same directory, and attempt 1's stale
+`lock.json` sitting there would have made attempt 2 either refuse to start or silently resume.
+Renamed rather than deleted — this directory is the only artifact backing everything below. Every
+cell-relative path cited in this post-mortem (e.g. `spider2-dbt-hubspot001__BdhBgx7/agent/codex.txt`)
+is relative to this renamed directory.
 
 **No score from this run may be cited as a gpt-5.6-sol board result. `@baseline` stays spd0038 at
 26/60 — the registry was not touched.**
@@ -418,6 +425,95 @@ not the model's ability.
 
 AC-3 failing is the correct outcome, not a second bug. The strict audit is the gate that stopped a
 censored number from being recorded as a result.
+
+---
+
+### ATTEMPT 2 — relaunched 2026-07-28 (in flight)
+
+Everything above this line is attempt 1 and stands unrevised. This is a **straight re-run on the
+unchanged frozen spec** after the captain refreshed codex auth. Nothing about the hypothesis, the
+spec, or the solver README changed.
+
+| | |
+|---|---|
+| Handle | `runs/.rk-handles/spd0042-full-attempt2-20260728-002729/` |
+| Command | `drivers/rk-run-detached.sh spd0042-full-attempt2 specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml run` |
+| Worker PID | 312060 |
+| Launched | 2026-07-28T00:27:29Z |
+| Job dir | `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/` (**fresh** — attempt 1's dir was renamed out of the way, see below) |
+| Spec | UNCHANGED — `specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml`, `sha256:1984b76c…fa1e`, not re-frozen. `git status` on the spec and on `solver_workflows/` is empty. |
+| Board | 60 cells, `trials: 1`, `concurrency.trials: 4` |
+| ETA | **~3.5 h**, band 3–5 h (the anchor board took 3 h 20 m at the same shape). **A finish far under 3 h is a failure signature, not good news** — that is exactly how attempt 1 presented. |
+
+**Stale-lock hazard, handled before launch.** The Harbor job name is derived from the frozen spec:
+`sha256(spec.frozen.yaml)` = `1984b76c702a0dfa647c…`, and the job dir is its first 16 hex chars,
+`1984b76c702a0dfa`. An unchanged spec therefore resolves to the *same* directory every time, and
+attempt 1's `lock.json` (207 KB, written 2026-07-27 12:40) was still sitting in it — which would have
+made attempt 2 either refuse to start or silently resume into a poisoned dir. Attempt 1's directory
+was **renamed, not deleted**, to
+`runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa-INVALID-auth-refresh-token-reused/`.
+Verified after the rename: all 60 cell dirs, `summary.json` (60/19/41, 0.7894736842105263),
+`lock.json`, and the codex auth logs (26 matching lines in `hubspot001`) are intact, and the path
+attempt 2 uses was empty. All citations in this entity were updated to the new path.
+
+#### AC-4 — captures at launch (attempt 2)
+
+```
+$ git -C spacedock describe --tags
+v0.27.0-pre0
+$ git -C spacedock tag --points-at HEAD
+v0.26.0
+v0.27.0-pre0
+$ git -C spacedock rev-parse HEAD
+ca136f83a579fd44c223321ae7f8fe7785c685f7
+$ git -C spacedock status --short
+(empty — clean tree)
+
+$ codex --version
+codex-cli 0.145.0
+$ codex login status
+Logged in using ChatGPT
+```
+
+Plugin pin is **identical to attempt 1** — `v0.26.0` @ `ca136f83`, clean tree. (`describe --tags`
+prints `v0.27.0-pre0` because that tag points at the same commit; not a disagreement.) Auth is
+refreshed and valid.
+
+Also verified: `sha256sum $(which codex)` = `134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477`,
+which **matches the frozen spec's `provenance.agent_cli_hash` exactly** — so attempt 2 runs the same
+binary the spec was frozen against, with no CLI provenance drift.
+
+#### What is NOT mitigated — read before interpreting a second failure
+
+- **The codex CLI was NOT downgraded.** Still 0.145.0, still the hash implicated in attempt 1.
+- **Concurrency is still 4**, and all cells still share one `/tmp/codex-home`.
+- **Therefore the concurrent-refresh race is UNMITIGATED.** Refreshing auth only fixes attempt 1's
+  failure if the token had been consumed by an *external* process. If the cause was instead
+  concurrent cells racing to rotate a single-use refresh token at the first expiry boundary — the
+  mechanism `## Failure Review` argues is most consistent with the evidence — this attempt will fail
+  the same way, at roughly the same T+70 m, with the same `refresh_token_reused` 401.
+- **A repeat failure at ~T+70 m is therefore an expected, diagnostic outcome, not a surprise.** It
+  would *confirm* the intra-run race and rule out the external-consumer explanation. Treat it as
+  evidence, and go to per-cell `CODEX_HOME` isolation or `concurrency.trials: 1` rather than
+  re-running a third time unchanged.
+- **The triple confound is unchanged.** Model + spacedock plugin + codex CLI all still moved together
+  versus the 26/60 anchor. Even a perfectly clean 60/60 board from this attempt carries the
+  **≥ +6 cells (≥ 32/60)** bar in "The bar `analyze` MUST apply" above. That is not relaxed by the
+  board being clean.
+
+#### Launch health check
+
+At **T+2 m 18 s**: worker PID 312060 alive, no `done` sentinel, fresh job dir created with **4 cell
+dirs** started (matching `concurrency.trials: 4`), and **zero `exception.txt` files anywhere in the
+job dir** — i.e. no cell has errored. Attempt 1 by contrast ran clean for 70 minutes before failing,
+so an early green check does not clear this run; the meaningful checkpoint is ~T+70 m.
+
+#### Outstanding for attempt 2
+
+- AC-3: `rk audit <run-dir> --policy strict` + `rk score`, once `done` shows `rc=0`. Not run in this
+  dispatch — the board is still in flight.
+- Before trusting any number: check `summary.json`'s `n_trials_errored` **first**. Attempt 1 returned
+  `rc=0` with 41 dead cells and an ntfy "OK".
 
 ## Behavioral analysis
 
@@ -674,7 +770,7 @@ interpretable at ±3 cells instead of the ≥+6 the triple confound now demands.
 ## Stage Report: full
 
 - DONE: Launch the FULL 60-cell board DETACHED via drivers/rk-run-detached.sh using specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml, then report the handle path under runs/.rk-handles/ and an ETA. Do NOT block waiting for the run to finish and do NOT run audit/score now — launch, record, exit.
-  Handle `runs/.rk-handles/spd0042-full-20260727-123939/`, worker PID 14136, job dir `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/`, ETA ~3.5 h (band 3–5 h; the anchor board took 3 h 20 m). Verified LIVE at T+2m35s, not merely spawned: PID alive, no `done` sentinel, harbor had written `_job_config.yaml` + `lock.json` + per-cell dirs. No audit/score run.
+  Handle `runs/.rk-handles/spd0042-full-20260727-123939/`, worker PID 14136, job dir `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/` (renamed 2026-07-28 to `…-INVALID-auth-refresh-token-reused`), ETA ~3.5 h (band 3–5 h; the anchor board took 3 h 20 m). Verified LIVE at T+2m35s, not merely spawned: PID alive, no `done` sentinel, harbor had written `_job_config.yaml` + `lock.json` + per-cell dirs. No audit/score run.
 - DONE: AC-4 launch-time capture into '## Run result': record git -C spacedock describe --tags, rev-parse HEAD, and status --short taken AT LAUNCH. The captain repinned the plugin from v0.26.0-pre0 to v0.26.0 @ ca136f83a579fd44c223321ae7f8fe7785c685f7 (also tagged v0.27.0-pre0, == origin/stable) — state plainly that this SUPERSEDES the v0.26.0-pre0 value in the entity's Configuration table and in the propose AC-4 block. provenance.plugins is empty in the frozen spec, so this capture is the ONLY record of the largest confound.
   `## Run result` → AC-4. Captured `ca136f83a579fd44c223321ae7f8fe7785c685f7`, tree clean, `== origin/stable`; the supersedes-note names all three earlier mentions (Configuration table, `## Known confound`, propose AC-4). Also flagged that `describe --tags` reports `v0.27.0-pre0` because that tag points at the same commit — a naming wrinkle, not a pin disagreement.
 - DONE: Record in '## Run result' that the captain DECLINED the gpt-5.5 control arm and chose to launch directly, so 'analyze' must apply the triple-confound bar (model + plugin + codex CLI): a delta of less than +6 cells vs the 26/60 anchor is NOT attributable to the model.
@@ -729,3 +825,35 @@ spacedock plugin are named as NOT implicated — and equally as NOT cleared, sin
 I also flagged that this failure was externally invisible (`rc=0`, ntfy "OK", a *fast* finish), and
 that a `n_trials_errored > 0` check on the detached-run sentinel would have caught it at 14:10 rather
 than a full analyze cycle later.
+
+## Stage Report: full (cycle 2 — attempt 2 relaunch)
+
+- DONE: PRESERVE the invalid run's evidence before launching: the prior job dir runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/ still holds a stale lock.json and the same frozen spec may hash to the same dir. Rename it to 1984b76c702a0dfa-INVALID-auth-refresh-token-reused, then update EVERY citation of the old path in the entity body to the new path so the post-mortem stays verifiable. Do NOT delete it — '## Failure Review' depends on it.
+  Renamed (not deleted). Confirmed the collision was real, not hypothetical: `sha256sum specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml` = `1984b76c702a0dfa647c…` — the job dir name IS the spec hash's first 16 chars, so attempt 2 was guaranteed to land on it. Post-rename verification: 60 cell dirs, `summary.json` (60/19/41, 0.7894736842105263), `lock.json`, and 26 auth-error lines in `hubspot001/agent/codex.txt` all intact; target path empty. All 3 citations updated (entity lines for the attempt-1 Job dir row, the Run-dir line, and the attempt-1 stage report), plus a note that cell-relative paths resolve under the renamed dir.
+- DONE: Relaunch the FULL 60-cell board DETACHED via drivers/rk-run-detached.sh on the UNCHANGED specs/spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml, and report the new handle path, the new job dir, the PID, and an ETA. Confirm at ~T+4m that workers are alive and no cell has produced an exception.txt yet. Do NOT block to completion, do NOT run audit/score.
+  Handle `runs/.rk-handles/spd0042-full-attempt2-20260728-002729/`, PID 312060, job dir `runs/spd0042-rebaseline-gpt56sol-xhigh/1984b76c702a0dfa/` (fresh), launched 00:27:29Z, ETA ~3.5 h. Spec unchanged and not re-frozen — `git status` on the spec and `solver_workflows/` empty. Health at T+3m13s: worker alive, no `done`, 4 cell dirs started (= concurrency 4), **0 `exception.txt`**, and 0 cells containing `refresh_token_reused`/`401 Unauthorized`. No audit/score run.
+- DONE: Append a new dated subsection to '## Run result' for this attempt (do not overwrite attempt 1): the AC-4 launch-time plugin capture (describe/rev-parse/status --short), the codex auth state at launch (codex login status, codex --version), and a note that codex-cli remains 0.145.0 so the refresh-token race is UNMITIGATED and the triple confound is unchanged.
+  `## Run result` → "ATTEMPT 2 — relaunched 2026-07-28 (in flight)", appended below attempt 1 with a horizontal rule; attempt 1 untouched. Carries the plugin capture (`ca136f83`, clean, `v0.26.0`/`v0.27.0-pre0` same commit), `codex-cli 0.145.0` + "Logged in using ChatGPT", and an explicit "What is NOT mitigated" block.
+- SKIPPED: audit / score; re-freezing or editing the spec; touching the solver dir; registry changes; filing an issue
+  All prohibited by the dispatch. The board is in flight; AC-3 belongs to a later turn.
+
+### Summary
+
+Renamed attempt 1's job dir to preserve the post-mortem evidence, fixed the three now-stale citations,
+and relaunched the unchanged frozen spec detached. The lock collision was not hypothetical — the job
+dir name is literally the frozen spec's sha256 prefix (`1984b76c702a0dfa`), so attempt 2 would have
+landed on attempt 1's stale `lock.json` had the rename not happened.
+
+Two things recorded so a second failure reads as diagnosis rather than surprise. The codex CLI was NOT
+downgraded and concurrency stays at 4 with a shared `/tmp/codex-home`, so the concurrent-refresh race
+is **unmitigated**: refreshing auth only fixes attempt 1 if the token was consumed externally. A
+repeat `refresh_token_reused` failure at ~T+70 m would *confirm* the intra-run race and rule out the
+external-consumer explanation — at which point the move is `CODEX_HOME` isolation or
+`concurrency.trials: 1`, not a third identical re-run. And the triple confound is unchanged, so even
+a clean 60/60 board still needs ≥ +6 cells (≥ 32/60) to say anything about the model.
+
+One useful detail: `sha256sum $(which codex)` matches the frozen spec's `provenance.agent_cli_hash`
+exactly, so attempt 2 runs the same binary the spec was frozen against — no CLI provenance drift this
+time. Also flagged in the entity: a finish far under 3 h is a failure signature, and
+`n_trials_errored` must be read before any score, because attempt 1 returned `rc=0` with an ntfy "OK"
+and 41 dead cells.
