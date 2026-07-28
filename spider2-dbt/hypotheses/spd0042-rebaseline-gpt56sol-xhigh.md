@@ -564,10 +564,10 @@ $ python _views/spider2-dbt-retail001/tests/verify.py \
 {"reward": 1.0}
 ```
 
-Scope of that proof, precisely: **`retail001` is proven** by the replay above. The same replay for
-`divvy001` was still running when this analysis was written (its comparison is over ~426 k rows), so
-`divvy001` rests on the run-artifact evidence alone — the solver stated it changed nothing and the
-verifier returned 1.0 — which is strong but one step less direct. Re-run the same command to close it.
+**Both cells are proven this way.** `retail001` returned `{"reward": 1.0}` as shown; the identical
+replay for `divvy001` (a slower comparison, ~426 k rows) also returned **`{"reward": 1.0}`** against
+its untouched shipped project. So this is not an inference from the solver's self-report — the
+benchmark's own verifier scores both tasks as passing when nothing whatsoever has been done to them.
 
 Note the inversion this creates: the **anchor FAILED both cells** — it dispatched a worker, rebuilt
 the models, and its rebuild diverged from gold. On these two cells the benchmark actively penalises
@@ -969,8 +969,8 @@ it would only tighten a number we cannot assign a cause to. Variance second, att
 #### Also worth doing, cheap, and independent of the above
 
 1. **Null-solver board (highest value per minute).** Run the verifier against every task's untouched
-   shipped project. `retail001` is *proven* to score 1.0 with zero work, and `divvy001` is
-   near-certain. If more of the 60 are do-nothing-passable, then **every board this workflow has ever
+   shipped project. **both `retail001` and `divvy001` are proven** to score 1.0 with zero
+   work. If more of the 60 are do-nothing-passable, then **every board this workflow has ever
    scored — including the 26/60 `@baseline` — contains free cells**, and the real discriminating
    denominator is smaller than 60. This is a benchmark-validity question, not a hypothesis question,
    and it is answerable with no model calls at all.
@@ -1006,8 +1006,8 @@ and that part is **not established**:
   **p = 0.065**, which is suggestive and not significant. The same-config test-retest measured ~16%
   per-cell churn, and the 11 discordant pairs are fully consistent with that churn; only their 9:2
   *direction* carries the signal.
-- **Two of the 33 passes are do-nothing passes** (divvy001, retail001 — proven for retail001 by
-  replaying the verifier against the untouched project). **Three more cells were never attempted** at
+- **Two of the 33 passes are do-nothing passes** (divvy001, retail001 — both proven by
+  replaying the benchmark's own verifier against the untouched shipped project: `{"reward": 1.0}`). **Three more cells were never attempted** at
   all, aborted at the spacedock launcher gate. The honest range is **+5 to +7** depending on how those
   five are treated, and the entity's ≥ +6 bar is met on two of three readings and missed on the
   third.
