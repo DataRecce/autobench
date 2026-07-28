@@ -1188,8 +1188,8 @@ here. I verified every FO-supplied number and they all held — but two FO readi
 spacedock launcher gate. So `coverage_missing` faithfully flags five cells where the task was never
 attempted, and the FO's read that "the passes are very likely real" is wrong in the way that matters:
 divvy001 and retail001 scored 1.0 having changed nothing. That is a **benchmark-validity defect** —
-the shipped project state already satisfies the grader. I proved it for retail001 by running the
-task's own verifier against the untouched project: `{"reward": 1.0}`. The anchor FAILED both cells
+the shipped project state already satisfies the grader. I proved it for **both** cells by running each
+task's own verifier against its untouched project: `{"reward": 1.0}` each. The anchor FAILED both cells
 because it did the work and its rebuild diverged from gold, so these two cells actively penalise
 attempting the task, and they contaminate the 26/60 anchor too.
 
