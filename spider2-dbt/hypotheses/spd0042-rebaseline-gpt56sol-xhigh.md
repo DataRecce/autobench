@@ -1,6 +1,6 @@
 ---
 title: Re-baseline the champion on gpt-5.6-sol @ xhigh — model swap with the solver README held byte-identical
-status: analyze
+status: conclude
 kind: hypothesis
 source: "captain-directed (2026-07-27). spd0039 closed NEEDS-PHASE2-readme-exhausted: the README-lever program is spent at ~26/60 with a ~31/60 stabilization ceiling, and the leaderboard top-1 is ~65%. A stronger solver model is the Phase 2 lever that scoping doc (_artifacts/group3-model-swap-scoping-2026-06-29.md) was written for. This is the first model-swap arm: champion spd0038 solver README UNCHANGED, model gpt-5.5 -> gpt-5.6-sol, effort held at xhigh."
 started: 2026-07-27T12:19:42Z
