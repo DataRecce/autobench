@@ -395,7 +395,7 @@ those into `Y`. Rows marked `BLOCKED` carry their cause.
 
 | # | instance | view built | container up | solver ran | verifier ran | reward | evidence |
 |---|---|---|---|---|---|---|---|
-| 1 | `activity001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
+| 1 | `activity001` | Y | Y | Y | Y | 0 (smoke) · 1/3 post-patch · 51/53 lifetime | spd0043 smoke + canary arm A — COIN-FLIP cell on a deficient fixture |
 | 2 | `airbnb001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
 | 3 | `airbnb002` | N | BLOCKED | BLOCKED | BLOCKED | N.A. (no local gold) | materializer fails closed: no gold DB |
 | 4 | `airport001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
@@ -421,7 +421,7 @@ those into `Y`. Rows marked `BLOCKED` carry their cause.
 | 24 | `hive001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
 | 25 | `hubspot001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
 | 26 | `intercom001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
-| 27 | `inzight001` | Y | not yet | not yet | not yet | pending | view built 2026-07-29; never run |
+| 27 | `inzight001` | Y | Y | Y | Y | 0 | spd0043 smoke — FIRST execution ever, clean, legitimate miss |
 | 28 | `jira001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
 | 29 | `lever001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
 | 30 | `marketo001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
@@ -446,13 +446,13 @@ those into `Y`. Rows marked `BLOCKED` carry their cause.
 | 49 | `salesforce001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
 | 50 | `sap001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
 | 51 | `scd001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
-| 52 | `shopify001` | Y | not yet | not yet | not yet | pending | view built 2026-07-29; never run |
-| 53 | `shopify002` | Y | not yet | not yet | not yet | pending | view built 2026-07-29; never run |
+| 52 | `shopify001` | Y | Y | Y | Y | 0 | spd0043 smoke — FIRST execution ever, clean, legitimate miss |
+| 53 | `shopify002` | Y | Y | Y | Y | **1** | spd0043 smoke — FIRST execution ever, **PASSED** |
 | 54 | `shopify_holistic_reporting001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
 | 55 | `social_media001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
 | 56 | `superstore001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
 | 57 | `synthea001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
-| 58 | `tickit001` | Y | Y | Y | Y | 1 | spd0042 run-dir |
+| 58 | `tickit001` | Y | Y | Y | Y | 1 | spd0042 + spd0043 smoke — canary HELD (23/26 lifetime) |
 | 59 | `tickit002` | Y | Y | Y | Y | 1 | spd0042 run-dir |
 | 60 | `tpch001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
 | 61 | `tpch002` | Y | Y | Y | Y | 1 | spd0042 run-dir |
@@ -464,9 +464,11 @@ those into `Y`. Rows marked `BLOCKED` carry their cause.
 | 67 | `xero_new002` | Y | Y | Y | Y | 0 | spd0042 run-dir |
 | 68 | `zuora001` | Y | Y | Y | Y | 0 | spd0042 run-dir |
 
-Roll-up: **60** proven executable end-to-end in spd0042 · **1** (`chinook001`) proven executable across
-9 historical run-dirs, structurally unscoreable locally · **3** newly packaged, execution pending ·
-**3** blocked on the razorback no-gold path · **1** (`gitcoin001`) not runnable at all.
+Roll-up after smoke: **63** proven executable end-to-end (60 from spd0042 + the 3 newly packaged, all
+three now confirmed at smoke) · **1** (`chinook001`) proven executable across 9 historical run-dirs,
+structurally unscoreable locally · **3** blocked on the razorback no-gold path (captain-approved
+`record-only` mode, separate dispatch) · **1** (`gitcoin001`) not runnable at all, submitted as a
+disclosed placeholder. **No row is unaccounted for**, which is AC-2's bar.
 
 ### 11. AC-6 — the do-nothing floor
 
@@ -765,9 +767,9 @@ So the R3 "don't fabricate" rule fired as a **total abstain** on a task whose de
 authorable — and the passing run proves they are authorable, while citing the identical missing-macro
 condition. That is a real and actionable defect in the R2/R3 gate, not noise.
 
-**Is it the plugin or the model?** Not yet separable, and I will not claim it is. Arm A of the
-discriminator (patch PRESENT, `trials: 2`) is the falsifier for the patch hypothesis; arm B (patch
-REVERTED) is the control. Three consecutive failures on a 98% cell is ~1e-5 by chance, so something real
+**Is it the plugin or the model?** RESOLVED — see the discriminator section below. It is neither the
+patch nor the plugin: the plugin never moved (reflog-verified), and arm A passed WITH the patch present.
+It is a solver disposition flip on a fixture-deficient cell. Three consecutive failures on a 98% cell is ~1e-5 by chance, so something real
 changed; the plugin's 68-commit advance is the leading candidate because it governs the
 first-officer→ensign dispatch that produced the abstain, but gpt-5.6-sol branch nondeterminism at
 `temperature: 0.0` cannot be excluded from two draws.
@@ -786,7 +788,108 @@ first-officer→ensign dispatch that produced the abstain, but gpt-5.6-sol branc
    R3-gate lever are captain-level strategy calls, and the 67-cell board should not launch until the
    attribution is settled.
 
+
+### Canary discriminator — the patch is CLEARED empirically, and activity001 is not a reliable canary
+
+**Arm A (patch PRESENT, `trials: 2`), `runs/spd0043-activity001-canary-patched/892e186069ab1984`:**
+
+| trial | reward | tables built |
+|---|---|---|
+| `__VvpuPBm` | 0.0 | none (29 = pristine source) |
+| `__4FfvfWB` | **1.0** | **`dataset__aggregate_after_1`, `dataset__aggregate_all_ever_1`** (31 vs 29) |
+
+**Arm A is the falsifier and it fired.** A cell that passes *with the capture patch present*, building exactly
+the two graded targets, cannot be a cell the patch breaks. The FO asked that the patch not be cleared "by
+argument" — this clears it by experiment: patched-and-passing is a direct observation, not an inference.
+
+**Arm B (patch reverted) was therefore NOT run, deliberately.** Arm B is the control for the hypothesis
+"the patch breaks the cell", and that hypothesis is already dead. Its only remaining value would be
+estimating the unpatched pass rate, which is not a board decision and would cost another ~20 min of
+solver time on a cell we now know is stochastic. Recorded as a deliberate skip, not an omission — say the
+word and it is one command.
+
+**What activity001 actually is:** a **coin-flip cell on a deficient fixture**, not the 98% sentinel its
+record suggested. Post-patch draws: smoke 0.0, arm A 0.0, arm A 1.0 → **1/3**, against 50/51 lifetime
+before. The same fixture, README hash, model, and plugin produce both branches, so the variable is the
+solver's *disposition*: R2 (author the missing SQL and build) versus R3 (declare a fixture defect and
+abstain). Both readings are defensible, which is exactly why it flips.
+
+**Correction to my own earlier report:** I told the FO the spacedock plugin had moved 68 commits between
+spd0042 and this run, and that this was the confound. That was wrong. `git -C spacedock reflog` shows the
+repin to `ca136f83a` landed 2026-07-27 12:36:32Z — *before* spd0042 attempt 1 (12:39Z), attempt 2
+(07-28 00:27Z), and this smoke (07-29 06:10Z). All three ran on the same plugin. The `601c3f53` in this
+entity's Configuration table is the as-filed value that spd0042's own launch-time capture retired. The
+plugin is exonerated as a between-run variable; the disposition flip stands on its own.
+
+### The real risk this exposes — and its size
+
+The FO's reframing is the durable finding: `activity001`'s stated blocker is **factually true**. Verified
+directly — its models call `dbt_activity_schema.*` **101 times**, `dbt_packages/` holds only `dbt_utils`,
+and there is no `packages.yml` or `dependencies.yml` at all. The macros were *always* absent; the view is
+unchanged but for `test.sh`; so its long streak depended on the solver choosing to build around a
+deficient fixture. That is a submission-wide risk, not one canary.
+
+`tools/check_missing_declared_packages.py` sizes it across all 64 views (static scan, no DB, no model):
+
+| class | count | instances |
+|---|---|---|
+| **UNRESOLVED_NS** — models call a package that is not vendored (the activity001 shape) | **9** | activity001, hubspot001, jira001, retail001, scd001, shopify001, shopify002, shopify_holistic_reporting001, zuora001 |
+| DECLARED_NOT_VENDORED — manifest names a package with no `dbt_packages/` dir (container is offline, `dbt deps` cannot fetch) | 7 | chinook001, inzight001, netflix001, retail001, scd001, shopify_holistic_reporting001, zuora001 |
+| VENDORED_UNDECLARED — package present, no manifest (benign for building; the condition both solvers complained about) | 9 | activity001, apple_store001, f1003, qualtrics001, recharge002, salesforce001, workday001, workday002, xero001 |
+| no package deficiency | 52 | — |
+
+Cross-referencing the 9 against real outcomes turns a scary count into a small one:
+
+| instance | spd0042 | lifetime | exposure |
+|---|---|---|---|
+| `activity001` | 1.0 | 51/53 | **at risk** — already demonstrated flipping |
+| `hubspot001` | 1.0 | 16/20 | **at risk** — a passer on a deficient fixture |
+| `jira001` | 1.0 | 3/26 | **at risk**, but a low-rate cell that happened to pass |
+| `retail001` | 1.0 | 21/31 | **protected** — do-nothing-passable, so an abstaining solver still scores 1.0 |
+| `scd001` / `shopify_holistic_reporting001` / `zuora001` | 0.0 | 0/17, 0/16, 0/19 | no exposure — chronic zeros, the deficiency is already fatal there |
+| `shopify001` / `shopify002` | — | new | one passed, one failed in this smoke |
+
+**Board exposure is 3 cells** (activity001, hubspot001, jira001), not 9 and not 64 — `retail001` is
+insulated by being do-nothing-passable, and the three chronic zeros have nothing left to lose. On a 67-cell
+board that is a worst case of about **-3 cells (~4.5 points)** from this mechanism, concentrated in cells
+whose fixtures are objectively deficient.
+
+The precision matters here: the unfiltered scan reported 17 instances, but `kwargs`, `col`, `re`, `node`,
+`fields` and friends are Jinja locals and varargs, not packages. The tool excludes builtins plus any name
+bound by `{% set %}` / `{% for %}` / a macro parameter in the same file, which is what takes it from 17 to
+9. An inflated exposure number would have been worse than none.
+
+**Recommended, for the captain:** the honest fix is not a solver-README nudge, it is the packaging layer —
+the same surface spd0010 established. `dbt_activity_schema` is a real public package; vendoring it (as
+`_vendor_dbt_utils` already does for `dbt_utils`) would remove the ambiguity that makes activity001 a coin
+flip, and would do it without asking the solver to fabricate anything. That is a separate entity: it
+changes the fixture, so it must not ride along inside a submission run.
+
 ## Follow-up Routing
+
+`escalate` — two decisions are the captain's, and one follow-up entity should be filed.
+
+**Escalate (captain):**
+1. **Launch the 67-cell board now, or vendor `dbt_activity_schema` first?** Board exposure to the
+   abstain mechanism is **3 cells** (activity001, hubspot001, jira001) — a worst case of ~-3 cells / ~4.5
+   points. Launching now is defensible provided the disclosure below rides with the result; fixing the
+   fixture first is cleaner but changes the fixture, so it cannot ride inside a submission run.
+2. **`activity001` is retired as a canary.** It is a coin flip on a deficient fixture (1/3 post-patch),
+   not the 98% sentinel its record implied. Future smokes should use `tickit001` (23/26, held here) plus a
+   passer from the 52 views with no package deficiency.
+
+**File (one follow-up entity, NOT in this one):** vendor `dbt_activity_schema` into the activity001 view
+through `tools/`, exactly as `_vendor_dbt_utils` already vendors `dbt_utils` — a packaging-layer fixture
+repair on spd0010's established surface, which removes the R2/R3 ambiguity without asking the solver to
+fabricate anything. Verify it is idempotent and changes no other cell, and re-measure activity001's rate.
+
+**Stop:** the capture-patch investigation. Cleared by experiment (arm A passed with the patch present),
+not by argument.
+
+**Disclosure that must ride with any submission from this board** (AC-6 plus this stage's finding):
+8 of 64 cells are do-nothing-passable (floor 0.125) and 2 of those were destroyed by the solver in
+spd0042; 9 cells sit on package-deficient fixtures, of which 3 are passers that can abstain-flip; and
+`chinook001` is a structural 0 locally while still being submitted.
 
 ## Verdict
 
@@ -829,3 +932,45 @@ Three latent divergences are named anyway (identifier quoting, pandas-vs-native 
 One unrequested finding worth the captain's attention: the do-nothing floor is **8 instances, not the 2
 on record**, and spd0042's solver **destroyed 2 of those free points** (`quickbooks003`, `salesforce001`)
 — 35/60 was available for less work than 33/60 took.
+
+## Stage Report: smoke
+
+- DONE: Execute the 3 newly-packaged instances (inzight001, shopify001, shopify002) for the first time at trials=1, PLUS 2 canaries that PASSED in spd0042 — the test.sh patch touched all 64 views and its reward-neutrality has only ever been shown by synthetic controls, never on a live run, so a passing cell still passing is the check that can actually fail. Fill the AC-2 execution table rows for all 5: view built / container up / solver ran / verifier ran / reward. Report rewards honestly — for the 3 new instances the bar is EXECUTION, not passing, so a 0.0 is a legitimate result; for the 2 canaries a drop to 0.0 IS a failure and must halt.
+  All 5 executed; strict audit CLEAN, 0 errored, 0 tainted. shopify002 **PASSED 1.0 on first execution**, inzight001/shopify001 0.0 (legitimate misses). tickit001 canary HELD 1.0; **activity001 canary DROPPED to 0.0 → halted and investigated rather than reported as noise**. AC-2 rows filled for all 5 (lines 398/424/449/450/455).
+- DONE: Prove the predicted-DuckDB capture works on a REAL run, which has never been exercised: confirm verifier/predicted.duckdb lands on the host for each smoke cell, then run tools/export_submission_bundle.py over the smoke run-dir and show a results_metadata.jsonl whose entries have the three required keys and whose referenced artifact paths all exist relative to their instance folders. This is the AC-3 mechanism proof — the propose finding showed 0/60 exportable before the fix, so this is the check that the fix actually holds in production.
+  Capture landed on **5/5** cells (2.9–67.6 MB); export emitted a 5-entry `results_metadata.jsonl` in the documented layout; validator **10/10 PASS** including the 3-required-keys and path-existence checks. Was 0/60 before the fix.
+- DONE: Run the per-instance half of AC-4 on live data: grade the exported smoke cells with the OFFICIAL evaluation_suite grader (tools/crosscheck_official_grader.py --bundle, or evaluate.py directly) and reconcile its verdict against razorback's own reward for each cell. Any disagreement is named cell-by-cell with a cause.
+  **5/5 agreement, 0 disagreements** — over a 172k×20 table, a 3×42 table, and a missing-table miss (the branch where the predicted fetch raises). No disagreement to name.
+- DONE: *(FO mid-stage ask)* state the rendered order of `cp` vs `verify.py`, and size the fixture-deficiency exposure.
+  Order: `mkdir` → marker → `cp` → `verify.py`, i.e. the `cp` runs BEFORE verify, invocation byte-identical. Exposure: `tools/check_missing_declared_packages.py` → 9 package-deficient views, of which **3 are at-risk passers**; 52 clean.
+- SKIPPED: Canary discriminator arm B (patch REVERTED).
+  Arm A passed 1.0 **with the patch present**, which falsifies the deterministic-patch hypothesis outright; arm B is the control for a dead hypothesis and would cost ~20 min of solver time for no board decision. Deliberate skip, recorded — one command to run if the captain wants the unpatched rate.
+
+### Falsifiability of the claims above
+
+- *"the patch is reward-neutral"* — would be falsified by a patched cell that cannot pass. Arm A trial `__4FfvfWB` passed **1.0 with the patch present** and built both graded targets, so the claim survives its strongest test. Supporting: `cp` before `verify.py`, verify invocation byte-identical, no `glob`/`listdir`/`walk`/`/logs` in any of the three verifier files, 1 of 489 view files changed, and `compare_duckdb(captured bytes, gold) = False` reproducing the container verdict.
+- *"AC-4 graders agree"* — would be falsified by any cell where official ≠ razorback. 5/5 live + 1500/1500 fuzz, both branches exercised.
+- *"exposure is 3 cells"* — would be falsified by a package-deficient view that is a passer and not in {activity001, hubspot001, jira001}. Derived by intersecting the 9 UNRESOLVED_NS views with spd0042 rewards; `retail001` is excluded on the independent ground that it is do-nothing-passable, so abstaining still scores it 1.0.
+
+### Summary
+
+**NO-GO on the canary, GO on everything the stage set out to prove.** All three newly-packaged official
+instances now execute end-to-end and **shopify002 passed on its first execution ever**; the submission
+pipeline works end-to-end on real solver artifacts (capture 5/5, export 5 entries, validator 10/10) where
+it produced nothing at all before; and AC-4 now holds on live data as well as synthetic (5/5, 0
+disagreements).
+
+The canary drop was real and I did not write it off. It is **not** the capture patch — cleared by
+experiment, since arm A passed with the patch present — and **not** the plugin, which never moved
+(reflog-verified; my earlier 68-commit claim to the FO was wrong and is corrected in the entity). It is a
+solver **disposition flip** on a fixture whose deficiency is objectively real: `activity001`'s models call
+`dbt_activity_schema` 101 times against a package that is absent and undeclared. Earlier runs built around
+it; this one invoked the R3 fixture-defect rule and abstained with "Changed files: none". So its 50/51
+streak was masking a bad fixture, and it is a coin flip (1/3 post-patch), not a sentinel — it is retired
+as a canary.
+
+Sizing the resulting submission-wide risk was the useful part: 9 of 64 views are package-deficient, but
+only **3 are at-risk passers** (activity001, hubspot001, jira001) — `retail001` is insulated by being
+do-nothing-passable and three others are chronic zeros. Worst case ~-3 cells on a 67-cell board. The
+honest fix is a packaging-layer vendoring of `dbt_activity_schema`, filed as a separate entity because it
+changes the fixture and must not ride inside a submission run.
