@@ -636,11 +636,155 @@ execution controls.
 
 ## Smoke result
 
+Run: `runs/spd0043-official-board-64-smoke/c5b797acd42d2e6b` (handle
+`runs/.rk-handles/spd0043-smoke-20260729-061045`, rc=0, 06:10:45 → 06:43:01 = **32 min**).
+Strict audit **CLEAN** — `0` findings, `taint_status: clean` on every cell, `stratified_n_errored: 0`,
+`stratified_n_completed: 5`, `stratified_pass_at_1: 0.4` (2/5).
+
+**Verdict: NO-GO on the canary, GO on everything the smoke was built to prove.** The canary drop is
+real and is NOT the capture patch — root cause below is a solver-side classification flip, evidenced by
+the solver's own transcript against the passing run's transcript.
+
+| Cell | Role | Reward | Historical | Captured predicted DB | Read |
+|---|---|---|---|---|---|
+| `inzight001` | 🎯 target, first execution ever | 0.0 | — | 2.9 MB | executed clean; legitimate miss (bar was execution) |
+| `shopify001` | 🎯 target, first execution ever | 0.0 | — | 22.6 MB | executed clean; legitimate miss |
+| `shopify002` | 🎯 target, first execution ever | **1.0** | — | 19.7 MB | **PASSED on first execution** — a genuinely new board point |
+| `tickit001` | ✅ canary | 1.0 | 23/26 | 67.6 MB | HELD; also proves capture at real scale |
+| `activity001` | ✅ canary | **0.0** | **50/51** | 9.2 MB | **DROPPED** — see the failure review |
+
+Two of the three newly-packaged official instances execute and miss; one passes outright. All three are
+now proven executable end-to-end, which was the stage's first question.
+
+### AC-3 mechanism proof — the capture works in production
+
+The propose finding was 0/60 exportable. On this run: **5/5**.
+
+```
+$ python tools/export_submission_bundle.py --run-dir <smoke-run-dir> --out <bundle>
+activity001   ok  reward 0, 9187328 bytes      shopify002  ok  reward 1, 19673088 bytes
+inzight001    ok  reward 0, 2895872 bytes      tickit001   ok  reward 1, 67645440 bytes
+shopify001    ok  reward 0, 22556672 bytes
+results_metadata.jsonl entries: 5  (exported 5, placeholder 0)   not exported: 0
+```
+
+Bundle shape is exactly the documented layout — `results_metadata.jsonl` at the root plus one
+`<instance_id>/predicted.duckdb` per cell — and every entry carries only the three required keys:
+
+```json
+{"instance_id": "shopify002", "answer_type": "file", "answer_or_path": "predicted.duckdb"}
+```
+
+Validator: **10/10 PASS** (`--expect 5`), including `answer_type == "file"` everywhere, every referenced
+path existing inside its own instance folder, no off-list ids, `danish_democracy_data001` absent, and
+every submitted DuckDB opening and querying cleanly.
+
+Measured capture sizes (grounding the 67-cell projection in measurement rather than the earlier
+estimate): 2.9 / 9.2 / 19.7 / 22.6 / 67.6 MB — mean **24.4 MB**, and `tickit001` at 67.6 MB is 2× the
+gold-file mean, so a 67-cell board projects to roughly **1.6 GB**, comfortably inside the 46 GB free.
+The earlier 3–8 GB estimate was pessimistic.
+
+### AC-4 on live data — the two graders agree cell-for-cell
+
+First time the official grader and razorback's have seen a real solver artifact rather than synthetic pairs:
+
+```
+instance                              official  razorback  note
+activity001                                  0          0
+inzight001                                   0          0
+shopify001                                   0          0
+shopify002                                   1          1
+tickit001                                    1          1
+DISAGREEMENTS  : 0        not gradeable locally: 0
+```
+
+This is stronger than the fuzz because the artifacts are real and heterogeneous: a 172,456-row × 20-col
+`fct_sales` (tickit001), a 3-row × 42-col `shopify__discounts` (shopify002), and three genuine misses —
+one of which (`activity001`) is a *missing-table* miss, exercising the branch where the predicted-table
+fetch raises and both graders must return 0 rather than crash. Combined with the 1500-case fuzz, AC-4 is
+satisfied on both synthetic and live evidence.
+
+Operational note for the 67-cell cross-check: upstream's grader is **slow** on wide/tall tables — it does
+`fetchdf().transpose().values.tolist()` and then Python-sorts every gold column-vector against every pred
+column-vector, so tickit001 alone burned ~4 min of CPU at 610 MB RSS. Budget ~10-15 min for a 67-cell
+reconciliation, and do not run it inside a 120 s foreground call.
+
 ## Run result
 
 ## Behavioral analysis
 
 ## Failure Review
+
+**Primary type: `wrong-branch`** (solver-side classification flip). Explicitly NOT
+`infrastructure-failure` and NOT `variance-unclear`.
+
+**The FO's framing, and where it was wrong.** The FO correctly refused to let this be written off as
+churn: `activity001` is **50/51 lifetime** and the single failure is this run, so the 15.8% board-average
+churn figure does not cover it. But the accompanying premise — "the only thing that changed between
+spd0042's 1.0 and this 0.0 is the `test.sh` capture patch" — is **false**, and that was my miss at
+propose. The **spacedock plugin also moved**: spd0042's own spec header pins it at `601c3f53`; this run
+ran `ca136f83a`. Those are **68 commits** apart, including orchestration-contract changes ("Verifier
+carve-out", "Fan-out clause orders dedupe before verify", "Host-neutral contract core"). I recorded the
+plugin commit at propose and flagged that its tag disagreed with the dispatch, but I never diffed it
+against spd0042's — exactly the omission the standing plugin-version lesson warns about.
+
+**The capture patch is exonerated, on four independent lines of evidence:**
+
+1. **Ordering** (the FO asked for this explicitly). The rendered `test.sh` is
+   `mkdir -p /logs/verifier` → marker comment → `cp /app/activity.duckdb /logs/verifier/predicted.duckdb || true`
+   → the verify invocation. So the `cp` runs **BEFORE** `verify.py`, and the verify invocation is
+   byte-identical to razorback's own template. No name collision: the DB stem is `activity`, the capture
+   destination is `predicted.duckdb`, the reward file is `reward.json`.
+2. **Nothing reads that directory.** `verify.py`, `duckdb_match.py`, and `eval_spec.py` contain no
+   `glob` / `listdir` / `scandir` / `iterdir` / `walk`, and no reference to `/logs` at all. Mechanism 1
+   is ruled out by code, not by assertion.
+3. **The view is otherwise untouched.** Exactly **1 of 489** files in the activity001 view has an mtime
+   after 2026-07-01, and it is `tests/test.sh`. The fixture that produced 50 passes is byte-identical.
+4. **The verdict reproduces offline on the captured bytes.**
+   `compare_duckdb(captured predicted.duckdb, gold)` = `False`, matching the container's
+   `{"reward": 0.0}`. The capture is faithful and the comparator is doing in-container what it does
+   offline. Mechanism 3 (size/timing) dies here too — the 9.2 MB capture is the smallest of the five and
+   the two 1.0 cells captured 19.7 MB and 67.6 MB successfully.
+
+**What actually happened — the solver abstained on a task it can do.** Same fixture, same README hash,
+same model, opposite branch:
+
+| | spd0042 (**1.0**, 11 min) | spd0043 smoke (**0.0**, 8 min) |
+|---|---|---|
+| classification | **R2** — "declared in YAML but missing SQL" | **R3** — "fixture defect" |
+| action | **authored** `dataset__aggregate_after_1.sql` + `dataset__aggregate_all_ever_1.sql` | **"Changed files: none"** |
+| dbt | `dbt compile` passed; `dbt build` passed all 8 models/tests | `dbt compile` failed; "neither target table exists in `main`" |
+| the same blocker | noted it — "`dbt_activity_schema` macros are absent … did not fabricate a package shim" — **and built the targets anyway** | treated it as authorization to do nothing |
+
+Confirmed against the databases: the predicted DB holds **exactly the same 29 tables as the pristine
+source** — the solver built *nothing*. Gold holds 48, including the two graded targets, which the source
+never ships (so this is a failure-to-create, not a destroyed passer). The 8-minute runtime, shortest of
+the five, is the abstain signature.
+
+So the R3 "don't fabricate" rule fired as a **total abstain** on a task whose declared targets are
+authorable — and the passing run proves they are authorable, while citing the identical missing-macro
+condition. That is a real and actionable defect in the R2/R3 gate, not noise.
+
+**Is it the plugin or the model?** Not yet separable, and I will not claim it is. Arm A of the
+discriminator (patch PRESENT, `trials: 2`) is the falsifier for the patch hypothesis; arm B (patch
+REVERTED) is the control. Three consecutive failures on a 98% cell is ~1e-5 by chance, so something real
+changed; the plugin's 68-commit advance is the leading candidate because it governs the
+first-officer→ensign dispatch that produced the abstain, but gpt-5.6-sol branch nondeterminism at
+`temperature: 0.0` cannot be excluded from two draws.
+
+**Answers to the five required questions.**
+1. *Original hypothesized fork:* none — this is a coverage entity, and the canary was expected to hold.
+2. *Fork the committed artifact revealed:* R2-authoring versus R3-abstain on an unbuildable-as-shipped
+   project. The artifact is unambiguous: zero new tables.
+3. *Did the rule fire, and where is the evidence?* Yes — the ensign names R3 explicitly and reports
+   "Changed files: none"; the DB table-set comparison corroborates it independently of the transcript.
+4. *What to test next:* tighten the R3 gate so "package macros absent" alone does not authorize a total
+   abstain when the declared targets are authorable from source (the R2 path the passing run took). That
+   is a solver-README lever for a separate entity, and it is worth filing — `activity001` is the most
+   stable cell on the board and it just lost to this.
+5. *Next step:* `escalate`. The patch question is answered; the plugin-versus-model attribution and the
+   R3-gate lever are captain-level strategy calls, and the 67-cell board should not launch until the
+   attribution is settled.
 
 ## Follow-up Routing
 
