@@ -194,6 +194,32 @@ def _align_source_schemas_to_main(project_dir: Path) -> None:
             print(f"   [schema-align] {yml.relative_to(project_dir)} -> schema: main")
 
 
+def _prune_vendored_profiles(project_dir: Path) -> None:
+    """Delete `profiles.yml` files vendored INSIDE `dbt_packages/` from the staged copy.
+
+    Three official instances (inzight001, shopify001, shopify002) vendor `dbt_date`,
+    whose `dbt_packages/dbt_date/integration_tests/ci/profiles.yml` declares
+    `target: postgres`. razorback's `resolve_spider2_db_name` ->
+    `_read_profiles_db_path` walks `workspace.rglob("profiles.yml")` and sorts the
+    hits, so `dbt_packages/...` (d) is inspected BEFORE the project's own
+    `profiles.yml` (p); the postgres target then trips its fail-closed
+    `target output not duckdb` guard and the whole materialize aborts. Those files
+    are the vendored package's OWN CI fixtures — dbt only ever reads
+    `$DBT_PROFILES_DIR/profiles.yml` (`/app`), never a package's — so removing them
+    from the staged copy is faithful and cannot change any build or any grade.
+
+    Same class and same surface as `_align_source_schemas_to_main` /
+    `_vendor_dbt_utils`: a packaging-time repair confined to `tools/`, with the
+    comparator/scorer untouched. Idempotent.
+    """
+    packages = project_dir / "dbt_packages"
+    if not packages.is_dir():
+        return
+    for stale in sorted(packages.rglob("profiles.yml")):
+        stale.unlink()
+        print(f"   [prune-profiles] {stale.relative_to(project_dir)}")
+
+
 _DBT_UTILS_DONOR = Path(__file__).resolve().parent / "vendor" / "dbt_utils"
 
 
@@ -322,6 +348,11 @@ def _stage_task(
     # whose default-name schema is absent from the DuckDB while `main` holds its
     # tables — a no-op for already-consistent projects (tpch001, chinook001).
     _align_source_schemas_to_main(src / "dbt_project")
+
+    # Faithful repair: drop `profiles.yml` files vendored inside dbt_packages/ so
+    # razorback's DuckDB resolver cannot pin (or fail closed on) a package's own CI
+    # profile instead of the project's. See `_prune_vendored_profiles`.
+    _prune_vendored_profiles(src / "dbt_project")
 
     # Faithful repair: some upstream examples reference dbt_utils macros (e.g.
     # synthea001's staging uses dbt_utils.get_filtered_columns_in_relation) but
