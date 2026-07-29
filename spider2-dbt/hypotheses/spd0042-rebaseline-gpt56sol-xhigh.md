@@ -756,6 +756,97 @@ Caveat, stated because it matters: the 19 cells are attempt 1's spec-order prefi
 sample, so 15.8% is a rough estimate from a biased slice with a wide interval. It is one replication,
 not a variance study. But it is real same-config evidence, and it was free.
 
+---
+
+### BANKED KNOWLEDGE (2026-07-29) — the durable output of this entity
+
+Written here because the entity body, not operator memory, is what a teammate on another machine
+reads. Three findings, in descending order of transferable value. None of them is about the score.
+
+#### K1 — Two of the sixty tasks pass by doing nothing, and actively penalise doing the work
+
+**The finding.** `spider2-dbt-divvy001` and `spider2-dbt-retail001` return `reward: 1.0` when the
+solver changes nothing at all.
+
+**How it was proved** — not inferred from a solver's self-report. Each task's own verifier was run
+against its own untouched shipped project:
+
+```
+python _views/spider2-dbt-<task>/tests/verify.py \
+  --predicted-db _views/spider2-dbt-<task>/dbt_project/<ds>.duckdb \
+  --gold-db     _views/spider2-dbt-<task>/tests/<ds>.duckdb \
+  --eval-spec   _views/spider2-dbt-<task>/tests/spider2_eval.jsonl
+→ {"reward": 1.0}      # both retail001 and divvy001
+```
+
+**The mechanism.** `tests/test.sh` compares the *working* DuckDB shipped into the container at
+`/app/<ds>.duckdb` against gold at `/tests/<ds>.duckdb`. For these two tasks the shipped state already
+satisfies the comparison, so inaction scores 1.0.
+
+**Why this matters far beyond this run.** The anchor board **failed both cells** — it dispatched a
+worker, rebuilt the models, and its rebuild diverged from gold. So on these cells the benchmark
+*rewards inaction and punishes attempting the task*. Consequences:
+
+- **Every thoroughness lever this workflow has judged carried a hidden 2-cell headwind**, including all
+  six spd0038 stabilizers and the whole "build every deliverable / completeness" family that was
+  closed as a dead end. A lever that makes the solver more thorough is *structurally penalised* on
+  these cells. Some of that family's recorded cost may be this artifact rather than the lever.
+- **Every score on record is contaminated**, the 26/60 `@baseline` included. Boards are not comparable
+  on these two cells; they measure whether the solver left the project alone.
+- **The discriminating denominator is smaller than 60** — by at least 2, and the true figure is
+  unmeasured (see `## Follow-up Routing` → U1).
+
+**Transferable rule:** before trusting a benchmark cell, check whether the *null solver* passes it. A
+cell that passes with zero work cannot discriminate solver quality in either direction, and if the
+shipped state is gold-matching, doing the task correctly can still lose.
+
+#### K2 — Same-config per-cell churn is ~15.8%; only the *direction* of discordant pairs is ever signal
+
+**The finding.** Attempts 1 and 2 of this entity are the **identical configuration** — same frozen
+spec, model, plugin, CLI. Attempt 1 died after completing 19 cells, so those 19 are a free same-config
+replication: **3 of 19 disagree (15.8%)** — airport001 P→F, hive001 P→F, f1002 F→P — while the net
+barely moves (15/19 vs 14/19).
+
+**The yardstick this gives the workflow.** Scaled to a 60-cell board, two identical draws would be
+expected to disagree on **~9–10 cells**. The anchor-vs-spd0042 comparison produced **11 discordant
+pairs** — statistically ordinary. So:
+
+- **The count of moved cells is not evidence.** "11 cells changed" is what noise looks like here.
+- **Only the direction split carries signal** (9:2 rather than ~5:5), which is exactly what McNemar
+  conditions on — hence p = 0.0654 rather than anything stronger.
+- **Net score is much stabler than per-cell verdicts**, because flips largely cancel. That is why a
+  +7 net remains interesting despite 16% per-cell churn.
+
+**Why it matters:** this program has adjudicated ±1 and ±2 cell deltas for its entire life (the
+recorded board band is 27/26/25/24). K2 says those are inside same-config noise. Any future single-draw
+claim smaller than roughly ±5 cells should be treated as unmeasured.
+
+**Caveat, kept attached:** n = 19, and they are attempt 1's spec-order prefix, not a random sample. One
+replication, not a variance study — a rough yardstick with a wide interval, which is still infinitely
+better than the zero measurements the workflow had before.
+
+#### K3 — A green run can be 41/60 dead; `rc=0` is not success
+
+Attempt 1 returned **`rc=0`**, fired an **ntfy "OK"**, and finished **fast** — and 41 of 60 cells were
+dead (see `## Failure Review`). Every outside-the-run success signal was green.
+
+**Operational rules this yields:**
+
+- **Read `summary.json`'s `n_trials_errored` before reading any score.** It is the only cheap signal
+  that separates a real board from a censored one.
+- **A finish far *under* the reference board's wall clock is a failure signature, not good news.**
+  Attempt 1 took 1 h 31 m against a 3 h 20 m reference *on a model expected to be slower*; that ratio
+  was the tell, hours before anyone looked at a cell.
+- **`stratified_pass_at_1` censors errored cells out of its denominator.** Attempt 1 reported 0.7895,
+  which was 15/19 completed, not 15/60 = 0.25. Same artifact class as the bogus CAIS number in the DAB
+  work.
+- **The strict audit is the gate that catches this**, and it did — twice on this entity (41
+  `coverage_missing` on attempt 1, 5 on attempt 2). AC-3 failing is the instrument working.
+
+**Recommended (not implemented, and not filed):** the detached-run sentinel should fail loudly on
+`n_trials_errored > 0` and warn when wallclock lands far under the reference. That is a workflow
+change, not a hypothesis, and no code was touched for it here.
+
 ## Failure Review
 
 ### What happened
@@ -987,7 +1078,111 @@ it would only tighten a number we cannot assign a cause to. Variance second, att
   *for this entity* — it has a clean board and a full analysis.
 - **Not executed, per the dispatch:** no registry change, no re-run, no GitHub issue.
 
+---
+
+### FINAL ROUTING (2026-07-29): `escalate`
+
+**Routing = `escalate`.** Not `stop` — the family is not exhausted and the evidence is not
+oracle-blocked; two well-defined questions remain and each has a known, costed answer. Not `file` —
+the captain has ended experimentation for this program (2026-07-29: *"I don't want to run more
+experiment. Let use what we have right now."*), so **no follow-up hypothesis is filed and no further
+runs are proposed.** `escalate` records the open questions as a strategy decision for whenever the
+program resumes, and nothing is queued.
+
+#### Unresolved — recorded, not filed
+
+**U1 — The null-solver denominator is unmeasured.** Two of sixty tasks are *proven* do-nothing-passable
+(K1). How many of the remaining 58 are is **unknown**, because it was never measured. Therefore **no
+score in this program has a verified denominator** — not this 33/60, not the 26/60 `@baseline`, not any
+of the historical 27/26/25/24 boards. The measurement is cheap and needs **zero model calls** (run each
+task's verifier against its untouched shipped project, as in K1), but it is a run, and runs are
+stopped. Until it is done, every board's headline should be read as "≤ 60 discriminating cells,
+exact count unknown".
+
+**U2 — The triple confound is unsplit, so the +7 is not attributable to gpt-5.6-sol.** Model
+(`gpt-5.5` → `gpt-5.6-sol`), spacedock plugin (v0.22 → v0.26.0 @ `ca136f83`) and codex CLI
+(`d3be844c` → `134063e1`, 0.145.0) all moved together. The single run that would split it — the spd0038
+champion README with `gpt-5.5` on **today's** plugin and CLI — was declined at the propose gate and
+again now. Consequently the durable claim is **"this configuration scores 0.5500"**, and
+**"gpt-5.6-sol is worth +7 cells" is not supported by anything in this entity.** Anyone who later wants
+the model-specific claim must buy that one arm; there is no analytical shortcut.
+
+#### Operational consequence, stated plainly
+
+`@baseline` stays at spd0038 26/60, which is anchored to **spacedock v0.22 + codex CLI `d3be844c` — an
+environment that no longer exists on this machine and cannot be reproduced** (the old CLI binary is
+gone; the plugin is 175+ commits ahead). So **every future paired comparison against `@baseline` is
+cross-environment**, carrying exactly the confound U2 describes. Future work should expect that a
+paired delta against `@baseline` mixes lever effect with plugin and CLI drift, and should not read such
+a delta as lever-attributable without a same-environment control. This is a known, accepted cost of the
+decision not to promote and not to re-run — not an oversight.
+
+#### Deliberately not done
+
+- No follow-up hypothesis filed. No `spd0043`.
+- No `rk baseline promote`, no `rk registry add`; `razorback-registry.yaml` untouched.
+- No GitHub issue.
+- No sentinel-guard code change (K3's recommendation is recorded, not implemented).
+- No `_artifacts/WORKFLOW-REFINE.md` entry — that log is for **structural changes to the solver
+  README**, and this entity changed the solver README not at all (AC-2, byte-identical). The
+  `conclude` automatic-finalization rule does not fire.
+
 ## Verdict
+
+### FINAL — validated-NOT-promoted (concluded 2026-07-29)
+
+**The workflow's own promote rule decides this, not a judgement call.** `### conclude` states: *promote
+if the variant's stratified Pass@1 clears the incumbent **and** the paired delta clears the tripwire
+(CI excludes a regression) **on a clean audit**.* Three conditions, all required:
+
+| # | Condition | Result | Verdict |
+|---|---|---|---|
+| **(a)** | stratified Pass@1 clears the incumbent | **0.5500** vs 0.4333 — the highest clean board on record | ✅ **PASSES** |
+| **(b)** | paired delta clears the tripwire / CI excludes a regression | McNemar exact two-sided **p = 0.0654** on 11 discordant pairs (9:2) — not significant at α = 0.05, so a regression is not excluded | ❌ **FAILS** |
+| **(c)** | clean audit | `rk audit --policy strict` → **5 `coverage_missing`** (0 tainted). AC-3 demands 0. | ❌ **FAILS** |
+
+Two of three fail. **`@baseline` stays at spd0038, 26/60 = 0.4333. `razorback-registry.yaml` is
+untouched** — no `rk baseline promote`, no `rk registry add`. This is the **dab0022 precedent:
+validated-NOT-promoted** — the result is real and worth keeping, and it does not meet the bar to
+become the control.
+
+I am not going to re-cut the accounting to make promotion reachable. Note in particular that the
+reading which *maximises* the rate (31/55 = 0.5636, dropping the five un-attempted cells) does not
+help condition (b) — it gives p = 0.070 — and it cannot help (c) at all, because dropping the flagged
+cells is precisely an admission that the audit is not clean.
+
+**The operational cost of not promoting, stated and left unresolved.** `@baseline` remains anchored to
+an environment that **no longer exists on this machine**: spacedock plugin v0.22 and codex CLI
+`d3be844c`. The old CLI binary is gone and the plugin has moved 175+ commits. So every future paired
+comparison against `@baseline` is a **cross-environment** comparison carrying the same triple confound
+this entity could not split. That is a genuine cost of holding the line here, and the honest remedy is
+a clean re-run of the champion in today's environment — which the captain has declined (2026-07-29:
+*"I don't want to run more experiment. Let use what we have right now."*). Recording the tension is
+the correct close; resolving it by promoting anyway would be exactly the error the rule exists to
+prevent.
+
+#### What this entity is actually worth — the score is the least durable part
+
+1. **Two of sixty tasks are do-nothing-passable, and they punish doing the work.** `divvy001` and
+   `retail001` score `reward: 1.0` against their untouched shipped project — proven by running each
+   task's own verifier, `{"reward": 1.0}` each. The anchor **failed both** because it did the work and
+   its rebuild diverged from gold. So these two cells are a **standing headwind on every
+   thoroughness lever this workflow has ever judged**, including all six spd0038 stabilizers, and they
+   contaminate every score on record — the 26/60 anchor included. This reframes the program, not just
+   this run.
+2. **Same-config per-cell churn is ~15.8%**, measured for free (attempts 1 and 2 are the identical
+   configuration; 3 of their 19 shared cells disagree). Two identical draws of a 60-cell board would
+   be expected to disagree on **~9–10 cells**. This workflow has spent its whole life adjudicating
+   ±1 and ±2 cell deltas; it now has a number saying those are noise, and that **only the direction of
+   discordant pairs is ever signal.**
+3. **A green-looking run can be 41/60 dead.** `rc=0`, an ntfy "OK", and a *fast* finish all read as
+   success. `n_trials_errored` must be read before any score, and a finish far under the reference
+   wall clock is a **failure signature, not good news**.
+4. The 33/60 board itself, as the highest clean board on record — with every caveat above attached.
+
+**Recommended frontmatter (FO sets it; ensigns do not edit frontmatter): `verdict: PASSED`** — per the
+stage definition's own wording, PASSED covers "ran cleanly to a real result", which this did.
+"Validated-NOT-promoted" is the qualifier, and it lives in this section rather than in the enum.
 
 ### Attempt 2 verdict (2026-07-28) — supersedes the attempt-1 verdict below for the hypothesis, which stands as the record of the invalid run
 
@@ -1207,3 +1402,42 @@ Recommendation (not executed): promote, record as 31/55 = 0.5636 single-draw, an
 gpt-5.5-on-today's-environment arm before believing anything causal about the model. Highest-value
 cheap follow-up is a **null-solver board** — if more than two of the 60 tasks are do-nothing-passable,
 every score this workflow has ever recorded needs a smaller denominator.
+
+## Stage Report: conclude
+
+- DONE: Set the verdict and account for it against the README's THREE written promote conditions, naming each pass/fail: (a) stratified Pass@1 clears the incumbent — PASSES, 0.550 vs 0.4333; (b) paired delta clears the tripwire / CI excludes a regression — FAILS, McNemar p=0.0654 two-sided, not significant at 0.05; (c) clean audit — FAILS, 5 coverage_missing. Two of three fail, so this is validated-NOT-promoted: leave razorback-registry.yaml untouched and @baseline at spd0038 26/60. State this as the workflow's own rule deciding it, not as a judgement call.
+  `## Verdict` → "FINAL — validated-NOT-promoted", three-condition table with the rule quoted from `### conclude`. Registry verified untouched: `git status --short -- razorback-registry.yaml` empty; no `rk baseline promote`, no `rk registry add`. Added the point that the rate-maximising reading (31/55 = 0.5636) does NOT rescue condition (b) either (p = 0.070) and cannot touch (c), since dropping the flagged cells IS the admission that the audit is unclean.
+- DONE: Bank the transferable knowledge in '## Behavioral analysis' and '## Verdict' — [K1 do-nothing-passable / K2 15.8% churn / K3 rc=0 hides 41 dead cells] … Append a one-line entry to _artifacts/self-learning.md.
+  `## Behavioral analysis` → "BANKED KNOWLEDGE (2026-07-29)" with K1/K2/K3 in full (mechanism, proof command, transferable rule, caveats), condensed into `## Verdict` → "What this entity is actually worth". K1 names the headwind on all six spd0038 stabilizers and the contamination of the 26/60 anchor; K2 gives the ~9–10-cells-of-60 noise expectation and the count-vs-direction rule; K3 gives the four operational rules. `_artifacts/self-learning.md` entry appended (file 63 → 64 lines), matching the existing per-entity format.
+- DONE: Write '## Follow-up Routing' as `escalate` and archive. … record U1 null-solver denominator and U2 unsplit confound WITHOUT filing hypotheses; record that @baseline is anchored to an environment that no longer exists. Do NOT file a follow-up hypothesis and do NOT reflexively propose more runs.
+  `## Follow-up Routing` → "FINAL ROUTING (2026-07-29): `escalate`", with U1 and U2 recorded unfiled, the cross-environment consequence stated plainly, and an explicit "Deliberately not done" list. Reasoning for `escalate` over `stop` given (not exhausted, not oracle-blocked — two costed questions remain, but experimentation is ended). No spd0043 filed, no runs proposed.
+- SKIPPED: `_artifacts/WORKFLOW-REFINE.md` finalization
+  Checked the automatic rule rather than assuming: that log is scoped to **structural changes in the SOLVER README** (its own header says so), and this entity changed the solver README not at all (AC-2, byte-identical, hash unchanged). No entry exists for spd0042 and none is owed, so the `conclude` automatic-finalization clause does not fire.
+- SKIPPED: registry promote; further runs (null-solver board, gpt-5.5 control arm, third attempt); GitHub issue; sentinel-guard code change
+  Captain directive 2026-07-29 ended experimentation; the rest are dispatch boundaries. K3's sentinel recommendation is recorded in the entity, not implemented.
+- NOTE: frontmatter not touched — `verdict:` / `completed:` are the FO's to set
+  Ensigns must not edit frontmatter. Recommended value stated in `## Verdict`: **`verdict: PASSED`**, per the stage definition's own wording ("ran cleanly to a real result"); "validated-NOT-promoted" is the qualifier and lives in the body, since the enum has no term for it.
+
+### Summary
+
+Closed on the evidence in hand, no new runs. The promote question was decided by the workflow's own
+three-condition rule rather than by argument: Pass@1 clears the incumbent (0.5500 vs 0.4333), but the
+paired delta does not clear the tripwire (McNemar exact p = 0.0654) and the audit is not clean (5
+`coverage_missing`). Two of three fail ⇒ **validated-NOT-promoted**, `@baseline` unchanged at spd0038
+26/60, registry untouched and verified so.
+
+The durable output is the three banked findings, all of which outlive the score. K1 is the important
+one: **two of sixty tasks pass by doing nothing and penalise doing the work** — proven by running each
+task's own verifier against its untouched project — which means every thoroughness lever this
+workflow has judged carried a hidden 2-cell headwind, and every score on record including the anchor
+is contaminated. K2 gives the program its first variance yardstick, ~15.8% same-config per-cell churn,
+which says the ±1/±2 cell deltas this loop has been adjudicating are inside noise and only the
+*direction* of discordant pairs is ever signal. K3 records that `rc=0` plus an ntfy "OK" plus a fast
+finish hid 41 dead cells.
+
+Two things I flagged rather than smoothed over. First, not promoting has a real cost the entity now
+records: `@baseline` stays anchored to a v0.22-plugin / old-codex-CLI environment that **no longer
+exists and cannot be reproduced**, so every future paired comparison against it is cross-environment.
+I stated the tension and did not resolve it by promoting anyway. Second, `WORKFLOW-REFINE.md` was
+checked rather than assumed — it is scoped to solver-README structural changes, and this entity's whole
+point is that the README did not change, so no entry is owed.
