@@ -723,11 +723,13 @@ comparable to spd0042's 33/60:
 
 | denominator | rate | what it means |
 |---|---|---|
-| **32/67 = 0.4776** | raw board | every executed cell, including 4 that cannot be scored locally |
-| **32/63 = 0.5079** | locally gradeable | drops chinook001 + the 3 record-only cells (structural zeros) |
-| **30/61 = 0.4918** | minus do-nothing-passable | also drops divvy001 + retail001 (K1: both reward inaction; both passed here) |
-| **32/68 = 0.4706** | as SUBMITTED (floor) | upstream's denominator, gitcoin001 included as an empty placeholder |
-| **up to 36/68 = 0.5294** | as submitted (ceiling) | if the leaderboard's real gold credits all 4 no-gold answers |
+| **32/67 = 0.4776** | raw board, razorback's grader | every executed cell, including 4 that cannot be scored locally |
+| **33/67 = 0.4925** | raw board, **the OFFICIAL grader** | AC-4 found razorback under-scores mrr002 — see AC-4 below. **This is the number to quote for a leaderboard claim.** |
+| **32/63 = 0.5079** | locally gradeable (razorback) | drops chinook001 + the 3 record-only cells (structural zeros) |
+| **33/61 = 0.5410** | locally gradeable (official) | the 61 cells upstream's grader can actually resolve gold for |
+| **30/61 = 0.4918** | minus do-nothing-passable | razorback's grader, also dropping divvy001 + retail001 (K1: both reward inaction; both passed here) |
+| **33/68 = 0.4853** | as SUBMITTED (floor) | upstream's denominator + upstream's grader; gitcoin001 an empty placeholder |
+| **up to 37/68 = 0.5441** | as submitted (ceiling) | if the leaderboard's real gold credits all 4 no-gold answers |
 | 32/65 = 0.4923 | minus the 1 infra abort | google_play002 did no work (below) |
 
 `rk audit --policy strict`: **66 clean / 0 tainted / 1 coverage_missing**, and the single coverage_missing
@@ -924,13 +926,20 @@ cells measure infrastructure, not the configuration. Excluding both:
 **58 work-doing shared cells: 32 → 31, net −1.** 3 gains, 4 regressions, 7 discordant,
 **McNemar exact two-sided p = 1.0000**.
 
+**And once the one known grader defect is corrected on the side where it is measurable, net = 0.** mrr002
+is a razorback false-negative (AC-4); the official grader scores it 1, so it is concordant with spd0042,
+not a regression. That leaves **32 → 32, net 0, 3 gains / 3 regressions, 6 discordant, p = 1.0000**.
+Stated with its own asymmetry: I can re-grade spd0043 with the official grader because this is the first
+board with captures, and I cannot do the same for spd0042, so the correction is applied to one side only
+and mildly favours spd0043. The conclusion does not move either way — −1 and 0 are the same null.
+
 | direction | cell | prior pass-rate (this program, excl. this board) | mechanism |
 |---|---|---|---|
 | GAIN | intercom001 | **0/26** | **first pass ever recorded** — see §4 |
 | GAIN | airport001 | 2/14 (14%) | churn on an unstable cell |
 | GAIN | quickbooks003 | 21/34 (62%) | churn on a coin-flip cell |
 | REGR | google_play001 | 48/52 (92%) | union-completeness miss — built 10 of 32 / 10 of 20 required rows |
-| REGR | mrr002 | 20/21 (95%) | value-semantics near-miss — 243/410 rows differ on ONE column |
+| ~~REGR~~ | mrr002 | 20/21 (95%) | **NOT A REGRESSION — razorback grader defect.** The official grader scores it **1**. See AC-4. |
 | REGR | superstore001 | 1/22 (5%) | reversion to its own norm; spd0042 was its only prior pass |
 | REGR | tickit002 | 4/24 (17%) | reversion to its own norm |
 | (excluded) | google_play002 | 30/31 (97%) | **INFRA — no worker ran**, 2 m 32 s |
@@ -991,16 +1000,20 @@ committed artifact:
   device). The solver built each report from a **single** source table instead of combining all of them.
   Distance to pass: 22 missing country rows and 10 missing device rows, zero schema error. This is the
   program's familiar completeness failure family, not a new one.
-- **mrr002** (prior 20/21). The closest possible miss: identical shape (410 × 12), identical column set,
-  and after sorting, **exactly one column disagrees — `change_category`, on 243 of 410 rows**. Every other
-  column matches. A single mis-specified CASE/label expression stands between this cell and a pass.
+- **mrr002** (prior 20/21) is **not a solver failure at all.** Its answer is correct — the official grader
+  scores it 1 and razorback scores it 0. AC-4 below has the root cause. *(My first pass on this cell
+  reported "243/410 rows differ on `change_category`". That was an artifact of my own `astype(str)`
+  comparison, not the cell: the real difference is a DATE-vs-TIMESTAMP column type on three other columns.
+  Corrected here because it changes the verdict, not just the wording.)*
 
-**Was each regression passing at `@baseline`?** google_play001 and mrr002 yes (and at 92% / 95% lifetime).
-superstore001 and tickit002 no — `@baseline` (spd0038) failed both.
+**Was each regression passing at `@baseline`?** google_play001 yes (92% lifetime). superstore001 and
+tickit002 no — `@baseline` (spd0038) failed both. mrr002 is not a regression.
 
-Statistically, 2 breaks among the 18 cells with ≥85% prior reliability against **0.84 expected** is
-ordinary (Poisson, P(X≥2) ≈ 0.21). It was worth checking precisely because the raw list of 5 regressions
-*looked* like it contained three ≥90% cells — and one of those three turned out to be infra.
+Statistically, **1** real break among the 18 cells with ≥85% prior reliability against **0.84 expected** is
+exactly ordinary. This is worth spelling out because the raw list of 5 regressions *looked* alarming — it
+appeared to contain three ≥90%-reliability cells. One turned out to be an infra abort, one a grader
+false-negative, and only google_play001 is a genuine break of a reliable passer. Three of the five
+"regressions" were not regressions.
 
 ### 4. intercom001 — a genuine first pass, but NOT the model swap
 
@@ -1063,13 +1076,21 @@ convenience panel.
   `n_errored` catches it) rather than writing reward 0.0, or add a post-run check that flags any cell with
   `captured == 0` before a score is quoted. `rk audit --policy strict` already catches it as
   `coverage_missing` — the gap is that nobody is required to read the audit before the score.
-- **Do not chase google_play001 or mrr002 with a README lever.** Both are single-draw movements on cells
-  this configuration passes ~92–95% of the time; the expected value of a lever aimed at them is noise.
-  mrr002's `change_category` and google_play's multi-source union are, however, well-specified enough to
-  be worth *canaries* if a future lever touches completeness or CASE-labelling.
+- **Fix the DATE/TIMESTAMP defect in `duckdb_match._normalize` — this is the highest-value follow-up on
+  the board.** It is a few lines in the same function that already normalizes `Decimal → float`, it is
+  proven against a live case, and until it lands every score this program produces is a lower bound that
+  under-counts date-grained cells specifically. Two things to do alongside it: extend the differential fuzz
+  to generate `DATE`-vs-`TIMESTAMP` column pairs (the 1500-case fuzz missed this because it never varied
+  the temporal type *across* the pair), and re-check whether any historically-stuck date-grained cell was
+  ever a false negative. Do NOT bundle this with a lever experiment — it moves the measuring instrument.
+- **Do not chase google_play001 with a README lever.** It is a single-draw movement on a cell this
+  configuration passes ~92% of the time; the expected value of a lever aimed at it is noise. Its
+  multi-source union requirement is, however, well-specified enough to be worth a *canary* if a future
+  lever touches completeness.
 - **Recommendation on promotion: recommend, do not promote — the captain's call.** This board is not
   comparable to `@baseline` (26/60, different model and a plugin/CLI environment that no longer exists),
-  and against its true partner spd0042 it is a null result (net −1, p = 1.0000). What it *is*: the
+  and against its true partner spd0042 it is a null result (net −1 on razorback's grader, net 0 once the
+  known grader defect is corrected; p = 1.0000 either way). What it *is*: the
   broadest clean board on record (67 cells, 0 errored, 0 tainted) and the first complete, validated
   68-entry submission bundle. If the goal is a leaderboard number, ship it. If the goal is a moved
   `@baseline`, this board does not supply the evidence, and pooling spd0042 + spd0043 (2 draws of the same
@@ -1079,7 +1100,113 @@ convenience panel.
   exposure, disclosed and accepted) and gitcoin001's missing source data. Neither belongs inside a
   submission run.
 
-### 8. Full per-cell ledger, all 68 official instances
+### 8. AC-4 CLOSED on the real submission artifact — and it found a divergence
+
+Ran the **UPSTREAM** `evaluation_suite/eval_utils.duckdb_match` (upstream's own unmodified bytes, with only
+`google.cloud.bigquery` stubbed for an unrelated module-level import) over the actual submitted bundle,
+and reconciled cell-by-cell against razorback's recorded rewards.
+
+```
+==== CROSS-CHECK SUMMARY ====
+entries              : 68
+upstream-graded      : 61      official PASS 33 / FAIL 28
+not gradeable locally: 7
+   - airbnb002, biketheft001, google_ads001, gitcoin001   (no local gold at all)
+   - social_media001, xero_new001, xero_new002            (gold filename mismatch — see below)
+DISAGREEMENTS  : 1
+   - mrr002: official=1 razorback=0
+```
+
+**The 1500-case fuzz and the 5-cell live panel were both 0-disagreement. At 61-cell scale, one divergence
+appeared — and it goes in the direction that matters: razorback FAILS an answer the leaderboard PASSES.**
+
+#### Root cause: razorback's port loses pandas' DATE/TIMESTAMP unification
+
+Reproduced outside the container, on byte-identical gold (`sha256 2f57f2d2…` for both the upstream gold and
+the view's copy), so this is the comparator and nothing else:
+
+```
+razorback compare_duckdb(bundle mrr002, upstream gold) -> False
+upstream  duckdb_match (bundle mrr002, upstream gold) -> 1
+```
+
+Instrumenting razorback's own `_fetch_columns` + `_vectors_match` names the exact failure — three gold
+column-vectors find no partner in the predicted table:
+
+```
+*** gold col 0 'date_month':         gold types {date}  pred types {datetime}   410/410 element diffs
+*** gold col 4 'first_active_month':  gold types {date}  pred types {datetime}   410/410 element diffs
+*** gold col 5 'last_active_month':   gold types {date}  pred types {datetime}   410/410 element diffs
+      first diff: datetime.date(2018, 1, 1)  vs  datetime.datetime(2018, 1, 1, 0, 0)
+```
+
+Gold stores those columns as DuckDB `DATE`; the solver's table stores them as `TIMESTAMP`. The two paths
+then diverge:
+
+- **Upstream** reads via `fetchdf()`. pandas coerces `DATE` *and* `TIMESTAMP` to the same `datetime64`
+  dtype, so the values compare equal → match → 1.
+- **razorback** reads via `fetchall()` (deliberately — no pandas in the verifier image, per the module's
+  own ABOUTME). `fetchall()` preserves the distinction: `datetime.date` for `DATE`,
+  `datetime.datetime` for `TIMESTAMP`. `_vectors_match` reaches its `elif a != b` branch and
+  `date(2018,1,1) != datetime(2018,1,1,0,0)` in Python → no match → 0.
+
+`duckdb_match.py` already anticipates exactly this class of bug for one type: `_normalize()` coerces
+`Decimal → float` precisely because "Decimal is `numbers.Number` yet NOT `numbers.Real`, so it would skip
+the tolerance branch and a within-1e-2 DECIMAL match would wrongly score 0." The date case is the same
+mistake with a different type, and the fix belongs in the same function — normalize `datetime.date` to
+`datetime.datetime` at midnight (or both to a common ordinal) so the pandas-equivalent unification is
+restored. **I did not make that change**: it is razorback grading-path code, and altering the grader while
+a submission bundle is on the table is precisely the wrong moment. Recommended as a follow-up.
+
+**Blast radius on this board: exactly 1 cell.** Scanned all 61 gradeable cells for a `DATE`↔`TIMESTAMP`
+type mismatch on any graded column — only `mrr002.mrr` has one. That agrees with the crosscheck finding
+exactly one disagreement, from two independent directions (schema scan and differential grading).
+
+**Why this matters beyond one cell.** DuckDB's `date_trunc('month', …)` returns `TIMESTAMP`, which is the
+natural way to build exactly the monthly-rollup tables this benchmark is full of. So the defect is not
+exotic — it is one plausible SQL choice away on any date-grained task, and it silently converts a correct
+answer into a 0. Every score this program has recorded is therefore a **lower bound** on the leaderboard's
+grader, with the bias concentrated in date-grained aggregation cells rather than spread evenly. mrr002's
+20/21 lifetime says the solver usually emits `DATE` and only tripped the defect on this draw — which is
+also why 20 prior draws never exposed it.
+
+#### Second AC-4 finding: upstream cannot resolve its own gold for 3 instances
+
+`social_media001`, `xero_new001`, `xero_new002` are reported "not gradeable" not because gold is missing
+but because **upstream's eval line names a filename its own gold directory does not contain**:
+
+| instance | eval line says | actually on disk | razorback's view grades against |
+|---|---|---|---|
+| social_media001 | `social_media_reporting__rollup_report.duckdb` | `social_media.duckdb` | `social_media.duckdb` |
+| xero_new001 | `xero.duckdb` | `xero_new.duckdb` | `xero_new.duckdb` |
+| xero_new002 | `xero.duckdb` | `xero_new.duckdb` | `xero_new.duckdb` |
+
+razorback's packager reconciles the name to the one `.duckdb` actually present and rewrites the view's
+eval line; upstream's `evaluate.py` joins the raw eval-line name and would find nothing. It does not crash
+— `duckdb_match` is wrapped in a bare `try/except: score = 0` — so those three would score **0** under the
+grader as shipped. **The two graders are running different tests on these 3 cells.** All three scored 0
+locally anyway, so no verdict differs today; the exposure is latent — if a future draw gets one right,
+razorback would say 1 and upstream-as-shipped would say 0. (The public leaderboard presumably holds a
+corrected gold set; that is an assumption, not something this evidence establishes.)
+
+`chinook001` is the third shape of the same theme: its gold file exists but contains none of its three
+required answer tables, so upstream raises `CatalogException` and its `try/except` scores 0. Both graders
+say 0, so it is recorded as an agreement — but it is an agreement on "unscoreable", not on "wrong".
+
+**AC-4 verdict: the comparator port is faithful in its column-containment semantics — the structure,
+the 1e-2 tolerance, the extra-pred-column tolerance and the missing-table fail-closed all hold across 61
+live cells — with ONE identified defect (DATE/TIMESTAMP unification) and one gold-resolution divergence
+that is upstream's own data bug rather than a comparator difference.** That is a pass with two named,
+bounded exceptions, not a clean pass, and the honest headline is that we grade ourselves slightly *harder*
+than the leaderboard does.
+
+Operational note, for whoever runs this next: the reconciliation took **~17 minutes of single-core CPU**
+(09:10:0x → 09:27:07 UTC) at
+~1.1 GB RSS on 61 cells. Upstream's comparator is `O(gold_cols × pred_cols)` vector comparisons with a
+Python `sorted()` per comparison, so cost scales with table area, not cell count. Do not run it in a
+foreground call.
+
+### 9. Full per-cell ledger, all 68 official instances
 
 `spd0043` = this board, `spd0042` = the byte-identical prior configuration, `prior pass-rate` = every
 recorded draw in this program excluding this board and excluding spd0042's auth-poisoned attempt 1,
@@ -1120,7 +1247,7 @@ recorded draw in this program excluding this board and excluding spd0042's auth-
 | maturity001 | 1 | 1 | 14/15 | = | 6.5 |  |
 | movie_recomm001 | 0 | 0 | 0/27 | = | 47.0 |  |
 | mrr001 | 1 | 1 | 71/81 | = | 2.5 |  |
-| mrr002 | 0 | 1 | 20/21 | **REGR** | 1.8 |  |
+| mrr002 | 0 | 1 | 20/21 | ~~REGR~~ | 1.8 | **official grader says 1** — razorback DATE/TIMESTAMP defect, AC-4 §8 |
 | nba001 | 0 | 0 | 0/24 | = | 116.8 |  |
 | netflix001 | 0 | 0 | 0/25 | = | 5.0 |  |
 | pendo001 | 0 | 0 | 0/22 | = | 35.8 |  |
@@ -1141,7 +1268,7 @@ recorded draw in this program excluding this board and excluding spd0042's auth-
 | shopify001 | 0 | — | 0/1 | new | 20.0 |  |
 | shopify002 | 1 | — | 1/1 | new | 20.8 |  |
 | shopify_holistic_reporting001 | 0 | 0 | 0/15 | = | 14.8 |  |
-| social_media001 | 0 | 0 | 0/24 | = | 33.3 |  |
+| social_media001 | 0 | 0 | 0/24 | = | 33.3 | upstream gold filename mismatch — official grader cannot resolve gold (AC-4 §8) |
 | superstore001 | 0 | 1 | 1/22 | **REGR** | 6.8 |  |
 | synthea001 | 0 | 0 | 0/22 | = | 27.8 |  |
 | tickit001 | 1 | 1 | 24/24 | = | 64.8 |  |
@@ -1152,8 +1279,8 @@ recorded draw in this program excluding this board and excluding spd0042's auth-
 | workday001 | 1 | 1 | 15/16 | = | 27.5 |  |
 | workday002 | 1 | 1 | 16/16 | = | 27.5 |  |
 | xero001 | 0 | 0 | 0/33 | = | 8.0 |  |
-| xero_new001 | 0 | 0 | 0/26 | = | 12.3 |  |
-| xero_new002 | 0 | 0 | 0/21 | = | 8.3 |  |
+| xero_new001 | 0 | 0 | 0/26 | = | 12.3 | upstream gold filename mismatch — official grader cannot resolve gold (AC-4 §8) |
+| xero_new002 | 0 | 0 | 0/21 | = | 8.3 | upstream gold filename mismatch — official grader cannot resolve gold (AC-4 §8) |
 | zuora001 | 0 | 0 | 0/18 | = | 13.8 |  |
 
 **What the `0/N` column says about the ceiling.** **28 of the 68 instances have never passed** in this
@@ -1497,3 +1624,74 @@ shipping as a disclosed placeholder), and launched the board detached. The one t
 reader's attention: razorback is running on an unpushed feature branch that nothing in the frozen spec
 records, which is why its branch and SHA are now written into AC-5 explicitly — the board is not
 reproducible from the spec alone.
+
+## Stage Report: analyze
+
+- DONE: Export the FULL submission bundle — this is the deliverable. All 67 executed instances PLUS
+  gitcoin001 as a disclosed placeholder = 68 entries in results_metadata.jsonl … Run the validator and
+  paste its output. State the bundle's on-disk size and path plainly
+  `/home/kent/autobench/spider2-dbt/runs/_submissions/spd0043-official-68/` — 68 entries (67 exported + 1
+  placeholder, 0 not exported), 4.35 GiB logical / ~0 incremental (hardlinked). Validator output pasted in
+  `## Submission bundle`: 11/11 PASS, exit 0. What would make each check fail is documented at its source
+  and the suite was mutation-tested at `propose`; the two that could plausibly have fired here are 4b
+  (a dangling artifact path — would fire if any capture had not landed) and 5d (entry count ≠ 68 — would
+  fire if the placeholder or any cell were dropped). Both passed against 68 real files.
+- DONE: Close AC-4 on the real submission artifact: run the OFFICIAL evaluation_suite grader over the
+  bundle for the 63 locally-gradeable instances and reconcile its verdict cell-by-cell against razorback's
+  own rewards. Name EVERY disagreement with a cause.
+  **`## Behavioral analysis` §8. 61 cells graded (not 63 — see below), 33 official PASS, and exactly ONE
+  disagreement: mrr002, official=1 razorback=0.** Root cause identified and reproduced outside the
+  container on byte-identical gold: razorback's `fetchall()`-based port preserves `datetime.date` vs
+  `datetime.datetime` where upstream's `fetchdf()` coerces both to `datetime64`, so a gold `DATE` column
+  against a predicted `TIMESTAMP` column fails `_vectors_match`'s `a != b` branch. The defect is the exact
+  analogue of the `Decimal → float` case `_normalize()` already handles. Blast radius bounded at 1 cell by
+  two independent methods (differential grading, and a schema scan of all 61 gradeable cells for
+  DATE↔TIMESTAMP mismatches). Second finding: the count is 61, not 63, because upstream's own eval line
+  names a gold filename absent from its own gold dir for social_media001 / xero_new001 / xero_new002 —
+  razorback name-reconciles, upstream-as-shipped scores 0, so the two graders run different tests on those
+  3. Razorback NOT modified (grading-path code, and mid-submission is the wrong moment); filed as the
+  top-priority follow-up instead.
+- DONE: Report the honest denominators and the paired read … Then the paired comparison against spd0042 on
+  the 60 shared cells … judged against the 15.8% same-config churn yardstick. Separately: verify whether
+  intercom001 is a genuine first pass
+  All six denominators tabulated in `## Run result`, now split by grader (razorback 32/67 vs **official
+  33/67**, submitted range [33/68, 37/68]). Paired read in §1: the FO's raw figures reproduced exactly
+  (33→31, net −2, 3 gains / 5 regressions), then corrected twice — excluding the one no-work cell on each
+  board gives 32→31 net −1, and correcting mrr002's grader false-negative gives **32→32, net 0, McNemar
+  exact two-sided p = 1.0000** against a K2 expectation of ~9.2 discordant. **intercom001 confirmed 0/26
+  before this board — the first pass ever recorded**, which falsifies spd0039's never-pass label; but the
+  dispatch's "model swap reached it" framing does NOT survive, because gpt-5.6-sol has scored 0, 0, 1 on
+  that cell under the identical configuration (§4).
+- DONE: (stage def) `rk score` + `rk audit --policy strict`
+  `stratified_pass_at_1 0.47761194`, `stratified_n_errored 0`, Wilson CI [0.3625, 0.5951]. Audit: 66 clean
+  / 0 tainted / **1 coverage_missing = google_play002**, which independently corroborated the infra abort.
+- DONE: (stage def) behavioral read per moved cell, with confound attribution
+  §2–§5. Attribution is `same-configuration variance` for every moved cell — there was no README lever this
+  cycle (hash `sha256:607dec29…` verified identical across spd0038/spd0042/spd0043) and spd0042 already
+  carried the model swap, so crediting any flip to a lever would be inventing a cause. Mechanisms read off
+  committed artifacts: google_play001 built each report from ONE source table where gold unions three
+  (10+12+10 = gold's exact 32 rows); intercom001 reused the shipped `intercom__*` model chain.
+- SKIPPED: `rk runs diff @baseline` as the headline instrument
+  `@baseline` resolves to `spd0038-compose-6-stabilizers-full` — gpt-5.5 on a plugin/CLI environment that
+  no longer exists, and a 60-cell task set. Its absolute score is reported for context but the paired
+  instrument is spd0042 (byte-identical configuration), which is the comparison that carries information.
+  Stated rather than silently substituted.
+- SKIPPED: promotion / registry change
+  Out of scope by dispatch (`Do NOT modify razorback-registry.yaml`); recommendation recorded in §7.
+
+### Summary
+
+Exported and validated the deliverable — a complete 68-entry submission bundle, 11/11 validator checks,
+4.35 GiB — then spent the analysis effort on the three things that change what the numbers mean. First,
+**AC-4 found a real grader divergence**: razorback fails mrr002 where the official grader passes it,
+because its no-pandas port preserves a `DATE`/`TIMESTAMP` distinction pandas erases; the board is
+**33/67 by the leaderboard's own grader**, and every score this program has recorded is a lower bound
+biased against date-grained cells. Second, **one cell (google_play002) scored 0.0 without running at all** —
+a spacedock version-gate abort, caught by the conjunction of `captured: 0`, `No worker ran`, a 2 m 32 s wall
+clock, and the run's only `coverage_missing`; three of the five apparent regressions were therefore not
+regressions, and the corrected paired read against spd0042 is **net 0, p = 1.0000**, which means this board
+does NOT show a regression from the capture patch or the record-only change. Third, **intercom001 passed
+for the first time in 27 recorded draws**, falsifying spd0039's never-pass label — though not, as suggested,
+via the model swap, since the same configuration had already failed it twice. The durable structural fact
+is the one the ledger exposes: 28 of 68 instances have never passed, 22 of them with ≥15 attempts, and that
+block — not the churn — is where the score is stuck.
