@@ -1080,9 +1080,12 @@ convenience panel.
   the board.** It is a few lines in the same function that already normalizes `Decimal → float`, it is
   proven against a live case, and until it lands every score this program produces is a lower bound that
   under-counts date-grained cells specifically. Two things to do alongside it: extend the differential fuzz
-  to generate `DATE`-vs-`TIMESTAMP` column pairs (the 1500-case fuzz missed this because it never varied
-  the temporal type *across* the pair), and re-check whether any historically-stuck date-grained cell was
-  ever a false negative. Do NOT bundle this with a lever experiment — it moves the measuring instrument.
+  to generate `DATE`-vs-`TIMESTAMP` column pairs, and re-check whether any historically-stuck date-grained
+  cell was ever a false negative. **No number of fuzz cases could have caught this**, and the reason is
+  structural rather than bad luck: `_fuzz_case` sets `pred_types = list(types_)`, so the predicted table
+  always declares gold's exact types, and `TIMESTAMP` is not in `_SQL_TYPES` at all. A differential fuzz
+  that never varies the type *across* the pair cannot find a type-coercion divergence — which is worth
+  remembering as a general lesson about what a passing fuzz does and does not license. Do NOT bundle this with a lever experiment — it moves the measuring instrument.
 - **Do not chase google_play001 with a README lever.** It is a single-draw movement on a cell this
   configuration passes ~92% of the time; the expected value of a lever aimed at it is noise. Its
   multi-source union requirement is, however, well-specified enough to be worth a *canary* if a future
