@@ -713,6 +713,116 @@ reconciliation, and do not run it inside a 120 s foreground call.
 
 ## Run result
 
+**IN FLIGHT — launched 2026-07-30 05:06:26 +0800. No score in this section yet; `audit`/`score` are
+deliberately NOT run by this dispatch.**
+
+| | |
+|---|---|
+| handle | `runs/.rk-handles/spd0043-full-20260730-050626/` |
+| job dir | `runs/spd0043-official-board-67/4de20bed438d4d51` |
+| PID | `881538` (worker; `pid` file is authoritative) |
+| spec | `specs/spd0043-official-board-67.frozen.yaml` — **67** tasks, concurrency 4, trials 1 |
+| ntfy | `adebench-rk-381c976fe07465bf` |
+| ETA | **~3.5–4 h** → ~08:40–09:10 +0800. spd0042 ran 60 cells in 3h16m at the same concurrency; 67 cells scales to ~3.65 h, plus predicted-DuckDB capture I/O. |
+
+Launch-time liveness confirmed (not just "rc=0 and a handle"): at T+3.5 min the worker PID was alive, the
+job dir held `lock.json` + 4 cell dirs, 4 solver containers were `Up`, and `job.log` showed the composed
+solver prompt reaching the agent. `spider2-dbt-airbnb002__tDnaLZG` — one of the three new record-only
+cells — is in that first batch of four and its container came up, so the new packaging path is exercised
+in production from the first minute.
+
+**Failure signature to check before ANY score** (spd0042 attempt 1 lost 41/60 cells to an invisible
+`refresh_token_reused` race): read `n_trials_errored` in `result.json` first. `stratified_pass_at_1`
+censors errored cells out of its denominator, so a high-looking rate on a censored board is not a score.
+A finish materially under ~3 h is a FAILURE signature, not speed.
+
+### AC-5 — configuration captured AT LAUNCH
+
+| Knob | Value at launch | How captured |
+|---|---|---|
+| spacedock plugin — `git describe --tags` | `v0.27.0-pre0` | `git -C spacedock describe --tags` |
+| spacedock plugin — commit | `ca136f83a579fd44c223321ae7f8fe7785c685f7` | `git -C spacedock rev-parse HEAD` |
+| spacedock plugin — worktree | **clean** (`status --short` empty), detached HEAD (no branch) | `git -C spacedock status --short` |
+| **razorback — branch** | `spd0043-record-only-no-local-gold` | `git -C razorback branch --show-current` |
+| **razorback — commit** | `027bb95` ("prune empty gold/ dirs on the record-only path too"), atop `26a0696` ("opt-in record-only verifier for instances with NO local gold"), branched from `9232cbb` | `git -C razorback log --oneline` |
+| razorback — worktree | one stray uncommitted `M uv.lock` (4 deleted lines), deliberately NOT committed and NOT pushed; no effect on the grading path | `git -C razorback status --short` |
+| `codex --version` | `codex-cli 0.145.0` | — |
+| `codex login status` | `Logged in using ChatGPT` — **re-checked at the launch instant**, in the same command as the launch | — |
+| docker | server `29.5.2`, zero running containers pre-launch (no stale cell) | `docker info` / `docker ps` |
+| disk free | **43 GB** on `/` (242 G, 83% used) before launch; measured record-only captures ran 2.9–67.6 MB, so 67 cells is comfortably inside budget | `df -h` |
+| in-flight runs | none — every prior `.rk-handles/*/` carries a terminal `done` sentinel | handle sweep |
+
+**Why razorback's SHA is recorded here and nowhere else.** The frozen spec pins the solver README, the
+image digest, the agent CLI hash and `harness_git_sha` (the *autobench* repo), but nothing in it records
+which razorback revision graded the board. For this board razorback is a genuine independent variable —
+it carries the record-only verifier that makes 3 of the 67 cells exist at all — so the branch and commit
+belong in the provenance record explicitly.
+
+`harness_git_sha` frozen into the spec is `ccda85a73a2cb0d5d8ca0e3e3a92113962054020` (the recovery
+commit). Repo HEAD then advanced by one commit — the spec-pair commit `6bbed4d` — which is expected:
+`harness_git_sha` records HEAD at freeze time, and the spec cannot contain the hash of the commit that
+adds it.
+
+### AC-1 — two-way diff at 67 tasks (re-freeze)
+
+```
+official (examples/spider2-dbt.jsonl) : 68  (unique 68)
+frozen spec benchmark.tasks           : 67  (unique 67)
+
+OFFICIAL \ SPEC  (in the official 68, absent from the spec):
+  - gitcoin001
+
+SPEC \ OFFICIAL  (in the spec, not in the official 68):
+  (empty)
+
+danish_democracy_data001 in spec: False  (MUST be False)
+chinook001 in spec:   True
+airbnb002 in spec:    True
+biketheft001 in spec: True
+google_ads001 in spec: True
+```
+
+`gitcoin001` is now the **only** `OFFICIAL \ SPEC` entry — it ships in the bundle as a disclosed
+`--placeholder-for` entry (no source DuckDB exists upstream), which holds the reported denominator at
+upstream's 68 instead of quietly shrinking it. The three former no-gold absences are in. The spec's 67
+task slugs match the 67 materialized views under `_views/` exactly — set difference empty in both
+directions, so no cell can error on a missing view.
+
+Configuration held against the anchor — whole-spec diff vs `spd0042-rebaseline-gpt56sol-xhigh.frozen.yaml`
+with both task lists stripped:
+
+```
+2c2
+< experiment: spd0042-rebaseline-gpt56sol-xhigh
+---
+> experiment: spd0043-official-board-67
+48c48
+<   harness_git_sha: db6c2e68223a21982c269f9f1f5723c784ea50d0
+---
+>   harness_git_sha: ccda85a73a2cb0d5d8ca0e3e3a92113962054020
+```
+
+Nothing else moved: `solver_workflow: solver_workflows/spd0038-compose-6-stabilizers` with
+`solver_workflow_content_hash: sha256:607dec2920bce80739fe7fe40ab9627074ef29cff74e364c913fba485184011f`
+(the @baseline README, byte-identical), `sealed_hash: 65b01e4bb11ff1c723b6d2908235ad1d` (identical to
+spd0042), `model: gpt-5.6-sol`, `reasoning_effort: xhigh`, `trials: 1`, `concurrency.trials: 4`,
+`max_turns: 200`, `override_timeout_sec: 2400.0`.
+
+Selection confirmed foreground and free before launch:
+
+```
+$ rk run specs/spd0043-official-board-67.frozen.yaml --runs-dir runs --explain
+- Experiment: `spd0043-official-board-67`
+- Job name:   `4de20bed438d4d51`
+- Tasks: `67`        - Concurrency: `4`
+- Spec kind: `spacedock_solver`   - Runtime: `codex`   - Model: `gpt-5.6-sol`
+```
+
+The empty job-dir tree `runs/spd0043-official-board-67/` that `--explain` left behind was removed before
+launch, so no stale `lock.json` could sit on the path. The real run then re-created the *same* job name
+`4de20bed438d4d51` (it is the frozen spec's content hash) — which is why deleting it mattered rather than
+being cosmetic.
+
 ## Behavioral analysis
 
 ## Failure Review
@@ -974,3 +1084,71 @@ only **3 are at-risk passers** (activity001, hubspot001, jira001) — `retail001
 do-nothing-passable and three others are chronic zeros. Worst case ~-3 cells on a 67-cell board. The
 honest fix is a packaging-layer vendoring of `dbt_activity_schema`, filed as a separate entity because it
 changes the fixture and must not ride inside a submission run.
+
+## Stage Report: full
+
+This dispatch replaced a stalled `full`-stage worker. Phases 1 (razorback record-only mode) and 2 (3-cell
+validation) were **inherited and verified, not re-done**; phase 3 (re-freeze, launch, provenance) is mine.
+
+- DONE: RECOVER the stalled worker's uncommitted work product first: review and commit
+  spider2-dbt/tools/add_predicted_db_capture.py, spider2-dbt/tools/package_spider2_dbt_views.py, and
+  specs/spd0043-recordonly-validate.{yaml,frozen.yaml}, plus the razorback submodule pointer for branch
+  spd0043-record-only-no-local-gold
+  Commit `ccda85a`, path-scoped. Reviewed each diff before committing: `--allow-missing-gold` is a
+  genuine opt-in (`gold_db` becomes `Path | None`; both the source-restore and the `shutil.copy2` into the
+  gold slot are guarded, so **nothing is fabricated** where gold would be), and the capture script's new
+  branch only *skips* views that already capture. Deliberately NOT swept in: razorback's stray `M uv.lock`,
+  the `spacedock` gitlink drift, and `specs/spd0013-rebaseline-v022.*` (another entity's untracked files).
+  razorback was not pushed and no PR was opened.
+- DONE (inherited-and-verified) PHASE 1: the opt-in default-unchanged test exists and passes
+  `uv run pytest tests/unit/test_spider2_dbt_harbor_view.py -q` → **18 passed**. The load-bearing one is
+  `test_missing_gold_db_still_raises_when_record_only_not_requested`: it asserts a gold-less task still
+  raises `FileNotFoundError` mentioning `fail-closed` when the opt-in is absent. It fails if record-only
+  ever becomes the default — i.e. it is exactly the spd0010 fail-closed guarantee, held. Companions:
+  `test_record_only_is_inert_when_gold_is_present` fails if enabling the flag degrades a gradeable task to
+  unscored (the "zero the whole board while looking successful" regression), and
+  `test_missing_eval_spec_raises_even_with_record_only` fails if the opt-in is widened to swallow a missing
+  `spider2_eval.jsonl` (the answer contract).
+- DONE (inherited-and-verified) PHASE 2: the 3-cell hard gate
+  `runs/spd0043-recordonly-validate/6bcbfc00072d2a60/result.json` read directly: `n_total_trials 3`,
+  `n_completed_trials 3`, **`n_errored_trials 0`**, all three rewards `0.0`; and three
+  `*/verifier/predicted.duckdb` files present on the host (airbnb002, biketheft001, google_ads001). That is
+  the designed behaviour, so the HARD STOP did not fire.
+- DONE: Re-freeze the submission spec to 67 tasks — the existing 64 plus airbnb002, biketheft001,
+  google_ads001. Paste the AC-1 two-way diff: gitcoin001 must be the ONLY remaining OFFICIAL\SPEC entry and
+  danish_democracy_data001 must still be absent. Confirm the selection with `rk run --explain` ($0) and
+  remove the empty job dir it leaves
+  `specs/spd0043-official-board-67.{yaml,frozen.yaml}`, commit `6bbed4d`. AC-1 diff pasted in
+  `## Run result`: `OFFICIAL \ SPEC = {gitcoin001}` only, `SPEC \ OFFICIAL` empty,
+  `danish_democracy_data001` False. `--explain` reported `Tasks: 67`; its empty job-dir tree was removed
+  (the real run re-created the same job name `4de20bed438d4d51`, so that removal was load-bearing, not
+  cosmetic) and no stale `lock.json` was on the path.
+- DONE: Launch the 67-cell board DETACHED via drivers/rk-run-detached.sh and report handle path, job dir,
+  PID and ETA without blocking
+  Handle `runs/.rk-handles/spd0043-full-20260730-050626/`, job dir
+  `runs/spd0043-official-board-67/4de20bed438d4d51`, PID `881538`, ETA ~3.5–4 h (~08:40–09:10 +0800).
+  Liveness verified at T+3.5 min rather than trusting rc=0: worker PID alive, `lock.json` + 4 cell dirs
+  written, 4 solver containers `Up`, composed prompt visible in `job.log` — and `airbnb002` (a record-only
+  cell) is in the first batch, so the new path is exercised from minute one.
+- DONE: Capture AC-5 at launch into '## Run result': spacedock plugin describe/rev-parse/status --short,
+  codex --version, codex login status, AND the razorback branch + commit SHA
+  All eight captured in the AC-5 table. Plugin `v0.27.0-pre0` / `ca136f83a` / clean+detached (unmoved);
+  razorback `spd0043-record-only-no-local-gold` @ `027bb95`; `codex-cli 0.145.0`; `codex login status` =
+  `Logged in using ChatGPT`, re-checked **in the same shell command as the launch** per the spd0042
+  attempt-1 `refresh_token_reused` lesson. Also recorded: docker 29.5.2, zero pre-launch containers, 43 GB
+  free, and no other in-flight handle.
+- SKIPPED: run audit/score
+  Explicitly out of scope — the board will still be in flight for hours. The next stage must read
+  `n_trials_errored` before any score, because `stratified_pass_at_1` censors errored cells out of its
+  denominator.
+
+### Summary
+
+Recovered the dead worker's work product into two path-scoped commits (`ccda85a` recovery, `6bbed4d` the
+67-task spec pair), independently verified both inherited phases rather than taking them on report — the
+fail-closed default test passes and the 3-cell gate really is 3/3 with 0 errored and three captured
+predicted DBs — then re-froze to 67, confirmed AC-1 is now a single documented absence (`gitcoin001`,
+shipping as a disclosed placeholder), and launched the board detached. The one thing worth the next
+reader's attention: razorback is running on an unpushed feature branch that nothing in the frozen spec
+records, which is why its branch and SHA are now written into AC-5 explicitly — the board is not
+reproducible from the spec alone.
