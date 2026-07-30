@@ -933,6 +933,19 @@ Stated with its own asymmetry: I can re-grade spd0043 with the official grader b
 board with captures, and I cannot do the same for spd0042, so the correction is applied to one side only
 and mildly favours spd0043. The conclusion does not move either way — −1 and 0 are the same null.
 
+**Final form, recomputed at `conclude` after the abort signature was corrected (§5).** spd0042 has **5**
+no-dispatch cells, not 1. Excluding every no-dispatch cell on either board leaves **54 work-doing shared
+cells**, and on those:
+
+**spd0042 30 → spd0043 30. Net 0. 3 gains (airport001, intercom001, quickbooks003), 3 regressions
+(google_play001, superstore001, tickit002), 6 discordant, McNemar exact two-sided p = 1.0000.**
+
+Two identical configurations landing dead level, with a discordant count (6) inside K2's expectation
+(~8.5 on 54 cells), is the cleanest possible reading of "no change". It also retro-corrects the record:
+**spd0042's headline 33/60 = 0.550 contained two passes from cells whose solver never ran** (divvy001,
+retail001 — aborted *and* do-nothing-passable), so its solver-attributable figure on work-doing cells is
+**30/54 = 0.5556**.
+
 | direction | cell | prior pass-rate (this program, excl. this board) | mechanism |
 |---|---|---|---|
 | GAIN | intercom001 | **0/26** | **first pass ever recorded** — see §4 |
@@ -1051,13 +1064,34 @@ property of the cell.** One draw does not make it a target; it makes it a candid
 `captured: 0` and `dispatches: []`, and it is the run's only `coverage_missing` in `rk audit --policy
 strict`. Three independent signals agreeing.
 
-**A caution for the next reader of this repo, because I nearly got this wrong.** The string
-`spacedock: command not found` appears in **61 of 67** cell logs — the solver probes for the bare binary,
-the probe fails, and it then proceeds normally via `SPACEDOCK_BIN` / the plugin dir. Grepping for that
-string as an abort signature would have condemned 61 healthy cells including most of the passes. The
-discriminating signature is the conjunction: **`captured == 0` in the trace manifest AND `No worker ran`
-in the log AND a wall clock far below the cell-time floor.** By that test there is exactly one abort on
-this board, and one (`scd001`) on spd0042.
+**A caution for the next reader of this repo, because I nearly got this wrong twice — in both
+directions.**
+
+*Too broad:* the string `spacedock: command not found` appears in **61 of 67** cell logs — the solver probes
+for the bare binary, the probe fails, and it then proceeds normally via `SPACEDOCK_BIN` / the plugin dir.
+Grepping for that string as an abort signature would have condemned 61 healthy cells including most of the
+passes.
+
+*Too narrow:* I first proposed the conjunction `captured == 0` **AND** `No worker ran` in the log **AND** a
+short wall clock, and reported one abort on spd0042. That was wrong, and re-checking at `conclude` found
+**5** on spd0042. The abort message is free-form prose the model writes fresh each time — the five
+variants observed are "No worker ran", "No worker was spawned", "No worker was dispatched", "no worker was
+spawned", and "Worker dispatched: no—skill requires immediate abort" — so any phrase-matching test
+under-counts. Wall clock is unreliable too: spd0042's `divvy001` abort burned **532 s** before giving up,
+well inside the normal range.
+
+**The correct signature is a single structured field: `dispatches: []` / `captured: 0` in
+`subagent-trace-manifest.json`.** It is emitted by razorback, not written by the model, so it cannot
+drift. On spd0043 exactly 1 cell (`google_play002`); on spd0042 exactly 5 (`divvy001`, `netflix001`,
+`recharge001`, `retail001`, `scd001`), each of which I confirmed by reading its log tail and finding an
+explicit "no worker dispatched, no files changed". `rk audit --policy strict` reports the same cells as
+`coverage_missing` — which is the mechanized version of the same check and the reason the audit must be
+read before any score.
+
+**And the detail that makes this dangerous rather than merely annoying: two of spd0042's five aborts —
+`divvy001` and `retail001` — scored `1.0`.** They are the do-nothing-passable pair (K1), so a solver that
+did literally nothing still passed their verifiers. The gate abort is therefore silent in *both*
+directions: it can manufacture a false 0 and a false 1 in the same run.
 
 ### 6. Smoke vs full
 
@@ -1209,7 +1243,84 @@ Operational note, for whoever runs this next: the reconciliation took **~17 minu
 Python `sorted()` per comparison, so cost scales with table area, not cell count. Do not run it in a
 foreground call.
 
-### 9. Full per-cell ledger, all 68 official instances
+### 9. BANKED KNOWLEDGE — the durable output of this entity
+
+The score is the least durable thing here. These two are infrastructure findings about the *measuring
+apparatus*, so they apply to every result this workflow has produced and every one it will produce.
+
+#### K4 — razorback's grader UNDER-SCORES the official one. Every recorded score is a LOWER BOUND.
+
+Not "differs" — **under-scores**, in the direction that makes the workflow look worse than it is, proven on
+a real cell.
+
+**Mechanism, exactly.** `razorback/benchmarks/spider2_dbt/duckdb_match.py` reads tables with DuckDB's
+native `fetchall()` (deliberately: the verifier image ships `dbt-duckdb` but not pandas, so the module has
+no pandas dependency by design). `fetchall()` preserves SQL types as distinct Python types —
+`DATE → datetime.date`, `TIMESTAMP → datetime.datetime`. Upstream's `eval_utils.duckdb_match` reads with
+`fetchdf()`, and **pandas coerces both `DATE` and `TIMESTAMP` to the same `datetime64` dtype**. So when
+gold holds a `DATE` column and the solver's table holds the same instant as `TIMESTAMP`,
+`_vectors_match` reaches its `elif a != b` branch, `datetime.date(2018,1,1) != datetime.datetime(2018,1,1,0,0)`
+is True in Python, the gold column-vector finds no partner, and a **correct answer scores 0**.
+
+**Fix surface: `duckdb_match._normalize()`.** That function already exists for exactly this class of bug —
+it coerces `Decimal → float` because "Decimal is `numbers.Number` yet NOT `numbers.Real`, so it would skip
+the tolerance branch and a within-1e-2 DECIMAL match would wrongly score 0." Add the temporal case in the
+same place: normalize `datetime.date` to `datetime.datetime` at midnight (guarding that
+`datetime.datetime` is itself a subclass of `datetime.date`, so the check must be order-sensitive), or map
+both to a common ordinal. Not done here — grading-path code, and mid-submission is the wrong moment.
+
+**Scope, stated without overstatement.** ONE disagreement in 61 graded cells. The 1500-case differential
+fuzz and the 5-cell live panel both found zero. The port is faithful almost everywhere — column-containment
+structure, the 1e-2 tolerance, extra-pred-column tolerance, and missing-table fail-closed all held across
+61 live cells. The defect is narrow and specific.
+
+**But its consequence is not narrow.** DuckDB's `date_trunc('month', …)` returns `TIMESTAMP`, which is the
+natural way to build precisely the monthly-rollup tables this benchmark is full of. So every score on
+record — **19/61, 26/60, 33/60, 32/67** — is a lower bound against the grader the leaderboard actually
+uses, and the bias is *not* random: it concentrates in date-grained aggregation cells. `mrr002`'s 20/21
+lifetime is why 20 prior draws never exposed it — the solver usually emits `DATE`.
+
+**The methodological lesson, which transfers past this repo.** This was found only because AC-4 insisted on
+executing **upstream's own function** rather than trusting a line-by-line port that had been reviewed and
+fuzz-tested. And the fuzz could never have found it: `_fuzz_case` sets `pred_types = list(types_)` so the
+predicted table always declares gold's exact types, and `TIMESTAMP` is not in `_SQL_TYPES` at all. **A
+differential fuzz that never varies the type across the pair cannot find a type-coercion divergence.** A
+green fuzz licenses far less than it appears to.
+
+#### K5 — the spacedock version gate can abort the solver INSIDE the task container, scoring a silent 0.0 (or 1.0)
+
+**What happens.** The `spacedock:first-officer` skill runs a mandatory launcher-version gate. When
+`spacedock` is not on `PATH` and `SPACEDOCK_BIN` is unset or non-executable *inside the task container*,
+the contract requires an immediate abort before dispatch. The cell then terminates normally: no exception,
+no `exception.txt`, no `n_errored` increment — and the verifier still runs and writes a reward. The result
+is indistinguishable from an honest solver miss in every headline metric.
+
+**Detection signature — use this one field, not prose or timing:**
+
+```
+subagent-trace-manifest.json  ->  "dispatches": []   /   "captured": 0
+```
+
+razorback emits it, so it cannot drift. `rk audit --policy strict` flags the same cells as
+`coverage_missing` — the mechanized equivalent, and the reason the audit must be read *before* any score.
+
+Two signatures that look tempting and are both wrong (§5 has the detail): the log string
+`spacedock: command not found` appears in **61 of 67** healthy cells, and the abort's own wording is
+free-form prose with at least five observed variants, so phrase-matching under-counts. Wall clock is not
+reliable either — one abort ran 532 s.
+
+**It is RECURRING, and it is silent in both directions.** spd0042: 5 cells (`divvy001`, `netflix001`,
+`recharge001`, `retail001`, `scd001`). spd0043: 1 cell (`google_play002`, a 97%-reliability passer, which
+is why it read as an alarming regression). And **2 of spd0042's 5 aborts scored `1.0`** — `divvy001` and
+`retail001` are the do-nothing-passable pair (K1), so a solver that did literally nothing passed their
+verifiers. A gate abort can therefore manufacture both a false 0 and a false 1 in the same run, which is
+why it cannot be treated as a conservative failure mode.
+
+**Consequence for the record:** spd0042's headline 33/60 included two such false passes; its
+solver-attributable figure is 30/54 on work-doing cells. Any board's score should be quoted alongside its
+no-dispatch count.
+
+### 10. Full per-cell ledger, all 68 official instances
 
 `spd0043` = this board, `spd0042` = the byte-identical prior configuration, `prior pass-rate` = every
 recorded draw in this program excluding this board and excluding spd0042's auth-poisoned attempt 1,
@@ -1452,31 +1563,147 @@ changes the fixture, so it must not ride along inside a submission run.
 
 ## Follow-up Routing
 
-`escalate` — two decisions are the captain's, and one follow-up entity should be filed.
+`stop` — **nothing is filed and no run is proposed.** The captain's standing position, stated twice, is no
+more experiments: settle on existing evidence. The two findings below are the durable value of this entity
+and are recorded as **named-but-unfiled** follow-ups so a future session can pick them up without
+rediscovering them. Neither is a hypothesis; both are infrastructure repairs.
 
-**Escalate (captain):**
-1. **Launch the 67-cell board now, or vendor `dbt_activity_schema` first?** Board exposure to the
-   abstain mechanism is **3 cells** (activity001, hubspot001, jira001) — a worst case of ~-3 cells / ~4.5
-   points. Launching now is defensible provided the disclosure below rides with the result; fixing the
-   fixture first is cleaner but changes the fixture, so it cannot ride inside a submission run.
-2. **`activity001` is retired as a canary.** It is a coin flip on a deficient fixture (1/3 post-patch),
-   not the 98% sentinel its record implied. Future smokes should use `tickit001` (23/26, held here) plus a
-   passer from the 52 views with no package deficiency.
+**Named-but-unfiled #1 — the razorback DATE/TIMESTAMP grader fix (K4). Highest value on the board.**
+Surface: `razorback/src/razorback/benchmarks/spider2_dbt/duckdb_match.py`, function `_normalize()`, which
+already performs the analogous `Decimal → float` coercion. Coerce `datetime.date → datetime.datetime` at
+midnight (order-sensitively — `datetime.datetime` *is* a subclass of `datetime.date`, so a naive
+`isinstance(v, date)` test catches both), restoring the unification pandas gives upstream for free. Proven
+against a live case (`mrr002`). Ship it with a fuzz extension that varies the temporal type **across** the
+gold/pred pair, since the present `_fuzz_case` cannot (`pred_types = list(types_)`, and `TIMESTAMP` is
+absent from `_SQL_TYPES`). Until it lands, every score this workflow reports is a lower bound. **Do not
+bundle this with a lever experiment — it moves the measuring instrument, so it must land on its own and be
+followed by a re-baseline, not compared across.**
 
-**File (one follow-up entity, NOT in this one):** vendor `dbt_activity_schema` into the activity001 view
-through `tools/`, exactly as `_vendor_dbt_utils` already vendors `dbt_utils` — a packaging-layer fixture
-repair on spd0010's established surface, which removes the R2/R3 ambiguity without asking the solver to
-fabricate anything. Verify it is idempotent and changes no other cell, and re-measure activity001's rate.
+**Named-but-unfiled #2 — the container version-gate abort (K5).** The `spacedock:first-officer` mandatory
+launcher gate aborts the solver inside the task container when `spacedock` is absent from `PATH` and
+`SPACEDOCK_BIN` is unset, producing a silent reward with `dispatches: []` and no error. Two independent
+repairs, either sufficient: make the abort a trial **error** so `n_errored` catches it, or have the plugin
+guarantee `SPACEDOCK_BIN` inside the container. A zero-cost interim mitigation needs no code at all —
+**read `rk audit --policy strict` before quoting any score**, because it already reports these cells as
+`coverage_missing`, and quote every board's score alongside its no-dispatch count.
 
-**Stop:** the capture-patch investigation. Cleared by experiment (arm A passed with the patch present),
-not by argument.
+**Superseded from the `smoke`-stage routing:**
+- *"Launch the 67-cell board now, or vendor `dbt_activity_schema` first?"* — **resolved.** The captain
+  chose to launch with the 3-cell exposure disclosed. Outcome: all three ran, `activity001` and
+  `hubspot001` and `jira001` all **passed**, so the worst case did not materialise.
+- *"File one follow-up entity to vendor `dbt_activity_schema`"* — **downgraded to named-but-unfiled** per
+  this stage's no-new-work boundary. The repair is still the right one (packaging-layer, on spd0010's
+  established surface, mirroring `_vendor_dbt_utils`) and it must not ride inside a submission run.
+- *`activity001` retired as a canary* — **stands**, and is now firmer: the board added a 4th post-patch
+  draw (1.0), so post-patch is 2/4. Use `tickit001` as the smoke sentinel: **25/25 on every draw that
+  produced a reward and zero failures ever** (26 draws total; the odd one out wrote no `reward.json` at
+  all — an infra non-result, not a miss). The `smoke` stage recorded this as "23/26", which counted that
+  no-reward draw as a failure and used a narrower window; 25/25-with-no-failures is the correct read.
+- *Stop the capture-patch investigation* — **stands.** Cleared by experiment, and this board is further
+  confirmation: 67/67 captures landed and the paired read against spd0042 is net 0.
 
-**Disclosure that must ride with any submission from this board** (AC-6 plus this stage's finding):
-8 of 64 cells are do-nothing-passable (floor 0.125) and 2 of those were destroyed by the solver in
-spd0042; 9 cells sit on package-deficient fixtures, of which 3 are passers that can abstain-flip; and
-`chinook001` is a structural 0 locally while still being submitted.
+**The submission bundle is complete and shippable.**
+
+```
+/home/kent/autobench/spider2-dbt/runs/_submissions/spd0043-official-68/
+  68 entries · results_metadata.jsonl + <instance_id>/predicted.duckdb · validator 11/11 PASS (exit 0) · 4.35 GiB
+```
+
+Two things must be disclosed with it, and neither is a defect in the bundle:
+- **`gitcoin001` is a deliberate empty placeholder.** No source DuckDB exists upstream, so the instance
+  cannot be run by anyone. It ships with an empty DB so upstream's denominator stays 68 rather than being
+  quietly shrunk by our omission; it can only ever score 0.
+- **4 cells score 0.0 locally because we hold no usable gold, not because the answer is wrong** —
+  `chinook001` (its gold ships none of its 3 required tables), and `airbnb002` / `biketheft001` /
+  `google_ads001` (no gold DuckDB upstream at all). All four submitted real, populated answers
+  (e.g. `biketheft001`'s `fact_theft_reports` at 59,380 rows). The leaderboard holds the true gold, so the
+  submitted score can legitimately land **above** our local figure.
+
+**Standing benchmark-validity disclosure that must ride with any claim from this board:** 8 cells are
+do-nothing-passable (a 0.125 floor that rewards inaction — `divvy001` and `retail001` are the two that keep
+appearing); 9 cells sit on package-deficient fixtures, 3 of them passers that can abstain-flip; and
+razorback's grader under-scores (K4), so the local number is a floor rather than an estimate.
 
 ## Verdict
+
+**PASSED — ran cleanly to a real result and produced its deliverable. NOT promoted: `@baseline` stays at
+spd0038 (26/60).**
+
+### Which number to quote
+
+| | |
+|---|---|
+| **A leaderboard claim should quote `33/67 = 0.4925`** | the **OFFICIAL** grader's verdict on the executed board. razorback under-scores `mrr002` (K4); upstream's own `duckdb_match` scores it 1. |
+| razorback's raw board is `32/67 = 0.4776` | what `rk score` printed (`stratified_pass_at_1 0.47761194`, `n_errored 0`). Use it only when comparing against other razorback-graded boards. |
+| As submitted: `33/68 = 0.4853` floor, up to `37/68 = 0.5441` | 68 is upstream's denominator (gitcoin001 included as a disclosed placeholder). The ceiling is reached if the leaderboard's real gold credits all 4 no-local-gold answers. |
+| Locally gradeable: `33/63 = 0.5238` | drops chinook001 + the 3 record-only cells, all structural zeros. |
+| Ex-do-nothing-passable: `31/61 = 0.5082` | also drops divvy001 + retail001 (K1). |
+
+**`google_play002` is COUNTED in every figure above, and here is why.** Its solver never executed — a
+version-gate abort with `dispatches: []` (K5) — so it measures our harness, not the model. But this board's
+headline is a *submission* claim, and the leaderboard will grade the artifact we shipped for that instance
+regardless of why it is weak. Dropping it would flatter a number that upstream will compute over all 68.
+The honest treatment is to count it and disclose it, which is what the `33/66 = 0.5000` ex-abort figure is
+for: it is the right number for judging the *solver*, and the wrong number for judging the *submission*.
+
+### The three written promote conditions, on the SHARED-60 against `@baseline` spd0038
+
+All three judged on the 60 cells this board shares with `@baseline`, so no cross-denominator comparison is
+involved. `@baseline` = `runs/spd0038-compose-6-stabilizers-full/fb10902ab7d9ffa7` = **26/60 = 0.4333**;
+this board on those same 60 = **32/60 = 0.5333** (official grader; 31/60 on razorback's).
+
+| # | condition | result | |
+|---|---|---|---|
+| (a) | stratified Pass@1 clears the incumbent | **0.5333 vs 0.4333, +6 cells** | ✅ **PASS** |
+| (b) | paired delta clears the tripwire / CI excludes a regression | **+9 / −3, McNemar exact two-sided p = 0.1460** | ❌ **FAIL** |
+| (c) | clean audit | **1 `coverage_missing` (google_play002)**; 0 tainted, 66 clean | ❌ **FAIL** |
+
+**1 of 3 pass ⇒ do not promote. `@baseline` UNCHANGED at spd0038 26/60.** Recommendation only —
+`rk baseline promote` was not run and `razorback-registry.yaml` was not touched.
+
+Condition (b) does not become significant under any defensible variant, so the verdict is not an artifact
+of how the discordant pairs were counted: excluding `google_play002` (never ran) gives +9/−2, **p =
+0.0654** — still short, and by coincidence the exact p-value that failed spd0042 on the same condition.
+The gains are real and worth naming (airport001, asana001, asset001, divvy001, f1001, intercom001, jira001,
+recharge002, retail001) but two of them — divvy001 and retail001 — are the do-nothing-passable pair, so
+they are cheap. The regressions are google_play001, google_play002 (infra) and recharge001.
+
+This is the same shape as spd0042's decision, and for the same reason: **a single draw of ~60 cells cannot
+clear condition (b)** when K2 says two identical configurations already disagree on ~9-10 cells. That is a
+property of the instrument, not of the lever.
+
+### What this entity is actually worth
+
+The score is the least durable output. Three things outlive it:
+
+1. **K4 — razorback's grader under-scores the official one on a DATE-vs-TIMESTAMP coercion**, so every
+   number this workflow has ever recorded (19/61, 26/60, 33/60, 32/67) is a **lower bound**, not an
+   estimate, with the bias concentrated in date-grained cells. One disagreement in 61 graded cells — narrow
+   and specific — found only because AC-4 executed upstream's own function instead of trusting a
+   fuzz-tested port. Fix surface named: `duckdb_match._normalize()`.
+2. **K5 — the container version-gate abort is a recurring silent-zero (and silent-*one*) class.** 5 cells
+   in spd0042, 1 here, detectable by the single structured field `dispatches: []` in
+   `subagent-trace-manifest.json`. Two of spd0042's five scored **1.0** because they are
+   do-nothing-passable, so it is not a conservative failure mode. It also retro-corrects spd0042's headline:
+   33/60 contained two passes from cells whose solver never ran, making its solver-attributable figure
+   30/54.
+3. **The first complete, validated 68-entry submission bundle** — the deliverable, shippable as-is.
+
+And one durable *negative* result: **two draws of an identical configuration landed dead level** — 30 → 30
+on the 54 work-doing shared cells, McNemar p = 1.0000 — which means neither the `test.sh` capture patch nor
+the razorback record-only change harmed the board. Both landed between the two boards, so this is the
+finding that stops a future reader blaming them.
+
+`intercom001` deserves its own line, stated carefully. It passed for the **first time in 27 recorded
+draws** (0/26 before), which falsifies spd0039's `never-pass` label for that cell and reopens a family that
+was closed as README-unreachable. It is **not** model-swap-attributable: gpt-5.6-sol had already failed it
+twice under this identical configuration (0, 0, 1), so the swap is not the discriminator. The supportable
+claim is "reachable at roughly 1-in-27", not "the model unlocked it" — and keeping that distinction is the
+point, because unattributed flips are what this loop keeps having to retract.
+
+The structural fact that bounds everything: **28 of 68 instances have never passed, 22 of them with ≥15
+recorded attempts.** The wobble is worth ±2 cells and this stage spent most of its effort proving that. The
+score is stuck in that 22-cell block, and no README has moved it.
 
 ## Stage Report: propose
 
@@ -1698,3 +1925,71 @@ for the first time in 27 recorded draws**, falsifying spd0039's never-pass label
 via the model swap, since the same configuration had already failed it twice. The durable structural fact
 is the one the ledger exposes: 28 of 68 instances have never passed, 22 of them with ≥15 attempts, and that
 block — not the churn — is where the score is stuck.
+
+## Stage Report: conclude
+
+- DONE: Set the verdict and account for it against the README's THREE written promote conditions, naming
+  each pass/fail explicitly and using the SHARED-60 comparison against @baseline spd0038 (26/60) …
+  Recommend only … State plainly which number a leaderboard claim should quote
+  `## Verdict`. **PASSED, NOT promoted — `@baseline` unchanged at spd0038 26/60.** All three conditions
+  judged on the 60 shared cells, no cross-denominator comparison: (a) Pass@1 **✅ PASS** 0.5333 vs 0.4333
+  (+6 cells); (b) paired delta **❌ FAIL** +9/−3, McNemar exact two-sided **p = 0.1460**; (c) clean audit
+  **❌ FAIL** 1 `coverage_missing`. 1 of 3 ⇒ do not promote. Robustness on (b): excluding the never-ran cell
+  gives +9/−2, **p = 0.0654** — still short, so the verdict is not an artifact of pair counting.
+  `rk baseline promote` NOT run; `razorback-registry.yaml` untouched. Quotable number stated plainly:
+  **`33/67 = 0.4925` (official grader)** for a leaderboard claim, `32/67 = 0.4776` for razorback's raw
+  board. `google_play002` is **counted** in every headline with the reason given (a submission claim must
+  cover what upstream will grade; `33/66` is offered as the solver-judging figure instead).
+- DONE: Bank the two INFRASTRUCTURE findings … in '## Behavioral analysis' → BANKED KNOWLEDGE and condensed
+  in '## Verdict', plus a one-line entry each in _artifacts/self-learning.md
+  `## Behavioral analysis` §9 (full) + `## Verdict` "What this entity is actually worth" (condensed) +
+  two entries appended to `_artifacts/self-learning.md`. **K4** gives the precise coercion
+  (`fetchall()` keeps `DATE→datetime.date` vs `TIMESTAMP→datetime.datetime`; upstream's `fetchdf()` coerces
+  both to `datetime64`; `_vectors_match` then hits `elif a != b`) and names the fix surface
+  (`duckdb_match._normalize()`, which already does `Decimal → float`), with the lower-bound consequence
+  spelled out for all four recorded scores. **K5** gives the detection signature as the single structured
+  field `dispatches: []` / `captured: 0` in `subagent-trace-manifest.json`, plus the two signatures that
+  do NOT work and why.
+- DONE: Write '## Follow-up Routing' and archive … Route the two infrastructure findings as
+  named-but-unfiled follow-ups … Record that the submission bundle is complete and shippable … Do NOT file
+  follow-up hypotheses and do NOT propose more runs
+  `## Follow-up Routing` rewritten to **`stop`**: nothing filed, no run proposed, both infra findings
+  recorded as named-but-unfiled with their fix surfaces; the four `smoke`-stage routing items marked
+  superseded/resolved (including downgrading the `dbt_activity_schema` "file" item to named-but-unfiled).
+  Bundle recorded at `runs/_submissions/spd0043-official-68/` — 68 entries, validator 11/11, 4.35 GiB —
+  with gitcoin001's placeholder status and the 4 absent-local-gold cells disclosed by name and row count.
+- DONE: (stage def) Finalize the workflow-refinement finding — AUTOMATIC for any workflow-structural
+  hypothesis
+  **Not applicable, verified rather than assumed:** `grep spd0043 _artifacts/WORKFLOW-REFINE.md` returns
+  nothing, and this entity added no stage, removed none, reordered none, and introduced no new protocol.
+  Its changes were to razorback's grading path and the packaging tooling, which is not workflow structure.
+- DONE: (stage def) Derive new hypotheses from the deep-dive findings — but do not reflexively file when
+  the lever family is exhausted
+  Deliberately **not** filed, and the meta-pattern is the reason: 28 of 68 instances have never passed, 22
+  with ≥15 attempts, across every README this program has tried and two models. Filing another README
+  variant against that block is the doomed-variant case the stage definition warns about. Surfaced to the
+  captain as a strategy observation inside `## Verdict` instead — and consistent with the captain's
+  standing no-more-experiments position.
+- FAILED: archive (frontmatter `verdict:` / `completed:` + move to `_archive/`)
+  **Not done, deliberately, and it is the one thing left for the FO.** My operating contract forbids
+  modifying entity YAML frontmatter, and `verdict:`/`completed:` are frontmatter. Target state, matching
+  spd0042's archived form: `verdict: passed`, `completed:` = now, then move
+  `hypotheses/spd0043-official-68-leaderboard-submission.md` → `hypotheses/_archive/`. Flagged rather than
+  guessed.
+
+### Summary
+
+Set the verdict to **PASSED but NOT promoted** and accounted for it against all three written promote
+conditions on the shared-60 against `@baseline` spd0038 — (a) Pass@1 clears at 0.5333 vs 0.4333, (b) the
+paired delta does not (p = 0.1460, and still 0.0654 under the most favourable defensible variant), (c) the
+audit is not clean (1 `coverage_missing`) — so 1 of 3 passes and `@baseline` stays where it is. A
+leaderboard claim should quote **33/67 = 0.4925**, the official grader's number, not razorback's 32/67.
+Banked the two infrastructure findings that are the real output of this entity: **K4**, that razorback's
+grader under-scores the leaderboard's on a DATE-vs-TIMESTAMP coercion, which makes every score this workflow
+has recorded a lower bound rather than an estimate and was findable only by executing upstream's own
+function; and **K5**, that the container version-gate abort is a recurring silent-zero-*and*-silent-one class
+with `dispatches: []` as its only reliable signature. Correcting K5's signature at this stage also revised my
+own `analyze` count from 1 spd0042 abort to 5, which retro-corrects spd0042's 33/60 to a
+solver-attributable 30/54 and brings the two boards to a dead-level net 0 (p = 1.0000). Routed `stop` — no
+hypothesis filed, no run proposed, both findings named-but-unfiled — and recorded the shippable bundle.
+Archive itself is left to the FO, since it requires a frontmatter write I am not permitted to make.
