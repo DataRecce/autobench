@@ -943,9 +943,25 @@ as null as this instrument can report.
 **Say the consequence plainly: this board does NOT show a regression from the `test.sh` capture patch or
 from the razorback record-only change.** Both landed between the two boards, so a careless reader will
 blame them — and the data does not support that. Three independent reasons: the net is −1 on a
-p = 1.0000 instrument; the capture patch appends a `cp` AFTER the verifier's comparison, so it cannot
-change a verdict; and the record-only path only touches the 3 cells that have no gold, none of which
-existed on spd0042.
+p = 1.0000 instrument; the capture patch is reward-neutral by construction (below); and the record-only
+path only touches the 3 cells that have no gold, none of which existed on spd0042.
+
+The reward-neutrality argument, stated precisely from the emitted `test.sh` rather than from memory — the
+`cp` runs **before** `verify.py`, not after:
+
+```sh
+mkdir -p /logs/verifier
+cp /app/mrr.duckdb /logs/verifier/predicted.duckdb || true      # <-- the patch
+python /tests/verify.py --predicted-db /app/mrr.duckdb --gold-db /tests/mrr.duckdb \
+  --eval-spec /tests/spider2_eval.jsonl --reward-out /logs/verifier/reward.json
+```
+
+It is still neutral, but for two different reasons than ordering: it only **reads** `/app/<db>.duckdb` and
+writes to a different path, so the graded artifact is untouched; and `|| true` under `set -eu` means a
+failed copy cannot abort the script before the verifier runs. The one residual coupling worth naming
+honestly: the copy consumes disk, so on a full filesystem it could starve `verify.py`. That did not happen
+here (85% used / 39 GB free at the end, and all 67 verifiers produced a reward), but it is the mechanism to
+check first if a future board shows unexplained verifier failures.
 
 ### 2. Was the change executed? (confound attribution)
 
@@ -1140,12 +1156,17 @@ recorded draw in this program excluding this board and excluding spd0042's auth-
 | xero_new002 | 0 | 0 | 0/21 | = | 8.3 |  |
 | zuora001 | 0 | 0 | 0/18 | = | 13.8 |  |
 
-**What the `0/N` column says about the ceiling.** 27 of the 68 instances have **never** passed in this
-program — several with 20-33 recorded attempts (xero001 0/33, provider001 0/33, tpch001 0/28,
-movie_recomm001 0/27, xero_new001 0/26). That is 40% of the official board sitting at a lifetime zero
-across every README the program has tried and two models. The gap between 32/67 and a materially higher
-number is not in the cells that wobble; it is in that block, and nothing in the README channel has moved
-it. Any plan to raise the leaderboard number should start by asking what those 27 have in common.
+**What the `0/N` column says about the ceiling.** **28 of the 68 instances have never passed** in this
+program, this board included — and **22 of those 28 have ≥15 recorded attempts** (xero001 0/33,
+provider001 0/33, tpch001 0/28, movie_recomm001 0/27, xero_new001 0/26, netflix001 0/25, nba001 0/24,
+social_media001 0/24, hive001 0/23 …). That is a third of the official board at a lifetime zero across
+every README the program has tried and two models. The remaining 6 never-passers are low-attempt cells,
+mostly the ones added this cycle.
+
+The gap between 32/67 and a materially higher number is not in the cells that wobble — the wobble is
+worth ±2 and this stage just spent its effort proving that. It is in that 22-cell block, and nothing in
+the README channel has moved it. Any plan to raise the leaderboard number should start by asking what
+those 22 have in common, not by tuning around the discordant pairs.
 
 ## Failure Review
 
