@@ -1,6 +1,6 @@
 ---
 title: Expand the board to the official 68 instances and produce a leaderboard-format submission (@baseline README + gpt-5.6-sol xhigh)
-status: analyze
+status: conclude
 kind: hypothesis
 source: "captain-directed (2026-07-29). Prepare a spider2-dbt leaderboard submission. Requirements: (a) the full run must execute ALL official spider2-dbt instances — 68 per examples/spider2-dbt.jsonl; (b) prove razorback can execute any one of them and produce the evidence the upstream evaluation_suite requires; (c) use @baseline solver README + gpt-5.6-sol @ xhigh. Upstream ref: https://github.com/xlang-ai/Spider2/tree/main/spider2-dbt/evaluation_suite"
 started: 2026-07-29T02:03:46Z
