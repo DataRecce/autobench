@@ -713,8 +713,26 @@ reconciliation, and do not run it inside a 120 s foreground call.
 
 ## Run result
 
-**IN FLIGHT — launched 2026-07-30 05:06:26 +0800. No score in this section yet; `audit`/`score` are
-deliberately NOT run by this dispatch.**
+**COMPLETE — launched 2026-07-30 05:06:33, finished 09:03:48 (+0800). 3 h 57 m 15 s. 67/67 completed,
+`n_errored_trials: 0`, zero `exception.txt`, all 67 `verifier/predicted.duckdb` captured.
+`stratified_pass_at_1 = 0.47761194` = 32/67 on an UNCENSORED denominator (`stratified_n_errored: 0`).
+Per-cell wall clock 493–1581 s, so the 3 h 57 m is the healthy signature, not a fast-fail.**
+
+Headline, and the honest denominators — see `## Behavioral analysis` for why the raw rate is NOT
+comparable to spd0042's 33/60:
+
+| denominator | rate | what it means |
+|---|---|---|
+| **32/67 = 0.4776** | raw board | every executed cell, including 4 that cannot be scored locally |
+| **32/63 = 0.5079** | locally gradeable | drops chinook001 + the 3 record-only cells (structural zeros) |
+| **30/61 = 0.4918** | minus do-nothing-passable | also drops divvy001 + retail001 (K1: both reward inaction; both passed here) |
+| **32/68 = 0.4706** | as SUBMITTED (floor) | upstream's denominator, gitcoin001 included as an empty placeholder |
+| **up to 36/68 = 0.5294** | as submitted (ceiling) | if the leaderboard's real gold credits all 4 no-gold answers |
+| 32/65 = 0.4923 | minus the 1 infra abort | google_play002 did no work (below) |
+
+`rk audit --policy strict`: **66 clean / 0 tainted / 1 coverage_missing**, and the single coverage_missing
+cell is `google_play002` (`spacedock_dispatch_events_absent`, `captured: 0`) — the same cell that turns
+out to be an infra abort. For contrast, spd0042 carried 5 `coverage_missing`. No leak findings anywhere.
 
 | | |
 |---|---|
@@ -823,7 +841,311 @@ launch, so no stale `lock.json` could sit on the path. The real run then re-crea
 `4de20bed438d4d51` (it is the frozen spec's content hash) — which is why deleting it mattered rather than
 being cosmetic.
 
+## Submission bundle — THE DELIVERABLE
+
+```
+/home/kent/autobench/spider2-dbt/runs/_submissions/spd0043-official-68/
+```
+
+**68 entries. 4.35 GiB logical.** Layout is exactly upstream's: `results_metadata.jsonl` at the root plus
+one `<instance_id>/predicted.duckdb` per entry.
+
+```
+$ python3 tools/export_submission_bundle.py \
+    --run-dir runs/spd0043-official-board-67/4de20bed438d4d51 \
+    --out runs/_submissions/spd0043-official-68 --placeholder-for gitcoin001
+==== EXPORT SUMMARY ====
+results_metadata.jsonl entries: 68  (exported 67, placeholder 1)
+not exported        : 0
+```
+
+```
+$ python3 tools/validate_submission_bundle.py --bundle runs/_submissions/spd0043-official-68 \
+    --spider2-root /home/kent/Spider2/spider2-dbt
+[PASS] 1. exactly one root *.jsonl, named results_metadata.jsonl — found ['results_metadata.jsonl']
+[PASS] 2a. every line parses as a JSON object
+[PASS] 2b. every entry has exactly the 3 required keys
+[PASS] 3. answer_type == "file" everywhere
+[PASS] 4a. every answer_or_path is a relative path inside its instance folder
+[PASS] 4b. every referenced artifact exists
+[PASS] 5a. no duplicate instance_ids
+[PASS] 5b. no ids outside the official list
+[PASS] 5c. danish_democracy_data001 absent (has gold, not official)
+[PASS] 5d. entry count == 68 — got 68
+[PASS] 6. every submitted DuckDB opens and is queryable
+==== VALIDATION SUMMARY ====
+entries : 68 (official set: 68, expected: 68)   failures: 0     [exit 0]
+```
+
+**Disk, plainly.** The 68 DuckDBs total **4.35 GiB** (mean 65.5 MB, median 18.8 MB) but the bundle
+consumed **~0 additional bytes**: the exporter's default `--copy-mode hardlink` links each file to the
+run-dir capture on the same filesystem (verified: `stat` shows link count 2 on `tickit001`, 1 on the
+freshly-created `gitcoin001` placeholder). Free space was 39 GB before and after. Two consequences the
+captain should know: deleting the run-dir will NOT damage the bundle (`rm` only unlinks), and
+`tar`/`zip`/`rsync` of the bundle will materialize the full 4.35 GiB.
+
+The size distribution blew well past the smoke-stage projection. Smoke measured 2.9–67.6 MB and projected
+~1.6 GB for 67 cells; the real spread is **1.8 MB (mrr002) to 1530 MB (biketheft001)**, with airbnb002 at
+526 MB and airbnb001 at 429 MB — three cells carry 2.4 GiB of the 4.35. Two of those three are the new
+record-only instances, which had never been captured before. The projection was not wrong about the
+typical cell; it was wrong because the tail is two orders of magnitude wide.
+
+### The four cells that score 0 locally but carry a real answer
+
+This is a stated **upside**, not a ceiling. Each of these has its required answer tables populated in the
+submitted DuckDB; the local 0.0 is an absence of gold on our side, not a wrong answer:
+
+| instance | why 0.0 locally | answer actually submitted |
+|---|---|---|
+| chinook001 | its gold DB exists but contains **none** of `dim_customer` / `fct_invoice` / `obt_invoice` | all three present: 60 / 412 / 412 rows |
+| airbnb002 | no gold DuckDB upstream (record-only) | `src_hosts` 14,111 rows; `wow_agg_reviews` 3 rows |
+| biketheft001 | no gold DuckDB upstream (record-only) | `fact_theft_reports` 59,380 rows |
+| google_ads001 | no gold DuckDB upstream (record-only) | `google_ads__campaign_report` 16 rows; `google_ads__keyword_report` 15 rows |
+| gitcoin001 | no source data upstream — never ran | **nothing** — empty DB by construction, can only score 0 |
+
+The leaderboard holds the true gold for the first four, so the submitted score sits in
+**[32/68 = 0.4706, 36/68 = 0.5294]**. gitcoin001 is a permanent 0 and is disclosed as such.
+
 ## Behavioral analysis
+
+### 1. Net, and the full per-cell ledger in both directions
+
+`stratified_pass_at_1` **0.4776** (32/67, Wilson CI [0.3625, 0.5951], `n_errored 0`) against
+`@baseline = runs/spd0038-compose-6-stabilizers-full/fb10902ab7d9ffa7`. The paired instrument is the
+comparison that carries information, and the right partner is **spd0042** — the byte-identical
+configuration (same README hash, same model, same effort), not `@baseline` (a different model on a
+plugin/CLI environment that no longer exists).
+
+Raw paired read on the 60 shared cells: **33 → 31, net −2**, 8 discordant (3 gains, 5 regressions).
+
+**Corrected paired read.** One cell on each board had a solver that never ran at all (below), so those
+cells measure infrastructure, not the configuration. Excluding both:
+
+**58 work-doing shared cells: 32 → 31, net −1.** 3 gains, 4 regressions, 7 discordant,
+**McNemar exact two-sided p = 1.0000**.
+
+| direction | cell | prior pass-rate (this program, excl. this board) | mechanism |
+|---|---|---|---|
+| GAIN | intercom001 | **0/26** | **first pass ever recorded** — see §4 |
+| GAIN | airport001 | 2/14 (14%) | churn on an unstable cell |
+| GAIN | quickbooks003 | 21/34 (62%) | churn on a coin-flip cell |
+| REGR | google_play001 | 48/52 (92%) | union-completeness miss — built 10 of 32 / 10 of 20 required rows |
+| REGR | mrr002 | 20/21 (95%) | value-semantics near-miss — 243/410 rows differ on ONE column |
+| REGR | superstore001 | 1/22 (5%) | reversion to its own norm; spd0042 was its only prior pass |
+| REGR | tickit002 | 4/24 (17%) | reversion to its own norm |
+| (excluded) | google_play002 | 30/31 (97%) | **INFRA — no worker ran**, 2 m 32 s |
+| (excluded) | scd001 | — | spd0042's own no-work abort |
+
+Against the K2 yardstick (15.8% same-config per-cell churn ⇒ ~9.2 expected discordant on 58 cells,
+binomial 95% range ≈ 4–15), **7 observed discordant is textbook churn** and a net of −1 with p = 1.0000 is
+as null as this instrument can report.
+
+**Say the consequence plainly: this board does NOT show a regression from the `test.sh` capture patch or
+from the razorback record-only change.** Both landed between the two boards, so a careless reader will
+blame them — and the data does not support that. Three independent reasons: the net is −1 on a
+p = 1.0000 instrument; the capture patch appends a `cp` AFTER the verifier's comparison, so it cannot
+change a verdict; and the record-only path only touches the 3 cells that have no gold, none of which
+existed on spd0042.
+
+### 2. Was the change executed? (confound attribution)
+
+There was no README lever this cycle — the solver README is byte-identical to `@baseline`
+(`sha256:607dec29…`), and spd0042 already carried the model swap. So for every moved cell the honest
+classification is **neither executed-and-helped nor executed-and-hurt but same-configuration variance**:
+the only differences between the two boards are the task set, the reward-neutral capture patch, and the
+draw. Attributing any of these 7 flips to a lever would be inventing a cause. The one durable
+artifact-level finding is intercom001's reachability (§4).
+
+### 3. The regressions, judged as damage — and one that is not a regression at all
+
+Two of the four regressions (superstore001 1/22, tickit002 4/24) are **not damage to working answers**:
+those cells are chronic failures whose spd0042 pass was the outlier. Calling them regressions inverts the
+base rate.
+
+Two are real breakage of high-reliability passers, and both have a concrete mechanism read off the
+committed artifact:
+
+- **google_play001** (prior 48/52). Column sets are exactly right; row counts are not.
+  `google_play__device_report` has 10 rows against gold's 20, and PRED's rows are a strict **subset** of
+  gold's — same dates, same devices, half the rows. `google_play__country_report` has 10 rows against 32,
+  spanning 10 dates / 9 countries against gold's 22 / 27, and the two sets barely overlap (PRED is all
+  2017-12, gold starts 2017-02). The fixture ships the per-country and per-device facts split across
+  several ~10-row source tables (`stats_installs_country` 10, `stats_ratings_country` 12,
+  `stats_store_performance_country` 10 — and 10+12+10 = **32**, gold's exact row count; 10+10 = **20** for
+  device). The solver built each report from a **single** source table instead of combining all of them.
+  Distance to pass: 22 missing country rows and 10 missing device rows, zero schema error. This is the
+  program's familiar completeness failure family, not a new one.
+- **mrr002** (prior 20/21). The closest possible miss: identical shape (410 × 12), identical column set,
+  and after sorting, **exactly one column disagrees — `change_category`, on 243 of 410 rows**. Every other
+  column matches. A single mis-specified CASE/label expression stands between this cell and a pass.
+
+**Was each regression passing at `@baseline`?** google_play001 and mrr002 yes (and at 92% / 95% lifetime).
+superstore001 and tickit002 no — `@baseline` (spd0038) failed both.
+
+Statistically, 2 breaks among the 18 cells with ≥85% prior reliability against **0.84 expected** is
+ordinary (Poisson, P(X≥2) ≈ 0.21). It was worth checking precisely because the raw list of 5 regressions
+*looked* like it contained three ≥90% cells — and one of those three turned out to be infra.
+
+### 4. intercom001 — a genuine first pass, but NOT the model swap
+
+Checked the way activity001 was checked: reward across every run-dir in the program, excluding the
+auth-poisoned spd0042 attempt 1.
+
+**intercom001 = 0/26 before this board, 1/27 lifetime. This is the first pass ever recorded on that
+cell.** spd0039 classified it as a single-mechanism *never-pass* and used it to conclude the group was
+`NEEDS-PHASE2-readme-exhausted`. That label is now falsified: the cell is **reachable**.
+
+What the artifact shows changed. The failing spd0042 draw's transcript mentions `median` once and
+references only the two target tables. The passing draw names the specific output columns
+(`median_time_to_first_response_time_minutes`, `median_time_to_last_close_minutes`,
+`median_conversations_reopened`, `median_conversation_assignments`) and works through the shipped
+intermediate chain — `intercom__conversation_metrics`, `intercom__using_team`, `intercom__contact_enhanced`,
+`intercom__company_enhanced`, `intercom__conversation_enhanced` — rather than computing the metrics from
+raw sources. Mechanism: **discovering and reusing the existing model chain**.
+
+**The claim the dispatch offered does not survive.** "The model swap reaching a cell the README program
+could not" requires the swap to be the discriminator, and it is not: gpt-5.6-sol has now seen intercom001
+three times (spd0042 attempt 1, spd0042 attempt 2, this board) and scored 0, 0, 1. Same model, same
+README, same effort. The durable finding is narrower and still worth banking: **intercom001 is reachable
+at roughly 1-in-27 under this configuration, so "never-pass" was a sampling artifact of the label, not a
+property of the cell.** One draw does not make it a target; it makes it a candidate.
+
+### 5. The infra abort — 1 cell, and how it nearly corrupted the read
+
+`google_play002` scored 0.0 without attempting the task. Its `agent/codex.txt` ends:
+
+> Blocked by the `spacedock:first-officer` mandatory version gate: `spacedock` is not on `PATH`, and
+> `SPACEDOCK_BIN` is not executable/set. […] No worker ran, no files changed, and no validation was
+> performed.
+
+2 m 32 s wall clock against a 493–1581 s range for every other cell, `subagent-trace-manifest.json` with
+`captured: 0` and `dispatches: []`, and it is the run's only `coverage_missing` in `rk audit --policy
+strict`. Three independent signals agreeing.
+
+**A caution for the next reader of this repo, because I nearly got this wrong.** The string
+`spacedock: command not found` appears in **61 of 67** cell logs — the solver probes for the bare binary,
+the probe fails, and it then proceeds normally via `SPACEDOCK_BIN` / the plugin dir. Grepping for that
+string as an abort signature would have condemned 61 healthy cells including most of the passes. The
+discriminating signature is the conjunction: **`captured == 0` in the trace manifest AND `No worker ran`
+in the log AND a wall clock far below the cell-time floor.** By that test there is exactly one abort on
+this board, and one (`scd001`) on spd0042.
+
+### 6. Smoke vs full
+
+No fork drift to explain: smoke was not a lever GO, it was a mechanism proof (AC-3 capture works, AC-4
+graders agree on 5 live cells), and both held at full — 67/67 captures, and the AC-4 result below. The one
+thing smoke could not see was the size tail (§ Submission bundle): a 5-cell panel that happened to sample
+2.9–67.6 MB gave a 1.6 GB projection for a board whose real total is 4.35 GiB, because it never sampled a
+`biketheft001`-class cell. A capture-volume smoke should sample the *largest* source DB, not a
+convenience panel.
+
+### 7. Prevention and next move
+
+- **The launcher-gate abort is the one thing worth fixing, and it is cheap.** It has now silently eaten a
+  cell on two consecutive boards (scd001, then google_play002 — a 97% passer). It is invisible in the
+  headline because it scores 0.0 like an honest miss. Two guards, both mechanical: fail the trial (so
+  `n_errored` catches it) rather than writing reward 0.0, or add a post-run check that flags any cell with
+  `captured == 0` before a score is quoted. `rk audit --policy strict` already catches it as
+  `coverage_missing` — the gap is that nobody is required to read the audit before the score.
+- **Do not chase google_play001 or mrr002 with a README lever.** Both are single-draw movements on cells
+  this configuration passes ~92–95% of the time; the expected value of a lever aimed at them is noise.
+  mrr002's `change_category` and google_play's multi-source union are, however, well-specified enough to
+  be worth *canaries* if a future lever touches completeness or CASE-labelling.
+- **Recommendation on promotion: recommend, do not promote — the captain's call.** This board is not
+  comparable to `@baseline` (26/60, different model and a plugin/CLI environment that no longer exists),
+  and against its true partner spd0042 it is a null result (net −1, p = 1.0000). What it *is*: the
+  broadest clean board on record (67 cells, 0 errored, 0 tainted) and the first complete, validated
+  68-entry submission bundle. If the goal is a leaderboard number, ship it. If the goal is a moved
+  `@baseline`, this board does not supply the evidence, and pooling spd0042 + spd0043 (2 draws of the same
+  configuration, 63–65 passes over 118 work-doing cells) is the cheaper path to a defensible mean than a
+  third draw.
+- **Follow-ups already owned elsewhere, unchanged:** the `dbt_activity_schema` fixture vendoring (3-cell
+  exposure, disclosed and accepted) and gitcoin001's missing source data. Neither belongs inside a
+  submission run.
+
+### 8. Full per-cell ledger, all 68 official instances
+
+`spd0043` = this board, `spd0042` = the byte-identical prior configuration, `prior pass-rate` = every
+recorded draw in this program excluding this board and excluding spd0042's auth-poisoned attempt 1,
+`MB` = submitted capture size. `—` = the cell did not run in that board.
+
+| instance | spd0043 | spd0042 | prior pass-rate | move | MB | note |
+|---|---|---|---|---|---|---|
+| activity001 | 1 | 1 | 50/52 | = | 9.8 |  |
+| airbnb001 | 1 | 1 | 17/32 | = | 428.5 |  |
+| airbnb002 | 0 | — | 0/1 | new | 526.3 | record-only, no local gold |
+| airport001 | 1 | 0 | 2/14 | **GAIN** | 4.5 |  |
+| analytics_engineering001 | 0 | 0 | 0/15 | = | 23.3 |  |
+| app_reporting001 | 1 | 1 | 41/41 | = | 21.0 |  |
+| app_reporting002 | 1 | 1 | 25/25 | = | 18.8 |  |
+| apple_store001 | 1 | 1 | 46/54 | = | 20.5 |  |
+| asana001 | 1 | 1 | 5/24 | = | 16.8 |  |
+| asset001 | 1 | 1 | 11/24 | = | 131.0 |  |
+| atp_tour001 | 0 | 0 | 0/16 | = | 87.8 |  |
+| biketheft001 | 0 | — | 0/1 | new | 1530.3 | record-only, no local gold |
+| chinook001 | 0 | — | 0/9 | new | 6.5 | gold ships none of its 3 answer tables |
+| divvy001 | 1 | 1 | 4/25 | = | 91.8 |  |
+| f1001 | 1 | 1 | 19/37 | = | 11.8 |  |
+| f1002 | 1 | 1 | 5/15 | = | 11.3 |  |
+| f1003 | 1 | 1 | 15/20 | = | 11.3 |  |
+| flicks001 | 0 | 0 | 0/18 | = | 16.5 |  |
+| gitcoin001 | — | — | — |  | 0.0 | PLACEHOLDER — no source data upstream; empty DB, cannot score |
+| google_ads001 | 0 | — | 0/1 | new | 13.8 | record-only, no local gold |
+| google_play001 | 0 | 1 | 48/52 | **REGR** | 15.0 |  |
+| google_play002 | 0 | 1 | 30/31 | **REGR** | 12.0 | INFRA — launcher-gate abort, no worker ran (2m32s) |
+| greenhouse001 | 1 | 1 | 18/20 | = | 21.3 |  |
+| hive001 | 0 | 0 | 0/23 | = | 2.3 |  |
+| hubspot001 | 1 | 1 | 16/19 | = | 40.8 |  |
+| intercom001 | 1 | 0 | 0/26 | **GAIN** | 24.5 |  |
+| inzight001 | 0 | — | 0/1 | new | 2.3 |  |
+| jira001 | 1 | 1 | 3/25 | = | 7.5 |  |
+| lever001 | 1 | 1 | 13/14 | = | 15.5 |  |
+| marketo001 | 1 | 1 | 22/27 | = | 18.8 |  |
+| maturity001 | 1 | 1 | 14/15 | = | 6.5 |  |
+| movie_recomm001 | 0 | 0 | 0/27 | = | 47.0 |  |
+| mrr001 | 1 | 1 | 71/81 | = | 2.5 |  |
+| mrr002 | 0 | 1 | 20/21 | **REGR** | 1.8 |  |
+| nba001 | 0 | 0 | 0/24 | = | 116.8 |  |
+| netflix001 | 0 | 0 | 0/25 | = | 5.0 |  |
+| pendo001 | 0 | 0 | 0/22 | = | 35.8 |  |
+| playbook001 | 1 | 1 | 14/14 | = | 1.8 |  |
+| playbook002 | 0 | 0 | 0/16 | = | 2.0 |  |
+| provider001 | 0 | 0 | 0/33 | = | 30.8 |  |
+| qualtrics001 | 1 | 1 | 14/14 | = | 13.8 |  |
+| quickbooks001 | 0 | 0 | 0/15 | = | 48.8 |  |
+| quickbooks002 | 1 | 1 | 53/54 | = | 47.5 |  |
+| quickbooks003 | 1 | 0 | 21/34 | **GAIN** | 52.3 |  |
+| recharge001 | 0 | 0 | 9/20 | = | 12.5 |  |
+| recharge002 | 1 | 1 | 4/22 | = | 14.5 |  |
+| reddit001 | 0 | 0 | 0/16 | = | 236.3 |  |
+| retail001 | 1 | 1 | 20/30 | = | 26.3 |  |
+| salesforce001 | 0 | 0 | 3/25 | = | 17.8 |  |
+| sap001 | 1 | 1 | 14/22 | = | 39.5 |  |
+| scd001 | 0 | 0 | 0/16 | = | 14.3 |  |
+| shopify001 | 0 | — | 0/1 | new | 20.0 |  |
+| shopify002 | 1 | — | 1/1 | new | 20.8 |  |
+| shopify_holistic_reporting001 | 0 | 0 | 0/15 | = | 14.8 |  |
+| social_media001 | 0 | 0 | 0/24 | = | 33.3 |  |
+| superstore001 | 0 | 1 | 1/22 | **REGR** | 6.8 |  |
+| synthea001 | 0 | 0 | 0/22 | = | 27.8 |  |
+| tickit001 | 1 | 1 | 24/24 | = | 64.8 |  |
+| tickit002 | 0 | 1 | 4/24 | **REGR** | 55.3 |  |
+| tpch001 | 0 | 0 | 0/28 | = | 108.5 |  |
+| tpch002 | 1 | 1 | 16/17 | = | 83.0 |  |
+| twilio001 | 0 | 0 | 0/17 | = | 8.8 |  |
+| workday001 | 1 | 1 | 15/16 | = | 27.5 |  |
+| workday002 | 1 | 1 | 16/16 | = | 27.5 |  |
+| xero001 | 0 | 0 | 0/33 | = | 8.0 |  |
+| xero_new001 | 0 | 0 | 0/26 | = | 12.3 |  |
+| xero_new002 | 0 | 0 | 0/21 | = | 8.3 |  |
+| zuora001 | 0 | 0 | 0/18 | = | 13.8 |  |
+
+**What the `0/N` column says about the ceiling.** 27 of the 68 instances have **never** passed in this
+program — several with 20-33 recorded attempts (xero001 0/33, provider001 0/33, tpch001 0/28,
+movie_recomm001 0/27, xero_new001 0/26). That is 40% of the official board sitting at a lifetime zero
+across every README the program has tried and two models. The gap between 32/67 and a materially higher
+number is not in the cells that wobble; it is in that block, and nothing in the README channel has moved
+it. Any plan to raise the leaderboard number should start by asking what those 27 have in common.
 
 ## Failure Review
 
