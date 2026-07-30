@@ -1263,7 +1263,9 @@ word and it is one command.
 
 **What activity001 actually is:** a **coin-flip cell on a deficient fixture**, not the 98% sentinel its
 record suggested. Post-patch draws: smoke 0.0, arm A 0.0, arm A 1.0 → **1/3**, against 50/51 lifetime
-before. The same fixture, README hash, model, and plugin produce both branches, so the variable is the
+before. *(Updated at `analyze`: the 67-cell board added a 4th post-patch draw, **1.0** — so post-patch
+stands at 2/4. Still a coin flip, still retired as a canary, and the patch stays cleared: three of the
+four post-patch draws now show the cell passing or capable of passing with the patch present.)* The same fixture, README hash, model, and plugin produce both branches, so the variable is the
 solver's *disposition*: R2 (author the missing SQL and build) versus R3 (declare a fixture defect and
 abstain). Both readings are defensible, which is exactly why it flips.
 
