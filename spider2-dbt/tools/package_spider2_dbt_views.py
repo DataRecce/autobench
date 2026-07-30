@@ -321,7 +321,7 @@ def _stage_task(
     example_dir: Path,
     instruction: str,
     eval_line: dict,
-    gold_db: Path,
+    gold_db: Path | None,
     gold_basename: str,
     staging_root: Path,
     base_image: str,
@@ -365,7 +365,9 @@ def _stage_task(
     _vendor_dbt_utils(src / "dbt_project")
 
     # Restore any curated raw-source tables the upstream example omitted (from gold).
-    _restore_missing_sources(src / "dbt_project" / gold_basename, gold_db, task_id)
+    # No-op when there is no local gold to restore from.
+    if gold_db is not None:
+        _restore_missing_sources(src / "dbt_project" / gold_basename, gold_db, task_id)
 
     # environment/Dockerfile (materializer appends COPY dbt_project + preflight)
     (src / "environment" / "Dockerfile").write_text(
@@ -387,7 +389,11 @@ def _stage_task(
     line = json.loads(json.dumps(eval_line))  # deep copy
     line.setdefault("evaluation", {}).setdefault("parameters", {})["gold"] = gold_basename
     (tests_gold / "spider2_eval.jsonl").write_text(json.dumps(line) + "\n")
-    shutil.copy2(gold_db, tests_gold / gold_basename)
+    # No gold DB for the record-only instances — the eval line still ships (it
+    # carries condition_tabs, the answer contract). NOTHING is fabricated in the
+    # gold slot: the materializer's record-only mode keys off the file's absence.
+    if gold_db is not None:
+        shutil.copy2(gold_db, tests_gold / gold_basename)
     return src
 
 
@@ -424,6 +430,15 @@ def main() -> int:
         type=str,
         default="dbt-duckdb==1.9.4",
         help="pip requirement spec for dbt installed into the task image.",
+    )
+    ap.add_argument(
+        "--allow-missing-gold",
+        action="store_true",
+        help="Package instances whose eval line names a gold DB that upstream does not "
+        "ship (airbnb002, biketheft001, google_ads001, gitcoin001) as RECORD-ONLY views: "
+        "they execute and their predicted DuckDB is captured, the verifier scores a "
+        "deterministic 0.0, and a NO_LOCAL_GOLD marker records why. Off by default so the "
+        "materializer's fail-closed guard stays the default for every other task.",
     )
     ap.add_argument(
         "--debug", action="store_true", help="Print full tracebacks for per-task failures."
@@ -466,12 +481,18 @@ def main() -> int:
             skipped.append((task_id, "no eval-spec line"))
             continue
         resolved = _resolve_gold(gold_root, task_id, eval_line)
-        if resolved is None:
-            skipped.append((task_id, "no gold .duckdb"))
-            continue
-        gold_db, gold_basename = resolved
         spec_name = eval_line["evaluation"]["parameters"].get("gold")
-        note = "" if gold_basename == spec_name else f" (gold reconciled {spec_name!r}->{gold_basename!r})"
+        if resolved is None:
+            if not args.allow_missing_gold:
+                skipped.append((task_id, "no gold .duckdb"))
+                continue
+            # Record-only: runnable, not locally gradeable. The leaderboard holds
+            # the real gold, so the answer is still worth submitting.
+            gold_db, gold_basename = None, spec_name or "gold.duckdb"
+            note = "  [RECORD-ONLY: no local gold — captures predicted DB, scores 0.0]"
+        else:
+            gold_db, gold_basename = resolved
+            note = "" if gold_basename == spec_name else f" (gold reconciled {spec_name!r}->{gold_basename!r})"
 
         try:
             src = _stage_task(
@@ -490,6 +511,7 @@ def main() -> int:
                 view_root=out_root,
                 task_slug=task_id,
                 view_mode="copy",
+                record_only_when_gold_missing=args.allow_missing_gold,
             )
             ok.append(task_id)
             print(f"[ok]   {task_id} -> {view.name}{note}")

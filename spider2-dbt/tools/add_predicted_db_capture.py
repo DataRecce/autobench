@@ -78,6 +78,11 @@ def patch_view(view: Path, *, check: bool) -> tuple[str, str]:
     text = test_sh.read_text()
     if MARKER in text:
         return "already", "marker present"
+    if "NO_LOCAL_GOLD" in text:
+        # razorback's record-only verifier (no local gold) already captures the
+        # predicted DuckDB to the same path and scores a deterministic 0.0. There is
+        # no `--predicted-db` argument to key off and nothing to add.
+        return "skip", "record-only view — already captures predicted.duckdb"
     predicted = _predicted_db_arg(text)
     if predicted is None:
         return "FAIL", "could not find exactly one --predicted-db argument"

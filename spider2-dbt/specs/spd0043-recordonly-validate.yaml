@@ -1,0 +1,56 @@
+# ABOUTME: spd0043 PHASE-2 VALIDATION — the 3 instances the razorback record-only mode exists to unlock.
+# ABOUTME: airbnb002 / biketheft001 / google_ads001 ship an eval line but NO gold DuckDB upstream, so they
+# ABOUTME: were unmaterializable before. Each must now: build a view, execute, land
+# ABOUTME: verifier/predicted.duckdb on the host, and record reward 0.0 WITH a NO_LOCAL_GOLD marker.
+# ABOUTME: A 0.0 here is the CORRECT and only possible outcome — there is nothing local to score against.
+# ABOUTME: HARD GATE: the 67-cell board does not launch unless all 3 pass this. The change is grading-path
+# ABOUTME: CODE, so it gets proven on 3 cells before it goes near a 3.5-hour run.
+version: 1
+experiment: spd0043-recordonly-validate
+agent:
+  kind: spacedock_solver
+  runtime: codex
+  model: gpt-5.6-sol
+  sampling:
+    temperature: 0.0
+    top_p: null
+    seed: null
+  solver_workflow: ./solver_workflows/spd0038-compose-6-stabilizers
+  max_turns: 200
+  max_budget_usd: null
+  override_timeout_sec: 2400.0
+  override_setup_timeout_sec: null
+  max_timeout_sec: 2400.0
+  tools_allowed: []
+  tools_denied: []
+  append_system_prompt: null
+  reasoning_effort: xhigh
+  reasoning_summary: null
+  resume_from_freeze: null
+  spacedock_skill_version: 1.0.0
+  prompt_content_hashes: {}
+benchmark:
+  kind: harbor-local
+  tasks_root: /home/kent/autobench/spider2-dbt/_views
+  tasks:
+  - spider2-dbt-airbnb002
+  - spider2-dbt-biketheft001
+  - spider2-dbt-google_ads001
+trials: 1
+concurrency:
+  trials: 4
+observers:
+- kind: jsonl
+  path: events.jsonl
+- kind: stdout
+  path: null
+provenance:
+  pin_model_version: true
+  pin_image_digest: true
+  pin_agent_cli_hash: true
+  pin_git_sha: true
+  model_resolved_version: null
+  model_resolved_at: null
+  prompt_file_hashes: {}
+  plugins: []
+experiment_meta: null
